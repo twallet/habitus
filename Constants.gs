@@ -1,10 +1,10 @@
-const BOT_TOKEN = '7911112689:AAHOg9zV9zOEBJfmaBkN7ElvKy73nOn7TDs';
+const BOT_TOKEN = 'XXX';
 const TELEGRAM_URL = 'https://api.telegram.org/bot' + BOT_TOKEN;
-const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbw-N7K9T_mCZGskPyHq81R36zKIO6iPXIFe-A9KrU59Ysl7Traw3CLDwHOGxtlJjAcf/exec';
+const WEBAPP_URL = 'https://script.google.com/macros/s/XXX/exec';
 const MESSAGE_MAX_SIZE = 4096;
 const TOAST_MAX_SIZE = 199;
 const BOT_ID = 7911112689;
-const EMAIL = 'twallet@gmail.com';
+const EMAIL = 'XXX@gmail.com';
 const LAST_VALUES_SIZE = 10;
 
 /** I18N neutral values */
