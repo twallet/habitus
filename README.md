@@ -24,9 +24,11 @@ Se puede usar gratuitamente (por ahora) el bot [@habitusBotBot](https://t.me/hab
 
 - `/progress`: Genera un reporte de tu progreso para un hábito específico.
 ![Progress](/images/Progress.jpg)
-![Progress Report](/images/Progress Report.jpg)
+![Progress Report](/images/ProgressReport.jpg)
 
-
+Además, el bot te estará enviado recordatorios en los momentos pactados y te mostrará avances al recibir tu respuesta:  
+![Requests](/images/Requests.jpg)
+![Racha](/images/Racha.jpg)
 
 ## Estructura del Código
 El bot está construido con _**Google Apps Script**_, usa la _**API de Telegram**_ y guarda datos en _**Google Sheet**_. Toda la lógica se encuentro en los archivos `.gs`:
