@@ -1,33 +1,33 @@
-# Habitus
-Bot de Telegram para diseñar y seguir hábitos, metas y registros con recordatorios e informes para monitorear progresos.
-Habitus Bot is a Telegram bot built with Google Apps Script that helps you track your habits and other activities.
+# Habitus Bot
+
+## Descripción
+
+Bot de Telegram para diseñar y seguir hábitos, metas y registros con recordatorios periodicos e informes para monitorear progresos, a través de una simple interfaz de chat.
+
+Se puede usar gratuitamente (por ahora) el bot [@habitusBotBot](https://t.me/habitusBotBot).
 
 ## Características
 
-*   **Create new trackings:** Set up new habits you want to monitor.
-*   **Edit existing trackings:** Modify the properties of your trackings.
-*   **Track your progress:** Get reports on your performance.
-*   **Interactive conversations:** The bot guides you through the process with interactive keyboards.
+- **Creación de nuevos seguimientos:** Define nuevos monitoreos de hábitos, metas o registros.
+- **Edición de seguimientos:** Modifica la configuración de tus monitoreos en cualquier momento.
+- **Reportes de progreso:** Visualiza tu progreso a lo largo del tiempo con reportes de monitoreo.
+- **Notificaciones personalizadas:** Recibe recordatorios en los días y horas y con la periodicidad que tú elijas.
+- **Interfaz intuitiva:** Interactúa con el bot a través de comandos y botones en Telegram.
+- **Soporte multi-idioma:** Ingles, Español y Francés por ahora.
 
-## How it works
+## Comandos
 
-The bot is built using Google Apps Script and uses a Google Sheet as its database. All the logic is contained in `.gs` files.
+- `/new`: Inicia el proceso para crear un nuevo monitoreo de hábito.
+- `/edit`: Te permite editar o archivar un seguimiento existente.
+- `/progress`: Genera un reporte de tu progreso para un hábito específico.
 
-*   `main.gs`: The main entry point for the bot, handling all incoming messages from Telegram.
-*   `DB.gs`: Handles all database operations with the Google Sheet.
-*   `Telegram.gs`: A wrapper for the Telegram Bot API.
-*   `Config*.gs`: Manages the conversation flow for different commands.
-*   `User.gs`, `Tracking.gs`, `Request.gs`: Data model classes.
 
-## Setup
+## Estructura del Código
+El bot está construido con _**Google Apps Script**_, usa la _**API de Telegram**_ y guarda datos en _**Google Sheet**_. Toda la lógica se encuentro en los archivos `.gs`:
 
-To run your own instance of this bot, you will need to:
-
-1.  **Create a new Google Apps Script project.**
-2.  **Copy all the `.gs` files from this repository into your project.**
-3.  **Create a new Google Sheet.** This will be your database.
-4.  **Get the ID of your Google Sheet** and update the `HABITUS_ID` constant in `DB.gs`.
-5.  **Create a new Telegram Bot** using the [BotFather](https://t.me/botfather) and get your bot token.
-6.  **Update the `BOT_TOKEN` constant in `Constants.gs`** with your token.
-7.  **Deploy your script as a web app.**
-8.  **Set the webhook for your Telegram bot** to the URL of your deployed web app. You can do this by calling the `setWebhook` function in `main.gs` once.
+-   `main.gs`: El punto de entrada principal de la aplicación. Contiene la lógica para manejar las peticiones `doPost` de Telegram.
+-   `configs/`: Contiene las clases para manejar los flujos de configuración de los comandos (`/new`, `/edit`, `/progress`).
+-   `db/`: La clase `DB.gs` maneja toda la comunicación con la Hoja de Cálculo de Google, que actúa como base de datos.
+-   `model/`: Define las clases de modelo para `User`, `Request`, y `Tracking`, que representan las entidades principales de la aplicación.
+-   `telegram/`: La clase `Telegram.gs` se encarga de las interacciones con la API de Telegram, como enviar mensajes y teclados.
+-   `utils/`: Funciones de utilidad para logging, internacionalización (i18n), etc.
