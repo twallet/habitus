@@ -18,6 +18,9 @@ Se puede usar gratuitamente (por ahora) el bot [@habitusBotBot](https://t.me/hab
 ## Comandos
 
 - `/new`: Inicia el proceso para crear un nuevo monitoreo de hábito.
+
+![New](/images/New.jpg)  
+
 - `/edit`: Te permite editar o archivar un seguimiento existente.
 
 ![Edit](/images/Edit.jpg)
