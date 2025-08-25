@@ -1,8 +1,8 @@
-# Habitus Bot
-
+# Habitus
+Bot de Telegram para diseñar y seguir hábitos, metas y registros con recordatorios e informes para monitorear progresos.
 Habitus Bot is a Telegram bot built with Google Apps Script that helps you track your habits and other activities.
 
-## Features
+## Características
 
 *   **Create new trackings:** Set up new habits you want to monitor.
 *   **Edit existing trackings:** Modify the properties of your trackings.
