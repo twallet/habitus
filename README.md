@@ -23,6 +23,9 @@ Se puede usar gratuitamente (por ahora) el bot [@habitusBotBot](https://t.me/hab
 ![Edit](/images/Edit.jpg)
 
 - `/progress`: Genera un reporte de tu progreso para un hábito específico.
+![Progress](/images/Progress.jpg)
+![Progress Report](/images/Progress Report.jpg)
+
 
 
 ## Estructura del Código
