@@ -59,13 +59,36 @@ class Tracking {
   sendRequest() {
     log.add([`${this.constructor.name}.${Utils.method(this.sendRequest)}`], 2, DEBUG_START);
     user = this.user;
-    const replytext = (this.type === I18N.get('types')[0]) ? '' : I18N.get('reply');
-    const messageId = Telegram.sendMessage(`<i>${this.question}</i>\n${replytext}`, this.requestInlineKeyboard());
-    this.setNext();
-    requestsAdded.push([this, messageId]);
-    modifiedTrackings.push(this);
+    if (this.tooSoonRequest()) {
+      MailApp.sendEmail({
+        to: EMAIL,
+        subject: '☢️ Envío repetido de request',
+        body: `Tracking ${this.id} (${this.question}) for user ${user.id} (${user.name}) has another request <${CHECK_LIMIT}h`,
+        htmlBody: `Tracking ${this.id} (${this.question}) for user ${user.id} (${user.name}) has another request <${CHECK_LIMIT}h`
+      });
+      throw new Error(`Tracking ${this.id}: ${this.question} for user ${user.id}:${user.name} has another request <${CHECK_LIMIT}h`)
+    } else {
+      const replytext = (this.type == YES_NO_TYPE_V) ? '' : I18N.get('reply');
+      const messageId = Telegram.sendMessage(`<i>${this.question}</i>\n${replytext}`, this.requestInlineKeyboard());
+      this.setNext();
+      requestsAdded.push([this, messageId]);
+      modifiedTrackings.push(this);
+    }
     log.add([`${this.constructor.name}.${Utils.method(this.sendRequest)}`], 2, DEBUG_END);
   }
+
+  tooSoonRequest() {
+  log.add([`${this.constructor.name}.${Utils.method(this.tooSoonRequest)}`], 2, DEBUG_START);
+  const lastRequestObj = this.getLastRequest();
+  let tooSoon = false;
+  if (lastRequestObj?.timestamp) {
+    const lastRequest = new Date(lastRequestObj.timestamp);
+    const now = new Date();
+    tooSoon = (lastRequest.getTime() + CHECK_LIMIT * 60 * 60 * 1000) > now.getTime();
+  }
+  log.add([`${this.constructor.name}.${Utils.method(this.tooSoonRequest)}`, tooSoon], 2, DEBUG_RETURN);
+  return tooSoon;
+}
 
   setNext() {
     log.add([`${this.constructor.name}.${Utils.method(this.setNext)}`], 2, DEBUG_START);
