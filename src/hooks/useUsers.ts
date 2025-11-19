@@ -4,16 +4,19 @@ import { User, UserData } from '../models/User';
 const STORAGE_KEY = 'habitus_users';
 
 /**
- * Custom hook for managing users
+ * Custom hook for managing users with localStorage persistence.
+ * Handles loading, saving, and creating users.
  * @returns Object containing users array, createUser function, and initialization status
+ * @public
  */
 export function useUsers() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
   /**
-   * Load users from localStorage on component mount
-   * Initializes User model's nextId based on existing users
+   * Load users from localStorage on component mount.
+   * Initializes User model's nextId based on existing users to prevent ID conflicts.
+   * @internal
    */
   useEffect(() => {
     try {
@@ -21,9 +24,6 @@ export function useUsers() {
       const loadedUsers = stored ? JSON.parse(stored) : [];
       setUsers(loadedUsers);
 
-      /**
-       * Initialize User model's nextId to prevent ID conflicts
-       */
       if (loadedUsers.length > 0) {
         const maxId = Math.max(...loadedUsers.map((user: UserData) => user.id));
         User.initializeNextId(maxId);
@@ -38,9 +38,10 @@ export function useUsers() {
   }, []);
 
   /**
-   * Save users to localStorage
+   * Save users to localStorage.
    * @param usersToSave - Array of user data to save
-   * @throws {Error} If saving to localStorage fails
+   * @throws {@link Error} If saving to localStorage fails
+   * @internal
    */
   const saveUsers = (usersToSave: UserData[]) => {
     try {
@@ -53,11 +54,12 @@ export function useUsers() {
   };
 
   /**
-   * Create a new user and save it to localStorage
-   * @param name - The user's name (max 30 characters)
+   * Create a new user and save it to localStorage.
+   * @param name - The user's name (max 30 characters, will be trimmed)
    * @returns The created user data
-   * @throws {TypeError} If the name is invalid
-   * @throws {Error} If saving to localStorage fails
+   * @throws {@link TypeError} If the name is invalid
+   * @throws {@link Error} If saving to localStorage fails
+   * @public
    */
   const createUser = (name: string): UserData => {
     const user = new User(name);

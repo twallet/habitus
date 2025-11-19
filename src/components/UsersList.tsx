@@ -5,15 +5,18 @@ interface UsersListProps {
 }
 
 /**
- * Component for displaying the list of created users
+ * Component for displaying the list of created users.
+ * Shows an empty state when no users exist.
  * @param props - Component props
  * @param props.users - Array of user data to display
+ * @public
  */
 export function UsersList({ users }: UsersListProps) {
   /**
-   * Escape HTML to prevent XSS attacks
+   * Escape HTML to prevent XSS attacks.
    * @param text - Text to escape
-   * @returns Escaped HTML string
+   * @returns Escaped HTML string safe for rendering
+   * @internal
    */
   const escapeHtml = (text: string): string => {
     const div = document.createElement('div');

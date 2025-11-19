@@ -7,12 +7,13 @@ interface MessageProps {
 }
 
 /**
- * Message component for displaying success and error messages
- * Success messages auto-hide after 5 seconds
+ * Message component for displaying success and error messages.
+ * Success messages auto-hide after 5 seconds, error messages remain until manually dismissed.
  * @param props - Component props
  * @param props.text - Message text to display
  * @param props.type - Message type ('success' or 'error')
  * @param props.onHide - Callback function called when message should be hidden
+ * @public
  */
 export function Message({ text, type, onHide }: MessageProps) {
   useEffect(() => {
@@ -24,9 +25,7 @@ export function Message({ text, type, onHide }: MessageProps) {
         clearTimeout(timer);
       };
     }
-    /**
-     * Explicit return for error type (errors don't auto-hide)
-     */
+    // Error messages don't auto-hide
     return undefined;
   }, [type, onHide]);
 

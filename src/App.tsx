@@ -6,16 +6,20 @@ import { useUsers } from './hooks/useUsers';
 import './App.css';
 
 /**
- * Main application component
- * Manages user creation, displays messages, and renders user list
+ * Main application component.
+ * Manages user creation, displays messages, and renders user list.
+ * Shows loading state while initializing users from localStorage.
+ * @public
  */
 function App() {
   const { users, createUser, isInitialized } = useUsers();
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   /**
-   * Handle user creation from form submission
+   * Handle user creation from form submission.
+   * Displays success message with user details or error message if creation fails.
    * @param name - The user's name to create
+   * @internal
    */
   const handleUserCreate = (name: string) => {
     try {
@@ -33,8 +37,9 @@ function App() {
   };
 
   /**
-   * Handle error messages from form validation
+   * Handle error messages from form validation.
    * @param errorMessage - Error message to display
+   * @internal
    */
   const handleError = (errorMessage: string) => {
     setMessage({
@@ -44,7 +49,8 @@ function App() {
   };
 
   /**
-   * Hide the current message
+   * Hide the current message.
+   * @internal
    */
   const handleHideMessage = () => {
     setMessage(null);

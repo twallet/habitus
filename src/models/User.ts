@@ -1,5 +1,6 @@
 /**
- * User model class
+ * User model class representing a user in the system.
+ * @public
  */
 export class User {
   private static nextId: number = 1;
@@ -7,14 +8,16 @@ export class User {
   private readonly _name: string;
 
   /**
-   * Maximum allowed length for user names
+   * Maximum allowed length for user names.
+   * @public
    */
   static readonly MAX_NAME_LENGTH: number = 30;
 
   /**
-   * Creates a new User instance
-   * @param name - The user's name
-   * @throws {TypeError} If the name is invalid
+   * Creates a new User instance.
+   * @param name - The user's name (will be trimmed and validated)
+   * @throws {@link TypeError} If the name is invalid (not a string, empty, or exceeds max length)
+   * @public
    */
   constructor(name: string) {
     this._name = User.validateName(name);
@@ -22,24 +25,28 @@ export class User {
   }
 
   /**
-   * Gets the user's ID
-   * @returns The user ID
+   * Gets the user's unique identifier.
+   * @returns The user ID (sequential number)
+   * @public
    */
   get id(): number {
     return this._id;
   }
 
   /**
-   * Gets the user's name
-   * @returns The user name
+   * Gets the user's name.
+   * @returns The user name (trimmed and validated)
+   * @public
    */
   get name(): string {
     return this._name;
   }
 
   /**
-   * Initialize the nextId counter based on existing users
+   * Initialize the nextId counter based on existing users.
+   * This prevents ID conflicts when loading users from storage.
    * @param maxId - The maximum ID from existing users
+   * @public
    */
   static initializeNextId(maxId: number): void {
     if (maxId >= 0) {
@@ -48,10 +55,14 @@ export class User {
   }
 
   /**
-   * Validates a user name
+   * Validates a user name according to the rules:
+   * - Must be a string
+   * - Must not be empty after trimming
+   * - Must not exceed MAX_NAME_LENGTH characters
    * @param name - The name to validate
    * @returns The trimmed and validated name
-   * @throws {TypeError} If the name is invalid
+   * @throws {@link TypeError} If the name is invalid
+   * @internal
    */
   private static validateName(name: string): string {
     if (typeof name !== "string") {
@@ -74,7 +85,9 @@ export class User {
 }
 
 /**
- * User data interface for storage
+ * User data interface for storage and serialization.
+ * Used when persisting users to localStorage.
+ * @public
  */
 export interface UserData {
   id: number;

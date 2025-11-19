@@ -143,15 +143,19 @@ This project follows strict coding standards to ensure code quality and maintain
 
 ### Comments
 
-- **All comments must be in English and use JSDoc format**
-  - Use JSDoc comments for functions, classes, and complex logic
+- **All comments must be in English and use TSDoc format**
+  - Use TSDoc comments for functions, classes, and complex logic
+  - TSDoc is the recommended standard for TypeScript projects (by Microsoft)
+  - Mark public APIs with `@public`, internal implementations with `@internal`
+  - Use `@throws` with `{@link ErrorType}` for error documentation
   - Example:
     ```typescript
     /**
      * Creates a new user with the given name.
      * @param name - The user's name (max 30 characters)
      * @returns The created User instance
-     * @throws Error if name is invalid
+     * @throws {@link TypeError} If the name is invalid
+     * @public
      */
     ```
 
@@ -174,6 +178,13 @@ This project follows strict coding standards to ensure code quality and maintain
   - Always run `npm test` before committing code
   - Ensure all tests pass before submitting changes
   - Use `npm run test:coverage` to verify test coverage
+
+- **Verify test coverage after each code change and add tests as needed**
+  - After making code changes, run `npm run test:coverage` to check coverage
+  - Review the coverage report to identify untested code paths
+  - Add tests for any new or modified code that lacks adequate coverage
+  - Aim for high coverage (ideally >80%) while ensuring tests are meaningful
+  - Focus on testing critical business logic, edge cases, and error handling
 
 ### Code Quality
 
