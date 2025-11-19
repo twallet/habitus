@@ -73,6 +73,30 @@ npm start
 
 The database file is stored in `data/habitus.db`. The schema is automatically created on server startup.
 
+## Testing
+
+Run tests:
+
+```bash
+npm test
+```
+
+**Note**: Some tests require `better-sqlite3` to be compiled, which requires Visual Studio Build Tools on Windows. If you encounter compilation errors, you can still run tests that don't require the database:
+
+```bash
+npm test -- src/models/__tests__/User.test.ts
+```
+
+### Test Coverage
+
+The project includes tests for:
+
+- **User Model** - Name validation and rules
+- **UserService** - Database operations (requires better-sqlite3)
+- **API Routes** - Endpoint testing (requires better-sqlite3)
+
 ## Environment Variables
 
 - `PORT` - Server port (default: 3001)
+- `DB_PATH` - Database file path (default: ./data/habitus.db)
+- `NODE_ENV` - Environment (development/production)
