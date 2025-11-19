@@ -12,10 +12,6 @@ dist
 dist-ssr
 *.local
 
-# Testing
-coverage
-.nyc_output
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -27,3 +23,17 @@ coverage
 *.sln
 *.sw?
 
+# Environment variables
+.env
+.env.local
+.env.production.local
+.env.development.local
+
+# Testing
+coverage
+.nyc_output
+
+# Database
+backend/data/
+frontend/dist/
+backend/dist/

@@ -12,6 +12,13 @@ module.exports = {
     "^@/(.*)$": "<rootDir>/src/$1",
     "\\.(css|less|scss|sass)$": "<rootDir>/src/__mocks__/styleMock.js",
   },
+  globals: {
+    "import.meta": {
+      env: {
+        VITE_API_BASE_URL: "http://localhost:3001",
+      },
+    },
+  },
   setupFilesAfterEnv: ["<rootDir>/src/setupTests.ts"],
   transform: {
     "^.+\\.tsx?$": [

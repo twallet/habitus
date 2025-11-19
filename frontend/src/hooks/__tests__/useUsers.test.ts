@@ -1,0 +1,217 @@
+import { renderHook, act, waitFor } from '@testing-library/react';
+import { useUsers } from '../useUsers';
+import { API_ENDPOINTS } from '../../config/api';
+
+// Mock fetch
+global.fetch = jest.fn();
+
+describe('useUsers', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (global.fetch as jest.Mock).mockClear();
+  });
+
+  it('should initialize with empty users array', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    });
+
+    const { result } = renderHook(() => useUsers());
+
+    await waitFor(() => {
+      expect(result.current.isInitialized).toBe(true);
+    });
+
+    expect(result.current.users).toEqual([]);
+    expect(global.fetch).toHaveBeenCalledWith(API_ENDPOINTS.users);
+  });
+
+  it('should load users from API on mount', async () => {
+    const storedUsers = [
+      { id: 1, name: 'User 1' },
+      { id: 2, name: 'User 2' },
+    ];
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => storedUsers,
+    });
+
+    const { result } = renderHook(() => useUsers());
+
+    await waitFor(() => {
+      expect(result.current.isInitialized).toBe(true);
+    });
+
+    expect(result.current.users).toEqual(storedUsers);
+    expect(global.fetch).toHaveBeenCalledWith(API_ENDPOINTS.users);
+  });
+
+  it('should create a new user', async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [],
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: 1, name: 'New User' }),
+      });
+
+    const { result } = renderHook(() => useUsers());
+
+    await waitFor(() => {
+      expect(result.current.isInitialized).toBe(true);
+    });
+
+    let newUser: { id: number; name: string };
+    await act(async () => {
+      newUser = await result.current.createUser('New User');
+    });
+
+    expect(newUser!.name).toBe('New User');
+    expect(newUser!.id).toBe(1);
+    expect(result.current.users).toHaveLength(1);
+    expect(result.current.users[0].name).toBe('New User');
+    expect(result.current.users[0].id).toBe(1);
+  });
+
+  it('should save users to API when creating', async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [],
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: 1, name: 'Test User' }),
+      });
+
+    const { result } = renderHook(() => useUsers());
+
+    await waitFor(() => {
+      expect(result.current.isInitialized).toBe(true);
+    });
+
+    await act(async () => {
+      await result.current.createUser('Test User');
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(API_ENDPOINTS.users, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name: 'Test User' }),
+    });
+    expect(result.current.users).toHaveLength(1);
+    expect(result.current.users[0].name).toBe('Test User');
+  });
+
+  it('should handle multiple users', async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [],
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: 1, name: 'User 1' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: 2, name: 'User 2' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: 3, name: 'User 3' }),
+      });
+
+    const { result } = renderHook(() => useUsers());
+
+    await waitFor(() => {
+      expect(result.current.isInitialized).toBe(true);
+    });
+
+    await act(async () => {
+      await result.current.createUser('User 1');
+    });
+
+    await act(async () => {
+      await result.current.createUser('User 2');
+    });
+
+    await act(async () => {
+      await result.current.createUser('User 3');
+    });
+
+    expect(result.current.users).toHaveLength(3);
+    expect(result.current.users[0].name).toBe('User 1');
+    expect(result.current.users[1].name).toBe('User 2');
+    expect(result.current.users[2].name).toBe('User 3');
+  });
+
+  it('should handle API errors gracefully', async () => {
+    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
+
+    const { result } = renderHook(() => useUsers());
+
+    await waitFor(() => {
+      expect(result.current.isInitialized).toBe(true);
+    });
+
+    expect(result.current.users).toEqual([]);
+    expect(result.current.error).toBeTruthy();
+  });
+
+  it('should throw error when API request fails', async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [],
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error: 'Error creating user' }),
+      });
+
+    const { result } = renderHook(() => useUsers());
+
+    await waitFor(() => {
+      expect(result.current.isInitialized).toBe(true);
+    });
+
+    await expect(async () => {
+      await act(async () => {
+        await result.current.createUser('Test User');
+      });
+    }).rejects.toThrow();
+  });
+
+  it('should handle API error responses', async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [],
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: async () => ({ error: 'Name is required' }),
+      });
+
+    const { result } = renderHook(() => useUsers());
+
+    await waitFor(() => {
+      expect(result.current.isInitialized).toBe(true);
+    });
+
+    await expect(async () => {
+      await act(async () => {
+        await result.current.createUser('');
+      });
+    }).rejects.toThrow('Name is required');
+  });
+});
+

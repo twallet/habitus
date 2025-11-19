@@ -2,7 +2,7 @@ import { useState, FormEvent } from 'react';
 import { User } from '../models/User';
 
 interface UserFormProps {
-  onSubmit: (name: string) => void;
+  onSubmit: (name: string) => void | Promise<void>;
   onError: (message: string) => void;
 }
 
@@ -34,7 +34,8 @@ export function UserForm({ onSubmit, onError }: UserFormProps) {
     }
 
     try {
-      new User(trimmedName);
+      // Validate name using User model
+      User.validateName(trimmedName);
       onSubmit(trimmedName);
       setName('');
       setCharCount(0);

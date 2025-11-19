@@ -1,42 +1,37 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../App';
+import { API_ENDPOINTS } from '../config/api';
 
-// Mock localStorage
-const localStorageMock = (() => {
-  let store: Record<string, string> = {};
-
-  return {
-    getItem: (key: string) => store[key] || null,
-    setItem: (key: string, value: string) => {
-      store[key] = value.toString();
-    },
-    removeItem: (key: string) => {
-      delete store[key];
-    },
-    clear: () => {
-      store = {};
-    },
-  };
-})();
-
-Object.defineProperty(window, 'localStorage', {
-  value: localStorageMock,
-});
+// Mock fetch
+global.fetch = jest.fn();
 
 describe('App', () => {
   beforeEach(() => {
-    localStorage.clear();
+    jest.clearAllMocks();
+    (global.fetch as jest.Mock).mockClear();
   });
 
-  it('should render header', () => {
+  it('should render header', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    });
+
     render(<App />);
 
-    expect(screen.getByRole('heading', { name: /habitus/i })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /habitus/i })).toBeInTheDocument();
+    });
     expect(screen.getByText(/create your user to get started/i)).toBeInTheDocument();
   });
 
   it('should show loading state initially', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    });
+
     render(<App />);
     // Loading state might be too fast to catch, so we just verify the component renders
     // and moves to the initialized state quickly
@@ -46,6 +41,11 @@ describe('App', () => {
   });
 
   it('should render form after initialization', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    });
+
     render(<App />);
 
     await waitFor(() => {
@@ -55,6 +55,16 @@ describe('App', () => {
 
   it('should create and display a user', async () => {
     const user = userEvent.setup();
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [],
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: 1, name: 'John Doe' }),
+      });
+
     render(<App />);
 
     await waitFor(() => {
@@ -74,6 +84,11 @@ describe('App', () => {
 
   it('should show error message for invalid input', async () => {
     const user = userEvent.setup();
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    });
+
     render(<App />);
 
     await waitFor(() => {
@@ -96,6 +111,20 @@ describe('App', () => {
 
   it('should display list of created users', async () => {
     const user = userEvent.setup();
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [],
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: 1, name: 'User 1' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: 2, name: 'User 2' }),
+      });
+
     render(<App />);
 
     await waitFor(() => {
@@ -123,12 +152,16 @@ describe('App', () => {
     expect(screen.getByText('User 2')).toBeInTheDocument();
   });
 
-  it('should load existing users from localStorage', async () => {
+  it('should load existing users from API', async () => {
     const existingUsers = [
       { id: 1, name: 'Existing User 1' },
       { id: 2, name: 'Existing User 2' },
     ];
-    localStorage.setItem('habitus_users', JSON.stringify(existingUsers));
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => existingUsers,
+    });
 
     render(<App />);
 
@@ -136,6 +169,8 @@ describe('App', () => {
       expect(screen.getByText('Existing User 1')).toBeInTheDocument();
       expect(screen.getByText('Existing User 2')).toBeInTheDocument();
     });
+
+    expect(global.fetch).toHaveBeenCalledWith(API_ENDPOINTS.users);
   });
 });
 

@@ -8,7 +8,7 @@ import './App.css';
 /**
  * Main application component.
  * Manages user creation, displays messages, and renders user list.
- * Shows loading state while initializing users from localStorage.
+ * Shows loading state while initializing users from API.
  * @public
  */
 function App() {
@@ -21,9 +21,9 @@ function App() {
    * @param name - The user's name to create
    * @internal
    */
-  const handleUserCreate = (name: string) => {
+  const handleUserCreate = async (name: string) => {
     try {
-      const user = createUser(name);
+      const user = await createUser(name);
       setMessage({
         text: `User "${user.name}" created successfully with ID: ${user.id}`,
         type: 'success',
