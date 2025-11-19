@@ -9,6 +9,9 @@
         ],
         "module": "ESNext",
         "skipLibCheck": true,
+        /* Module interoperability */
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
         /* Bundler mode */
         "moduleResolution": "bundler",
         "allowImportingTsExtensions": true,
