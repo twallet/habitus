@@ -27,28 +27,34 @@ app.get('/health', (_req: express.Request, res: express.Response) => {
 /**
  * Initialize database and start server.
  */
-initializeDatabase();
+initializeDatabase()
+  .then(() => {
+    const server = app.listen(PORT, () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
 
-const server = app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+    /**
+     * Graceful shutdown.
+     */
+    process.on('SIGTERM', () => {
+      console.log('SIGTERM signal received: closing HTTP server');
+      server.close(() => {
+        console.log('HTTP server closed');
+        closeDatabase().catch(console.error);
+      });
+    });
 
-/**
- * Graceful shutdown.
- */
-process.on('SIGTERM', () => {
-  console.log('SIGTERM signal received: closing HTTP server');
-  server.close(() => {
-    console.log('HTTP server closed');
-    closeDatabase();
+    process.on('SIGINT', () => {
+      console.log('SIGINT signal received: closing HTTP server');
+      server.close(() => {
+        console.log('HTTP server closed');
+        closeDatabase().catch(console.error);
+      });
+    });
+  })
+  .catch((error) => {
+    console.error('Failed to initialize database:', error);
+    process.exit(1);
   });
-});
 
-process.on('SIGINT', () => {
-  console.log('SIGINT signal received: closing HTTP server');
-  server.close(() => {
-    console.log('HTTP server closed');
-    closeDatabase();
-  });
-});
 

@@ -1,4 +1,4 @@
-import { getDatabase } from '../db/database.js';
+import { dbPromises } from '../db/database.js';
 import { User, UserData } from '../models/User.js';
 
 /**
@@ -8,13 +8,13 @@ import { User, UserData } from '../models/User.js';
 export class UserService {
   /**
    * Get all users from the database.
-   * @returns Array of user data
+   * @returns Promise resolving to array of user data
    * @public
    */
-  static getAllUsers(): UserData[] {
-    const db = getDatabase();
-    const stmt = db.prepare('SELECT id, name, created_at FROM users ORDER BY id');
-    const rows = stmt.all() as Array<{ id: number; name: string; created_at: string }>;
+  static async getAllUsers(): Promise<UserData[]> {
+    const rows = await dbPromises.all<{ id: number; name: string; created_at: string }>(
+      'SELECT id, name, created_at FROM users ORDER BY id'
+    );
     
     return rows.map(row => ({
       id: row.id,
@@ -26,19 +26,26 @@ export class UserService {
   /**
    * Create a new user in the database.
    * @param name - The user's name (will be validated and trimmed)
-   * @returns The created user data
+   * @returns Promise resolving to the created user data
    * @throws {@link TypeError} If the name is invalid
    * @public
    */
-  static createUser(name: string): UserData {
+  static async createUser(name: string): Promise<UserData> {
     const validatedName = User.validateName(name);
-    const db = getDatabase();
     
-    const stmt = db.prepare('INSERT INTO users (name) VALUES (?)');
-    const result = stmt.run(validatedName);
+    const result = await dbPromises.run(
+      'INSERT INTO users (name) VALUES (?)',
+      [validatedName]
+    );
     
-    const selectStmt = db.prepare('SELECT id, name, created_at FROM users WHERE id = ?');
-    const row = selectStmt.get(result.lastInsertRowid) as { id: number; name: string; created_at: string };
+    const row = await dbPromises.get<{ id: number; name: string; created_at: string }>(
+      'SELECT id, name, created_at FROM users WHERE id = ?',
+      [result.lastID]
+    );
+    
+    if (!row) {
+      throw new Error('Failed to retrieve created user');
+    }
     
     return {
       id: row.id,
@@ -50,13 +57,14 @@ export class UserService {
   /**
    * Get a user by ID.
    * @param id - The user ID
-   * @returns User data or null if not found
+   * @returns Promise resolving to user data or null if not found
    * @public
    */
-  static getUserById(id: number): UserData | null {
-    const db = getDatabase();
-    const stmt = db.prepare('SELECT id, name, created_at FROM users WHERE id = ?');
-    const row = stmt.get(id) as { id: number; name: string; created_at: string } | undefined;
+  static async getUserById(id: number): Promise<UserData | null> {
+    const row = await dbPromises.get<{ id: number; name: string; created_at: string }>(
+      'SELECT id, name, created_at FROM users WHERE id = ?',
+      [id]
+    );
     
     if (!row) {
       return null;

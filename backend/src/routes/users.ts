@@ -9,9 +9,9 @@ const router = Router();
  * @route GET /api/users
  * @returns {UserData[]} Array of users
  */
-router.get('/', (_req: Request, res: Response) => {
+router.get('/', async (_req: Request, res: Response) => {
   try {
-    const users = UserService.getAllUsers();
+    const users = await UserService.getAllUsers();
     res.json(users);
   } catch (error) {
     console.error('Error fetching users:', error);
@@ -26,7 +26,7 @@ router.get('/', (_req: Request, res: Response) => {
  * @body {string} name - The user's name
  * @returns {UserData} The created user
  */
-router.post('/', (req: Request, res: Response) => {
+router.post('/', async (req: Request, res: Response) => {
   try {
     const { name } = req.body;
 
@@ -34,7 +34,7 @@ router.post('/', (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Name is required and must be a string' });
     }
 
-    const user = UserService.createUser(name);
+    const user = await UserService.createUser(name);
     res.status(201).json(user);
   } catch (error) {
     if (error instanceof TypeError) {
@@ -52,7 +52,7 @@ router.post('/', (req: Request, res: Response) => {
  * @param {number} id - The user ID
  * @returns {UserData} The user data
  */
-router.get('/:id', (req: Request, res: Response) => {
+router.get('/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id, 10);
     
@@ -60,7 +60,7 @@ router.get('/:id', (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid user ID' });
     }
 
-    const user = UserService.getUserById(id);
+    const user = await UserService.getUserById(id);
     
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
