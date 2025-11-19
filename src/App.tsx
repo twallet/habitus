@@ -7,11 +7,16 @@ import './App.css';
 
 /**
  * Main application component
+ * Manages user creation, displays messages, and renders user list
  */
 function App() {
   const { users, createUser, isInitialized } = useUsers();
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
+  /**
+   * Handle user creation from form submission
+   * @param name - The user's name to create
+   */
   const handleUserCreate = (name: string) => {
     try {
       const user = createUser(name);
@@ -27,6 +32,10 @@ function App() {
     }
   };
 
+  /**
+   * Handle error messages from form validation
+   * @param errorMessage - Error message to display
+   */
   const handleError = (errorMessage: string) => {
     setMessage({
       text: errorMessage,
@@ -34,6 +43,9 @@ function App() {
     });
   };
 
+  /**
+   * Hide the current message
+   */
   const handleHideMessage = () => {
     setMessage(null);
   };

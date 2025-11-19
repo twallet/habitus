@@ -55,7 +55,7 @@ describe('User', () => {
       const longName = 'a'.repeat(User.MAX_NAME_LENGTH + 1);
       expect(() => new User(longName)).toThrow(TypeError);
       expect(() => new User(longName)).toThrow(
-        `Player name must be smaller than ${User.MAX_NAME_LENGTH} characters`
+        `User name must be smaller than ${User.MAX_NAME_LENGTH} characters`
       );
     });
 

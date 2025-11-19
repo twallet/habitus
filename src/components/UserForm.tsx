@@ -8,11 +8,19 @@ interface UserFormProps {
 
 /**
  * Form component for creating a new user
+ * @param props - Component props
+ * @param props.onSubmit - Callback function called when form is submitted with valid name
+ * @param props.onError - Callback function called when validation fails or error occurs
  */
 export function UserForm({ onSubmit, onError }: UserFormProps) {
   const [name, setName] = useState('');
   const [charCount, setCharCount] = useState(0);
 
+  /**
+   * Handle form submission
+   * Validates the user name and calls onSubmit if valid
+   * @param e - Form submission event
+   */
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const trimmedName = name.trim();
@@ -23,7 +31,9 @@ export function UserForm({ onSubmit, onError }: UserFormProps) {
     }
 
     try {
-      // Validate using User model
+      /**
+       * Validate using User model constructor
+       */
       new User(trimmedName);
       onSubmit(trimmedName);
       setName('');

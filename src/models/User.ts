@@ -55,18 +55,18 @@ export class User {
    */
   private static validateName(name: string): string {
     if (typeof name !== "string") {
-      throw new TypeError("Player name must be a string");
+      throw new TypeError("User name must be a string");
     }
 
     if (name.length > User.MAX_NAME_LENGTH) {
       throw new TypeError(
-        `Player name must be smaller than ${User.MAX_NAME_LENGTH} characters`
+        `User name must be smaller than ${User.MAX_NAME_LENGTH} characters`
       );
     }
 
     const trimmedName = name.trim();
     if (!trimmedName) {
-      throw new TypeError("Player name must not be empty");
+      throw new TypeError("User name must not be empty");
     }
 
     return trimmedName;

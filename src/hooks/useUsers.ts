@@ -5,13 +5,15 @@ const STORAGE_KEY = 'habitus_users';
 
 /**
  * Custom hook for managing users
+ * @returns Object containing users array, createUser function, and initialization status
  */
 export function useUsers() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
   /**
-   * Load users from localStorage
+   * Load users from localStorage on component mount
+   * Initializes User model's nextId based on existing users
    */
   useEffect(() => {
     try {
@@ -19,7 +21,9 @@ export function useUsers() {
       const loadedUsers = stored ? JSON.parse(stored) : [];
       setUsers(loadedUsers);
 
-      // Initialize User model's nextId
+      /**
+       * Initialize User model's nextId to prevent ID conflicts
+       */
       if (loadedUsers.length > 0) {
         const maxId = Math.max(...loadedUsers.map((user: UserData) => user.id));
         User.initializeNextId(maxId);
@@ -35,6 +39,8 @@ export function useUsers() {
 
   /**
    * Save users to localStorage
+   * @param usersToSave - Array of user data to save
+   * @throws {Error} If saving to localStorage fails
    */
   const saveUsers = (usersToSave: UserData[]) => {
     try {
@@ -47,7 +53,11 @@ export function useUsers() {
   };
 
   /**
-   * Create a new user
+   * Create a new user and save it to localStorage
+   * @param name - The user's name (max 30 characters)
+   * @returns The created user data
+   * @throws {TypeError} If the name is invalid
+   * @throws {Error} If saving to localStorage fails
    */
   const createUser = (name: string): UserData => {
     const user = new User(name);
