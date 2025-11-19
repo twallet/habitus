@@ -169,6 +169,10 @@ describe('useUsers', () => {
       expect(result.current.isInitialized).toBe(true);
     });
 
+    // Suppress console.error for this test since we're testing error handling
+    const originalConsoleError = console.error;
+    console.error = jest.fn();
+
     // Mock localStorage.setItem to throw an error
     const originalSetItem = localStorage.setItem;
     localStorage.setItem = jest.fn(() => {
@@ -183,6 +187,7 @@ describe('useUsers', () => {
 
     // Restore
     localStorage.setItem = originalSetItem;
+    console.error = originalConsoleError;
   });
 });
 
