@@ -17,6 +17,8 @@ Modern web application built with React, TypeScript, and Vite for creating and m
 - **React 18** - UI library
 - **TypeScript** - Type safety
 - **Vite** - Build tool and dev server
+- **Jest** - Testing framework
+- **React Testing Library** - Component testing utilities
 - **ESLint** - Code linting
 
 ## Getting Started
@@ -66,22 +68,28 @@ npm run preview
 ```
 habitus/
 ├── src/
-│   ├── components/       # React components
-│   │   ├── UserForm.tsx  # Form for creating users
-│   │   ├── Message.tsx   # Success/error messages
-│   │   └── UsersList.tsx # List of created users
-│   ├── hooks/            # Custom React hooks
-│   │   └── useUsers.ts   # User management hook
-│   ├── models/           # Data models
-│   │   └── User.ts       # User model class
-│   ├── App.tsx           # Main application component
-│   ├── App.css           # Application styles
-│   └── main.tsx          # Application entry point
-├── index.html            # HTML template
-├── package.json          # Dependencies and scripts
-├── tsconfig.json         # TypeScript configuration
-├── vite.config.ts        # Vite configuration
-└── README.md             # This file
+│   ├── components/              # React components
+│   │   ├── __tests__/          # Component tests
+│   │   ├── UserForm.tsx        # Form for creating users
+│   │   ├── Message.tsx         # Success/error messages
+│   │   └── UsersList.tsx       # List of created users
+│   ├── hooks/                   # Custom React hooks
+│   │   ├── __tests__/          # Hook tests
+│   │   └── useUsers.ts         # User management hook
+│   ├── models/                  # Data models
+│   │   ├── __tests__/          # Model tests
+│   │   └── User.ts             # User model class
+│   ├── __tests__/              # App tests
+│   ├── App.tsx                 # Main application component
+│   ├── App.css                 # Application styles
+│   ├── main.tsx                # Application entry point
+│   └── setupTests.ts           # Jest setup
+├── index.html                  # HTML template
+├── package.json                # Dependencies and scripts
+├── tsconfig.json               # TypeScript configuration
+├── jest.config.js              # Jest configuration
+├── vite.config.ts              # Vite configuration
+└── README.md                   # This file
 ```
 
 ## Usage
@@ -94,12 +102,40 @@ habitus/
 
 Users are saved in the browser's localStorage and persist between sessions.
 
+## Testing
+
+The project includes comprehensive tests using Jest and React Testing Library.
+
+### Run Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
+```
+
+### Test Coverage
+
+Tests cover:
+
+- **User Model** - Validation, ID generation, and initialization
+- **useUsers Hook** - User creation, localStorage persistence, and error handling
+- **React Components** - UserForm, Message, UsersList, and App integration
+
 ## Scripts
 
 - `npm run dev` - Start development server
 - `npm run build` - Build for production
 - `npm run preview` - Preview production build
 - `npm run lint` - Run ESLint
+- `npm test` - Run tests
+- `npm run test:watch` - Run tests in watch mode
+- `npm run test:coverage` - Run tests with coverage report
 
 ## License
 
