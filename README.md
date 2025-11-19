@@ -137,6 +137,51 @@ Tests cover:
 - `npm run test:watch` - Run tests in watch mode
 - `npm run test:coverage` - Run tests with coverage report
 
+## Code Standards
+
+This project follows strict coding standards to ensure code quality and maintainability:
+
+### Comments
+
+- **All comments must be in English and use JSDoc format**
+  - Use JSDoc comments for functions, classes, and complex logic
+  - Example:
+    ```typescript
+    /**
+     * Creates a new user with the given name.
+     * @param name - The user's name (max 30 characters)
+     * @returns The created User instance
+     * @throws Error if name is invalid
+     */
+    ```
+
+### Code Language
+
+- **All code must be in English, including error messages**
+  - Variable names, function names, and all identifiers must be in English
+  - Error messages and user-facing text must be in English
+  - Console logs and debug messages must be in English
+
+### Testing
+
+- **Add or adjust relevant test cases after making code changes**
+
+  - When adding new features, add corresponding test cases
+  - When modifying existing code, update tests to reflect changes
+  - Ensure tests cover edge cases and error scenarios
+
+- **Run all test suites after making code changes**
+  - Always run `npm test` before committing code
+  - Ensure all tests pass before submitting changes
+  - Use `npm run test:coverage` to verify test coverage
+
+### Code Quality
+
+- **Check for dead/duplicated code after making code changes**
+  - Remove unused imports, functions, and variables
+  - Refactor duplicated code into reusable functions/components
+  - Use ESLint to identify unused code: `npm run lint`
+
 ## License
 
 MIT
