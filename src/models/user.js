@@ -1,9 +1,19 @@
 export class User {
+  // Instance variables (private fields)
   #id;
   #name;
 
+  // Static class variable (shared across all instances)
+  static #nextId = 1;
+
+  // Static constant (read-only)
+  static get MAX_NAME_LENGTH() {
+    return 30;
+  }
+
   constructor(name) {
     this.#name = User.#validateName(name);
+    this.#id = User.#nextId++;
   }
 
   get id() {
@@ -14,16 +24,15 @@ export class User {
     return this.#name;
   }
 
-  /**
-   * Validates card value and game definition.
-   * @param {number} value - The card value to validate.
-   * @param {Object} game - The game definition to validate.
-   * @throws {Error} If validation fails.
-   * @private
-   */
   static #validateName(name) {
     if (typeof name !== "string") {
       throw new TypeError("Player name must be a string");
+    }
+
+    if (name.length > User.MAX_NAME_LENGTH) {
+      throw new TypeError(
+        `Player name must be smaller than ${User.MAX_NAME_LENGTH} characters`
+      );
     }
 
     const trimmedName = name.trim();
