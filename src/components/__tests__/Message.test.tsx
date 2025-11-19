@@ -10,11 +10,15 @@ describe('Message', () => {
   });
 
   afterEach(() => {
-    // Cleanup React components first
-    cleanup();
-    // Run any pending timers before cleaning up
-    jest.runOnlyPendingTimers();
+    // Run all pending timers to completion
+    jest.runAllTimers();
     // Clear all timers
+    jest.clearAllTimers();
+    // Cleanup React components (this will trigger cleanup functions)
+    cleanup();
+    // Run timers one more time after cleanup to catch any cleanup timers
+    jest.runAllTimers();
+    // Clear again
     jest.clearAllTimers();
     // Switch back to real timers
     jest.useRealTimers();

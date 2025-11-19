@@ -15,8 +15,12 @@ export function Message({ text, type, onHide }: MessageProps) {
       const timer = setTimeout(() => {
         onHide();
       }, 5000);
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+      };
     }
+    // Explicit return for error type
+    return undefined;
   }, [type, onHide]);
 
   if (!text) {
