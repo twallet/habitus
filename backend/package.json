@@ -9,21 +9,27 @@
     "test": "jest --forceExit --passWithNoTests"
   },
   "dependencies": {
-    "express": "^4.18.2",
+    "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
-    "sqlite3": "^5.1.7"
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "sqlite3": "^5.1.7",
+    "validator": "^13.15.23"
   },
   "devDependencies": {
-    "@types/express": "^4.17.21",
+    "@types/bcrypt": "^6.0.0",
     "@types/cors": "^2.8.17",
-    "@types/sqlite3": "^3.1.11",
-    "@types/node": "^20.10.6",
-    "@types/supertest": "^6.0.2",
-    "tsx": "^4.7.0",
-    "typescript": "^5.2.2",
-    "jest": "^29.7.0",
+    "@types/express": "^4.17.21",
     "@types/jest": "^29.5.11",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^20.10.6",
+    "@types/sqlite3": "^3.1.11",
+    "@types/supertest": "^6.0.2",
+    "@types/validator": "^13.15.10",
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3",
     "ts-jest": "^29.1.1",
-    "supertest": "^6.3.3"
+    "tsx": "^4.7.0",
+    "typescript": "^5.2.2"
   }
 }
