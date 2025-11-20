@@ -68,10 +68,10 @@ export class EmailService {
       const magicLink = `${FRONTEND_URL}/auth/verify-magic-link?token=${token}`;
       const subject = isRegistration
         ? "Welcome to Habitus! Verify your email to complete registration"
-        : "Your login link";
+        : "Your login link to Habitus";
       const text = isRegistration
         ? `Welcome to Habitus! Click the link below to verify your email and complete your registration:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\n\nIf you didn't request this, please ignore this email.`
-        : `Click the link below to log in:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\n\nIf you didn't request this, please ignore this email.`;
+        : `Click the link below to log in Habitus:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\n\nIf you didn't request this, please ignore this email.`;
 
       await mailTransporter.sendMail({
         from: SMTP_USER,
