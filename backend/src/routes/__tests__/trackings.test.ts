@@ -135,7 +135,10 @@ describe("Trackings Routes", () => {
     );
     testUserId = userResult.lastID;
 
-    // Mock authenticateToken middleware
+    // Reset all mocks first
+    jest.restoreAllMocks();
+
+    // Mock authenticateToken middleware - must be set up before routes
     jest
       .spyOn(authMiddlewareModule, "authenticateToken")
       .mockImplementation(async (req: any, res: any, next: any) => {
@@ -154,6 +157,7 @@ describe("Trackings Routes", () => {
       if (err) {
         done(err);
       } else {
+        // Reset all mocks to ensure clean state for next test
         jest.restoreAllMocks();
         done();
       }
@@ -194,6 +198,7 @@ describe("Trackings Routes", () => {
       // Temporarily override the mock to return 401
       jest
         .spyOn(authMiddlewareModule, "authenticateToken")
+        .mockReset()
         .mockImplementationOnce(async (req: any, res: any, next: any) => {
           res.status(401).json({ error: "Authorization token required" });
         });
