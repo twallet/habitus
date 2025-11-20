@@ -1,10 +1,18 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../App';
 import { API_ENDPOINTS } from '../config/api';
+import { useAuth } from '../hooks/useAuth';
 
 // Mock fetch
 global.fetch = jest.fn();
+
+// Mock useAuth hook
+jest.mock('../hooks/useAuth', () => ({
+  useAuth: jest.fn(),
+}));
+
+const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 
 describe('App', () => {
   beforeEach(() => {
@@ -12,6 +20,43 @@ describe('App', () => {
     (global.fetch as jest.Mock).mockClear();
     // Clear localStorage
     localStorage.clear();
+
+    // Default mock: unauthenticated state
+    // Make the auth functions call fetch so existing tests continue to work
+    mockUseAuth.mockReturnValue({
+      user: null,
+      token: null,
+      isLoading: false,
+      isAuthenticated: false,
+      requestLoginMagicLink: jest.fn().mockImplementation(async (email: string) => {
+        return fetch(API_ENDPOINTS.auth.login, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email }),
+        });
+      }),
+      requestRegisterMagicLink: jest.fn().mockImplementation(async (name: string, email: string, nickname?: string, password?: string, profilePicture?: File) => {
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('email', email);
+        if (nickname) formData.append('nickname', nickname);
+        if (password) formData.append('password', password);
+        if (profilePicture) formData.append('profilePicture', profilePicture);
+        return fetch(API_ENDPOINTS.auth.register, {
+          method: 'POST',
+          body: formData,
+        });
+      }),
+      verifyMagicLink: jest.fn(),
+      loginWithPassword: jest.fn(),
+      changePassword: jest.fn(),
+      forgotPassword: jest.fn(),
+      resetPassword: jest.fn(),
+      logout: jest.fn(),
+      setTokenFromCallback: jest.fn(),
+    });
   });
 
   it('should render header', async () => {
@@ -130,9 +175,7 @@ describe('App', () => {
     });
   });
 
-  // Note: Testing authenticated state requires complex mocking of token verification
-  // This test is skipped as it requires deeper integration testing setup
-  it.skip('should show authenticated user profile after login', async () => {
+  it('should show authenticated user profile after login', async () => {
     const mockUser = {
       id: 1,
       name: 'John Doe',
@@ -140,31 +183,38 @@ describe('App', () => {
       created_at: '2024-01-01T00:00:00Z',
     };
 
-    // Mock the /api/auth/me endpoint which is called on mount when token exists
-    (global.fetch as jest.Mock).mockImplementation((url: string) => {
-      if (url && url.includes('/api/auth/me')) {
-        return Promise.resolve({
-          ok: true,
-          json: async () => mockUser,
-        });
-      }
-      return Promise.resolve({
-        ok: false,
-        status: 401,
-      });
-    });
+    const mockLogout = jest.fn();
 
-    // Set token in localStorage to simulate logged in state
-    localStorage.setItem('habitus_token', 'mock-token');
+    // Mock authenticated state
+    mockUseAuth.mockReturnValue({
+      user: mockUser,
+      token: 'mock-token',
+      isLoading: false,
+      isAuthenticated: true,
+      requestLoginMagicLink: jest.fn(),
+      requestRegisterMagicLink: jest.fn(),
+      verifyMagicLink: jest.fn(),
+      loginWithPassword: jest.fn(),
+      changePassword: jest.fn(),
+      forgotPassword: jest.fn(),
+      resetPassword: jest.fn(),
+      logout: mockLogout,
+      setTokenFromCallback: jest.fn(),
+    });
 
     render(<App />);
 
+    // Wait for the authenticated state to render
     await waitFor(() => {
       expect(screen.getByText(/welcome, john doe/i)).toBeInTheDocument();
-    }, { timeout: 3000 });
+    });
 
     expect(screen.getByText('John Doe')).toBeInTheDocument();
     expect(screen.getByText('john@example.com')).toBeInTheDocument();
+
+    // Verify logout button is present
+    const logoutButton = screen.getByRole('button', { name: /logout/i });
+    expect(logoutButton).toBeInTheDocument();
   });
 
   it('should show error message for invalid email', async () => {
