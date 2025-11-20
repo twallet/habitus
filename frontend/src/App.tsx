@@ -241,7 +241,6 @@ function App() {
       <div className="container">
         <header>
           <h1>Habitus</h1>
-          <p className="subtitle">Login or register to get started</p>
         </header>
 
         <main>

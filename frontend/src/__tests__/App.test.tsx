@@ -62,7 +62,6 @@ describe('App', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /habitus/i })).toBeInTheDocument();
     });
-    expect(screen.getByText(/login or register to get started/i)).toBeInTheDocument();
   });
 
   it('should show loading state initially', async () => {
