@@ -221,60 +221,46 @@ header h1 {
     opacity: 1;
 }
 
-.users-list {
+.user-profile {
     margin-top: 32px;
-    padding-top: 32px;
-    border-top: 1px solid var(--border-color);
 }
 
-.users-list h2 {
+.user-profile h2 {
     font-size: 1.25rem;
     font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: 16px;
+    margin-bottom: 20px;
 }
 
-.users-list ul {
-    list-style: none;
-}
-
-.users-list li {
-    padding: 12px 16px;
+.profile-card {
     background: var(--bg-secondary);
     border-radius: var(--radius);
-    margin-bottom: 8px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transition: var(--transition);
-}
-
-.users-list li:hover {
-    background: #f3f4f6;
-    transform: translateX(4px);
-}
-
-.user-info {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.user-name {
-    font-weight: 500;
-    color: var(--text-primary);
-}
-
-.user-id {
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-}
-
-.empty-state {
-    text-align: center;
     padding: 24px;
+    border: 1px solid var(--border-color);
+}
+
+.profile-field {
+    margin-bottom: 20px;
+}
+
+.profile-field:last-child {
+    margin-bottom: 0;
+}
+
+.profile-field label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
     color: var(--text-secondary);
-    font-style: italic;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.profile-value {
+    font-size: 1rem;
+    color: var(--text-primary);
+    font-weight: 500;
 }
 
 .auth-form-container {
@@ -333,6 +319,64 @@ header h1 {
 .logout-button:hover {
     background: #dc2626;
     transform: translateY(-1px);
+}
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 24px 0;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: "";
+    flex: 1;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.auth-divider span {
+    padding: 0 16px;
+}
+
+.btn-google {
+    width: 100%;
+    padding: 12px 24px;
+    background: white;
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-google:hover {
+    background: var(--bg-secondary);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.btn-google:active {
+    transform: translateY(0);
+}
+
+.btn-google:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.google-icon {
+    flex-shrink: 0;
 }
 
 .user-info-header {

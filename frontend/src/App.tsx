@@ -1,10 +1,9 @@
-import { useState } from 'react';
-import { UserForm } from './components/UserForm';
+import { useState, useEffect } from 'react';
 import { Message } from './components/Message';
-import { UsersList } from './components/UsersList';
 import { AuthForm } from './components/AuthForm';
-import { useUsers } from './hooks/useUsers';
+import { UserProfile } from './components/UserProfile';
 import { useAuth } from './hooks/useAuth';
+import { API_ENDPOINTS } from './config/api';
 import './App.css';
 
 /**
@@ -13,9 +12,36 @@ import './App.css';
  * @public
  */
 function App() {
-  const { user, isLoading, isAuthenticated, login, register, logout } = useAuth();
-  const { users, createUser, isInitialized } = useUsers();
+  const { user, isLoading, isAuthenticated, login, register, logout, setTokenFromCallback } = useAuth();
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  /**
+   * Handle OAuth callback from Google.
+   * Checks URL for token or error and processes accordingly.
+   * @internal
+   */
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    const error = urlParams.get('error');
+
+    if (token) {
+      setTokenFromCallback(token);
+      setMessage({
+        text: 'Login successful!',
+        type: 'success',
+      });
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (error) {
+      setMessage({
+        text: decodeURIComponent(error),
+        type: 'error',
+      });
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [setTokenFromCallback]);
 
   /**
    * Handle login form submission.
@@ -63,27 +89,6 @@ function App() {
   };
 
   /**
-   * Handle user creation from form submission.
-   * Displays success message with user details or error message if creation fails.
-   * @param name - The user's name to create
-   * @internal
-   */
-  const handleUserCreate = async (name: string) => {
-    try {
-      const newUser = await createUser(name);
-      setMessage({
-        text: `User "${newUser.name}" created successfully with ID: ${newUser.id}`,
-        type: 'success',
-      });
-    } catch (error) {
-      setMessage({
-        text: error instanceof Error ? error.message : 'Error creating user',
-        type: 'error',
-      });
-    }
-  };
-
-  /**
    * Handle error messages from form validation.
    * @param errorMessage - Error message to display
    * @internal
@@ -101,6 +106,15 @@ function App() {
    */
   const handleHideMessage = () => {
     setMessage(null);
+  };
+
+  /**
+   * Handle Google login.
+   * Redirects to backend Google OAuth endpoint.
+   * @internal
+   */
+  const handleGoogleLogin = () => {
+    window.location.href = API_ENDPOINTS.auth.google;
   };
 
   /**
@@ -145,6 +159,7 @@ function App() {
           <AuthForm
             onLogin={handleLogin}
             onRegister={handleRegister}
+            onGoogleLogin={handleGoogleLogin}
             onError={handleError}
           />
         </main>
@@ -153,7 +168,7 @@ function App() {
   }
 
   // Show main app if authenticated
-  if (!isInitialized) {
+  if (!user) {
     return (
       <div className="container">
         <div className="loading">Loading...</div>
@@ -165,13 +180,13 @@ function App() {
     <div className="container">
       <header>
         <h1>Habitus</h1>
-        <p className="subtitle">Create your user to get started</p>
+        <p className="subtitle">Welcome to your dashboard</p>
       </header>
 
       <main>
         <div className="user-info-header">
           <div className="welcome-message">
-            Welcome, {user?.name}!
+            Welcome, {user.name}!
           </div>
           <button
             type="button"
@@ -182,8 +197,6 @@ function App() {
           </button>
         </div>
 
-        <UserForm onSubmit={handleUserCreate} onError={handleError} />
-
         {message && (
           <Message
             text={message.text}
@@ -192,7 +205,7 @@ function App() {
           />
         )}
 
-        <UsersList users={users} />
+        <UserProfile user={user} />
       </main>
     </div>
   );

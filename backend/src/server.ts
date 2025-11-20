@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { initializeDatabase, closeDatabase } from "./db/database.js";

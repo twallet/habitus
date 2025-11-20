@@ -149,6 +149,35 @@ export function useAuth() {
   };
 
   /**
+   * Set token from OAuth callback.
+   * Verifies token and loads user data.
+   * @param callbackToken - JWT token from OAuth callback
+   * @public
+   */
+  const setTokenFromCallback = async (callbackToken: string) => {
+    try {
+      // Verify token by fetching current user
+      const response = await fetch(API_ENDPOINTS.auth.me, {
+        headers: {
+          Authorization: `Bearer ${callbackToken}`,
+        },
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+        setToken(callbackToken);
+        localStorage.setItem(TOKEN_KEY, callbackToken);
+      } else {
+        throw new Error("Invalid token");
+      }
+    } catch (error) {
+      console.error("Error setting token from callback:", error);
+      throw error;
+    }
+  };
+
+  /**
    * Check if user is authenticated.
    * @returns True if user is logged in
    * @public
@@ -163,5 +192,6 @@ export function useAuth() {
     register,
     login,
     logout,
+    setTokenFromCallback,
   };
 }

@@ -119,4 +119,52 @@ router.get("/me", async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * GET /api/auth/google
+ * Initiate Google OAuth flow.
+ * Redirects user to Google consent screen.
+ * @route GET /api/auth/google
+ */
+router.get("/google", (_req: Request, res: Response) => {
+  try {
+    const authUrl = AuthService.getGoogleAuthUrl();
+    res.redirect(authUrl);
+  } catch (error) {
+    console.error("Error initiating Google OAuth:", error);
+    const errorMessage =
+      error instanceof Error && error.message.includes("not configured")
+        ? error.message
+        : "Error initiating Google OAuth. Please check server configuration.";
+    res.status(500).json({ error: errorMessage });
+  }
+});
+
+/**
+ * GET /api/auth/google/callback
+ * Handle Google OAuth callback.
+ * Exchanges authorization code for user info and creates/logs in user.
+ * @route GET /api/auth/google/callback
+ * @query {string} code - Authorization code from Google
+ */
+router.get("/google/callback", async (req: Request, res: Response) => {
+  try {
+    const { code } = req.query;
+
+    if (!code || typeof code !== "string") {
+      return res.status(400).json({ error: "Authorization code required" });
+    }
+
+    const result = await AuthService.handleGoogleCallback(code);
+    res.redirect(result.redirectUrl);
+  } catch (error) {
+    console.error("Error handling Google OAuth callback:", error);
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+    res.redirect(
+      `${frontendUrl}/auth/callback?error=${encodeURIComponent(
+        error instanceof Error ? error.message : "OAuth error"
+      )}`
+    );
+  }
+});
+
 export default router;

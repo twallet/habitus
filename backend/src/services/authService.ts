@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import jwt, { SignOptions } from "jsonwebtoken";
+import { OAuth2Client } from "google-auth-library";
 import { dbPromises } from "../db/database.js";
 import { User, UserData, UserWithPassword } from "../models/User.js";
 
@@ -10,6 +11,37 @@ import { User, UserData, UserWithPassword } from "../models/User.js";
 const JWT_SECRET =
   process.env.JWT_SECRET || "your-secret-key-change-in-production";
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
+
+/**
+ * Google OAuth 2.0 client configuration.
+ * @private
+ */
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
+const GOOGLE_REDIRECT_URI =
+  process.env.GOOGLE_REDIRECT_URI ||
+  "http://localhost:3001/api/auth/google/callback";
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
+
+/**
+ * Get or create Google OAuth 2.0 client instance.
+ * Validates that credentials are configured.
+ * @returns OAuth2Client instance
+ * @throws Error if Google OAuth credentials are not configured
+ * @private
+ */
+function getGoogleOAuthClient(): OAuth2Client {
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    throw new Error(
+      "Google OAuth credentials not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables."
+    );
+  }
+  return new OAuth2Client(
+    GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET,
+    GOOGLE_REDIRECT_URI
+  );
+}
 
 /**
  * Service for authentication-related operations.
@@ -172,5 +204,136 @@ export class AuthService {
       email: row.email,
       created_at: row.created_at,
     };
+  }
+
+  /**
+   * Get Google OAuth authorization URL.
+   * @returns The authorization URL to redirect users to
+   * @throws Error if Google OAuth credentials are not configured
+   * @public
+   */
+  static getGoogleAuthUrl(): string {
+    const client = getGoogleOAuthClient();
+    const scopes = [
+      "https://www.googleapis.com/auth/userinfo.email",
+      "https://www.googleapis.com/auth/userinfo.profile",
+    ];
+
+    return client.generateAuthUrl({
+      access_type: "offline",
+      scope: scopes,
+      prompt: "consent",
+    });
+  }
+
+  /**
+   * Handle Google OAuth callback and create/login user.
+   * @param code - Authorization code from Google
+   * @returns Promise resolving to an object with user data, JWT token, and redirect URL
+   * @throws Error if OAuth flow fails or credentials are not configured
+   * @public
+   */
+  static async handleGoogleCallback(
+    code: string
+  ): Promise<{ user: UserData; token: string; redirectUrl: string }> {
+    try {
+      const client = getGoogleOAuthClient();
+
+      // Exchange code for tokens
+      const { tokens } = await client.getToken(code);
+      client.setCredentials(tokens);
+
+      // Get user info from Google
+      const ticket = await client.verifyIdToken({
+        idToken: tokens.id_token!,
+        audience: GOOGLE_CLIENT_ID,
+      });
+
+      const payload = ticket.getPayload();
+      if (!payload) {
+        throw new Error("Failed to get user info from Google");
+      }
+
+      const googleEmail = payload.email;
+      const googleName = payload.name || payload.given_name || "User";
+      const googleId = payload.sub;
+
+      if (!googleEmail) {
+        throw new Error("Email not provided by Google");
+      }
+
+      // Validate email format
+      const validatedEmail = User.validateEmail(googleEmail);
+      const validatedName = User.validateName(googleName);
+
+      // Check if user already exists
+      let user = await dbPromises.get<UserWithPassword>(
+        "SELECT id, name, email, password_hash, created_at FROM users WHERE email = ?",
+        [validatedEmail]
+      );
+
+      if (user) {
+        // User exists, generate token
+        const token = jwt.sign(
+          { userId: user.id, email: user.email },
+          JWT_SECRET,
+          {
+            expiresIn: JWT_EXPIRES_IN,
+          } as SignOptions
+        );
+
+        return {
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            created_at: user.created_at,
+          },
+          token,
+          redirectUrl: `${FRONTEND_URL}/auth/callback?token=${token}`,
+        };
+      }
+
+      // Create new user (no password for OAuth users)
+      const result = await dbPromises.run(
+        "INSERT INTO users (name, email, password_hash) VALUES (?, ?, NULL)",
+        [validatedName, validatedEmail]
+      );
+
+      // Retrieve created user
+      const row = await dbPromises.get<{
+        id: number;
+        name: string;
+        email: string;
+        created_at: string;
+      }>("SELECT id, name, email, created_at FROM users WHERE id = ?", [
+        result.lastID,
+      ]);
+
+      if (!row) {
+        throw new Error("Failed to retrieve created user");
+      }
+
+      // Generate token
+      const token = jwt.sign({ userId: row.id, email: row.email }, JWT_SECRET, {
+        expiresIn: JWT_EXPIRES_IN,
+      } as SignOptions);
+
+      return {
+        user: {
+          id: row.id,
+          name: row.name,
+          email: row.email,
+          created_at: row.created_at,
+        },
+        token,
+        redirectUrl: `${FRONTEND_URL}/auth/callback?token=${token}`,
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Google OAuth error: ${error.message}`);
+      }
+      throw new Error("Google OAuth error: Unknown error");
+    }
   }
 }

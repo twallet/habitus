@@ -52,11 +52,12 @@ export class User {
 
 /**
  * User data interface for storage and serialization.
- * Used when persisting users to localStorage.
+ * Used when persisting users to localStorage and API responses.
  * @public
  */
 export interface UserData {
   id: number;
   name: string;
+  email?: string;
+  created_at?: string;
 }
-
