@@ -31,13 +31,19 @@ function createTestDatabase(): Promise<sqlite3.Database> {
             CREATE TABLE IF NOT EXISTS users (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               name TEXT NOT NULL CHECK(length(name) <= 30),
+              nickname TEXT,
               email TEXT NOT NULL UNIQUE,
-              password_hash TEXT NOT NULL,
+              password_hash TEXT,
+              profile_picture_url TEXT,
+              magic_link_token TEXT,
+              magic_link_expires DATETIME,
+              last_access DATETIME,
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
             CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at);
             CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+            CREATE INDEX IF NOT EXISTS idx_users_magic_link_token ON users(magic_link_token);
           `,
             (err) => {
               if (err) {

@@ -33,12 +33,19 @@ function createTestDatabase(): Promise<sqlite3.Database> {
             CREATE TABLE IF NOT EXISTS users (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               name TEXT NOT NULL CHECK(length(name) <= 30),
-              email TEXT,
+              nickname TEXT,
+              email TEXT NOT NULL UNIQUE,
               password_hash TEXT,
+              profile_picture_url TEXT,
+              magic_link_token TEXT,
+              magic_link_expires DATETIME,
+              last_access DATETIME,
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
             CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at);
+            CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+            CREATE INDEX IF NOT EXISTS idx_users_magic_link_token ON users(magic_link_token);
           `,
             (err) => {
               if (err) {
@@ -135,12 +142,14 @@ describe("Users Routes", () => {
 
     it("should return all users", async () => {
       // Insert test data
-      await mockDbPromises.run("INSERT INTO users (name) VALUES (?)", [
-        "User 1",
-      ]);
-      await mockDbPromises.run("INSERT INTO users (name) VALUES (?)", [
-        "User 2",
-      ]);
+      await mockDbPromises.run(
+        "INSERT INTO users (name, email) VALUES (?, ?)",
+        ["User 1", "user1@example.com"]
+      );
+      await mockDbPromises.run(
+        "INSERT INTO users (name, email) VALUES (?, ?)",
+        ["User 2", "user2@example.com"]
+      );
 
       const response = await request(app).get("/api/users");
 
@@ -151,58 +160,8 @@ describe("Users Routes", () => {
     });
   });
 
-  describe("POST /api/users", () => {
-    it("should create a new user", async () => {
-      const response = await request(app)
-        .post("/api/users")
-        .send({ name: "John Doe" });
-
-      expect(response.status).toBe(201);
-      expect(response.body.name).toBe("John Doe");
-      expect(response.body.id).toBeGreaterThan(0);
-      expect(response.body.created_at).toBeDefined();
-    });
-
-    it("should trim whitespace from name", async () => {
-      const response = await request(app)
-        .post("/api/users")
-        .send({ name: "  Alice  " });
-
-      expect(response.status).toBe(201);
-      expect(response.body.name).toBe("Alice");
-    });
-
-    it("should return 400 for missing name", async () => {
-      const response = await request(app).post("/api/users").send({});
-
-      expect(response.status).toBe(400);
-      expect(response.body.error).toContain("required");
-    });
-
-    it("should return 400 for non-string name", async () => {
-      const response = await request(app)
-        .post("/api/users")
-        .send({ name: 123 });
-
-      expect(response.status).toBe(400);
-      expect(response.body.error).toContain("string");
-    });
-
-    it("should return 400 for empty name", async () => {
-      const response = await request(app).post("/api/users").send({ name: "" });
-
-      expect(response.status).toBe(400);
-    });
-
-    it("should return 400 for name exceeding max length", async () => {
-      const longName = "a".repeat(31);
-      const response = await request(app)
-        .post("/api/users")
-        .send({ name: longName });
-
-      expect(response.status).toBe(400);
-    });
-  });
+  // Note: POST /api/users endpoint was removed - user creation is now done via /api/auth/register
+  // These tests are kept for reference but would need to be moved to auth tests
 
   describe("GET /api/users/:id", () => {
     it("should return 404 for non-existent user", async () => {
@@ -214,8 +173,8 @@ describe("Users Routes", () => {
 
     it("should return user for existing id", async () => {
       const result = await mockDbPromises.run(
-        "INSERT INTO users (name) VALUES (?)",
-        ["Test User"]
+        "INSERT INTO users (name, email) VALUES (?, ?)",
+        ["Test User", "test@example.com"]
       );
       const insertedId = result.lastID;
 
@@ -224,6 +183,7 @@ describe("Users Routes", () => {
       expect(response.status).toBe(200);
       expect(response.body.id).toBe(insertedId);
       expect(response.body.name).toBe("Test User");
+      expect(response.body.email).toBe("test@example.com");
     });
 
     it("should return 400 for invalid id", async () => {

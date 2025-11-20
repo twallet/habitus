@@ -1,6 +1,66 @@
 import { User } from "../User.js";
 
 describe("User Model", () => {
+  describe("validateName", () => {
+    it("should accept valid names", () => {
+      expect(User.validateName("John Doe")).toBe("John Doe");
+      expect(User.validateName("Alice")).toBe("Alice");
+    });
+
+    it("should trim whitespace", () => {
+      expect(User.validateName("  Jane Smith  ")).toBe("Jane Smith");
+    });
+
+    it("should throw TypeError for invalid name format", () => {
+      expect(() => User.validateName("")).toThrow(TypeError);
+      expect(() => User.validateName("   ")).toThrow(TypeError);
+    });
+
+    it("should throw TypeError for non-string name", () => {
+      expect(() => User.validateName(null as any)).toThrow(TypeError);
+      expect(() => User.validateName(123 as any)).toThrow(TypeError);
+      expect(() => User.validateName(undefined as any)).toThrow(TypeError);
+    });
+
+    it("should throw TypeError for name exceeding max length", () => {
+      const longName = "a".repeat(User.MAX_NAME_LENGTH + 1);
+      expect(() => User.validateName(longName)).toThrow(TypeError);
+    });
+
+    it("should accept name with exactly MAX_NAME_LENGTH characters", () => {
+      const maxLengthName = "a".repeat(User.MAX_NAME_LENGTH);
+      expect(User.validateName(maxLengthName)).toBe(maxLengthName);
+    });
+  });
+
+  describe("validateNickname", () => {
+    it("should accept valid nicknames", () => {
+      expect(User.validateNickname("CoolNick")).toBe("CoolNick");
+      expect(User.validateNickname("  Trimmed  ")).toBe("Trimmed");
+    });
+
+    it("should return undefined for empty/null/undefined nickname", () => {
+      expect(User.validateNickname("")).toBeUndefined();
+      expect(User.validateNickname("   ")).toBeUndefined();
+      expect(User.validateNickname(null)).toBeUndefined();
+      expect(User.validateNickname(undefined)).toBeUndefined();
+    });
+
+    it("should throw TypeError for non-string nickname", () => {
+      expect(() => User.validateNickname(123 as any)).toThrow(TypeError);
+    });
+
+    it("should throw TypeError for nickname exceeding max length", () => {
+      const longNickname = "a".repeat(User.MAX_NICKNAME_LENGTH + 1);
+      expect(() => User.validateNickname(longNickname)).toThrow(TypeError);
+    });
+
+    it("should accept nickname with exactly MAX_NICKNAME_LENGTH characters", () => {
+      const maxLengthNickname = "a".repeat(User.MAX_NICKNAME_LENGTH);
+      expect(User.validateNickname(maxLengthNickname)).toBe(maxLengthNickname);
+    });
+  });
+
   describe("validateEmail", () => {
     it("should accept valid email addresses", () => {
       expect(User.validateEmail("test@example.com")).toBe("test@example.com");

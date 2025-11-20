@@ -31,12 +31,19 @@ function createTestDatabase(): Promise<sqlite3.Database> {
             CREATE TABLE IF NOT EXISTS users (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               name TEXT NOT NULL CHECK(length(name) <= 30),
-              email TEXT,
+              nickname TEXT,
+              email TEXT NOT NULL UNIQUE,
               password_hash TEXT,
+              profile_picture_url TEXT,
+              magic_link_token TEXT,
+              magic_link_expires DATETIME,
+              last_access DATETIME,
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
             CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at);
+            CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+            CREATE INDEX IF NOT EXISTS idx_users_magic_link_token ON users(magic_link_token);
           `,
             (err) => {
               if (err) {
@@ -125,12 +132,14 @@ describe("UserService", () => {
 
     it("should return all users ordered by id", async () => {
       // Insert test data
-      await mockDbPromises.run("INSERT INTO users (name) VALUES (?)", [
-        "User 1",
-      ]);
-      await mockDbPromises.run("INSERT INTO users (name) VALUES (?)", [
-        "User 2",
-      ]);
+      await mockDbPromises.run(
+        "INSERT INTO users (name, email) VALUES (?, ?)",
+        ["User 1", "user1@example.com"]
+      );
+      await mockDbPromises.run(
+        "INSERT INTO users (name, email) VALUES (?, ?)",
+        ["User 2", "user2@example.com"]
+      );
 
       const users = await UserService.getAllUsers();
 
@@ -141,58 +150,26 @@ describe("UserService", () => {
     });
 
     it("should return users with correct structure", async () => {
-      await mockDbPromises.run("INSERT INTO users (name) VALUES (?)", [
-        "Test User",
-      ]);
+      await mockDbPromises.run(
+        "INSERT INTO users (name, email) VALUES (?, ?)",
+        ["Test User", "test@example.com"]
+      );
 
       const users = await UserService.getAllUsers();
 
       expect(users[0]).toHaveProperty("id");
       expect(users[0]).toHaveProperty("name");
+      expect(users[0]).toHaveProperty("email");
       expect(users[0]).toHaveProperty("created_at");
       expect(typeof users[0].id).toBe("number");
       expect(typeof users[0].name).toBe("string");
+      expect(typeof users[0].email).toBe("string");
       expect(typeof users[0].created_at).toBe("string");
     });
   });
 
-  describe("createUser", () => {
-    it("should create a new user with valid name", async () => {
-      const user = await UserService.createUser("John Doe");
-
-      expect(user.name).toBe("John Doe");
-      expect(user.id).toBeGreaterThan(0);
-      expect(user.created_at).toBeDefined();
-    });
-
-    it("should trim whitespace from name", async () => {
-      const user = await UserService.createUser("  Alice  ");
-
-      expect(user.name).toBe("Alice");
-    });
-
-    it("should throw TypeError for invalid name", async () => {
-      await expect(UserService.createUser("")).rejects.toThrow(TypeError);
-      await expect(UserService.createUser("   ")).rejects.toThrow(TypeError);
-    });
-
-    it("should throw TypeError for name exceeding max length", async () => {
-      const longName = "a".repeat(31);
-      await expect(UserService.createUser(longName)).rejects.toThrow(TypeError);
-    });
-
-    it("should persist user to database", async () => {
-      const user = await UserService.createUser("Test User");
-
-      const row = await mockDbPromises.get<{ id: number; name: string }>(
-        "SELECT * FROM users WHERE id = ?",
-        [user.id]
-      );
-
-      expect(row).toBeDefined();
-      expect(row?.name).toBe("Test User");
-    });
-  });
+  // Note: createUser method was removed from UserService - user creation is now done via AuthService
+  // These tests are kept for reference but would need to be moved to auth tests
 
   describe("getUserById", () => {
     it("should return null for non-existent user", async () => {
@@ -202,8 +179,8 @@ describe("UserService", () => {
 
     it("should return user for existing id", async () => {
       const result = await mockDbPromises.run(
-        "INSERT INTO users (name) VALUES (?)",
-        ["Test User"]
+        "INSERT INTO users (name, email) VALUES (?, ?)",
+        ["Test User", "test@example.com"]
       );
       const insertedId = result.lastID;
 
@@ -212,12 +189,13 @@ describe("UserService", () => {
       expect(user).not.toBeNull();
       expect(user?.id).toBe(insertedId);
       expect(user?.name).toBe("Test User");
+      expect(user?.email).toBe("test@example.com");
     });
 
     it("should return user with correct structure", async () => {
       const result = await mockDbPromises.run(
-        "INSERT INTO users (name) VALUES (?)",
-        ["Test User"]
+        "INSERT INTO users (name, email) VALUES (?, ?)",
+        ["Test User", "test@example.com"]
       );
       const insertedId = result.lastID;
 
@@ -225,9 +203,11 @@ describe("UserService", () => {
 
       expect(user).toHaveProperty("id");
       expect(user).toHaveProperty("name");
+      expect(user).toHaveProperty("email");
       expect(user).toHaveProperty("created_at");
       expect(typeof user?.id).toBe("number");
       expect(typeof user?.name).toBe("string");
+      expect(typeof user?.email).toBe("string");
       expect(typeof user?.created_at).toBe("string");
     });
   });

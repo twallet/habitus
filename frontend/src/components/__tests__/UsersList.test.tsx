@@ -11,9 +11,9 @@ describe('UsersList', () => {
 
   it('should render list of users', () => {
     const users: UserData[] = [
-      { id: 1, name: 'John Doe' },
-      { id: 2, name: 'Jane Smith' },
-      { id: 3, name: 'Bob Johnson' },
+      { id: 1, name: 'John Doe', email: 'john@example.com' },
+      { id: 2, name: 'Jane Smith', email: 'jane@example.com' },
+      { id: 3, name: 'Bob Johnson', email: 'bob@example.com' },
     ];
 
     render(<UsersList users={users} />);
@@ -29,8 +29,8 @@ describe('UsersList', () => {
 
   it('should escape HTML in user names to prevent XSS', () => {
     const users: UserData[] = [
-      { id: 1, name: '<script>alert("xss")</script>' },
-      { id: 2, name: '<img src="x" onerror="alert(1)">' },
+      { id: 1, name: '<script>alert("xss")</script>', email: 'test1@example.com' },
+      { id: 2, name: '<img src="x" onerror="alert(1)">', email: 'test2@example.com' },
     ];
 
     render(<UsersList users={users} />);
@@ -64,9 +64,9 @@ describe('UsersList', () => {
 
   it('should render users in correct order', () => {
     const users: UserData[] = [
-      { id: 3, name: 'Third' },
-      { id: 1, name: 'First' },
-      { id: 2, name: 'Second' },
+      { id: 3, name: 'Third', email: 'third@example.com' },
+      { id: 1, name: 'First', email: 'first@example.com' },
+      { id: 2, name: 'Second', email: 'second@example.com' },
     ];
 
     render(<UsersList users={users} />);
