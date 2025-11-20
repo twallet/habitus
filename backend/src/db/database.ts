@@ -137,6 +137,10 @@ async function migrateDatabase(): Promise<void> {
   // Check if email column exists
   const emailExists = await columnExists("users", "email");
   const passwordHashExists = await columnExists("users", "password_hash");
+  const profilePictureExists = await columnExists(
+    "users",
+    "profile_picture_url"
+  );
 
   // Add email column if it doesn't exist
   if (!emailExists) {
@@ -163,6 +167,23 @@ async function migrateDatabase(): Promise<void> {
           resolve();
         }
       });
+    });
+  }
+
+  // Add profile_picture_url column if it doesn't exist
+  if (!profilePictureExists) {
+    await new Promise<void>((resolve, reject) => {
+      db!.run(
+        `ALTER TABLE users ADD COLUMN profile_picture_url TEXT`,
+        (err) => {
+          // Ignore error if column already exists (race condition)
+          if (err && !err.message.includes("duplicate column")) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        }
+      );
     });
   }
 
@@ -219,6 +240,7 @@ export function initializeDatabase(): Promise<void> {
               name TEXT NOT NULL CHECK(length(name) <= 30),
               email TEXT,
               password_hash TEXT,
+              profile_picture_url TEXT,
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );

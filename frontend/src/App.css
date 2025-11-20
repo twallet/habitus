@@ -263,6 +263,21 @@ header h1 {
     font-weight: 500;
 }
 
+.profile-picture-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 24px;
+}
+
+.profile-picture {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--primary-color);
+    box-shadow: var(--shadow-md);
+}
+
 .auth-form-container {
     width: 100%;
 }
@@ -377,6 +392,14 @@ header h1 {
 
 .google-icon {
     flex-shrink: 0;
+}
+
+.google-help-text {
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-top: 12px;
+    margin-bottom: 0;
 }
 
 .user-info-header {

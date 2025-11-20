@@ -227,8 +227,13 @@ export function AuthForm({ onLogin, onRegister, onGoogleLogin, onError }: AuthFo
             />
           </g>
         </svg>
-        Sign in with Google
+        Continue with Google
       </button>
+      <p className="google-help-text">
+        {isLoginMode
+          ? "Sign in or create an account with Google"
+          : "Register or sign in with Google"}
+      </p>
     </div>
   );
 }

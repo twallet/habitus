@@ -92,10 +92,12 @@ export class AuthService {
       id: number;
       name: string;
       email: string;
+      profile_picture_url: string | null;
       created_at: string;
-    }>("SELECT id, name, email, created_at FROM users WHERE id = ?", [
-      result.lastID,
-    ]);
+    }>(
+      "SELECT id, name, email, profile_picture_url, created_at FROM users WHERE id = ?",
+      [result.lastID]
+    );
 
     if (!row) {
       throw new Error("Failed to retrieve created user");
@@ -105,6 +107,7 @@ export class AuthService {
       id: row.id,
       name: row.name,
       email: row.email,
+      profile_picture_url: row.profile_picture_url || undefined,
       created_at: row.created_at,
     };
   }
@@ -130,7 +133,7 @@ export class AuthService {
 
     // Find user by email
     const user = await dbPromises.get<UserWithPassword>(
-      "SELECT id, name, email, password_hash, created_at FROM users WHERE email = ?",
+      "SELECT id, name, email, password_hash, profile_picture_url, created_at FROM users WHERE email = ?",
       [validatedEmail]
     );
 
@@ -155,6 +158,7 @@ export class AuthService {
         id: user.id,
         name: user.name,
         email: user.email,
+        profile_picture_url: user.profile_picture_url || undefined,
         created_at: user.created_at,
       },
       token,
@@ -191,8 +195,12 @@ export class AuthService {
       id: number;
       name: string;
       email: string;
+      profile_picture_url: string | null;
       created_at: string;
-    }>("SELECT id, name, email, created_at FROM users WHERE id = ?", [id]);
+    }>(
+      "SELECT id, name, email, profile_picture_url, created_at FROM users WHERE id = ?",
+      [id]
+    );
 
     if (!row) {
       return null;
@@ -202,6 +210,7 @@ export class AuthService {
       id: row.id,
       name: row.name,
       email: row.email,
+      profile_picture_url: row.profile_picture_url || undefined,
       created_at: row.created_at,
     };
   }
@@ -257,6 +266,7 @@ export class AuthService {
       const googleEmail = payload.email;
       const googleName = payload.name || payload.given_name || "User";
       const googleId = payload.sub;
+      const googlePicture = payload.picture;
 
       if (!googleEmail) {
         throw new Error("Email not provided by Google");
@@ -268,11 +278,20 @@ export class AuthService {
 
       // Check if user already exists
       let user = await dbPromises.get<UserWithPassword>(
-        "SELECT id, name, email, password_hash, created_at FROM users WHERE email = ?",
+        "SELECT id, name, email, password_hash, profile_picture_url, created_at FROM users WHERE email = ?",
         [validatedEmail]
       );
 
       if (user) {
+        // Update profile picture if it's different and user logged in via Google
+        if (googlePicture && user.profile_picture_url !== googlePicture) {
+          await dbPromises.run(
+            "UPDATE users SET profile_picture_url = ? WHERE id = ?",
+            [googlePicture, user.id]
+          );
+          user.profile_picture_url = googlePicture;
+        }
+
         // User exists, generate token
         const token = jwt.sign(
           { userId: user.id, email: user.email },
@@ -287,6 +306,7 @@ export class AuthService {
             id: user.id,
             name: user.name,
             email: user.email,
+            profile_picture_url: user.profile_picture_url,
             created_at: user.created_at,
           },
           token,
@@ -296,8 +316,8 @@ export class AuthService {
 
       // Create new user (no password for OAuth users)
       const result = await dbPromises.run(
-        "INSERT INTO users (name, email, password_hash) VALUES (?, ?, NULL)",
-        [validatedName, validatedEmail]
+        "INSERT INTO users (name, email, password_hash, profile_picture_url) VALUES (?, ?, NULL, ?)",
+        [validatedName, validatedEmail, googlePicture || null]
       );
 
       // Retrieve created user
@@ -305,10 +325,12 @@ export class AuthService {
         id: number;
         name: string;
         email: string;
+        profile_picture_url: string | null;
         created_at: string;
-      }>("SELECT id, name, email, created_at FROM users WHERE id = ?", [
-        result.lastID,
-      ]);
+      }>(
+        "SELECT id, name, email, profile_picture_url, created_at FROM users WHERE id = ?",
+        [result.lastID]
+      );
 
       if (!row) {
         throw new Error("Failed to retrieve created user");
@@ -324,6 +346,7 @@ export class AuthService {
           id: row.id,
           name: row.name,
           email: row.email,
+          profile_picture_url: row.profile_picture_url || undefined,
           created_at: row.created_at,
         },
         token,

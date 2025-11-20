@@ -34,6 +34,15 @@ export function UserProfile({ user }: UserProfileProps) {
     <div className="user-profile">
       <h2>Your Profile</h2>
       <div className="profile-card">
+        {user.profile_picture_url && (
+          <div className="profile-picture-container">
+            <img
+              src={user.profile_picture_url}
+              alt={`${user.name}'s profile`}
+              className="profile-picture"
+            />
+          </div>
+        )}
         <div className="profile-field">
           <label>Name</label>
           <div className="profile-value">{user.name}</div>
