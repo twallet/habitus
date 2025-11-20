@@ -182,10 +182,12 @@ describe("Trackings Routes", () => {
     });
 
     it("should return all trackings for authenticated user", async () => {
+      // Insert first tracking with explicit created_at to ensure deterministic ordering
       await mockDbPromises.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
+        "INSERT INTO trackings (user_id, question, type, created_at) VALUES (?, ?, ?, datetime('now', '-1 second'))",
         [testUserId, "Question 1", "true_false"]
       );
+      // Insert second tracking with current timestamp (will be newer)
       await mockDbPromises.run(
         "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
         [testUserId, "Question 2", "register"]
@@ -197,10 +199,13 @@ describe("Trackings Routes", () => {
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveLength(2);
-      // Check that both questions are present (order may vary due to timing)
+      // Check that both questions are present
       const questions = response.body.map((t: any) => t.question);
       expect(questions).toContain("Question 1");
       expect(questions).toContain("Question 2");
+      // With explicit timestamps, Question 2 (inserted later) should come first due to ORDER BY created_at DESC
+      expect(questions[0]).toBe("Question 2");
+      expect(questions[1]).toBe("Question 1");
     });
 
     it("should return 401 without authorization token", async () => {
