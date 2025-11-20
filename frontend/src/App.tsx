@@ -3,7 +3,6 @@ import { Message } from './components/Message';
 import { AuthForm } from './components/AuthForm';
 import { UserProfile } from './components/UserProfile';
 import { useAuth } from './hooks/useAuth';
-import { API_ENDPOINTS } from './config/api';
 import './App.css';
 
 /**
@@ -12,12 +11,21 @@ import './App.css';
  * @public
  */
 function App() {
-  const { user, isLoading, isAuthenticated, login, register, logout, setTokenFromCallback } = useAuth();
+  const {
+    user,
+    isLoading,
+    isAuthenticated,
+    requestLoginMagicLink,
+    requestRegisterMagicLink,
+    verifyMagicLink,
+    loginWithPassword,
+    logout,
+  } = useAuth();
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   /**
-   * Handle OAuth callback from Google.
-   * Checks URL for token or error and processes accordingly.
+   * Handle magic link verification from URL.
+   * Checks URL for token and verifies it.
    * @internal
    */
   useEffect(() => {
@@ -26,13 +34,23 @@ function App() {
     const error = urlParams.get('error');
 
     if (token) {
-      setTokenFromCallback(token);
-      setMessage({
-        text: 'Login successful!',
-        type: 'success',
-      });
-      // Clean up URL
-      window.history.replaceState({}, document.title, window.location.pathname);
+      verifyMagicLink(token)
+        .then(() => {
+          setMessage({
+            text: 'Login successful!',
+            type: 'success',
+          });
+          // Clean up URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+        })
+        .catch((err) => {
+          setMessage({
+            text: err instanceof Error ? err.message : 'Error verifying magic link',
+            type: 'error',
+          });
+          // Clean up URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+        });
     } else if (error) {
       setMessage({
         text: decodeURIComponent(error),
@@ -41,24 +59,23 @@ function App() {
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [setTokenFromCallback]);
+  }, [verifyMagicLink]);
 
   /**
-   * Handle login form submission.
+   * Handle login magic link request.
    * @param email - User's email
-   * @param password - User's password
    * @internal
    */
-  const handleLogin = async (email: string, password: string) => {
+  const handleRequestLoginMagicLink = async (email: string) => {
     try {
-      await login(email, password);
+      await requestLoginMagicLink(email);
       setMessage({
-        text: 'Login successful!',
+        text: 'Magic link sent! Check your email.',
         type: 'success',
       });
     } catch (error) {
       setMessage({
-        text: error instanceof Error ? error.message : 'Error logging in',
+        text: error instanceof Error ? error.message : 'Error requesting magic link',
         type: 'error',
       });
       throw error;
@@ -66,23 +83,52 @@ function App() {
   };
 
   /**
-   * Handle register form submission.
+   * Handle register magic link request.
    * @param name - User's name
    * @param email - User's email
-   * @param password - User's password
+   * @param nickname - Optional nickname
+   * @param password - Optional password
    * @param profilePicture - Optional profile picture file
    * @internal
    */
-  const handleRegister = async (name: string, email: string, password: string, profilePicture?: File) => {
+  const handleRequestRegisterMagicLink = async (
+    name: string,
+    email: string,
+    nickname?: string,
+    password?: string,
+    profilePicture?: File
+  ) => {
     try {
-      await register(name, email, password, profilePicture);
+      await requestRegisterMagicLink(name, email, nickname, password, profilePicture);
       setMessage({
-        text: 'Registration successful!',
+        text: 'Registration magic link sent! Check your email.',
         type: 'success',
       });
     } catch (error) {
       setMessage({
-        text: error instanceof Error ? error.message : 'Error registering',
+        text: error instanceof Error ? error.message : 'Error requesting registration magic link',
+        type: 'error',
+      });
+      throw error;
+    }
+  };
+
+  /**
+   * Handle password login (optional).
+   * @param email - User's email
+   * @param password - User's password
+   * @internal
+   */
+  const handleLoginWithPassword = async (email: string, password: string) => {
+    try {
+      await loginWithPassword(email, password);
+      setMessage({
+        text: 'Login successful!',
+        type: 'success',
+      });
+    } catch (error) {
+      setMessage({
+        text: error instanceof Error ? error.message : 'Error logging in',
         type: 'error',
       });
       throw error;
@@ -109,14 +155,6 @@ function App() {
     setMessage(null);
   };
 
-  /**
-   * Handle Google login.
-   * Redirects to backend Google OAuth endpoint.
-   * @internal
-   */
-  const handleGoogleLogin = () => {
-    window.location.href = API_ENDPOINTS.auth.google;
-  };
 
   /**
    * Handle logout.
@@ -158,9 +196,9 @@ function App() {
           )}
 
           <AuthForm
-            onLogin={handleLogin}
-            onRegister={handleRegister}
-            onGoogleLogin={handleGoogleLogin}
+            onRequestLoginMagicLink={handleRequestLoginMagicLink}
+            onRequestRegisterMagicLink={handleRequestRegisterMagicLink}
+            onLoginWithPassword={handleLoginWithPassword}
             onError={handleError}
           />
         </main>

@@ -1,5 +1,5 @@
-import { dbPromises } from '../db/database.js';
-import { User, UserData } from '../models/User.js';
+import { dbPromises } from "../db/database.js";
+import { User, UserData } from "../models/User.js";
 
 /**
  * Service for user-related database operations.
@@ -12,46 +12,27 @@ export class UserService {
    * @public
    */
   static async getAllUsers(): Promise<UserData[]> {
-    const rows = await dbPromises.all<{ id: number; name: string; created_at: string }>(
-      'SELECT id, name, created_at FROM users ORDER BY id'
+    const rows = await dbPromises.all<{
+      id: number;
+      name: string;
+      nickname: string | null;
+      email: string;
+      profile_picture_url: string | null;
+      last_access: string | null;
+      created_at: string;
+    }>(
+      "SELECT id, name, nickname, email, profile_picture_url, last_access, created_at FROM users ORDER BY id"
     );
-    
-    return rows.map(row => ({
+
+    return rows.map((row) => ({
       id: row.id,
       name: row.name,
+      nickname: row.nickname || undefined,
+      email: row.email,
+      profile_picture_url: row.profile_picture_url || undefined,
+      last_access: row.last_access || undefined,
       created_at: row.created_at,
     }));
-  }
-
-  /**
-   * Create a new user in the database.
-   * @param name - The user's name (will be validated and trimmed)
-   * @returns Promise resolving to the created user data
-   * @throws {@link TypeError} If the name is invalid
-   * @public
-   */
-  static async createUser(name: string): Promise<UserData> {
-    const validatedName = User.validateName(name);
-    
-    const result = await dbPromises.run(
-      'INSERT INTO users (name) VALUES (?)',
-      [validatedName]
-    );
-    
-    const row = await dbPromises.get<{ id: number; name: string; created_at: string }>(
-      'SELECT id, name, created_at FROM users WHERE id = ?',
-      [result.lastID]
-    );
-    
-    if (!row) {
-      throw new Error('Failed to retrieve created user');
-    }
-    
-    return {
-      id: row.id,
-      name: row.name,
-      created_at: row.created_at,
-    };
   }
 
   /**
@@ -61,20 +42,140 @@ export class UserService {
    * @public
    */
   static async getUserById(id: number): Promise<UserData | null> {
-    const row = await dbPromises.get<{ id: number; name: string; created_at: string }>(
-      'SELECT id, name, created_at FROM users WHERE id = ?',
+    const row = await dbPromises.get<{
+      id: number;
+      name: string;
+      nickname: string | null;
+      email: string;
+      profile_picture_url: string | null;
+      last_access: string | null;
+      created_at: string;
+    }>(
+      "SELECT id, name, nickname, email, profile_picture_url, last_access, created_at FROM users WHERE id = ?",
       [id]
     );
-    
+
     if (!row) {
       return null;
     }
-    
+
     return {
       id: row.id,
       name: row.name,
+      nickname: row.nickname || undefined,
+      email: row.email,
+      profile_picture_url: row.profile_picture_url || undefined,
+      last_access: row.last_access || undefined,
       created_at: row.created_at,
     };
   }
-}
 
+  /**
+   * Update user profile.
+   * @param userId - The user ID
+   * @param name - Updated name (optional)
+   * @param nickname - Updated nickname (optional)
+   * @param email - Updated email (optional)
+   * @param profilePictureUrl - Updated profile picture URL (optional)
+   * @returns Promise resolving to updated user data
+   * @throws Error if user not found or validation fails
+   * @public
+   */
+  static async updateProfile(
+    userId: number,
+    name?: string,
+    nickname?: string,
+    email?: string,
+    profilePictureUrl?: string
+  ): Promise<UserData> {
+    // Build update fields
+    const updates: string[] = [];
+    const values: any[] = [];
+
+    if (name !== undefined) {
+      const validatedName = User.validateName(name);
+      updates.push("name = ?");
+      values.push(validatedName);
+    }
+
+    if (nickname !== undefined) {
+      const validatedNickname = User.validateNickname(nickname);
+      updates.push("nickname = ?");
+      values.push(validatedNickname || null);
+    }
+
+    if (email !== undefined) {
+      const validatedEmail = User.validateEmail(email);
+
+      // Check if email is already taken by another user
+      const existingUser = await dbPromises.get<{ id: number }>(
+        "SELECT id FROM users WHERE email = ? AND id != ?",
+        [validatedEmail, userId]
+      );
+
+      if (existingUser) {
+        throw new Error("Email already registered");
+      }
+
+      updates.push("email = ?");
+      values.push(validatedEmail);
+    }
+
+    if (profilePictureUrl !== undefined) {
+      updates.push("profile_picture_url = ?");
+      values.push(profilePictureUrl || null);
+    }
+
+    if (updates.length === 0) {
+      throw new Error("No fields to update");
+    }
+
+    // Add updated_at timestamp
+    updates.push("updated_at = CURRENT_TIMESTAMP");
+    values.push(userId);
+
+    // Update user
+    await dbPromises.run(
+      `UPDATE users SET ${updates.join(", ")} WHERE id = ?`,
+      values
+    );
+
+    // Retrieve updated user
+    const user = await UserService.getUserById(userId);
+    if (!user) {
+      throw new Error("Failed to retrieve updated user");
+    }
+
+    return user;
+  }
+
+  /**
+   * Delete a user by ID.
+   * @param userId - The user ID to delete
+   * @returns Promise resolving when user is deleted
+   * @throws Error if user not found
+   * @public
+   */
+  static async deleteUser(userId: number): Promise<void> {
+    const result = await dbPromises.run("DELETE FROM users WHERE id = ?", [
+      userId,
+    ]);
+
+    if (result.changes === 0) {
+      throw new Error("User not found");
+    }
+  }
+
+  /**
+   * Update last access timestamp for a user.
+   * @param userId - The user ID
+   * @returns Promise resolving when last access is updated
+   * @public
+   */
+  static async updateLastAccess(userId: number): Promise<void> {
+    await dbPromises.run(
+      "UPDATE users SET last_access = CURRENT_TIMESTAMP WHERE id = ?",
+      [userId]
+    );
+  }
+}

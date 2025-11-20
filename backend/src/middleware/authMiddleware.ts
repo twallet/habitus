@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { AuthService } from "../services/authService.js";
+import { UserService } from "../services/userService.js";
 
 /**
  * Extended Express Request interface with user ID.
@@ -12,6 +13,7 @@ export interface AuthRequest extends Request {
 /**
  * Middleware to authenticate requests using JWT tokens.
  * Adds userId to the request object if token is valid.
+ * Updates last_access timestamp on each authenticated request.
  * @param req - Express request object
  * @param res - Express response object
  * @param next - Express next function
@@ -33,6 +35,13 @@ export async function authenticateToken(
     const token = authHeader.substring(7);
     const userId = await AuthService.verifyToken(token);
     req.userId = userId;
+
+    // Update last access timestamp (fire and forget, don't wait for it)
+    UserService.updateLastAccess(userId).catch((err) => {
+      console.error("Error updating last access:", err);
+      // Don't fail the request if this fails
+    });
+
     next();
   } catch (error) {
     if (error instanceof Error && error.message.includes("token")) {

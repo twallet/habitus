@@ -10,7 +10,8 @@ const TOKEN_KEY = "habitus_token";
 
 /**
  * Custom hook for managing authentication state.
- * Handles login, register, logout, and token persistence.
+ * Handles passwordless authentication with magic links, optional password support,
+ * and token persistence.
  * @returns Object containing auth state and functions
  * @public
  */
@@ -55,85 +56,120 @@ export function useAuth() {
   }, []);
 
   /**
-   * Register a new user.
+   * Request registration magic link (passwordless).
    * @param name - User's name
    * @param email - User's email
-   * @param password - User's password
+   * @param nickname - Optional nickname
+   * @param password - Optional password (if user wants to set one)
    * @param profilePicture - Optional profile picture file
-   * @returns Promise resolving to user data
-   * @throws Error if registration fails
+   * @returns Promise resolving when magic link is sent
+   * @throws Error if request fails
    * @public
    */
-  const register = async (
+  const requestRegisterMagicLink = async (
     name: string,
     email: string,
-    password: string,
+    nickname?: string,
+    password?: string,
     profilePicture?: File
-  ): Promise<UserData> => {
-    // Use FormData if profile picture is provided, otherwise use JSON
+  ): Promise<void> => {
     const formData = new FormData();
     formData.append("name", name);
     formData.append("email", email);
-    formData.append("password", password);
-
+    if (nickname) {
+      formData.append("nickname", nickname);
+    }
+    if (password) {
+      formData.append("password", password);
+    }
     if (profilePicture) {
       formData.append("profilePicture", profilePicture);
     }
 
-    const headers: HeadersInit = {};
-    // Don't set Content-Type header when using FormData - browser will set it with boundary
-    if (!profilePicture) {
-      headers["Content-Type"] = "application/json";
-    }
-
     const response = await fetch(API_ENDPOINTS.auth.register, {
       method: "POST",
-      headers,
-      body: profilePicture
-        ? formData
-        : JSON.stringify({ name, email, password }),
+      body: formData,
     });
 
     if (!response.ok) {
       const errorData = await response
         .json()
-        .catch(() => ({ error: "Error registering user" }));
-      throw new Error(errorData.error || "Error registering user");
+        .catch(() => ({ error: "Error requesting registration magic link" }));
+      throw new Error(
+        errorData.error || "Error requesting registration magic link"
+      );
     }
+  };
 
-    const userData = await response.json();
-
-    // After registration, automatically log in
-    const loginResponse = await fetch(API_ENDPOINTS.auth.login, {
+  /**
+   * Request login magic link (passwordless).
+   * @param email - User's email
+   * @returns Promise resolving when magic link is sent
+   * @throws Error if request fails
+   * @public
+   */
+  const requestLoginMagicLink = async (email: string): Promise<void> => {
+    const response = await fetch(API_ENDPOINTS.auth.login, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email }),
     });
 
-    if (!loginResponse.ok) {
-      throw new Error("Registration successful but login failed");
+    if (!response.ok) {
+      const errorData = await response
+        .json()
+        .catch(() => ({ error: "Error requesting login magic link" }));
+      throw new Error(errorData.error || "Error requesting login magic link");
     }
-
-    const loginData = await loginResponse.json();
-    setUser(loginData.user);
-    setToken(loginData.token);
-    localStorage.setItem(TOKEN_KEY, loginData.token);
-
-    return userData;
   };
 
   /**
-   * Login with email and password.
+   * Verify magic link token and log user in.
+   * @param magicLinkToken - Magic link token from email
+   * @returns Promise resolving to user data
+   * @throws Error if verification fails
+   * @public
+   */
+  const verifyMagicLink = async (magicLinkToken: string): Promise<UserData> => {
+    const response = await fetch(
+      `${API_ENDPOINTS.auth.verifyMagicLink}?token=${encodeURIComponent(
+        magicLinkToken
+      )}`,
+      {
+        method: "GET",
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response
+        .json()
+        .catch(() => ({ error: "Invalid or expired magic link" }));
+      throw new Error(errorData.error || "Invalid or expired magic link");
+    }
+
+    const data = await response.json();
+    setUser(data.user);
+    setToken(data.token);
+    localStorage.setItem(TOKEN_KEY, data.token);
+
+    return data.user;
+  };
+
+  /**
+   * Login with email and password (optional, for users who set a password).
    * @param email - User's email
    * @param password - User's password
    * @returns Promise resolving to user data
    * @throws Error if login fails
    * @public
    */
-  const login = async (email: string, password: string): Promise<UserData> => {
-    const response = await fetch(API_ENDPOINTS.auth.login, {
+  const loginWithPassword = async (
+    email: string,
+    password: string
+  ): Promise<UserData> => {
+    const response = await fetch(API_ENDPOINTS.auth.loginPassword, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -157,6 +193,91 @@ export function useAuth() {
   };
 
   /**
+   * Change password for authenticated user.
+   * @param currentPassword - Current password (required if password is set)
+   * @param newPassword - New password
+   * @returns Promise resolving when password is changed
+   * @throws Error if change fails
+   * @public
+   */
+  const changePassword = async (
+    currentPassword: string,
+    newPassword: string
+  ): Promise<void> => {
+    if (!token) {
+      throw new Error("Not authenticated");
+    }
+
+    const response = await fetch(API_ENDPOINTS.auth.changePassword, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response
+        .json()
+        .catch(() => ({ error: "Error changing password" }));
+      throw new Error(errorData.error || "Error changing password");
+    }
+  };
+
+  /**
+   * Request password reset email.
+   * @param email - User's email
+   * @returns Promise resolving when reset email is sent
+   * @throws Error if request fails
+   * @public
+   */
+  const forgotPassword = async (email: string): Promise<void> => {
+    const response = await fetch(API_ENDPOINTS.auth.forgotPassword, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response
+        .json()
+        .catch(() => ({ error: "Error requesting password reset" }));
+      throw new Error(errorData.error || "Error requesting password reset");
+    }
+  };
+
+  /**
+   * Reset password with token.
+   * @param token - Password reset token
+   * @param newPassword - New password
+   * @returns Promise resolving when password is reset
+   * @throws Error if reset fails
+   * @public
+   */
+  const resetPassword = async (
+    token: string,
+    newPassword: string
+  ): Promise<void> => {
+    const response = await fetch(API_ENDPOINTS.auth.resetPassword, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ token, newPassword }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response
+        .json()
+        .catch(() => ({ error: "Error resetting password" }));
+      throw new Error(errorData.error || "Error resetting password");
+    }
+  };
+
+  /**
    * Logout the current user.
    * @public
    */
@@ -167,9 +288,9 @@ export function useAuth() {
   };
 
   /**
-   * Set token from OAuth callback.
+   * Set token from callback (for magic link verification).
    * Verifies token and loads user data.
-   * @param callbackToken - JWT token from OAuth callback
+   * @param callbackToken - JWT token from magic link verification
    * @public
    */
   const setTokenFromCallback = async (callbackToken: string) => {
@@ -207,8 +328,13 @@ export function useAuth() {
     token,
     isLoading,
     isAuthenticated,
-    register,
-    login,
+    requestRegisterMagicLink,
+    requestLoginMagicLink,
+    verifyMagicLink,
+    loginWithPassword,
+    changePassword,
+    forgotPassword,
+    resetPassword,
     logout,
     setTokenFromCallback,
   };
