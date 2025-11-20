@@ -1,4 +1,4 @@
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, FormEvent, useEffect, useRef } from 'react';
 import { UserData } from '../models/User';
 import { User } from '../models/User';
 import './EditProfileModal.css';
@@ -37,6 +37,7 @@ export function EditProfileModal({
     );
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     /**
      * Handle profile picture file selection.
@@ -79,8 +80,9 @@ export function EditProfileModal({
     const handleRemovePicture = () => {
         setProfilePicture(null);
         setProfilePicturePreview(null);
-        const fileInput = document.getElementById('edit-profile-picture') as HTMLInputElement;
-        if (fileInput) fileInput.value = '';
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
     };
 
     /**
@@ -217,14 +219,29 @@ export function EditProfileModal({
 
                     <div className="form-group">
                         <label htmlFor="edit-profile-picture">Profile Picture (Optional)</label>
-                        <input
-                            type="file"
-                            id="edit-profile-picture"
-                            name="profilePicture"
-                            accept="image/*"
-                            onChange={handleProfilePictureChange}
-                            disabled={isSubmitting}
-                        />
+                        <div className="file-input-wrapper">
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                id="edit-profile-picture"
+                                name="profilePicture"
+                                accept="image/*"
+                                onChange={handleProfilePictureChange}
+                                disabled={isSubmitting}
+                                className="file-input-hidden"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={isSubmitting}
+                                className="file-input-button"
+                            >
+                                Choose File
+                            </button>
+                            <span className="file-input-text">
+                                {profilePicture ? profilePicture.name : user.profile_picture_url ? "Current image" : "No file chosen"}
+                            </span>
+                        </div>
                         {profilePicturePreview && (
                             <div className="profile-picture-preview">
                                 <img

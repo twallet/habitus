@@ -1,4 +1,4 @@
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useRef } from "react";
 
 interface AuthFormProps {
   onRequestLoginMagicLink: (email: string) => Promise<void>;
@@ -33,6 +33,7 @@ export function AuthForm({
   const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   /**
    * Handle form submission.
@@ -229,14 +230,29 @@ export function AuthForm({
 
             <div className="form-group">
               <label htmlFor="profilePicture">Profile Picture (Optional)</label>
-              <input
-                type="file"
-                id="profilePicture"
-                name="profilePicture"
-                accept="image/*"
-                onChange={handleProfilePictureChange}
-                disabled={isSubmitting}
-              />
+              <div className="file-input-wrapper">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  id="profilePicture"
+                  name="profilePicture"
+                  accept="image/*"
+                  onChange={handleProfilePictureChange}
+                  disabled={isSubmitting}
+                  className="file-input-hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isSubmitting}
+                  className="file-input-button"
+                >
+                  Choose File
+                </button>
+                <span className="file-input-text">
+                  {profilePicture ? profilePicture.name : "No file chosen"}
+                </span>
+              </div>
               {profilePicturePreview && (
                 <div className="profile-picture-preview">
                   <img
@@ -249,8 +265,9 @@ export function AuthForm({
                     onClick={() => {
                       setProfilePicture(null);
                       setProfilePicturePreview(null);
-                      const fileInput = document.getElementById("profilePicture") as HTMLInputElement;
-                      if (fileInput) fileInput.value = "";
+                      if (fileInputRef.current) {
+                        fileInputRef.current.value = "";
+                      }
                     }}
                     className="remove-image-btn"
                     disabled={isSubmitting}
