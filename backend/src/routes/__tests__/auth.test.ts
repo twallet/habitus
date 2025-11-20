@@ -1,3 +1,6 @@
+// Set NODE_ENV to test before importing modules that use rate limiting
+process.env.NODE_ENV = process.env.NODE_ENV || "test";
+
 import request from "supertest";
 import express from "express";
 import sqlite3 from "sqlite3";
@@ -192,6 +195,12 @@ describe("Auth Routes", () => {
         email: "john@example.com",
       });
 
+      // Clear magic link to avoid cooldown check
+      await mockDbPromises.run(
+        "UPDATE users SET magic_link_expires = NULL WHERE email = ?",
+        ["john@example.com"]
+      );
+
       const response = await request(app).post("/api/auth/register").send({
         name: "Jane Doe",
         email: "john@example.com",
@@ -199,6 +208,40 @@ describe("Auth Routes", () => {
 
       expect(response.status).toBe(409);
       expect(response.body.error).toContain("already registered");
+    });
+
+    it("should enforce cooldown period for registration magic link requests", async () => {
+      const testEmail = "cooldown@example.com";
+
+      // First registration request
+      const firstResponse = await request(app).post("/api/auth/register").send({
+        name: "Test User",
+        email: testEmail,
+      });
+
+      expect(firstResponse.status).toBe(200);
+
+      // Simulate cooldown by setting recent magic_link_expires
+      // Set magic_link_expires to a future time (simulating a recent request)
+      const futureDate = new Date();
+      futureDate.setMinutes(futureDate.getMinutes() + 15); // 15 minutes from now
+
+      await mockDbPromises.run(
+        "UPDATE users SET magic_link_expires = ? WHERE email = ?",
+        [futureDate.toISOString(), testEmail]
+      );
+
+      // Second registration request should be blocked by cooldown (even though user exists)
+      const secondResponse = await request(app)
+        .post("/api/auth/register")
+        .send({
+          name: "Another User",
+          email: testEmail,
+        });
+
+      expect(secondResponse.status).toBe(400);
+      expect(secondResponse.body.error).toContain("wait");
+      expect(secondResponse.body.error).toContain("minutes");
     });
   });
 
@@ -227,6 +270,44 @@ describe("Auth Routes", () => {
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain("Email");
+    });
+
+    it("should enforce cooldown period but still return success for login (to prevent email enumeration)", async () => {
+      // Request login magic link (first call)
+      const firstResponse = await request(app).post("/api/auth/login").send({
+        email: testEmail,
+      });
+
+      expect(firstResponse.status).toBe(200);
+
+      // Get the call count after first request
+      const callsAfterFirst = (
+        emailServiceModule.EmailService.sendMagicLink as jest.Mock
+      ).mock.calls.length;
+      expect(callsAfterFirst).toBeGreaterThanOrEqual(1);
+
+      // Simulate cooldown by setting recent magic_link_expires
+      const futureDate = new Date();
+      futureDate.setMinutes(futureDate.getMinutes() + 15); // 15 minutes from now
+
+      await mockDbPromises.run(
+        "UPDATE users SET magic_link_expires = ? WHERE email = ?",
+        [futureDate.toISOString(), testEmail]
+      );
+
+      // Second login request should still return success (to prevent email enumeration)
+      // but the cooldown is enforced internally
+      const secondResponse = await request(app).post("/api/auth/login").send({
+        email: testEmail,
+      });
+
+      expect(secondResponse.status).toBe(200);
+      expect(secondResponse.body.message).toContain("magic link");
+      // Verify that email service was not called again (cooldown prevented it)
+      const callsAfterSecond = (
+        emailServiceModule.EmailService.sendMagicLink as jest.Mock
+      ).mock.calls.length;
+      expect(callsAfterSecond).toBe(callsAfterFirst); // No additional calls
     });
   });
 

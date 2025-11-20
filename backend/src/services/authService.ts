@@ -22,6 +22,16 @@ const MAGIC_LINK_EXPIRY_MINUTES = parseInt(
 );
 
 /**
+ * Cooldown period in minutes before allowing another magic link request for the same email.
+ * Prevents email spam and abuse.
+ * @private
+ */
+const MAGIC_LINK_COOLDOWN_MINUTES = parseInt(
+  process.env.MAGIC_LINK_COOLDOWN_MINUTES || "5",
+  10
+);
+
+/**
  * Service for authentication-related operations.
  * @public
  */
@@ -33,6 +43,42 @@ export class AuthService {
    */
   private static generateToken(): string {
     return crypto.randomBytes(32).toString("hex");
+  }
+
+  /**
+   * Check if a magic link was recently sent to an email address.
+   * @param email - Email address to check
+   * @returns Promise resolving to true if cooldown period hasn't passed, false otherwise
+   * @private
+   */
+  private static async checkMagicLinkCooldown(email: string): Promise<boolean> {
+    const user = await dbPromises.get<{
+      magic_link_expires: string | null;
+    }>("SELECT magic_link_expires FROM users WHERE email = ?", [email]);
+
+    if (!user || !user.magic_link_expires) {
+      return false; // No recent magic link found
+    }
+
+    const expiresAt = new Date(user.magic_link_expires);
+    const now = new Date();
+
+    // If the magic link hasn't expired yet, check if it was created recently
+    if (expiresAt > now) {
+      // Calculate when the magic link was created (expires - expiry time)
+      const createdAt = new Date(expiresAt);
+      createdAt.setMinutes(createdAt.getMinutes() - MAGIC_LINK_EXPIRY_MINUTES);
+
+      // Check if it was created within the cooldown period
+      const cooldownExpires = new Date(createdAt);
+      cooldownExpires.setMinutes(
+        cooldownExpires.getMinutes() + MAGIC_LINK_COOLDOWN_MINUTES
+      );
+
+      return cooldownExpires > now;
+    }
+
+    return false; // Magic link expired, cooldown doesn't apply
   }
 
   /**
@@ -56,6 +102,13 @@ export class AuthService {
     const validatedName = User.validateName(name);
     const validatedEmail = User.validateEmail(email);
     const validatedNickname = User.validateNickname(nickname);
+
+    // Check cooldown period first (takes precedence over duplicate email check)
+    if (await AuthService.checkMagicLinkCooldown(validatedEmail)) {
+      throw new Error(
+        `Please wait ${MAGIC_LINK_COOLDOWN_MINUTES} minutes before requesting another magic link.`
+      );
+    }
 
     // Check if user with email already exists
     const existingUser = await dbPromises.get<UserWithPassword>(
@@ -112,6 +165,13 @@ export class AuthService {
       // Don't reveal if user exists or not for security
       // Still return success to prevent email enumeration
       return;
+    }
+
+    // Check cooldown period for this email
+    if (await AuthService.checkMagicLinkCooldown(validatedEmail)) {
+      throw new Error(
+        `Please wait ${MAGIC_LINK_COOLDOWN_MINUTES} minutes before requesting another magic link.`
+      );
     }
 
     // Generate magic link token

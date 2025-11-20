@@ -6,7 +6,7 @@ interface UserProfileProps {
 
 /**
  * Component for displaying the current user's profile information.
- * Shows editable fields (name, nickname, email, photo) and
+ * Shows editable fields (name, nickname, email) and
  * non-editable fields (id, last_access).
  * @param props - Component props
  * @param props.user - The current user's data
@@ -34,19 +34,34 @@ export function UserProfile({ user }: UserProfileProps) {
     }
   };
 
+  /**
+   * Get user initials from name.
+   * @returns Initials string (max 2 characters)
+   * @internal
+   */
+  const getInitials = (): string => {
+    const nameParts = user.name.trim().split(/\s+/);
+    if (nameParts.length >= 2) {
+      return (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase();
+    }
+    return user.name.substring(0, 2).toUpperCase();
+  };
+
   return (
     <div className="user-profile">
       <h2>Your Profile</h2>
       <div className="profile-card">
-        {user.profile_picture_url && (
-          <div className="profile-picture-container">
+        <div className="profile-picture-container">
+          {user.profile_picture_url ? (
             <img
               src={user.profile_picture_url}
               alt={`${user.name}'s profile`}
               className="profile-picture"
             />
-          </div>
-        )}
+          ) : (
+            <div className="profile-picture-initials">{getInitials()}</div>
+          )}
+        </div>
         <div className="profile-section">
           <h3>Editable Information</h3>
           <div className="profile-field">
@@ -63,18 +78,6 @@ export function UserProfile({ user }: UserProfileProps) {
             <label>Email</label>
             <div className="profile-value">{user.email}</div>
           </div>
-          {user.profile_picture_url && (
-            <div className="profile-field">
-              <label>Profile Photo</label>
-              <div className="profile-value">
-                <img
-                  src={user.profile_picture_url}
-                  alt="Profile"
-                  className="profile-thumbnail"
-                />
-              </div>
-            </div>
-          )}
         </div>
         <div className="profile-section">
           <h3>System Information (Read-only)</h3>

@@ -1,10 +1,7 @@
 import { Router, Request, Response } from "express";
 import { AuthService } from "../services/authService.js";
 import { uploadProfilePicture } from "../middleware/upload.js";
-import {
-  authenticateToken,
-  AuthRequest,
-} from "../middleware/authMiddleware.js";
+import { authRateLimiter } from "../middleware/rateLimiter.js";
 
 const router = Router();
 
@@ -20,6 +17,7 @@ const router = Router();
  */
 router.post(
   "/register",
+  authRateLimiter,
   uploadProfilePicture,
   async (req: Request, res: Response) => {
     try {
@@ -74,6 +72,13 @@ router.post(
       ) {
         return res.status(400).json({ error: error.message });
       }
+      if (
+        error instanceof Error &&
+        error.message.includes("wait") &&
+        error.message.includes("minutes")
+      ) {
+        return res.status(400).json({ error: error.message });
+      }
       console.error("Error requesting registration magic link:", error);
       res
         .status(500)
@@ -89,7 +94,7 @@ router.post(
  * @body {string} email - The user's email
  * @returns {Object} Success message
  */
-router.post("/login", async (req: Request, res: Response) => {
+router.post("/login", authRateLimiter, async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
 
@@ -108,6 +113,25 @@ router.post("/login", async (req: Request, res: Response) => {
         "If an account exists for this email, a magic link has been sent. Please check your inbox and spam folder.",
     });
   } catch (error) {
+    // Check if it's a cooldown error - log it but still return success
+    // to prevent email enumeration attacks
+    if (
+      error instanceof Error &&
+      error.message.includes("wait") &&
+      error.message.includes("minutes")
+    ) {
+      console.warn(
+        `Magic link cooldown active for email: ${req.body.email}`,
+        error.message
+      );
+      // Still return success to prevent email enumeration
+      res.json({
+        message:
+          "If an account exists for this email, a magic link has been sent. Please check your inbox and spam folder.",
+      });
+      return;
+    }
+
     console.error("Error requesting login magic link:", error);
     // Still return success to prevent email enumeration
     // Message doesn't reveal whether email exists or not

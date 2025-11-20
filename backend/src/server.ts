@@ -14,6 +14,14 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 /**
+ * Trust proxy configuration for rate limiting.
+ * Set TRUST_PROXY=true in production when behind a reverse proxy (nginx, etc.)
+ */
+if (process.env.TRUST_PROXY === "true") {
+  app.set("trust proxy", true);
+}
+
+/**
  * Request logging middleware.
  */
 app.use(
