@@ -1,21 +1,17 @@
 import { API_ENDPOINTS, API_BASE_URL } from "../api";
 
 describe("api", () => {
-  const originalGlobalImport = (globalThis as any).import;
   const originalProcessEnv = process.env.VITE_API_BASE_URL;
 
   beforeEach(() => {
     // Reset mocks
     jest.clearAllMocks();
-    delete (globalThis as any).import;
+    // Note: globalThis.import is read-only (defined in setupTests.ts), so we can't delete it
     delete process.env.VITE_API_BASE_URL;
   });
 
   afterEach(() => {
     // Restore original values
-    if (originalGlobalImport !== undefined) {
-      (globalThis as any).import = originalGlobalImport;
-    }
     if (originalProcessEnv !== undefined) {
       process.env.VITE_API_BASE_URL = originalProcessEnv;
     }
