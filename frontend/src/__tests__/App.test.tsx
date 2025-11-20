@@ -479,14 +479,15 @@ describe('App', () => {
       created_at: '2024-01-01T00:00:00Z',
     };
 
+    // Start unauthenticated so verification can run
     mockUseAuth.mockReturnValue({
-      user: mockUser,
-      token: 'mock-token',
+      user: null,
+      token: null,
       isLoading: false,
-      isAuthenticated: true,
+      isAuthenticated: false,
       requestLoginMagicLink: jest.fn(),
       requestRegisterMagicLink: jest.fn(),
-      verifyMagicLink: jest.fn().mockResolvedValue(undefined),
+      verifyMagicLink: jest.fn().mockResolvedValue(mockUser),
       logout: jest.fn(),
       setTokenFromCallback: jest.fn(),
     });

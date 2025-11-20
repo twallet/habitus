@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Message } from './components/Message';
 import { AuthForm } from './components/AuthForm';
 import { UserProfile } from './components/UserProfile';
@@ -21,6 +21,7 @@ function App() {
     logout,
   } = useAuth();
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const verificationAttempted = useRef(false);
 
   /**
    * Handle magic link verification from URL.
@@ -28,29 +29,35 @@ function App() {
    * @internal
    */
   useEffect(() => {
+    // Skip if already authenticated or if verification was already attempted
+    if (isAuthenticated || verificationAttempted.current) {
+      return;
+    }
+
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
     const error = urlParams.get('error');
 
     if (token) {
+      verificationAttempted.current = true;
+      // Clean up URL immediately to prevent re-processing
+      window.history.replaceState({}, document.title, window.location.pathname);
+
       verifyMagicLink(token)
         .then(() => {
           setMessage({
             text: 'Login successful!',
             type: 'success',
           });
-          // Clean up URL
-          window.history.replaceState({}, document.title, window.location.pathname);
         })
         .catch((err) => {
           setMessage({
             text: err instanceof Error ? err.message : 'Error verifying magic link',
             type: 'error',
           });
-          // Clean up URL
-          window.history.replaceState({}, document.title, window.location.pathname);
         });
     } else if (error) {
+      verificationAttempted.current = true;
       setMessage({
         text: decodeURIComponent(error),
         type: 'error',
@@ -58,7 +65,7 @@ function App() {
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [verifyMagicLink]);
+  }, [verifyMagicLink, isAuthenticated]);
 
   /**
    * Handle login magic link request.
@@ -137,6 +144,7 @@ function App() {
    */
   const handleLogout = () => {
     logout();
+    verificationAttempted.current = false; // Reset to allow new magic link verification
     setMessage({
       text: 'Logged out successfully',
       type: 'success',

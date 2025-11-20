@@ -67,10 +67,10 @@ export class EmailService {
       const mailTransporter = getTransporter();
       const magicLink = `${FRONTEND_URL}/auth/verify-magic-link?token=${token}`;
       const subject = isRegistration
-        ? "Welcome! Verify your email to complete registration"
+        ? "Welcome to Habitus! Verify your email to complete registration"
         : "Your login link";
       const text = isRegistration
-        ? `Welcome! Click the link below to verify your email and complete your registration:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\n\nIf you didn't request this, please ignore this email.`
+        ? `Welcome to Habitus! Click the link below to verify your email and complete your registration:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\n\nIf you didn't request this, please ignore this email.`
         : `Click the link below to log in:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\n\nIf you didn't request this, please ignore this email.`;
 
       await mailTransporter.sendMail({
@@ -98,9 +98,35 @@ export class EmailService {
           </div>
         `,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error sending magic link email:", error);
-      throw new Error("Failed to send magic link email");
+
+      // Check for Gmail app-specific password requirement
+      if (
+        error.code === "EAUTH" &&
+        (error.responseCode === 534 ||
+          (error.response &&
+            error.response.includes("Application-specific password required")))
+      ) {
+        throw new Error(
+          "SMTP authentication failed: Application-specific password required. " +
+            "For Gmail accounts with 2FA enabled, you must use an app-specific password. " +
+            "Generate one at: https://myaccount.google.com/apppasswords " +
+            "Then set SMTP_PASS in your .env file to the generated app password."
+        );
+      }
+
+      // Check for other authentication errors
+      if (error.code === "EAUTH") {
+        throw new Error(
+          `SMTP authentication failed: ${error.response || error.message}. ` +
+            "Please verify your SMTP_USER and SMTP_PASS environment variables are correct."
+        );
+      }
+
+      throw new Error(
+        `Failed to send magic link email: ${error.message || "Unknown error"}`
+      );
     }
   }
 }
