@@ -26,7 +26,6 @@ const getAuthToken = (): string | null => {
 export function useTrackings() {
   const [trackings, setTrackings] = useState<TrackingData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   /**
    * Load trackings from API.
@@ -38,12 +37,10 @@ export function useTrackings() {
       console.warn(
         `[${new Date().toISOString()}] FRONTEND_TRACKINGS | No auth token found, cannot load trackings`
       );
-      setError("Not authenticated");
       return;
     }
 
     setIsLoading(true);
-    setError(null);
     console.log(
       `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Fetching trackings from API: ${
         API_ENDPOINTS.trackings
@@ -78,14 +75,10 @@ export function useTrackings() {
         } trackings from API`
       );
       setTrackings(loadedTrackings);
-      setError(null);
     } catch (error) {
       console.error(
         `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Error loading trackings:`,
         error
-      );
-      setError(
-        error instanceof Error ? error.message : "Error loading trackings"
       );
       setTrackings([]);
     } finally {
@@ -163,15 +156,11 @@ export function useTrackings() {
         }`
       );
       setTrackings((prevTrackings) => [trackingData, ...prevTrackings]);
-      setError(null);
       return trackingData;
     } catch (error) {
       console.error(
         `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Error creating tracking:`,
         error
-      );
-      setError(
-        error instanceof Error ? error.message : "Error creating tracking"
       );
       throw error;
     }
@@ -243,15 +232,11 @@ export function useTrackings() {
       setTrackings((prevTrackings) =>
         prevTrackings.map((t) => (t.id === trackingId ? trackingData : t))
       );
-      setError(null);
       return trackingData;
     } catch (error) {
       console.error(
         `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Error updating tracking:`,
         error
-      );
-      setError(
-        error instanceof Error ? error.message : "Error updating tracking"
       );
       throw error;
     }
@@ -303,14 +288,10 @@ export function useTrackings() {
       setTrackings((prevTrackings) =>
         prevTrackings.filter((t) => t.id !== trackingId)
       );
-      setError(null);
     } catch (error) {
       console.error(
         `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Error deleting tracking:`,
         error
-      );
-      setError(
-        error instanceof Error ? error.message : "Error deleting tracking"
       );
       throw error;
     }
@@ -319,10 +300,8 @@ export function useTrackings() {
   return {
     trackings,
     isLoading,
-    error,
     createTracking,
     updateTracking,
     deleteTracking,
-    refreshTrackings: loadTrackings,
   };
 }
