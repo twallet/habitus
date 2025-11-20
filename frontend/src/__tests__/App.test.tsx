@@ -60,11 +60,6 @@ describe('App', () => {
   });
 
   it('should render header', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: false,
-      status: 401,
-    });
-
     render(<App />);
 
     await waitFor(() => {
@@ -74,11 +69,6 @@ describe('App', () => {
   });
 
   it('should show loading state initially', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: false,
-      status: 401,
-    });
-
     render(<App />);
     // Loading state might be too fast to catch, so we just verify the component renders
     // and moves to the auth form quickly
@@ -88,11 +78,6 @@ describe('App', () => {
   });
 
   it('should render auth form after initialization', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: false,
-      status: 401,
-    });
-
     render(<App />);
 
     await waitFor(() => {
@@ -219,10 +204,6 @@ describe('App', () => {
 
   it('should show error message for invalid email', async () => {
     const user = userEvent.setup();
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: false,
-      status: 401,
-    });
 
     render(<App />);
 
