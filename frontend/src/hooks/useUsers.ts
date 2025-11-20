@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { UserData } from '../models/User';
-import { API_ENDPOINTS } from '../config/api';
+import { useState, useEffect } from "react";
+import { UserData } from "../models/User";
+import { API_ENDPOINTS } from "../config/api";
 
 /**
  * Custom hook for managing users with API persistence.
@@ -19,18 +19,25 @@ export function useUsers() {
    */
   useEffect(() => {
     const fetchUsers = async () => {
+      const timestamp = new Date().toISOString();
+      console.log(`[${timestamp}] Fetching users from ${API_ENDPOINTS.users}`);
       try {
         const response = await fetch(API_ENDPOINTS.users);
         if (!response.ok) {
-          throw new Error('Failed to fetch users');
+          throw new Error("Failed to fetch users");
         }
         const loadedUsers = await response.json();
+        console.log(
+          `[${timestamp}] Successfully loaded ${loadedUsers.length} user(s)`
+        );
         setUsers(loadedUsers);
         setIsInitialized(true);
         setError(null);
       } catch (error) {
-        console.error('Error loading users:', error);
-        setError(error instanceof Error ? error.message : 'Error loading users');
+        console.error(`[${timestamp}] Error loading users:`, error);
+        setError(
+          error instanceof Error ? error.message : "Error loading users"
+        );
         setUsers([]);
         setIsInitialized(true);
       }
@@ -48,26 +55,32 @@ export function useUsers() {
    * @public
    */
   const createUser = async (name: string): Promise<UserData> => {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] Creating user: ${name}`);
     try {
       const response = await fetch(API_ENDPOINTS.users, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ name }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Error creating user' }));
-        throw new Error(errorData.error || 'Error creating user');
+        const errorData = await response
+          .json()
+          .catch(() => ({ error: "Error creating user" }));
+        throw new Error(errorData.error || "Error creating user");
       }
 
       const userData = await response.json();
+      console.log(`[${timestamp}] User created successfully:`, userData);
       setUsers((prevUsers) => [...prevUsers, userData]);
       setError(null);
       return userData;
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Error creating user');
+      console.error(`[${timestamp}] Error creating user:`, error);
+      setError(error instanceof Error ? error.message : "Error creating user");
       throw error;
     }
   };
@@ -79,4 +92,3 @@ export function useUsers() {
     error,
   };
 }
-

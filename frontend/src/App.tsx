@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { UserForm } from './components/UserForm';
 import { Message } from './components/Message';
 import { UsersList } from './components/UsersList';
@@ -14,6 +14,22 @@ import './App.css';
 function App() {
   const { users, createUser, isInitialized } = useUsers();
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  /**
+   * Log when App component mounts and when initialization completes.
+   * @internal
+   */
+  useEffect(() => {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] App component mounted`);
+  }, []);
+
+  useEffect(() => {
+    if (isInitialized) {
+      const timestamp = new Date().toISOString();
+      console.log(`[${timestamp}] App initialized with ${users.length} user(s)`);
+    }
+  }, [isInitialized, users.length]);
 
   /**
    * Handle user creation from form submission.
