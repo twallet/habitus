@@ -5,7 +5,13 @@ import { UserProfile } from './components/UserProfile';
 import { UserMenu } from './components/UserMenu';
 import { EditProfileModal } from './components/EditProfileModal';
 import { DeleteUserConfirmationModal } from './components/DeleteUserConfirmationModal';
+import { Navigation, View } from './components/Navigation';
+import { TrackingsList } from './components/TrackingsList';
+import { TrackingForm } from './components/TrackingForm';
+import { EditTrackingModal } from './components/EditTrackingModal';
 import { useAuth } from './hooks/useAuth';
+import { useTrackings } from './hooks/useTrackings';
+import { TrackingData, TrackingType } from './models/Tracking';
 import './App.css';
 
 /**
@@ -28,7 +34,17 @@ function App() {
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [currentView, setCurrentView] = useState<View>('profile');
+  const [editingTracking, setEditingTracking] = useState<TrackingData | null>(null);
   const verificationAttempted = useRef(false);
+
+  const {
+    trackings,
+    isLoading: trackingsLoading,
+    createTracking,
+    updateTracking,
+    deleteTracking,
+  } = useTrackings();
 
   /**
    * Handle magic link verification from URL.
@@ -244,6 +260,95 @@ function App() {
     }
   };
 
+  /**
+   * Handle create tracking.
+   * @internal
+   */
+  const handleCreateTracking = async (
+    question: string,
+    type: TrackingType,
+    startTrackingDate?: string,
+    notes?: string
+  ) => {
+    console.log(`[${new Date().toISOString()}] FRONTEND_APP | Creating tracking`);
+    try {
+      await createTracking(question, type, startTrackingDate, notes);
+      setMessage({
+        text: 'Tracking created successfully',
+        type: 'success',
+      });
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] FRONTEND_APP | Error creating tracking:`, error);
+      setMessage({
+        text: error instanceof Error ? error.message : 'Error creating tracking',
+        type: 'error',
+      });
+      throw error;
+    }
+  };
+
+  /**
+   * Handle edit tracking.
+   * @internal
+   */
+  const handleEditTracking = (tracking: TrackingData) => {
+    setEditingTracking(tracking);
+  };
+
+  /**
+   * Handle save tracking.
+   * @internal
+   */
+  const handleSaveTracking = async (
+    trackingId: number,
+    question?: string,
+    type?: TrackingType,
+    startTrackingDate?: string,
+    notes?: string
+  ) => {
+    console.log(`[${new Date().toISOString()}] FRONTEND_APP | Updating tracking ID: ${trackingId}`);
+    try {
+      await updateTracking(trackingId, question, type, startTrackingDate, notes);
+      setEditingTracking(null);
+      setMessage({
+        text: 'Tracking updated successfully',
+        type: 'success',
+      });
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] FRONTEND_APP | Error updating tracking:`, error);
+      setMessage({
+        text: error instanceof Error ? error.message : 'Error updating tracking',
+        type: 'error',
+      });
+      throw error;
+    }
+  };
+
+  /**
+   * Handle delete tracking.
+   * @internal
+   */
+  const handleDeleteTracking = async (trackingId: number) => {
+    console.log(`[${new Date().toISOString()}] FRONTEND_APP | Deleting tracking ID: ${trackingId}`);
+    if (!window.confirm('Are you sure you want to delete this tracking?')) {
+      return;
+    }
+    try {
+      await deleteTracking(trackingId);
+      setMessage({
+        text: 'Tracking deleted successfully',
+        type: 'success',
+      });
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] FRONTEND_APP | Error deleting tracking:`, error);
+      setMessage({
+        text: error instanceof Error ? error.message : 'Error deleting tracking',
+        type: 'error',
+      });
+      throw error;
+    }
+  };
+
   // Show loading state while checking authentication
   if (isLoading) {
     console.log(`[${new Date().toISOString()}] FRONTEND_APP | App is loading, checking authentication state`);
@@ -324,7 +429,23 @@ function App() {
           />
         )}
 
-        <UserProfile user={user} />
+        <Navigation currentView={currentView} onViewChange={setCurrentView} />
+
+        {currentView === 'profile' && <UserProfile user={user} />}
+
+        {currentView === 'trackings' && (
+          <div className="trackings-view">
+            <TrackingForm
+              onSubmit={handleCreateTracking}
+            />
+            <TrackingsList
+              trackings={trackings}
+              onEdit={handleEditTracking}
+              onDelete={handleDeleteTracking}
+              isLoading={trackingsLoading}
+            />
+          </div>
+        )}
       </main>
 
       {showEditProfile && user && (
@@ -340,6 +461,14 @@ function App() {
           userName={user.name}
           onClose={() => setShowDeleteConfirmation(false)}
           onConfirm={handleConfirmDeleteUser}
+        />
+      )}
+
+      {editingTracking && (
+        <EditTrackingModal
+          tracking={editingTracking}
+          onClose={() => setEditingTracking(null)}
+          onSave={handleSaveTracking}
         />
       )}
     </div>

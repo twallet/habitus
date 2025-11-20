@@ -138,6 +138,20 @@ export function initializeDatabase(): Promise<void> {
             CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at);
             CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
             CREATE INDEX IF NOT EXISTS idx_users_magic_link_token ON users(magic_link_token);
+            CREATE TABLE IF NOT EXISTS trackings (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              user_id INTEGER NOT NULL,
+              question TEXT NOT NULL CHECK(length(question) <= 500),
+              type TEXT NOT NULL CHECK(type IN ('true_false', 'register')),
+              start_tracking_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              notes TEXT,
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS idx_trackings_user_id ON trackings(user_id);
+            CREATE INDEX IF NOT EXISTS idx_trackings_start_tracking_date ON trackings(start_tracking_date);
+            CREATE INDEX IF NOT EXISTS idx_trackings_created_at ON trackings(created_at);
           `,
             (err) => {
               if (err) {

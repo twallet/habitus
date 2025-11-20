@@ -8,6 +8,7 @@ import { fileURLToPath } from "url";
 import { initializeDatabase, closeDatabase } from "./db/database.js";
 import usersRouter from "./routes/users.js";
 import authRouter from "./routes/auth.js";
+import trackingsRouter from "./routes/trackings.js";
 import { getUploadsDirectory } from "./middleware/upload.js";
 
 const app = express();
@@ -70,6 +71,7 @@ app.use("/uploads", express.static(getUploadsDirectory()));
  */
 app.use("/api/users", usersRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/trackings", trackingsRouter);
 
 /**
  * Root endpoint.
@@ -82,6 +84,7 @@ app.get("/", (_req: express.Request, res: express.Response) => {
       health: "/health",
       users: "/api/users",
       auth: "/api/auth",
+      trackings: "/api/trackings",
     },
   });
 });

@@ -52,4 +52,5 @@ export const API_ENDPOINTS = {
     update: `${API_BASE_URL}/api/users/profile`,
     delete: `${API_BASE_URL}/api/users/profile`,
   },
+  trackings: `${API_BASE_URL}/api/trackings`,
 } as const;

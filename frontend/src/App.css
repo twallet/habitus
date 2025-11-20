@@ -39,7 +39,7 @@ body {
   border-radius: var(--radius);
   box-shadow: var(--shadow-lg);
   width: 100%;
-  max-width: 600px;
+  max-width: 1200px;
   padding: 40px;
   animation: fadeIn 0.3s ease-in-out;
 }
@@ -462,6 +462,10 @@ header h1 {
   color: var(--text-secondary);
   font-size: 0.95rem;
   margin-bottom: 24px;
+}
+
+.trackings-view {
+  width: 100%;
 }
 
 @media (max-width: 640px) {
