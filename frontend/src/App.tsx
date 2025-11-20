@@ -18,7 +18,6 @@ function App() {
     requestLoginMagicLink,
     requestRegisterMagicLink,
     verifyMagicLink,
-    loginWithPassword,
     logout,
   } = useAuth();
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -87,7 +86,6 @@ function App() {
    * @param name - User's name
    * @param email - User's email
    * @param nickname - Optional nickname
-   * @param password - Optional password
    * @param profilePicture - Optional profile picture file
    * @internal
    */
@@ -95,11 +93,10 @@ function App() {
     name: string,
     email: string,
     nickname?: string,
-    password?: string,
     profilePicture?: File
   ) => {
     try {
-      await requestRegisterMagicLink(name, email, nickname, password, profilePicture);
+      await requestRegisterMagicLink(name, email, nickname, profilePicture);
       setMessage({
         text: 'Registration magic link sent! Check your email.',
         type: 'success',
@@ -107,28 +104,6 @@ function App() {
     } catch (error) {
       setMessage({
         text: error instanceof Error ? error.message : 'Error requesting registration magic link',
-        type: 'error',
-      });
-      throw error;
-    }
-  };
-
-  /**
-   * Handle password login (optional).
-   * @param email - User's email
-   * @param password - User's password
-   * @internal
-   */
-  const handleLoginWithPassword = async (email: string, password: string) => {
-    try {
-      await loginWithPassword(email, password);
-      setMessage({
-        text: 'Login successful!',
-        type: 'success',
-      });
-    } catch (error) {
-      setMessage({
-        text: error instanceof Error ? error.message : 'Error logging in',
         type: 'error',
       });
       throw error;
@@ -198,7 +173,6 @@ function App() {
           <AuthForm
             onRequestLoginMagicLink={handleRequestLoginMagicLink}
             onRequestRegisterMagicLink={handleRequestRegisterMagicLink}
-            onLoginWithPassword={handleLoginWithPassword}
             onError={handleError}
           />
         </main>

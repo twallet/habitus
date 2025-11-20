@@ -72,13 +72,24 @@ cd backend && npm install && cd ..
 VITE_API_BASE_URL=http://localhost:3001
 ```
 
-2. **Backend**: Create a `.env` file in the `backend` directory (optional):
+2. **Backend**: Create a `.env` file in the `backend` directory:
 
 ```env
 PORT=3001
 NODE_ENV=development
 DB_PATH=./data/habitus.db
+
+# SMTP Configuration (Required for magic link emails)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+
+# Frontend URL
+FRONTEND_URL=http://localhost:3000
 ```
+
+**Note**: For Gmail, you'll need to generate an App Password. See the [Backend README](backend/README.md) for detailed SMTP setup instructions.
 
 ### Development
 

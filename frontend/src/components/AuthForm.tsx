@@ -6,10 +6,8 @@ interface AuthFormProps {
     name: string,
     email: string,
     nickname?: string,
-    password?: string,
     profilePicture?: File
   ) => Promise<void>;
-  onLoginWithPassword?: (email: string, password: string) => Promise<void>;
   onError: (message: string) => void;
 }
 
@@ -19,23 +17,18 @@ interface AuthFormProps {
  * @param props - Component props
  * @param props.onRequestLoginMagicLink - Callback for requesting login magic link
  * @param props.onRequestRegisterMagicLink - Callback for requesting registration magic link
- * @param props.onLoginWithPassword - Optional callback for password login
  * @param props.onError - Callback function called when validation fails or error occurs
  * @public
  */
 export function AuthForm({
   onRequestLoginMagicLink,
   onRequestRegisterMagicLink,
-  onLoginWithPassword,
   onError,
 }: AuthFormProps) {
   const [isLoginMode, setIsLoginMode] = useState(true);
-  const [usePasswordLogin, setUsePasswordLogin] = useState(false);
   const [name, setName] = useState("");
   const [nickname, setNickname] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -61,19 +54,9 @@ export function AuthForm({
       }
 
       if (isLoginMode) {
-        if (usePasswordLogin && onLoginWithPassword) {
-          // Password login
-          if (!password.trim()) {
-            onError("Password is required");
-            setIsSubmitting(false);
-            return;
-          }
-          await onLoginWithPassword(email.trim(), password);
-        } else {
-          // Magic link login
-          await onRequestLoginMagicLink(email.trim());
-          setMagicLinkSent(true);
-        }
+        // Magic link login
+        await onRequestLoginMagicLink(email.trim());
+        setMagicLinkSent(true);
       } else {
         // Register mode validation
         if (!name.trim()) {
@@ -82,18 +65,10 @@ export function AuthForm({
           return;
         }
 
-        // Password is optional for registration
-        if (password && password !== confirmPassword) {
-          onError("Passwords do not match");
-          setIsSubmitting(false);
-          return;
-        }
-
         await onRequestRegisterMagicLink(
           name.trim(),
           email.trim(),
           nickname.trim() || undefined,
-          password.trim() || undefined,
           profilePicture || undefined
         );
         setMagicLinkSent(true);
@@ -103,8 +78,6 @@ export function AuthForm({
       if (!magicLinkSent) {
         setName("");
         setNickname("");
-        setPassword("");
-        setConfirmPassword("");
         setProfilePicture(null);
         setProfilePicturePreview(null);
       }
@@ -121,13 +94,10 @@ export function AuthForm({
    */
   const toggleMode = () => {
     setIsLoginMode(!isLoginMode);
-    setUsePasswordLogin(false);
     setMagicLinkSent(false);
     setName("");
     setNickname("");
     setEmail("");
-    setPassword("");
-    setConfirmPassword("");
     setProfilePicture(null);
     setProfilePicturePreview(null);
   };
@@ -294,57 +264,6 @@ export function AuthForm({
           />
         </div>
 
-        {isLoginMode && onLoginWithPassword && (
-          <div className="form-group">
-            <label>
-              <input
-                type="checkbox"
-                checked={usePasswordLogin}
-                onChange={(e) => setUsePasswordLogin(e.target.checked)}
-                disabled={isSubmitting}
-              />
-              Use password to login
-            </label>
-          </div>
-        )}
-
-        {(usePasswordLogin || !isLoginMode) && (
-          <>
-            <div className="form-group">
-              <label htmlFor="password">
-                Password {isLoginMode ? "" : "(Optional - set for faster login)"}
-              </label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                placeholder={isLoginMode ? "Enter your password" : "Set a password (optional)"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required={usePasswordLogin}
-                autoComplete={isLoginMode ? "current-password" : "new-password"}
-                disabled={isSubmitting}
-              />
-            </div>
-
-            {!isLoginMode && password && (
-              <div className="form-group">
-                <label htmlFor="confirmPassword">Confirm Password</label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  placeholder="Confirm your password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  autoComplete="new-password"
-                  disabled={isSubmitting}
-                />
-              </div>
-            )}
-          </>
-        )}
-
         <button
           type="submit"
           className="btn-primary"
@@ -353,10 +272,8 @@ export function AuthForm({
           {isSubmitting
             ? "Processing..."
             : isLoginMode
-            ? usePasswordLogin
-              ? "Login"
-              : "Send Magic Link"
-            : "Send Registration Link"}
+              ? "Send Magic Link"
+              : "Send Registration Link"}
         </button>
       </form>
     </div>

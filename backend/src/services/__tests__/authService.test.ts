@@ -1,6 +1,14 @@
 import sqlite3 from "sqlite3";
 import { AuthService } from "../authService.js";
 import * as databaseModule from "../../db/database.js";
+import { EmailService } from "../emailService.js";
+
+// Mock EmailService to avoid sending actual emails during tests
+jest.mock("../emailService.js", () => ({
+  EmailService: {
+    sendMagicLink: jest.fn().mockResolvedValue(undefined),
+  },
+}));
 
 /**
  * Create an in-memory database for testing.
@@ -124,164 +132,22 @@ describe("AuthService", () => {
     });
   });
 
-  describe("register", () => {
-    it("should register a new user with valid data", async () => {
-      const user = await AuthService.register(
-        "John Doe",
-        "john@example.com",
-        "Password123!"
-      );
-
-      expect(user.name).toBe("John Doe");
-      expect(user.email).toBe("john@example.com");
-      expect(user.id).toBeGreaterThan(0);
-      expect(user.created_at).toBeDefined();
-      expect(user).not.toHaveProperty("password_hash");
-    });
-
-    it("should hash password before storing", async () => {
-      const password = "Password123!";
-      const user = await AuthService.register(
-        "John Doe",
-        "john@example.com",
-        password
-      );
-
-      const dbUser = await mockDbPromises.get<{ password_hash: string }>(
-        "SELECT password_hash FROM users WHERE id = ?",
-        [user.id]
-      );
-
-      expect(dbUser?.password_hash).toBeDefined();
-      expect(dbUser?.password_hash).not.toBe(password);
-      expect(dbUser?.password_hash.length).toBeGreaterThan(50); // bcrypt hash length
-    });
-
-    it("should normalize email to lowercase", async () => {
-      const user = await AuthService.register(
-        "John Doe",
-        "JOHN@EXAMPLE.COM",
-        "Password123!"
-      );
-
-      expect(user.email).toBe("john@example.com");
-    });
-
-    it("should throw error if email already exists", async () => {
-      await AuthService.register(
-        "John Doe",
-        "john@example.com",
-        "Password123!"
-      );
-
-      await expect(
-        AuthService.register("Jane Doe", "john@example.com", "Password123!")
-      ).rejects.toThrow("Email already registered");
-    });
-
-    it("should throw TypeError for invalid email format", async () => {
-      await expect(
-        AuthService.register("John Doe", "invalid-email", "Password123!")
-      ).rejects.toThrow(TypeError);
-    });
-
-    it("should throw TypeError for weak password", async () => {
-      await expect(
-        AuthService.register("John Doe", "john@example.com", "weak")
-      ).rejects.toThrow(TypeError);
-
-      await expect(
-        AuthService.register("John Doe", "john@example.com", "weakpass")
-      ).rejects.toThrow(TypeError);
-
-      await expect(
-        AuthService.register("John Doe", "john@example.com", "WEAKPASS")
-      ).rejects.toThrow(TypeError);
-
-      await expect(
-        AuthService.register("John Doe", "john@example.com", "WeakPass")
-      ).rejects.toThrow(TypeError);
-
-      await expect(
-        AuthService.register("John Doe", "john@example.com", "WeakPass1")
-      ).rejects.toThrow(TypeError);
-    });
-
-    it("should accept valid robust password", async () => {
-      const user = await AuthService.register(
-        "John Doe",
-        "john@example.com",
-        "StrongP@ssw0rd"
-      );
-
-      expect(user).toBeDefined();
-      expect(user.email).toBe("john@example.com");
-    });
-  });
-
-  describe("login", () => {
-    const testEmail = "john@example.com";
-    const testPassword = "Password123!";
-
-    beforeEach(async () => {
-      // Register a test user
-      await AuthService.register("John Doe", testEmail, testPassword);
-    });
-
-    it("should login with correct credentials", async () => {
-      const result = await AuthService.login(testEmail, testPassword);
-
-      expect(result.user.email).toBe(testEmail);
-      expect(result.user.name).toBe("John Doe");
-      expect(result.token).toBeDefined();
-      expect(typeof result.token).toBe("string");
-    });
-
-    it("should return JWT token on successful login", async () => {
-      const result = await AuthService.login(testEmail, testPassword);
-
-      expect(result.token).toBeDefined();
-      expect(result.token.split(".")).toHaveLength(3); // JWT has 3 parts
-    });
-
-    it("should throw error for incorrect password", async () => {
-      await expect(
-        AuthService.login(testEmail, "WrongPassword123!")
-      ).rejects.toThrow("Invalid credentials");
-    });
-
-    it("should throw error for non-existent email", async () => {
-      await expect(
-        AuthService.login("nonexistent@example.com", testPassword)
-      ).rejects.toThrow("Invalid credentials");
-    });
-
-    it("should normalize email before lookup", async () => {
-      const result = await AuthService.login("JOHN@EXAMPLE.COM", testPassword);
-
-      expect(result.user.email).toBe(testEmail);
-    });
-
-    it("should throw error for empty password", async () => {
-      await expect(AuthService.login(testEmail, "")).rejects.toThrow(
-        "Invalid credentials"
-      );
-    });
-  });
-
   describe("verifyToken", () => {
     it("should verify valid token and return user ID", async () => {
-      const user = await AuthService.register(
-        "John Doe",
-        "john@example.com",
-        "Password123!"
-      );
-      const loginResult = await AuthService.login(
-        "john@example.com",
-        "Password123!"
-      );
+      const testEmail = "john@example.com";
+      await AuthService.requestRegisterMagicLink("John Doe", testEmail);
 
-      const userId = await AuthService.verifyToken(loginResult.token);
+      const user = await mockDbPromises.get<{
+        id: number;
+        magic_link_token: string;
+      }>("SELECT id, magic_link_token FROM users WHERE email = ?", [testEmail]);
+
+      if (!user || !user.magic_link_token) {
+        throw new Error("User or token not found");
+      }
+
+      const result = await AuthService.verifyMagicLink(user.magic_link_token);
+      const userId = await AuthService.verifyToken(result.token);
 
       expect(userId).toBe(user.id);
     });
@@ -301,17 +167,24 @@ describe("AuthService", () => {
 
   describe("getUserById", () => {
     it("should return user for existing ID", async () => {
-      const user = await AuthService.register(
-        "John Doe",
-        "john@example.com",
-        "Password123!"
-      );
+      const testEmail = "john@example.com";
+      await AuthService.requestRegisterMagicLink("John Doe", testEmail);
 
-      const retrievedUser = await AuthService.getUserById(user.id);
+      const user = await mockDbPromises.get<{
+        id: number;
+        magic_link_token: string;
+      }>("SELECT id, magic_link_token FROM users WHERE email = ?", [testEmail]);
+
+      if (!user || !user.magic_link_token) {
+        throw new Error("User or token not found");
+      }
+
+      const result = await AuthService.verifyMagicLink(user.magic_link_token);
+      const retrievedUser = await AuthService.getUserById(result.user.id);
 
       expect(retrievedUser).not.toBeNull();
-      expect(retrievedUser?.id).toBe(user.id);
-      expect(retrievedUser?.email).toBe(user.email);
+      expect(retrievedUser?.id).toBe(result.user.id);
+      expect(retrievedUser?.email).toBe(testEmail);
       expect(retrievedUser).not.toHaveProperty("password_hash");
     });
 

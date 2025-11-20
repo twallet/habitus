@@ -45,11 +45,7 @@ export const API_ENDPOINTS = {
   auth: {
     register: `${API_BASE_URL}/api/auth/register`,
     login: `${API_BASE_URL}/api/auth/login`,
-    loginPassword: `${API_BASE_URL}/api/auth/login-password`,
     verifyMagicLink: `${API_BASE_URL}/api/auth/verify-magic-link`,
-    changePassword: `${API_BASE_URL}/api/auth/change-password`,
-    forgotPassword: `${API_BASE_URL}/api/auth/forgot-password`,
-    resetPassword: `${API_BASE_URL}/api/auth/reset-password`,
     me: `${API_BASE_URL}/api/auth/me`,
   },
   profile: {
