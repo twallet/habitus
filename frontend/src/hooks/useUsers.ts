@@ -19,22 +19,17 @@ export function useUsers() {
    */
   useEffect(() => {
     const fetchUsers = async () => {
-      const timestamp = new Date().toISOString();
-      console.log(`[${timestamp}] Fetching users from ${API_ENDPOINTS.users}`);
       try {
         const response = await fetch(API_ENDPOINTS.users);
         if (!response.ok) {
           throw new Error("Failed to fetch users");
         }
         const loadedUsers = await response.json();
-        console.log(
-          `[${timestamp}] Successfully loaded ${loadedUsers.length} user(s)`
-        );
         setUsers(loadedUsers);
         setIsInitialized(true);
         setError(null);
       } catch (error) {
-        console.error(`[${timestamp}] Error loading users:`, error);
+        console.error("Error loading users:", error);
         setError(
           error instanceof Error ? error.message : "Error loading users"
         );
@@ -55,8 +50,6 @@ export function useUsers() {
    * @public
    */
   const createUser = async (name: string): Promise<UserData> => {
-    const timestamp = new Date().toISOString();
-    console.log(`[${timestamp}] Creating user: ${name}`);
     try {
       const response = await fetch(API_ENDPOINTS.users, {
         method: "POST",
@@ -74,12 +67,10 @@ export function useUsers() {
       }
 
       const userData = await response.json();
-      console.log(`[${timestamp}] User created successfully:`, userData);
       setUsers((prevUsers) => [...prevUsers, userData]);
       setError(null);
       return userData;
     } catch (error) {
-      console.error(`[${timestamp}] Error creating user:`, error);
       setError(error instanceof Error ? error.message : "Error creating user");
       throw error;
     }

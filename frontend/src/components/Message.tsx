@@ -35,7 +35,15 @@ export function Message({ text, type, onHide }: MessageProps) {
 
   return (
     <div className={`message ${type} show`} role="alert" aria-live="polite">
-      {text}
+      <span className="message-text">{text}</span>
+      <button
+        type="button"
+        onClick={onHide}
+        className="message-close"
+        aria-label="Close message"
+      >
+        ×
+      </button>
     </div>
   );
 }
