@@ -117,7 +117,7 @@ describe("useAuth", () => {
       expect(result.current.token).toBeNull();
       expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        "Error verifying token:",
+        expect.stringContaining("FRONTEND_AUTH | Error verifying token:"),
         expect.any(Error)
       );
 
@@ -777,7 +777,7 @@ describe("useAuth", () => {
       });
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        "Error setting token from callback:",
+        expect.stringContaining("FRONTEND_AUTH | Error setting token from callback:"),
         expect.any(Error)
       );
 
