@@ -444,7 +444,7 @@ describe('AuthForm', () => {
 
             // Trigger onloadend manually
             if (mockFileReader.onloadend) {
-                const event = new ProgressEvent('loadend');
+                const event = new ProgressEvent('loadend') as ProgressEvent<FileReader>;
                 mockFileReader.onloadend.call(mockFileReader as any, event);
             }
 
@@ -480,7 +480,8 @@ describe('AuthForm', () => {
             await user.upload(fileInput, file);
 
             if (mockFileReader.onloadend) {
-                mockFileReader.onloadend({} as ProgressEvent<FileReader>);
+                const event = new ProgressEvent('loadend') as ProgressEvent<FileReader>;
+                mockFileReader.onloadend.call(mockFileReader as any, event);
             }
 
             await waitFor(() => {

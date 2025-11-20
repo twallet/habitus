@@ -1,8 +1,8 @@
 import { API_ENDPOINTS, API_BASE_URL } from "../api";
 
 describe("api", () => {
-  const originalProcess = process;
-  const originalGlobalThis = globalThis;
+  const originalGlobalImport = (globalThis as any).import;
+  const originalProcessEnv = process.env.VITE_API_BASE_URL;
 
   beforeEach(() => {
     // Reset mocks
@@ -13,8 +13,12 @@ describe("api", () => {
 
   afterEach(() => {
     // Restore original values
-    globalThis = originalGlobalThis;
-    process = originalProcess;
+    if (originalGlobalImport !== undefined) {
+      (globalThis as any).import = originalGlobalImport;
+    }
+    if (originalProcessEnv !== undefined) {
+      process.env.VITE_API_BASE_URL = originalProcessEnv;
+    }
   });
 
   it("should use globalThis.import.meta.env.VITE_API_BASE_URL when available", () => {
