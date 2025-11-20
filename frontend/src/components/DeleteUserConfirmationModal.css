@@ -1,0 +1,52 @@
+.delete-modal-content {
+    max-width: 450px;
+}
+
+.delete-confirmation-form {
+    padding: 24px;
+}
+
+.delete-warning {
+    margin-bottom: 24px;
+    padding: 16px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: var(--radius);
+    color: #991b1b;
+}
+
+.delete-warning p {
+    margin: 0 0 8px 0;
+    font-size: 0.95rem;
+}
+
+.delete-warning p:last-child {
+    margin-bottom: 0;
+}
+
+.delete-warning-strong {
+    font-weight: 600;
+}
+
+.btn-danger {
+    padding: 10px 20px;
+    background: var(--error-color);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-danger:hover:not(:disabled) {
+    background: #dc2626;
+    box-shadow: var(--shadow-md);
+}
+
+.btn-danger:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    box-shadow: none;
+}

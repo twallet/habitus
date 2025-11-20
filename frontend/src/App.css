@@ -66,6 +66,19 @@ header {
     margin-bottom: 32px;
 }
 
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    position: relative;
+    text-align: left;
+}
+
+.app-header>div {
+    flex: 1;
+    text-align: center;
+}
+
 header h1 {
     font-size: 2.5rem;
     font-weight: 700;
@@ -318,24 +331,6 @@ header h1 {
     margin-bottom: 24px;
 }
 
-.logout-button {
-    margin-top: 24px;
-    padding: 10px 20px;
-    background: var(--error-color);
-    color: white;
-    border: none;
-    border-radius: var(--radius);
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: var(--transition);
-}
-
-.logout-button:hover {
-    background: #dc2626;
-    transform: translateY(-1px);
-}
-
 .auth-divider {
     display: flex;
     align-items: center;
@@ -409,18 +404,10 @@ header h1 {
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
-.user-info-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--border-color);
-}
-
 .welcome-message {
     color: var(--text-secondary);
     font-size: 0.95rem;
+    margin-bottom: 24px;
 }
 
 @media (max-width: 640px) {
@@ -432,9 +419,4 @@ header h1 {
         font-size: 2rem;
     }
 
-    .user-info-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
-    }
 }

@@ -51,6 +51,8 @@ describe('App', () => {
       verifyMagicLink: jest.fn(),
       logout: jest.fn(),
       setTokenFromCallback: jest.fn(),
+      updateProfile: jest.fn(),
+      deleteUser: jest.fn(),
     });
   });
 
@@ -176,6 +178,8 @@ describe('App', () => {
       verifyMagicLink: jest.fn(),
       logout: mockLogout,
       setTokenFromCallback: jest.fn(),
+      updateProfile: jest.fn(),
+      deleteUser: jest.fn(),
     });
 
     render(<App />);
@@ -188,9 +192,9 @@ describe('App', () => {
     expect(screen.getByText('John Doe')).toBeInTheDocument();
     expect(screen.getByText('john@example.com')).toBeInTheDocument();
 
-    // Verify logout button is present
-    const logoutButton = screen.getByRole('button', { name: /logout/i });
-    expect(logoutButton).toBeInTheDocument();
+    // Verify user menu is present
+    const userMenuButton = screen.getByRole('button', { name: /user menu/i });
+    expect(userMenuButton).toBeInTheDocument();
   });
 
   it('should show error message for invalid email', async () => {
@@ -221,6 +225,8 @@ describe('App', () => {
       verifyMagicLink: jest.fn(),
       logout: jest.fn(),
       setTokenFromCallback: jest.fn(),
+      updateProfile: jest.fn(),
+      deleteUser: jest.fn(),
     });
 
     render(<App />);
@@ -239,6 +245,8 @@ describe('App', () => {
       verifyMagicLink: jest.fn(),
       logout: jest.fn(),
       setTokenFromCallback: jest.fn(),
+      updateProfile: jest.fn(),
+      deleteUser: jest.fn(),
     });
 
     render(<App />);
@@ -259,6 +267,8 @@ describe('App', () => {
       verifyMagicLink: mockVerifyMagicLink,
       logout: jest.fn(),
       setTokenFromCallback: jest.fn(),
+      updateProfile: jest.fn(),
+      deleteUser: jest.fn(),
     });
 
     // Mock URL with token
@@ -298,6 +308,8 @@ describe('App', () => {
       verifyMagicLink: mockVerifyMagicLink,
       logout: jest.fn(),
       setTokenFromCallback: jest.fn(),
+      updateProfile: jest.fn(),
+      deleteUser: jest.fn(),
     });
 
     // Mock URL with token
@@ -359,6 +371,8 @@ describe('App', () => {
       verifyMagicLink: jest.fn(),
       logout: jest.fn(),
       setTokenFromCallback: jest.fn(),
+      updateProfile: jest.fn(),
+      deleteUser: jest.fn(),
     });
 
     render(<App />);
@@ -390,6 +404,8 @@ describe('App', () => {
       verifyMagicLink: jest.fn(),
       logout: jest.fn(),
       setTokenFromCallback: jest.fn(),
+      updateProfile: jest.fn(),
+      deleteUser: jest.fn(),
     });
 
     render(<App />);
@@ -436,6 +452,8 @@ describe('App', () => {
       verifyMagicLink: jest.fn(),
       logout: mockLogout,
       setTokenFromCallback: jest.fn(),
+      updateProfile: jest.fn(),
+      deleteUser: jest.fn(),
     });
 
     render(<App />);
@@ -444,8 +462,13 @@ describe('App', () => {
       expect(screen.getByText(/welcome, john doe/i)).toBeInTheDocument();
     });
 
-    const logoutButton = screen.getByRole('button', { name: /logout/i });
-    await userEvent.click(logoutButton);
+    // Open user menu
+    const userMenuButton = screen.getByRole('button', { name: /user menu/i });
+    await userEvent.click(userMenuButton);
+
+    // Click logout from menu
+    const logoutMenuItem = screen.getByRole('button', { name: /log out/i });
+    await userEvent.click(logoutMenuItem);
 
     expect(mockLogout).toHaveBeenCalled();
     await waitFor(() => {
@@ -490,6 +513,8 @@ describe('App', () => {
       verifyMagicLink: jest.fn().mockResolvedValue(mockUser),
       logout: jest.fn(),
       setTokenFromCallback: jest.fn(),
+      updateProfile: jest.fn(),
+      deleteUser: jest.fn(),
     });
 
     // Mock URL with token to trigger message

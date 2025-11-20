@@ -191,6 +191,87 @@ export function useAuth() {
   };
 
   /**
+   * Update user profile.
+   * @param name - Updated name (optional)
+   * @param nickname - Updated nickname (optional)
+   * @param email - Updated email (optional)
+   * @param profilePicture - Optional profile picture file
+   * @returns Promise resolving to updated user data
+   * @throws Error if request fails
+   * @public
+   */
+  const updateProfile = async (
+    name: string,
+    nickname: string | undefined,
+    email: string,
+    profilePicture: File | null
+  ): Promise<UserData> => {
+    if (!token) {
+      throw new Error("Not authenticated");
+    }
+
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("email", email);
+    if (nickname) {
+      formData.append("nickname", nickname);
+    }
+    if (profilePicture) {
+      formData.append("profilePicture", profilePicture);
+    }
+
+    const response = await fetch(API_ENDPOINTS.profile.update, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response
+        .json()
+        .catch(() => ({ error: "Error updating profile" }));
+      throw new Error(errorData.error || "Error updating profile");
+    }
+
+    const updatedUser = await response.json();
+    setUser(updatedUser);
+    return updatedUser;
+  };
+
+  /**
+   * Delete user account.
+   * @returns Promise resolving when account is deleted
+   * @throws Error if request fails
+   * @public
+   */
+  const deleteUser = async (): Promise<void> => {
+    if (!token) {
+      throw new Error("Not authenticated");
+    }
+
+    const response = await fetch(API_ENDPOINTS.profile.delete, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response
+        .json()
+        .catch(() => ({ error: "Error deleting user" }));
+      throw new Error(errorData.error || "Error deleting user");
+    }
+
+    // Clear auth state after successful deletion
+    setUser(null);
+    setToken(null);
+    localStorage.removeItem(TOKEN_KEY);
+  };
+
+  /**
    * Check if user is authenticated.
    * @returns True if user is logged in
    * @public
@@ -207,5 +288,7 @@ export function useAuth() {
     verifyMagicLink,
     logout,
     setTokenFromCallback,
+    updateProfile,
+    deleteUser,
   };
 }

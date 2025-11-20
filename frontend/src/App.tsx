@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { Message } from './components/Message';
 import { AuthForm } from './components/AuthForm';
 import { UserProfile } from './components/UserProfile';
+import { UserMenu } from './components/UserMenu';
+import { EditProfileModal } from './components/EditProfileModal';
+import { DeleteUserConfirmationModal } from './components/DeleteUserConfirmationModal';
 import { useAuth } from './hooks/useAuth';
 import './App.css';
 
@@ -19,8 +22,12 @@ function App() {
     requestRegisterMagicLink,
     verifyMagicLink,
     logout,
+    updateProfile,
+    deleteUser,
   } = useAuth();
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const verificationAttempted = useRef(false);
 
   /**
@@ -151,6 +158,74 @@ function App() {
     });
   };
 
+  /**
+   * Handle edit profile.
+   * @internal
+   */
+  const handleEditProfile = () => {
+    setShowEditProfile(true);
+  };
+
+  /**
+   * Handle save profile.
+   * @param name - Updated name
+   * @param nickname - Updated nickname
+   * @param email - Updated email
+   * @param profilePicture - Updated profile picture file
+   * @internal
+   */
+  const handleSaveProfile = async (
+    name: string,
+    nickname: string | undefined,
+    email: string,
+    profilePicture: File | null
+  ) => {
+    try {
+      await updateProfile(name, nickname, email, profilePicture);
+      setShowEditProfile(false);
+      setMessage({
+        text: 'Profile updated successfully',
+        type: 'success',
+      });
+    } catch (error) {
+      setMessage({
+        text: error instanceof Error ? error.message : 'Error updating profile',
+        type: 'error',
+      });
+      throw error;
+    }
+  };
+
+  /**
+   * Handle delete user.
+   * @internal
+   */
+  const handleDeleteUser = () => {
+    setShowDeleteConfirmation(true);
+  };
+
+  /**
+   * Handle confirm delete user.
+   * @internal
+   */
+  const handleConfirmDeleteUser = async () => {
+    try {
+      await deleteUser();
+      setShowDeleteConfirmation(false);
+      verificationAttempted.current = false; // Reset to allow new magic link verification
+      setMessage({
+        text: 'Account deleted successfully',
+        type: 'success',
+      });
+    } catch (error) {
+      setMessage({
+        text: error instanceof Error ? error.message : 'Error deleting account',
+        type: 'error',
+      });
+      throw error;
+    }
+  };
+
   // Show loading state while checking authentication
   if (isLoading) {
     return (
@@ -199,23 +274,24 @@ function App() {
 
   return (
     <div className="container">
-      <header>
-        <h1>Habitus</h1>
-        <p className="subtitle">Welcome to your dashboard</p>
+      <header className="app-header">
+        <div>
+          <h1>Habitus</h1>
+          <p className="subtitle">Welcome to your dashboard</p>
+        </div>
+        {user && (
+          <UserMenu
+            user={user}
+            onEditProfile={handleEditProfile}
+            onLogout={handleLogout}
+            onDeleteUser={handleDeleteUser}
+          />
+        )}
       </header>
 
       <main>
-        <div className="user-info-header">
-          <div className="welcome-message">
-            Welcome, {user.name}!
-          </div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="logout-button"
-          >
-            Logout
-          </button>
+        <div className="welcome-message">
+          Welcome, {user.name}!
         </div>
 
         {message && (
@@ -228,6 +304,22 @@ function App() {
 
         <UserProfile user={user} />
       </main>
+
+      {showEditProfile && user && (
+        <EditProfileModal
+          user={user}
+          onClose={() => setShowEditProfile(false)}
+          onSave={handleSaveProfile}
+        />
+      )}
+
+      {showDeleteConfirmation && user && (
+        <DeleteUserConfirmationModal
+          userName={user.name}
+          onClose={() => setShowDeleteConfirmation(false)}
+          onConfirm={handleConfirmDeleteUser}
+        />
+      )}
     </div>
   );
 }
