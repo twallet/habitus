@@ -30,9 +30,7 @@ describe("TrackingForm", () => {
 
         // Character count should be visible after typing
         // "Did I exercise?" has 15 characters
-        const charCountElement = document.querySelector(".char-count");
-        expect(charCountElement).toBeInTheDocument();
-        expect(charCountElement?.textContent).toBe("15/500");
+        expect(screen.getByText(/15\/500/i)).toBeInTheDocument();
     });
 
     it("should call onSubmit with form data when submitted", async () => {
@@ -84,7 +82,6 @@ describe("TrackingForm", () => {
     });
 
     it("should show error when question is empty", async () => {
-        const user = userEvent.setup();
         render(<TrackingForm onSubmit={mockOnSubmit} />);
 
         const questionInput = screen.getByLabelText(/question/i);
