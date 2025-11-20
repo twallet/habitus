@@ -4,7 +4,6 @@ import { TrackingData, TrackingType } from "../../models/Tracking";
 
 describe("TrackingsList", () => {
     const mockOnEdit = jest.fn();
-    const mockOnDelete = jest.fn();
 
     beforeEach(() => {
         jest.clearAllMocks();
@@ -15,7 +14,6 @@ describe("TrackingsList", () => {
             <TrackingsList
                 trackings={[]}
                 onEdit={mockOnEdit}
-                onDelete={mockOnDelete}
             />
         );
 
@@ -29,7 +27,6 @@ describe("TrackingsList", () => {
             <TrackingsList
                 trackings={[]}
                 onEdit={mockOnEdit}
-                onDelete={mockOnDelete}
                 isLoading={true}
             />
         );
@@ -59,7 +56,6 @@ describe("TrackingsList", () => {
             <TrackingsList
                 trackings={trackings}
                 onEdit={mockOnEdit}
-                onDelete={mockOnDelete}
             />
         );
 
@@ -84,7 +80,6 @@ describe("TrackingsList", () => {
             <TrackingsList
                 trackings={trackings}
                 onEdit={mockOnEdit}
-                onDelete={mockOnDelete}
             />
         );
 
@@ -93,32 +88,6 @@ describe("TrackingsList", () => {
 
         expect(mockOnEdit).toHaveBeenCalledWith(trackings[0]);
         expect(mockOnEdit).toHaveBeenCalledTimes(1);
-    });
-
-    it("should call onDelete when delete button is clicked", () => {
-        const trackings: TrackingData[] = [
-            {
-                id: 1,
-                user_id: 1,
-                question: "Did I exercise?",
-                type: TrackingType.TRUE_FALSE,
-                start_tracking_date: "2024-01-01T10:00:00Z",
-            },
-        ];
-
-        render(
-            <TrackingsList
-                trackings={trackings}
-                onEdit={mockOnEdit}
-                onDelete={mockOnDelete}
-            />
-        );
-
-        const deleteButton = screen.getByRole("button", { name: /delete/i });
-        fireEvent.click(deleteButton);
-
-        expect(mockOnDelete).toHaveBeenCalledWith(1);
-        expect(mockOnDelete).toHaveBeenCalledTimes(1);
     });
 
     it("should display notes when present", () => {
@@ -137,7 +106,6 @@ describe("TrackingsList", () => {
             <TrackingsList
                 trackings={trackings}
                 onEdit={mockOnEdit}
-                onDelete={mockOnDelete}
             />
         );
 
@@ -159,7 +127,6 @@ describe("TrackingsList", () => {
             <TrackingsList
                 trackings={trackings}
                 onEdit={mockOnEdit}
-                onDelete={mockOnDelete}
             />
         );
 

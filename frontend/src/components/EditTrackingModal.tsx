@@ -12,6 +12,7 @@ interface EditTrackingModalProps {
         startTrackingDate?: string,
         notes?: string
     ) => Promise<void>;
+    onDelete: (trackingId: number) => Promise<void>;
 }
 
 /**
@@ -20,12 +21,14 @@ interface EditTrackingModalProps {
  * @param props.tracking - The tracking data to edit
  * @param props.onClose - Callback when modal is closed
  * @param props.onSave - Callback when tracking is saved
+ * @param props.onDelete - Callback when tracking is deleted
  * @public
  */
 export function EditTrackingModal({
     tracking,
     onClose,
     onSave,
+    onDelete,
 }: EditTrackingModalProps) {
     const [question, setQuestion] = useState(tracking.question);
     const [type, setType] = useState<TrackingType>(tracking.type);
@@ -44,7 +47,9 @@ export function EditTrackingModal({
     });
     const [notes, setNotes] = useState(tracking.notes || "");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
 
     /**
      * Handle form submission.
@@ -85,13 +90,35 @@ export function EditTrackingModal({
     };
 
     /**
+     * Handle delete confirmation.
+     * @internal
+     */
+    const handleDelete = async () => {
+        setIsDeleting(true);
+        setError(null);
+
+        try {
+            await onDelete(tracking.id);
+            onClose();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Error deleting tracking");
+            setIsDeleting(false);
+            setShowDeleteConfirmation(false);
+        }
+    };
+
+    /**
      * Handle escape key to close modal.
      * @internal
      */
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
             if (e.key === "Escape") {
-                onClose();
+                if (showDeleteConfirmation) {
+                    setShowDeleteConfirmation(false);
+                } else {
+                    onClose();
+                }
             }
         };
 
@@ -99,7 +126,7 @@ export function EditTrackingModal({
         return () => {
             document.removeEventListener("keydown", handleEscape);
         };
-    }, [onClose]);
+    }, [onClose, showDeleteConfirmation]);
 
     return (
         <div className="modal-overlay" onClick={onClose}>
@@ -199,20 +226,54 @@ export function EditTrackingModal({
                     <div className="modal-actions">
                         <button
                             type="button"
-                            className="btn-secondary"
-                            onClick={onClose}
-                            disabled={isSubmitting}
+                            className="btn-delete"
+                            onClick={() => setShowDeleteConfirmation(true)}
+                            disabled={isSubmitting || isDeleting}
                         >
-                            Cancel
+                            Delete
                         </button>
-                        <button
-                            type="submit"
-                            className="btn-primary"
-                            disabled={isSubmitting}
-                        >
-                            {isSubmitting ? "Saving..." : "Save Changes"}
-                        </button>
+                        <div className="modal-actions-right">
+                            <button
+                                type="button"
+                                className="btn-secondary"
+                                onClick={onClose}
+                                disabled={isSubmitting || isDeleting}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                className="btn-primary"
+                                disabled={isSubmitting || isDeleting}
+                            >
+                                {isSubmitting ? "Saving..." : "Save Changes"}
+                            </button>
+                        </div>
                     </div>
+
+                    {showDeleteConfirmation && (
+                        <div className="delete-confirmation">
+                            <p>Are you sure you want to delete this tracking?</p>
+                            <div className="delete-confirmation-actions">
+                                <button
+                                    type="button"
+                                    className="btn-secondary"
+                                    onClick={() => setShowDeleteConfirmation(false)}
+                                    disabled={isDeleting}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn-delete"
+                                    onClick={handleDelete}
+                                    disabled={isDeleting}
+                                >
+                                    {isDeleting ? "Deleting..." : "Delete"}
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </form>
             </div>
         </div>

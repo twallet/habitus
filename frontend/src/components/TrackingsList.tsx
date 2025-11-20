@@ -4,7 +4,6 @@ import "./TrackingsList.css";
 interface TrackingsListProps {
     trackings: TrackingData[];
     onEdit: (tracking: TrackingData) => void;
-    onDelete: (trackingId: number) => void;
     isLoading?: boolean;
 }
 
@@ -14,14 +13,12 @@ interface TrackingsListProps {
  * @param props - Component props
  * @param props.trackings - Array of tracking data
  * @param props.onEdit - Callback when edit button is clicked
- * @param props.onDelete - Callback when delete button is clicked
  * @param props.isLoading - Whether data is loading
  * @public
  */
 export function TrackingsList({
     trackings,
     onEdit,
-    onDelete,
     isLoading,
 }: TrackingsListProps) {
     /**
@@ -118,14 +115,6 @@ export function TrackingsList({
                                 aria-label={`Edit tracking: ${tracking.question}`}
                             >
                                 Edit
-                            </button>
-                            <button
-                                type="button"
-                                className="btn-delete"
-                                onClick={() => onDelete(tracking.id)}
-                                aria-label={`Delete tracking: ${tracking.question}`}
-                            >
-                                Delete
                             </button>
                         </div>
                     </div>

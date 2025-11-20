@@ -5,7 +5,6 @@ import { UserProfile } from './components/UserProfile';
 import { UserMenu } from './components/UserMenu';
 import { EditProfileModal } from './components/EditProfileModal';
 import { DeleteUserConfirmationModal } from './components/DeleteUserConfirmationModal';
-import { Navigation, View } from './components/Navigation';
 import { TrackingsList } from './components/TrackingsList';
 import { TrackingForm } from './components/TrackingForm';
 import { EditTrackingModal } from './components/EditTrackingModal';
@@ -34,8 +33,8 @@ function App() {
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
-  const [currentView, setCurrentView] = useState<View>('profile');
   const [editingTracking, setEditingTracking] = useState<TrackingData | null>(null);
+  const [showTrackingForm, setShowTrackingForm] = useState(false);
   const verificationAttempted = useRef(false);
 
   const {
@@ -264,6 +263,14 @@ function App() {
    * Handle create tracking.
    * @internal
    */
+  /**
+   * Handle create tracking.
+   * @param question - Tracking question
+   * @param type - Tracking type
+   * @param startTrackingDate - Optional start date
+   * @param notes - Optional notes
+   * @internal
+   */
   const handleCreateTracking = async (
     question: string,
     type: TrackingType,
@@ -273,6 +280,7 @@ function App() {
     console.log(`[${new Date().toISOString()}] FRONTEND_APP | Creating tracking`);
     try {
       await createTracking(question, type, startTrackingDate, notes);
+      setShowTrackingForm(false);
       setMessage({
         text: 'Tracking created successfully',
         type: 'success',
@@ -328,13 +336,16 @@ function App() {
    * Handle delete tracking.
    * @internal
    */
+  /**
+   * Handle delete tracking.
+   * @param trackingId - ID of tracking to delete
+   * @internal
+   */
   const handleDeleteTracking = async (trackingId: number) => {
     console.log(`[${new Date().toISOString()}] FRONTEND_APP | Deleting tracking ID: ${trackingId}`);
-    if (!window.confirm('Are you sure you want to delete this tracking?')) {
-      return;
-    }
     try {
       await deleteTracking(trackingId);
+      setEditingTracking(null);
       setMessage({
         text: 'Tracking deleted successfully',
         type: 'success',
@@ -417,8 +428,9 @@ function App() {
       </header>
 
       <main>
-        <div className="welcome-message">
-          Welcome, {user.name}!
+        <div className="dashboard-header">
+          <h2>Your Trackings</h2>
+          <p className="dashboard-subtitle">Manage your nanohabit trackings</p>
         </div>
 
         {message && (
@@ -429,23 +441,22 @@ function App() {
           />
         )}
 
-        <Navigation currentView={currentView} onViewChange={setCurrentView} />
+        <div className="trackings-view">
+          <TrackingsList
+            trackings={trackings}
+            onEdit={handleEditTracking}
+            isLoading={trackingsLoading}
+          />
+        </div>
 
-        {currentView === 'profile' && <UserProfile user={user} />}
-
-        {currentView === 'trackings' && (
-          <div className="trackings-view">
-            <TrackingForm
-              onSubmit={handleCreateTracking}
-            />
-            <TrackingsList
-              trackings={trackings}
-              onEdit={handleEditTracking}
-              onDelete={handleDeleteTracking}
-              isLoading={trackingsLoading}
-            />
-          </div>
-        )}
+        <button
+          type="button"
+          className="fab"
+          onClick={() => setShowTrackingForm(true)}
+          aria-label="Add new tracking"
+        >
+          +
+        </button>
       </main>
 
       {showEditProfile && user && (
@@ -464,11 +475,35 @@ function App() {
         />
       )}
 
+      {showTrackingForm && (
+        <div className="modal-overlay" onClick={() => setShowTrackingForm(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Create New Tracking</h2>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={() => setShowTrackingForm(false)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <TrackingForm
+              onSubmit={handleCreateTracking}
+              onCancel={() => setShowTrackingForm(false)}
+              isSubmitting={trackingsLoading}
+            />
+          </div>
+        </div>
+      )}
+
       {editingTracking && (
         <EditTrackingModal
           tracking={editingTracking}
           onClose={() => setEditingTracking(null)}
           onSave={handleSaveTracking}
+          onDelete={handleDeleteTracking}
         />
       )}
     </div>

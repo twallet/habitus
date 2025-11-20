@@ -185,15 +185,16 @@ describe('App', () => {
 
     // Wait for the authenticated state to render
     await waitFor(() => {
-      expect(screen.getByText(/welcome, john doe/i)).toBeInTheDocument();
+      expect(screen.getByText(/your trackings/i)).toBeInTheDocument();
     });
-
-    expect(screen.getByText('John Doe')).toBeInTheDocument();
-    expect(screen.getByText('john@example.com')).toBeInTheDocument();
 
     // Verify user menu is present
     const userMenuButton = screen.getByRole('button', { name: /user menu/i });
     expect(userMenuButton).toBeInTheDocument();
+    
+    // Verify FAB button is present
+    const fabButton = screen.getByRole('button', { name: /add new tracking/i });
+    expect(fabButton).toBeInTheDocument();
   });
 
   it('should show error message for invalid email', async () => {
@@ -458,7 +459,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/welcome, john doe/i)).toBeInTheDocument();
+      expect(screen.getByText(/your trackings/i)).toBeInTheDocument();
     });
 
     // Open user menu
