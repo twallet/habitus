@@ -70,8 +70,8 @@ export class EmailService {
         ? "Welcome to Habitus! Verify your email to complete registration"
         : "Your login link to Habitus";
       const text = isRegistration
-        ? `Welcome to Habitus! Click the link below to verify your email and complete your registration:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\n\nIf you didn't request this, please ignore this email.`
-        : `Click the link below to log in Habitus:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\n\nIf you didn't request this, please ignore this email.`;
+        ? `Welcome to Habitus! Click the link below to verify your email and complete your registration to Habitus:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\n\nIf you didn't request this, please ignore this email.`
+        : `Click the link below to log into Habitus:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\n\nIf you didn't request this, please ignore this email.`;
 
       await mailTransporter.sendMail({
         from: SMTP_USER,
@@ -85,8 +85,8 @@ export class EmailService {
             }</h2>
             <p>${
               isRegistration
-                ? "Click the link below to verify your email and complete your registration:"
-                : "Click the link below to log in:"
+                ? "Click the link below to verify your email and complete your registration to Habitus:"
+                : "Click the link below to log into Habitus:"
             }</p>
             <p style="margin: 30px 0;">
               <a href="${magicLink}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
