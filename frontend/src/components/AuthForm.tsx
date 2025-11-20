@@ -141,13 +141,27 @@ export function AuthForm({
       <div className="auth-form-container">
         <div className="magic-link-sent">
           <h2>Check your email!</h2>
-          <p>
-            We've sent a magic link to <strong>{email}</strong>
-          </p>
-          <p>Click the link in the email to {isLoginMode ? "log in" : "complete your registration"}.</p>
-          <p className="magic-link-help">
-            The link will expire in 15 minutes. If you don't see the email, check your spam folder.
-          </p>
+          {isLoginMode ? (
+            <>
+              <p>
+                If an account exists for <strong>{email}</strong>, a magic link has been sent.
+              </p>
+              <p>Click the link in the email to log in.</p>
+              <p className="magic-link-help">
+                The link will expire in 15 minutes. If you don't see the email, check your spam folder. If you don't have an account, please register first.
+              </p>
+            </>
+          ) : (
+            <>
+              <p>
+                We've sent a magic link to <strong>{email}</strong>
+              </p>
+              <p>Click the link in the email to complete your registration.</p>
+              <p className="magic-link-help">
+                The link will expire in 15 minutes. If you don't see the email, check your spam folder.
+              </p>
+            </>
+          )}
           <button
             type="button"
             onClick={() => {

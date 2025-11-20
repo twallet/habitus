@@ -102,16 +102,18 @@ router.post("/login", async (req: Request, res: Response) => {
     await AuthService.requestLoginMagicLink(email);
 
     // Always return success to prevent email enumeration
+    // Message doesn't reveal whether email exists or not
     res.json({
       message:
-        "If an account exists, a magic link has been sent to your email.",
+        "If an account exists for this email, a magic link has been sent. Please check your inbox and spam folder.",
     });
   } catch (error) {
     console.error("Error requesting login magic link:", error);
     // Still return success to prevent email enumeration
+    // Message doesn't reveal whether email exists or not
     res.json({
       message:
-        "If an account exists, a magic link has been sent to your email.",
+        "If an account exists for this email, a magic link has been sent. Please check your inbox and spam folder.",
     });
   }
 });

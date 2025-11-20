@@ -83,7 +83,7 @@ function App() {
     try {
       await requestLoginMagicLink(email);
       setMessage({
-        text: 'Magic link sent! Check your email.',
+        text: 'If an account exists for this email, a magic link has been sent. Please check your inbox and spam folder.',
         type: 'success',
       });
     } catch (error) {
