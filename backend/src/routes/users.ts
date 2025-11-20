@@ -19,7 +19,10 @@ router.get("/", async (_req: Request, res: Response) => {
     const users = await UserService.getAllUsers();
     res.json(users);
   } catch (error) {
-    console.error("Error fetching users:", error);
+    console.error(
+      `[${new Date().toISOString()}] USER_ROUTE | Error fetching users:`,
+      error
+    );
     res.status(500).json({ error: "Error fetching users" });
   }
 });
@@ -79,7 +82,10 @@ router.put(
       ) {
         return res.status(400).json({ error: error.message });
       }
-      console.error("Error updating profile:", error);
+      console.error(
+        `[${new Date().toISOString()}] USER_ROUTE | Error updating profile:`,
+        error
+      );
       res.status(500).json({ error: "Error updating profile" });
     }
   }
@@ -106,7 +112,10 @@ router.delete(
       if (error instanceof Error && error.message === "User not found") {
         return res.status(404).json({ error: error.message });
       }
-      console.error("Error deleting user:", error);
+      console.error(
+        `[${new Date().toISOString()}] USER_ROUTE | Error deleting user:`,
+        error
+      );
       res.status(500).json({ error: "Error deleting user" });
     }
   }
@@ -135,7 +144,10 @@ router.get("/:id", async (req: Request, res: Response) => {
 
     res.json(user);
   } catch (error) {
-    console.error("Error fetching user:", error);
+    console.error(
+      `[${new Date().toISOString()}] USER_ROUTE | Error fetching user:`,
+      error
+    );
     res.status(500).json({ error: "Error fetching user" });
   }
 });

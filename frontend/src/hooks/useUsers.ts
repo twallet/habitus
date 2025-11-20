@@ -19,17 +19,39 @@ export function useUsers() {
    */
   useEffect(() => {
     const fetchUsers = async () => {
+      console.log(
+        `[${new Date().toISOString()}] FRONTEND_USERS | Fetching users from API: ${
+          API_ENDPOINTS.users
+        }`
+      );
+      const startTime = Date.now();
+
       try {
         const response = await fetch(API_ENDPOINTS.users);
+        const duration = Date.now() - startTime;
+        console.log(
+          `[${new Date().toISOString()}] FRONTEND_USERS | Users fetch completed in ${duration}ms, status: ${
+            response.status
+          }`
+        );
+
         if (!response.ok) {
           throw new Error("Failed to fetch users");
         }
         const loadedUsers = await response.json();
+        console.log(
+          `[${new Date().toISOString()}] FRONTEND_USERS | Loaded ${
+            loadedUsers.length
+          } users from API`
+        );
         setUsers(loadedUsers);
         setIsInitialized(true);
         setError(null);
       } catch (error) {
-        console.error("Error loading users:", error);
+        console.error(
+          `[${new Date().toISOString()}] FRONTEND_USERS | Error loading users:`,
+          error
+        );
         setError(
           error instanceof Error ? error.message : "Error loading users"
         );
@@ -50,6 +72,16 @@ export function useUsers() {
    * @public
    */
   const createUser = async (name: string): Promise<UserData> => {
+    console.log(
+      `[${new Date().toISOString()}] FRONTEND_USERS | Creating new user with name: ${name}`
+    );
+    console.log(
+      `[${new Date().toISOString()}] FRONTEND_USERS | Sending create request to: ${
+        API_ENDPOINTS.users
+      }`
+    );
+    const startTime = Date.now();
+
     try {
       const response = await fetch(API_ENDPOINTS.users, {
         method: "POST",
@@ -59,18 +91,38 @@ export function useUsers() {
         body: JSON.stringify({ name }),
       });
 
+      const duration = Date.now() - startTime;
+      console.log(
+        `[${new Date().toISOString()}] FRONTEND_USERS | Create user request completed in ${duration}ms, status: ${
+          response.status
+        }`
+      );
+
       if (!response.ok) {
         const errorData = await response
           .json()
           .catch(() => ({ error: "Error creating user" }));
+        console.error(
+          `[${new Date().toISOString()}] FRONTEND_USERS | Create user failed:`,
+          errorData.error
+        );
         throw new Error(errorData.error || "Error creating user");
       }
 
       const userData = await response.json();
+      console.log(
+        `[${new Date().toISOString()}] FRONTEND_USERS | User created successfully: ID ${
+          userData.id
+        }, name: ${userData.name}`
+      );
       setUsers((prevUsers) => [...prevUsers, userData]);
       setError(null);
       return userData;
     } catch (error) {
+      console.error(
+        `[${new Date().toISOString()}] FRONTEND_USERS | Error creating user:`,
+        error
+      );
       setError(error instanceof Error ? error.message : "Error creating user");
       throw error;
     }

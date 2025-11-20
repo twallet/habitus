@@ -69,27 +69,57 @@ let db: sqlite3.Database | null = null;
 export function initializeDatabase(): Promise<void> {
   return new Promise((resolve, reject) => {
     const dbPath = getDatabasePath();
+    console.log(
+      `[${new Date().toISOString()}] DATABASE | Initializing database at: ${dbPath}`
+    );
 
     db = new sqlite3.Database(dbPath, (err) => {
       if (err) {
+        console.error(
+          `[${new Date().toISOString()}] DATABASE | Failed to open database:`,
+          err
+        );
         reject(err);
         return;
       }
 
+      console.log(
+        `[${new Date().toISOString()}] DATABASE | Database connection opened successfully`
+      );
+
       // Enable foreign keys and WAL mode
       db!.run("PRAGMA foreign_keys = ON", (err) => {
         if (err) {
+          console.error(
+            `[${new Date().toISOString()}] DATABASE | Failed to enable foreign keys:`,
+            err
+          );
           reject(err);
           return;
         }
 
+        console.log(
+          `[${new Date().toISOString()}] DATABASE | Foreign keys enabled`
+        );
+
         db!.run("PRAGMA journal_mode = WAL", (err) => {
           if (err) {
+            console.error(
+              `[${new Date().toISOString()}] DATABASE | Failed to enable WAL mode:`,
+              err
+            );
             reject(err);
             return;
           }
 
+          console.log(
+            `[${new Date().toISOString()}] DATABASE | WAL mode enabled`
+          );
+
           // Create tables with new schema
+          console.log(
+            `[${new Date().toISOString()}] DATABASE | Creating database schema...`
+          );
           db!.exec(
             `
             CREATE TABLE IF NOT EXISTS users (
@@ -111,9 +141,16 @@ export function initializeDatabase(): Promise<void> {
           `,
             (err) => {
               if (err) {
+                console.error(
+                  `[${new Date().toISOString()}] DATABASE | Failed to create schema:`,
+                  err
+                );
                 reject(err);
                 return;
               }
+              console.log(
+                `[${new Date().toISOString()}] DATABASE | Database schema created successfully`
+              );
               resolve();
             }
           );
@@ -147,15 +184,28 @@ export function getDatabase(): sqlite3.Database {
 export function closeDatabase(): Promise<void> {
   return new Promise((resolve, reject) => {
     if (!db) {
+      console.log(
+        `[${new Date().toISOString()}] DATABASE | Database already closed or not initialized`
+      );
       resolve();
       return;
     }
 
+    console.log(
+      `[${new Date().toISOString()}] DATABASE | Closing database connection...`
+    );
     db.close((err) => {
       if (err) {
+        console.error(
+          `[${new Date().toISOString()}] DATABASE | Error closing database:`,
+          err
+        );
         reject(err);
       } else {
         db = null;
+        console.log(
+          `[${new Date().toISOString()}] DATABASE | Database connection closed successfully`
+        );
         resolve();
       }
     });
@@ -181,8 +231,18 @@ export const dbPromises = {
       const database = getDatabase();
       database.run(sql, params, function (err) {
         if (err) {
+          console.error(
+            `[${new Date().toISOString()}] DATABASE | Query execution failed:`,
+            sql.substring(0, 100),
+            err
+          );
           reject(err);
         } else {
+          console.log(
+            `[${new Date().toISOString()}] DATABASE | Query executed successfully, changes: ${
+              this.changes
+            }, lastID: ${this.lastID}`
+          );
           resolve({ lastID: this.lastID, changes: this.changes });
         }
       });
@@ -200,8 +260,17 @@ export const dbPromises = {
       const database = getDatabase();
       database.get(sql, params, (err, row) => {
         if (err) {
+          console.error(
+            `[${new Date().toISOString()}] DATABASE | Query execution failed:`,
+            sql.substring(0, 100),
+            err
+          );
           reject(err);
         } else {
+          const found = row ? "found" : "not found";
+          console.log(
+            `[${new Date().toISOString()}] DATABASE | Query executed successfully, row ${found}`
+          );
           resolve(row as T);
         }
       });
@@ -219,8 +288,18 @@ export const dbPromises = {
       const database = getDatabase();
       database.all(sql, params, (err, rows) => {
         if (err) {
+          console.error(
+            `[${new Date().toISOString()}] DATABASE | Query execution failed:`,
+            sql.substring(0, 100),
+            err
+          );
           reject(err);
         } else {
+          console.log(
+            `[${new Date().toISOString()}] DATABASE | Query executed successfully, returned ${
+              rows.length
+            } rows`
+          );
           resolve(rows as T[]);
         }
       });

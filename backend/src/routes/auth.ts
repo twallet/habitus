@@ -79,7 +79,10 @@ router.post(
       ) {
         return res.status(400).json({ error: error.message });
       }
-      console.error("Error requesting registration magic link:", error);
+      console.error(
+        `[${new Date().toISOString()}] AUTH_ROUTE | Error requesting registration magic link:`,
+        error
+      );
       res
         .status(500)
         .json({ error: "Error requesting registration magic link" });
@@ -121,7 +124,9 @@ router.post("/login", authRateLimiter, async (req: Request, res: Response) => {
       error.message.includes("minutes")
     ) {
       console.warn(
-        `Magic link cooldown active for email: ${req.body.email}`,
+        `[${new Date().toISOString()}] AUTH_ROUTE | Magic link cooldown active for email: ${
+          req.body.email
+        }`,
         error.message
       );
       // Still return success to prevent email enumeration
@@ -132,7 +137,10 @@ router.post("/login", authRateLimiter, async (req: Request, res: Response) => {
       return;
     }
 
-    console.error("Error requesting login magic link:", error);
+    console.error(
+      `[${new Date().toISOString()}] AUTH_ROUTE | Error requesting login magic link:`,
+      error
+    );
     // Still return success to prevent email enumeration
     // Message doesn't reveal whether email exists or not
     res.json({
@@ -166,7 +174,10 @@ router.get("/verify-magic-link", async (req: Request, res: Response) => {
     ) {
       return res.status(400).json({ error: error.message });
     }
-    console.error("Error verifying magic link:", error);
+    console.error(
+      `[${new Date().toISOString()}] AUTH_ROUTE | Error verifying magic link:`,
+      error
+    );
     res.status(500).json({ error: "Error verifying magic link" });
   }
 });
@@ -199,7 +210,10 @@ router.get("/me", async (req: Request, res: Response) => {
     if (error instanceof Error && error.message.includes("token")) {
       return res.status(401).json({ error: error.message });
     }
-    console.error("Error fetching user:", error);
+    console.error(
+      `[${new Date().toISOString()}] AUTH_ROUTE | Error fetching user:`,
+      error
+    );
     res.status(500).json({ error: "Error fetching user" });
   }
 });

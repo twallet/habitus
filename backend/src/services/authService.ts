@@ -98,6 +98,10 @@ export class AuthService {
     nickname?: string,
     profilePictureUrl?: string
   ): Promise<void> {
+    console.log(
+      `[${new Date().toISOString()}] AUTH | Registration magic link requested for email: ${email}`
+    );
+
     // Validate inputs
     const validatedName = User.validateName(name);
     const validatedEmail = User.validateEmail(email);
@@ -105,6 +109,9 @@ export class AuthService {
 
     // Check cooldown period first (takes precedence over duplicate email check)
     if (await AuthService.checkMagicLinkCooldown(validatedEmail)) {
+      console.warn(
+        `[${new Date().toISOString()}] AUTH | Registration magic link cooldown active for email: ${validatedEmail}`
+      );
       throw new Error(
         `Please wait ${MAGIC_LINK_COOLDOWN_MINUTES} minutes before requesting another magic link.`
       );
@@ -117,6 +124,9 @@ export class AuthService {
     );
 
     if (existingUser) {
+      console.warn(
+        `[${new Date().toISOString()}] AUTH | Registration attempt with already registered email: ${validatedEmail}`
+      );
       throw new Error("Email already registered");
     }
 
@@ -124,6 +134,10 @@ export class AuthService {
     const token = AuthService.generateToken();
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + MAGIC_LINK_EXPIRY_MINUTES);
+
+    console.log(
+      `[${new Date().toISOString()}] AUTH | Creating new user account for email: ${validatedEmail}, name: ${validatedName}`
+    );
 
     // Create user with magic link token
     await dbPromises.run(
@@ -139,8 +153,16 @@ export class AuthService {
       ]
     );
 
+    console.log(
+      `[${new Date().toISOString()}] AUTH | User account created, sending registration magic link email to: ${validatedEmail}`
+    );
+
     // Send magic link email
     await EmailService.sendMagicLink(validatedEmail, token, true);
+
+    console.log(
+      `[${new Date().toISOString()}] AUTH | Registration magic link email sent successfully to: ${validatedEmail}`
+    );
   }
 
   /**
@@ -152,6 +174,10 @@ export class AuthService {
    * @public
    */
   static async requestLoginMagicLink(email: string): Promise<void> {
+    console.log(
+      `[${new Date().toISOString()}] AUTH | Login magic link requested for email: ${email}`
+    );
+
     // Validate email format
     const validatedEmail = User.validateEmail(email);
 
@@ -164,11 +190,23 @@ export class AuthService {
     if (!user) {
       // Don't reveal if user exists or not for security
       // Still return success to prevent email enumeration
+      console.log(
+        `[${new Date().toISOString()}] AUTH | Login magic link requested for non-existent email (security: returning success): ${validatedEmail}`
+      );
       return;
     }
 
+    console.log(
+      `[${new Date().toISOString()}] AUTH | User found for login request, userId: ${
+        user.id
+      }`
+    );
+
     // Check cooldown period for this email
     if (await AuthService.checkMagicLinkCooldown(validatedEmail)) {
+      console.warn(
+        `[${new Date().toISOString()}] AUTH | Login magic link cooldown active for email: ${validatedEmail}`
+      );
       throw new Error(
         `Please wait ${MAGIC_LINK_COOLDOWN_MINUTES} minutes before requesting another magic link.`
       );
@@ -179,14 +217,28 @@ export class AuthService {
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + MAGIC_LINK_EXPIRY_MINUTES);
 
+    console.log(
+      `[${new Date().toISOString()}] AUTH | Updating magic link token for userId: ${
+        user.id
+      }`
+    );
+
     // Update user with magic link token
     await dbPromises.run(
       "UPDATE users SET magic_link_token = ?, magic_link_expires = ? WHERE email = ?",
       [token, expiresAt.toISOString(), validatedEmail]
     );
 
+    console.log(
+      `[${new Date().toISOString()}] AUTH | Sending login magic link email to: ${validatedEmail}`
+    );
+
     // Send magic link email
     await EmailService.sendMagicLink(validatedEmail, token, false);
+
+    console.log(
+      `[${new Date().toISOString()}] AUTH | Login magic link email sent successfully to: ${validatedEmail}`
+    );
   }
 
   /**
@@ -200,7 +252,16 @@ export class AuthService {
     user: UserData;
     token: string;
   }> {
+    console.log(
+      `[${new Date().toISOString()}] AUTH | Magic link verification attempted (token length: ${
+        token?.length || 0
+      })`
+    );
+
     if (!token || typeof token !== "string") {
+      console.warn(
+        `[${new Date().toISOString()}] AUTH | Invalid magic link token format`
+      );
       throw new Error("Invalid magic link token");
     }
 
@@ -215,14 +276,34 @@ export class AuthService {
     );
 
     if (!user) {
+      console.warn(
+        `[${new Date().toISOString()}] AUTH | Magic link verification failed: token not found`
+      );
       throw new Error("Invalid or expired magic link");
     }
+
+    console.log(
+      `[${new Date().toISOString()}] AUTH | Magic link token found for userId: ${
+        user.id
+      }, email: ${user.email}`
+    );
 
     // Check if token is expired
     const expiresAt = new Date(user.magic_link_expires);
     if (expiresAt < new Date()) {
+      console.warn(
+        `[${new Date().toISOString()}] AUTH | Magic link verification failed: token expired for userId: ${
+          user.id
+        }`
+      );
       throw new Error("Magic link has expired");
     }
+
+    console.log(
+      `[${new Date().toISOString()}] AUTH | Magic link valid, clearing token and updating last_access for userId: ${
+        user.id
+      }`
+    );
 
     // Clear magic link token
     await dbPromises.run(
@@ -237,6 +318,12 @@ export class AuthService {
       {
         expiresIn: JWT_EXPIRES_IN,
       } as SignOptions
+    );
+
+    console.log(
+      `[${new Date().toISOString()}] AUTH | Magic link verified successfully, JWT token generated for userId: ${
+        user.id
+      }`
     );
 
     return {
@@ -266,8 +353,18 @@ export class AuthService {
         userId: number;
         email: string;
       };
+      console.log(
+        `[${new Date().toISOString()}] AUTH | JWT token verified successfully for userId: ${
+          decoded.userId
+        }`
+      );
       return decoded.userId;
     } catch (error) {
+      console.warn(
+        `[${new Date().toISOString()}] AUTH | JWT token verification failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
       throw new Error("Invalid or expired token");
     }
   }
@@ -279,6 +376,10 @@ export class AuthService {
    * @public
    */
   static async getUserById(id: number): Promise<UserData | null> {
+    console.log(
+      `[${new Date().toISOString()}] AUTH | Fetching user by ID: ${id}`
+    );
+
     const row = await dbPromises.get<{
       id: number;
       name: string;
@@ -293,8 +394,17 @@ export class AuthService {
     );
 
     if (!row) {
+      console.log(
+        `[${new Date().toISOString()}] AUTH | User not found for ID: ${id}`
+      );
       return null;
     }
+
+    console.log(
+      `[${new Date().toISOString()}] AUTH | User found: ID ${row.id}, email: ${
+        row.email
+      }`
+    );
 
     return {
       id: row.id,

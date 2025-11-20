@@ -46,7 +46,11 @@ function getUploadsDir(): string {
  */
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
-    cb(null, getUploadsDir());
+    const uploadsDir = getUploadsDir();
+    console.log(
+      `[${new Date().toISOString()}] UPLOAD | Saving file to directory: ${uploadsDir}`
+    );
+    cb(null, uploadsDir);
   },
   filename: (_req, file, cb) => {
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
@@ -54,7 +58,13 @@ const storage = multer.diskStorage({
     const name = path
       .basename(file.originalname, ext)
       .replace(/[^a-zA-Z0-9]/g, "-");
-    cb(null, `${name}-${uniqueSuffix}${ext}`);
+    const filename = `${name}-${uniqueSuffix}${ext}`;
+    console.log(
+      `[${new Date().toISOString()}] UPLOAD | Generated filename: ${filename} for original: ${
+        file.originalname
+      }`
+    );
+    cb(null, filename);
   },
 });
 
@@ -75,9 +85,25 @@ const fileFilter = (
     "image/webp",
   ];
 
+  console.log(
+    `[${new Date().toISOString()}] UPLOAD | File upload attempt: ${
+      file.originalname
+    }, mimetype: ${file.mimetype}, size: ${file.size} bytes`
+  );
+
   if (allowedMimes.includes(file.mimetype)) {
+    console.log(
+      `[${new Date().toISOString()}] UPLOAD | File accepted: ${
+        file.originalname
+      }`
+    );
     cb(null, true);
   } else {
+    console.warn(
+      `[${new Date().toISOString()}] UPLOAD | File rejected: ${
+        file.originalname
+      }, invalid mimetype: ${file.mimetype}`
+    );
     cb(new Error("Only image files are allowed (JPEG, PNG, GIF, WebP)"));
   }
 };

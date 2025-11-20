@@ -23,15 +23,33 @@ if (process.env.TRUST_PROXY === "true") {
 
 /**
  * Request logging middleware.
+ * Logs request details including method, path, IP, user agent, response status, and response time.
  */
 app.use(
-  (
-    req: express.Request,
-    _res: express.Response,
-    next: express.NextFunction
-  ) => {
+  (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const startTime = Date.now();
     const timestamp = new Date().toISOString();
-    console.log(`[${timestamp}] ${req.method} ${req.path}`);
+    const ip = req.ip || req.socket.remoteAddress || "unknown";
+    const userAgent = req.get("user-agent") || "unknown";
+
+    // Log request start
+    console.log(
+      `[${timestamp}] ${req.method} ${
+        req.path
+      } | IP: ${ip} | User-Agent: ${userAgent.substring(0, 50)}`
+    );
+
+    // Log response when finished
+    res.on("finish", () => {
+      const duration = Date.now() - startTime;
+      const logLevel = res.statusCode >= 400 ? "ERROR" : "INFO";
+      console.log(
+        `[${new Date().toISOString()}] ${logLevel} | ${req.method} ${
+          req.path
+        } | Status: ${res.statusCode} | Duration: ${duration}ms | IP: ${ip}`
+      );
+    });
+
     next();
   }
 );
@@ -80,8 +98,18 @@ app.get("/health", (_req: express.Request, res: express.Response) => {
  */
 initializeDatabase()
   .then(() => {
+    console.log(
+      `[${new Date().toISOString()}] Database initialized successfully`
+    );
     const server = app.listen(PORT, () => {
-      console.log(`Server running on http://localhost:${PORT}`);
+      console.log(
+        `[${new Date().toISOString()}] Server running on http://localhost:${PORT}`
+      );
+      console.log(
+        `[${new Date().toISOString()}] Environment: ${
+          process.env.NODE_ENV || "development"
+        }`
+      );
     });
 
     /**

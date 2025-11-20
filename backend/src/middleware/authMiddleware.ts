@@ -28,26 +28,57 @@ export async function authenticateToken(
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      console.warn(
+        `[${new Date().toISOString()}] AUTH_MIDDLEWARE | Authentication failed: no Bearer token in request to ${
+          req.path
+        }`
+      );
       res.status(401).json({ error: "Authorization token required" });
       return;
     }
 
     const token = authHeader.substring(7);
+    console.log(
+      `[${new Date().toISOString()}] AUTH_MIDDLEWARE | Authenticating request to ${
+        req.path
+      } with token`
+    );
+
     const userId = await AuthService.verifyToken(token);
     req.userId = userId;
 
+    console.log(
+      `[${new Date().toISOString()}] AUTH_MIDDLEWARE | Authentication successful for userId: ${userId} on ${
+        req.path
+      }`
+    );
+
     // Update last access timestamp (fire and forget, don't wait for it)
     UserService.updateLastAccess(userId).catch((err) => {
-      console.error("Error updating last access:", err);
+      console.error(
+        `[${new Date().toISOString()}] AUTH_MIDDLEWARE | Error updating last access for userId ${userId}:`,
+        err
+      );
       // Don't fail the request if this fails
     });
 
     next();
   } catch (error) {
     if (error instanceof Error && error.message.includes("token")) {
+      console.warn(
+        `[${new Date().toISOString()}] AUTH_MIDDLEWARE | Authentication failed for ${
+          req.path
+        }: ${error.message}`
+      );
       res.status(401).json({ error: error.message });
       return;
     }
+    console.error(
+      `[${new Date().toISOString()}] AUTH_MIDDLEWARE | Authentication error on ${
+        req.path
+      }:`,
+      error
+    );
     res.status(500).json({ error: "Authentication error" });
   }
 }

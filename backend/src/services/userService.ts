@@ -12,6 +12,8 @@ export class UserService {
    * @public
    */
   static async getAllUsers(): Promise<UserData[]> {
+    console.log(`[${new Date().toISOString()}] USER | Fetching all users`);
+
     const rows = await dbPromises.all<{
       id: number;
       name: string;
@@ -22,6 +24,12 @@ export class UserService {
       created_at: string;
     }>(
       "SELECT id, name, nickname, email, profile_picture_url, last_access, created_at FROM users ORDER BY id"
+    );
+
+    console.log(
+      `[${new Date().toISOString()}] USER | Retrieved ${
+        rows.length
+      } users from database`
     );
 
     return rows.map((row) => ({
@@ -42,6 +50,10 @@ export class UserService {
    * @public
    */
   static async getUserById(id: number): Promise<UserData | null> {
+    console.log(
+      `[${new Date().toISOString()}] USER | Fetching user by ID: ${id}`
+    );
+
     const row = await dbPromises.get<{
       id: number;
       name: string;
@@ -56,8 +68,17 @@ export class UserService {
     );
 
     if (!row) {
+      console.log(
+        `[${new Date().toISOString()}] USER | User not found for ID: ${id}`
+      );
       return null;
     }
+
+    console.log(
+      `[${new Date().toISOString()}] USER | User found: ID ${row.id}, email: ${
+        row.email
+      }`
+    );
 
     return {
       id: row.id,
@@ -88,6 +109,17 @@ export class UserService {
     email?: string,
     profilePictureUrl?: string
   ): Promise<UserData> {
+    console.log(
+      `[${new Date().toISOString()}] USER | Updating profile for userId: ${userId}, fields: ${JSON.stringify(
+        {
+          name: name !== undefined,
+          nickname: nickname !== undefined,
+          email: email !== undefined,
+          profilePicture: profilePictureUrl !== undefined,
+        }
+      )}`
+    );
+
     // Build update fields
     const updates: string[] = [];
     const values: any[] = [];
@@ -114,6 +146,9 @@ export class UserService {
       );
 
       if (existingUser) {
+        console.warn(
+          `[${new Date().toISOString()}] USER | Profile update failed: email already registered for userId: ${userId}`
+        );
         throw new Error("Email already registered");
       }
 
@@ -127,12 +162,19 @@ export class UserService {
     }
 
     if (updates.length === 0) {
+      console.warn(
+        `[${new Date().toISOString()}] USER | Profile update failed: no fields to update for userId: ${userId}`
+      );
       throw new Error("No fields to update");
     }
 
     // Add updated_at timestamp
     updates.push("updated_at = CURRENT_TIMESTAMP");
     values.push(userId);
+
+    console.log(
+      `[${new Date().toISOString()}] USER | Executing profile update query for userId: ${userId}`
+    );
 
     // Update user
     await dbPromises.run(
@@ -143,8 +185,15 @@ export class UserService {
     // Retrieve updated user
     const user = await UserService.getUserById(userId);
     if (!user) {
+      console.error(
+        `[${new Date().toISOString()}] USER | Failed to retrieve updated user for userId: ${userId}`
+      );
       throw new Error("Failed to retrieve updated user");
     }
+
+    console.log(
+      `[${new Date().toISOString()}] USER | Profile updated successfully for userId: ${userId}`
+    );
 
     return user;
   }
@@ -157,13 +206,24 @@ export class UserService {
    * @public
    */
   static async deleteUser(userId: number): Promise<void> {
+    console.log(
+      `[${new Date().toISOString()}] USER | Deleting user account for userId: ${userId}`
+    );
+
     const result = await dbPromises.run("DELETE FROM users WHERE id = ?", [
       userId,
     ]);
 
     if (result.changes === 0) {
+      console.warn(
+        `[${new Date().toISOString()}] USER | Delete failed: user not found for userId: ${userId}`
+      );
       throw new Error("User not found");
     }
+
+    console.log(
+      `[${new Date().toISOString()}] USER | User account deleted successfully for userId: ${userId}`
+    );
   }
 
   /**
@@ -176,6 +236,9 @@ export class UserService {
     await dbPromises.run(
       "UPDATE users SET last_access = CURRENT_TIMESTAMP WHERE id = ?",
       [userId]
+    );
+    console.log(
+      `[${new Date().toISOString()}] USER | Updated last_access timestamp for userId: ${userId}`
     );
   }
 }

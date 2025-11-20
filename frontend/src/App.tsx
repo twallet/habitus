@@ -46,24 +46,28 @@ function App() {
     const error = urlParams.get('error');
 
     if (token) {
+      console.log(`[${new Date().toISOString()}] FRONTEND_APP | Magic link token found in URL, attempting verification`);
       verificationAttempted.current = true;
       // Clean up URL immediately to prevent re-processing
       window.history.replaceState({}, document.title, window.location.pathname);
 
       verifyMagicLink(token)
         .then(() => {
+          console.log(`[${new Date().toISOString()}] FRONTEND_APP | Magic link verification successful, user logged in`);
           setMessage({
             text: 'Login successful!',
             type: 'success',
           });
         })
         .catch((err) => {
+          console.error(`[${new Date().toISOString()}] FRONTEND_APP | Magic link verification failed:`, err);
           setMessage({
             text: err instanceof Error ? err.message : 'Error verifying magic link',
             type: 'error',
           });
         });
     } else if (error) {
+      console.warn(`[${new Date().toISOString()}] FRONTEND_APP | Error parameter found in URL: ${error}`);
       verificationAttempted.current = true;
       setMessage({
         text: decodeURIComponent(error),
@@ -80,13 +84,16 @@ function App() {
    * @internal
    */
   const handleRequestLoginMagicLink = async (email: string) => {
+    console.log(`[${new Date().toISOString()}] FRONTEND_APP | Login magic link requested via form for email: ${email}`);
     try {
       await requestLoginMagicLink(email);
+      console.log(`[${new Date().toISOString()}] FRONTEND_APP | Login magic link request successful, showing success message`);
       setMessage({
         text: 'If an account exists for this email, a magic link has been sent. Please check your inbox and spam folder.',
         type: 'success',
       });
     } catch (error) {
+      console.error(`[${new Date().toISOString()}] FRONTEND_APP | Login magic link request failed:`, error);
       setMessage({
         text: error instanceof Error ? error.message : 'Error requesting magic link',
         type: 'error',
@@ -109,13 +116,16 @@ function App() {
     nickname?: string,
     profilePicture?: File
   ) => {
+    console.log(`[${new Date().toISOString()}] FRONTEND_APP | Registration magic link requested via form for email: ${email}, name: ${name}`);
     try {
       await requestRegisterMagicLink(name, email, nickname, profilePicture);
+      console.log(`[${new Date().toISOString()}] FRONTEND_APP | Registration magic link request successful, showing success message`);
       setMessage({
         text: 'Registration magic link sent! Check your email.',
         type: 'success',
       });
     } catch (error) {
+      console.error(`[${new Date().toISOString()}] FRONTEND_APP | Registration magic link request failed:`, error);
       setMessage({
         text: error instanceof Error ? error.message : 'Error requesting registration magic link',
         type: 'error',
@@ -150,8 +160,10 @@ function App() {
    * @internal
    */
   const handleLogout = () => {
+    console.log(`[${new Date().toISOString()}] FRONTEND_APP | Logout initiated by user`);
     logout();
     verificationAttempted.current = false; // Reset to allow new magic link verification
+    console.log(`[${new Date().toISOString()}] FRONTEND_APP | Logout completed, showing success message`);
     setMessage({
       text: 'Logged out successfully',
       type: 'success',
@@ -180,14 +192,17 @@ function App() {
     email: string,
     profilePicture: File | null
   ) => {
+    console.log(`[${new Date().toISOString()}] FRONTEND_APP | Profile save initiated by user`);
     try {
       await updateProfile(name, nickname, email, profilePicture);
       setShowEditProfile(false);
+      console.log(`[${new Date().toISOString()}] FRONTEND_APP | Profile updated successfully, showing success message`);
       setMessage({
         text: 'Profile updated successfully',
         type: 'success',
       });
     } catch (error) {
+      console.error(`[${new Date().toISOString()}] FRONTEND_APP | Profile update failed:`, error);
       setMessage({
         text: error instanceof Error ? error.message : 'Error updating profile',
         type: 'error',
@@ -209,15 +224,18 @@ function App() {
    * @internal
    */
   const handleConfirmDeleteUser = async () => {
+    console.log(`[${new Date().toISOString()}] FRONTEND_APP | User account deletion confirmed`);
     try {
       await deleteUser();
       setShowDeleteConfirmation(false);
       verificationAttempted.current = false; // Reset to allow new magic link verification
+      console.log(`[${new Date().toISOString()}] FRONTEND_APP | User account deleted successfully, showing success message`);
       setMessage({
         text: 'Account deleted successfully',
         type: 'success',
       });
     } catch (error) {
+      console.error(`[${new Date().toISOString()}] FRONTEND_APP | User account deletion failed:`, error);
       setMessage({
         text: error instanceof Error ? error.message : 'Error deleting account',
         type: 'error',
@@ -228,6 +246,7 @@ function App() {
 
   // Show loading state while checking authentication
   if (isLoading) {
+    console.log(`[${new Date().toISOString()}] FRONTEND_APP | App is loading, checking authentication state`);
     return (
       <div className="container">
         <div className="loading">Loading...</div>
@@ -237,6 +256,7 @@ function App() {
 
   // Show login/register screen if not authenticated
   if (!isAuthenticated) {
+    console.log(`[${new Date().toISOString()}] FRONTEND_APP | User not authenticated, showing login/register screen`);
     return (
       <div className="container">
         <header>
@@ -264,12 +284,15 @@ function App() {
 
   // Show main app if authenticated
   if (!user) {
+    console.log(`[${new Date().toISOString()}] FRONTEND_APP | User authenticated but user data not loaded, showing loading`);
     return (
       <div className="container">
         <div className="loading">Loading...</div>
       </div>
     );
   }
+
+  console.log(`[${new Date().toISOString()}] FRONTEND_APP | User authenticated and loaded: ${user.email} (ID: ${user.id}), rendering main app`);
 
   return (
     <div className="container">

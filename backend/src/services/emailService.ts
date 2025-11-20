@@ -63,6 +63,11 @@ export class EmailService {
     token: string,
     isRegistration: boolean = false
   ): Promise<void> {
+    const emailType = isRegistration ? "registration" : "login";
+    console.log(
+      `[${new Date().toISOString()}] EMAIL | Preparing to send ${emailType} magic link email to: ${email}`
+    );
+
     try {
       const mailTransporter = getTransporter();
       const magicLink = `${FRONTEND_URL}/auth/verify-magic-link?token=${token}`;
@@ -73,7 +78,11 @@ export class EmailService {
         ? `Welcome to Habitus! Click the link below to verify your email and complete your registration to Habitus:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\n\nIf you didn't request this, please ignore this email.`
         : `Click the link below to log into Habitus:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\n\nIf you didn't request this, please ignore this email.`;
 
-      await mailTransporter.sendMail({
+      console.log(
+        `[${new Date().toISOString()}] EMAIL | Sending ${emailType} magic link email via SMTP (${SMTP_HOST}:${SMTP_PORT})`
+      );
+
+      const info = await mailTransporter.sendMail({
         from: SMTP_USER,
         to: email,
         subject,
@@ -98,8 +107,17 @@ export class EmailService {
           </div>
         `,
       });
+
+      console.log(
+        `[${new Date().toISOString()}] EMAIL | ${emailType} magic link email sent successfully to: ${email}, messageId: ${
+          info.messageId
+        }`
+      );
     } catch (error: any) {
-      console.error("Error sending magic link email:", error);
+      console.error(
+        `[${new Date().toISOString()}] EMAIL | Error sending ${emailType} magic link email to ${email}:`,
+        error
+      );
 
       // Check for Gmail app-specific password requirement
       if (
