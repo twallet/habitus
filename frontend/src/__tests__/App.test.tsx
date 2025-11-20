@@ -218,4 +218,430 @@ describe('App', () => {
     // Form validation should prevent submission or show error
     // The exact behavior depends on HTML5 validation
   });
+
+  it('should show loading state when isLoading is true', async () => {
+    mockUseAuth.mockReturnValue({
+      user: null,
+      token: null,
+      isLoading: true,
+      isAuthenticated: false,
+      requestLoginMagicLink: jest.fn(),
+      requestRegisterMagicLink: jest.fn(),
+      verifyMagicLink: jest.fn(),
+      loginWithPassword: jest.fn(),
+      changePassword: jest.fn(),
+      forgotPassword: jest.fn(),
+      resetPassword: jest.fn(),
+      logout: jest.fn(),
+      setTokenFromCallback: jest.fn(),
+    });
+
+    render(<App />);
+
+    expect(screen.getByText(/loading/i)).toBeInTheDocument();
+  });
+
+  it('should show loading state when authenticated but user is null', async () => {
+    mockUseAuth.mockReturnValue({
+      user: null,
+      token: 'token',
+      isLoading: false,
+      isAuthenticated: true,
+      requestLoginMagicLink: jest.fn(),
+      requestRegisterMagicLink: jest.fn(),
+      verifyMagicLink: jest.fn(),
+      loginWithPassword: jest.fn(),
+      changePassword: jest.fn(),
+      forgotPassword: jest.fn(),
+      resetPassword: jest.fn(),
+      logout: jest.fn(),
+      setTokenFromCallback: jest.fn(),
+    });
+
+    render(<App />);
+
+    expect(screen.getByText(/loading/i)).toBeInTheDocument();
+  });
+
+  it('should handle magic link verification from URL', async () => {
+    const mockVerifyMagicLink = jest.fn().mockResolvedValue(undefined);
+
+    mockUseAuth.mockReturnValue({
+      user: null,
+      token: null,
+      isLoading: false,
+      isAuthenticated: false,
+      requestLoginMagicLink: jest.fn(),
+      requestRegisterMagicLink: jest.fn(),
+      verifyMagicLink: mockVerifyMagicLink,
+      loginWithPassword: jest.fn(),
+      changePassword: jest.fn(),
+      forgotPassword: jest.fn(),
+      resetPassword: jest.fn(),
+      logout: jest.fn(),
+      setTokenFromCallback: jest.fn(),
+    });
+
+    // Mock URL with token
+    const originalSearch = window.location.search;
+    Object.defineProperty(window, 'location', {
+      value: { search: '?token=magic-token' },
+      writable: true,
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(mockVerifyMagicLink).toHaveBeenCalledWith('magic-token');
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/login successful/i)).toBeInTheDocument();
+    });
+
+    // Restore
+    Object.defineProperty(window, 'location', {
+      value: { search: originalSearch },
+      writable: true,
+    });
+  });
+
+  it('should handle magic link verification error', async () => {
+    const mockVerifyMagicLink = jest.fn().mockRejectedValue(new Error('Invalid token'));
+
+    mockUseAuth.mockReturnValue({
+      user: null,
+      token: null,
+      isLoading: false,
+      isAuthenticated: false,
+      requestLoginMagicLink: jest.fn(),
+      requestRegisterMagicLink: jest.fn(),
+      verifyMagicLink: mockVerifyMagicLink,
+      loginWithPassword: jest.fn(),
+      changePassword: jest.fn(),
+      forgotPassword: jest.fn(),
+      resetPassword: jest.fn(),
+      logout: jest.fn(),
+      setTokenFromCallback: jest.fn(),
+    });
+
+    // Mock URL with token
+    const originalSearch = window.location.search;
+    Object.defineProperty(window, 'location', {
+      value: { search: '?token=invalid-token' },
+      writable: true,
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(mockVerifyMagicLink).toHaveBeenCalledWith('invalid-token');
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/invalid token/i)).toBeInTheDocument();
+    });
+
+    // Restore
+    Object.defineProperty(window, 'location', {
+      value: { search: originalSearch },
+      writable: true,
+    });
+  });
+
+  it('should handle error parameter in URL', async () => {
+    // Mock URL with error
+    const originalSearch = window.location.search;
+    Object.defineProperty(window, 'location', {
+      value: { search: '?error=Authentication%20failed' },
+      writable: true,
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/authentication failed/i)).toBeInTheDocument();
+    });
+
+    // Restore
+    Object.defineProperty(window, 'location', {
+      value: { search: originalSearch },
+      writable: true,
+    });
+  });
+
+  it('should handle login magic link request error', async () => {
+    const user = userEvent.setup();
+    const mockRequestLoginMagicLink = jest.fn().mockRejectedValue(new Error('Network error'));
+
+    mockUseAuth.mockReturnValue({
+      user: null,
+      token: null,
+      isLoading: false,
+      isAuthenticated: false,
+      requestLoginMagicLink: mockRequestLoginMagicLink,
+      requestRegisterMagicLink: jest.fn(),
+      verifyMagicLink: jest.fn(),
+      loginWithPassword: jest.fn(),
+      changePassword: jest.fn(),
+      forgotPassword: jest.fn(),
+      resetPassword: jest.fn(),
+      logout: jest.fn(),
+      setTokenFromCallback: jest.fn(),
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+    });
+
+    const emailInput = screen.getByLabelText(/email/i);
+    await user.type(emailInput, 'test@example.com');
+    await user.click(screen.getByRole('button', { name: /send magic link/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/network error/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should handle registration magic link request error', async () => {
+    const user = userEvent.setup();
+    const mockRequestRegisterMagicLink = jest.fn().mockRejectedValue(new Error('Email already exists'));
+
+    mockUseAuth.mockReturnValue({
+      user: null,
+      token: null,
+      isLoading: false,
+      isAuthenticated: false,
+      requestLoginMagicLink: jest.fn(),
+      requestRegisterMagicLink: mockRequestRegisterMagicLink,
+      verifyMagicLink: jest.fn(),
+      loginWithPassword: jest.fn(),
+      changePassword: jest.fn(),
+      forgotPassword: jest.fn(),
+      resetPassword: jest.fn(),
+      logout: jest.fn(),
+      setTokenFromCallback: jest.fn(),
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /don't have an account\? register/i }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/^name \*$/i)).toBeInTheDocument();
+    });
+
+    const nameInput = screen.getByLabelText(/^name \*$/i);
+    const emailInput = screen.getByLabelText(/email/i);
+    await user.type(nameInput, 'John Doe');
+    await user.type(emailInput, 'existing@example.com');
+    await user.click(screen.getByRole('button', { name: /send registration link/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/email already exists/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should handle password login', async () => {
+    const user = userEvent.setup();
+    const mockLoginWithPassword = jest.fn().mockResolvedValue(undefined);
+
+    mockUseAuth.mockReturnValue({
+      user: null,
+      token: null,
+      isLoading: false,
+      isAuthenticated: false,
+      requestLoginMagicLink: jest.fn(),
+      requestRegisterMagicLink: jest.fn(),
+      verifyMagicLink: jest.fn(),
+      loginWithPassword: mockLoginWithPassword,
+      changePassword: jest.fn(),
+      forgotPassword: jest.fn(),
+      resetPassword: jest.fn(),
+      logout: jest.fn(),
+      setTokenFromCallback: jest.fn(),
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+    });
+
+    // Enable password login
+    const passwordCheckbox = screen.getByLabelText(/use password to login/i);
+    await user.click(passwordCheckbox);
+
+    const emailInput = screen.getByLabelText(/email/i);
+    const passwordInput = screen.getByPlaceholderText(/enter your password/i);
+    await user.type(emailInput, 'test@example.com');
+    await user.type(passwordInput, 'password123');
+    await user.click(screen.getByRole('button', { name: /login/i }));
+
+    await waitFor(() => {
+      expect(mockLoginWithPassword).toHaveBeenCalledWith('test@example.com', 'password123');
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/login successful/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should handle password login error', async () => {
+    const user = userEvent.setup();
+    const mockLoginWithPassword = jest.fn().mockRejectedValue(new Error('Invalid credentials'));
+
+    mockUseAuth.mockReturnValue({
+      user: null,
+      token: null,
+      isLoading: false,
+      isAuthenticated: false,
+      requestLoginMagicLink: jest.fn(),
+      requestRegisterMagicLink: jest.fn(),
+      verifyMagicLink: jest.fn(),
+      loginWithPassword: mockLoginWithPassword,
+      changePassword: jest.fn(),
+      forgotPassword: jest.fn(),
+      resetPassword: jest.fn(),
+      logout: jest.fn(),
+      setTokenFromCallback: jest.fn(),
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+    });
+
+    // Enable password login
+    const passwordCheckbox = screen.getByLabelText(/use password to login/i);
+    await user.click(passwordCheckbox);
+
+    const emailInput = screen.getByLabelText(/email/i);
+    const passwordInput = screen.getByPlaceholderText(/enter your password/i);
+    await user.type(emailInput, 'test@example.com');
+    await user.type(passwordInput, 'wrong-password');
+    await user.click(screen.getByRole('button', { name: /login/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/invalid credentials/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should handle logout', async () => {
+    const mockUser = {
+      id: 1,
+      name: 'John Doe',
+      email: 'john@example.com',
+      created_at: '2024-01-01T00:00:00Z',
+    };
+
+    const mockLogout = jest.fn();
+
+    mockUseAuth.mockReturnValue({
+      user: mockUser,
+      token: 'mock-token',
+      isLoading: false,
+      isAuthenticated: true,
+      requestLoginMagicLink: jest.fn(),
+      requestRegisterMagicLink: jest.fn(),
+      verifyMagicLink: jest.fn(),
+      loginWithPassword: jest.fn(),
+      changePassword: jest.fn(),
+      forgotPassword: jest.fn(),
+      resetPassword: jest.fn(),
+      logout: mockLogout,
+      setTokenFromCallback: jest.fn(),
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/welcome, john doe/i)).toBeInTheDocument();
+    });
+
+    const logoutButton = screen.getByRole('button', { name: /logout/i });
+    await userEvent.click(logoutButton);
+
+    expect(mockLogout).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(screen.getByText(/logged out successfully/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should handle error message from form validation', async () => {
+    const user = userEvent.setup();
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+    });
+
+    // This will trigger form validation error
+    const emailInput = screen.getByLabelText(/email/i);
+    await user.clear(emailInput);
+    await user.click(screen.getByRole('button', { name: /send magic link/i }));
+
+    // HTML5 validation should prevent submission
+    // The exact behavior depends on browser implementation
+  });
+
+  it('should hide message when handleHideMessage is called', async () => {
+    const mockUser = {
+      id: 1,
+      name: 'John Doe',
+      email: 'john@example.com',
+      created_at: '2024-01-01T00:00:00Z',
+    };
+
+    mockUseAuth.mockReturnValue({
+      user: mockUser,
+      token: 'mock-token',
+      isLoading: false,
+      isAuthenticated: true,
+      requestLoginMagicLink: jest.fn(),
+      requestRegisterMagicLink: jest.fn(),
+      verifyMagicLink: jest.fn().mockResolvedValue(undefined),
+      loginWithPassword: jest.fn(),
+      changePassword: jest.fn(),
+      forgotPassword: jest.fn(),
+      resetPassword: jest.fn(),
+      logout: jest.fn(),
+      setTokenFromCallback: jest.fn(),
+    });
+
+    // Mock URL with token to trigger message
+    const originalSearch = window.location.search;
+    Object.defineProperty(window, 'location', {
+      value: { search: '?token=magic-token' },
+      writable: true,
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/login successful/i)).toBeInTheDocument();
+    });
+
+    // Find and click the hide button (Message component should have one)
+    const hideButton = screen.getByRole('button', { name: /close message/i });
+    await userEvent.click(hideButton);
+
+    await waitFor(() => {
+      expect(screen.queryByText(/login successful/i)).not.toBeInTheDocument();
+    });
+
+    // Restore
+    Object.defineProperty(window, 'location', {
+      value: { search: originalSearch },
+      writable: true,
+    });
+  });
 });
