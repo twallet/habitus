@@ -43,20 +43,8 @@ describe("api", () => {
       `${API_BASE_URL}/api/auth/register`
     );
     expect(API_ENDPOINTS.auth.login).toBe(`${API_BASE_URL}/api/auth/login`);
-    expect(API_ENDPOINTS.auth.loginPassword).toBe(
-      `${API_BASE_URL}/api/auth/login-password`
-    );
     expect(API_ENDPOINTS.auth.verifyMagicLink).toBe(
       `${API_BASE_URL}/api/auth/verify-magic-link`
-    );
-    expect(API_ENDPOINTS.auth.changePassword).toBe(
-      `${API_BASE_URL}/api/auth/change-password`
-    );
-    expect(API_ENDPOINTS.auth.forgotPassword).toBe(
-      `${API_BASE_URL}/api/auth/forgot-password`
-    );
-    expect(API_ENDPOINTS.auth.resetPassword).toBe(
-      `${API_BASE_URL}/api/auth/reset-password`
     );
     expect(API_ENDPOINTS.auth.me).toBe(`${API_BASE_URL}/api/auth/me`);
     expect(API_ENDPOINTS.profile.update).toBe(

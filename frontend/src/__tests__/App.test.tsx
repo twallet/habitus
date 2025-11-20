@@ -37,12 +37,11 @@ describe('App', () => {
           body: JSON.stringify({ email }),
         });
       }),
-      requestRegisterMagicLink: jest.fn().mockImplementation(async (name: string, email: string, nickname?: string, password?: string, profilePicture?: File) => {
+      requestRegisterMagicLink: jest.fn().mockImplementation(async (name: string, email: string, nickname?: string, profilePicture?: File) => {
         const formData = new FormData();
         formData.append('name', name);
         formData.append('email', email);
         if (nickname) formData.append('nickname', nickname);
-        if (password) formData.append('password', password);
         if (profilePicture) formData.append('profilePicture', profilePicture);
         return fetch(API_ENDPOINTS.auth.register, {
           method: 'POST',
@@ -50,10 +49,6 @@ describe('App', () => {
         });
       }),
       verifyMagicLink: jest.fn(),
-      loginWithPassword: jest.fn(),
-      changePassword: jest.fn(),
-      forgotPassword: jest.fn(),
-      resetPassword: jest.fn(),
       logout: jest.fn(),
       setTokenFromCallback: jest.fn(),
     });
@@ -179,10 +174,6 @@ describe('App', () => {
       requestLoginMagicLink: jest.fn(),
       requestRegisterMagicLink: jest.fn(),
       verifyMagicLink: jest.fn(),
-      loginWithPassword: jest.fn(),
-      changePassword: jest.fn(),
-      forgotPassword: jest.fn(),
-      resetPassword: jest.fn(),
       logout: mockLogout,
       setTokenFromCallback: jest.fn(),
     });
@@ -228,10 +219,6 @@ describe('App', () => {
       requestLoginMagicLink: jest.fn(),
       requestRegisterMagicLink: jest.fn(),
       verifyMagicLink: jest.fn(),
-      loginWithPassword: jest.fn(),
-      changePassword: jest.fn(),
-      forgotPassword: jest.fn(),
-      resetPassword: jest.fn(),
       logout: jest.fn(),
       setTokenFromCallback: jest.fn(),
     });
@@ -250,10 +237,6 @@ describe('App', () => {
       requestLoginMagicLink: jest.fn(),
       requestRegisterMagicLink: jest.fn(),
       verifyMagicLink: jest.fn(),
-      loginWithPassword: jest.fn(),
-      changePassword: jest.fn(),
-      forgotPassword: jest.fn(),
-      resetPassword: jest.fn(),
       logout: jest.fn(),
       setTokenFromCallback: jest.fn(),
     });
@@ -274,10 +257,6 @@ describe('App', () => {
       requestLoginMagicLink: jest.fn(),
       requestRegisterMagicLink: jest.fn(),
       verifyMagicLink: mockVerifyMagicLink,
-      loginWithPassword: jest.fn(),
-      changePassword: jest.fn(),
-      forgotPassword: jest.fn(),
-      resetPassword: jest.fn(),
       logout: jest.fn(),
       setTokenFromCallback: jest.fn(),
     });
@@ -317,10 +296,6 @@ describe('App', () => {
       requestLoginMagicLink: jest.fn(),
       requestRegisterMagicLink: jest.fn(),
       verifyMagicLink: mockVerifyMagicLink,
-      loginWithPassword: jest.fn(),
-      changePassword: jest.fn(),
-      forgotPassword: jest.fn(),
-      resetPassword: jest.fn(),
       logout: jest.fn(),
       setTokenFromCallback: jest.fn(),
     });
@@ -382,10 +357,6 @@ describe('App', () => {
       requestLoginMagicLink: mockRequestLoginMagicLink,
       requestRegisterMagicLink: jest.fn(),
       verifyMagicLink: jest.fn(),
-      loginWithPassword: jest.fn(),
-      changePassword: jest.fn(),
-      forgotPassword: jest.fn(),
-      resetPassword: jest.fn(),
       logout: jest.fn(),
       setTokenFromCallback: jest.fn(),
     });
@@ -417,10 +388,6 @@ describe('App', () => {
       requestLoginMagicLink: jest.fn(),
       requestRegisterMagicLink: mockRequestRegisterMagicLink,
       verifyMagicLink: jest.fn(),
-      loginWithPassword: jest.fn(),
-      changePassword: jest.fn(),
-      forgotPassword: jest.fn(),
-      resetPassword: jest.fn(),
       logout: jest.fn(),
       setTokenFromCallback: jest.fn(),
     });
@@ -448,91 +415,6 @@ describe('App', () => {
     });
   });
 
-  it('should handle password login', async () => {
-    const user = userEvent.setup();
-    const mockLoginWithPassword = jest.fn().mockResolvedValue(undefined);
-
-    mockUseAuth.mockReturnValue({
-      user: null,
-      token: null,
-      isLoading: false,
-      isAuthenticated: false,
-      requestLoginMagicLink: jest.fn(),
-      requestRegisterMagicLink: jest.fn(),
-      verifyMagicLink: jest.fn(),
-      loginWithPassword: mockLoginWithPassword,
-      changePassword: jest.fn(),
-      forgotPassword: jest.fn(),
-      resetPassword: jest.fn(),
-      logout: jest.fn(),
-      setTokenFromCallback: jest.fn(),
-    });
-
-    render(<App />);
-
-    await waitFor(() => {
-      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-    });
-
-    // Enable password login
-    const passwordCheckbox = screen.getByLabelText(/use password to login/i);
-    await user.click(passwordCheckbox);
-
-    const emailInput = screen.getByLabelText(/email/i);
-    const passwordInput = screen.getByPlaceholderText(/enter your password/i);
-    await user.type(emailInput, 'test@example.com');
-    await user.type(passwordInput, 'password123');
-    await user.click(screen.getByRole('button', { name: /login/i }));
-
-    await waitFor(() => {
-      expect(mockLoginWithPassword).toHaveBeenCalledWith('test@example.com', 'password123');
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText(/login successful/i)).toBeInTheDocument();
-    });
-  });
-
-  it('should handle password login error', async () => {
-    const user = userEvent.setup();
-    const mockLoginWithPassword = jest.fn().mockRejectedValue(new Error('Invalid credentials'));
-
-    mockUseAuth.mockReturnValue({
-      user: null,
-      token: null,
-      isLoading: false,
-      isAuthenticated: false,
-      requestLoginMagicLink: jest.fn(),
-      requestRegisterMagicLink: jest.fn(),
-      verifyMagicLink: jest.fn(),
-      loginWithPassword: mockLoginWithPassword,
-      changePassword: jest.fn(),
-      forgotPassword: jest.fn(),
-      resetPassword: jest.fn(),
-      logout: jest.fn(),
-      setTokenFromCallback: jest.fn(),
-    });
-
-    render(<App />);
-
-    await waitFor(() => {
-      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-    });
-
-    // Enable password login
-    const passwordCheckbox = screen.getByLabelText(/use password to login/i);
-    await user.click(passwordCheckbox);
-
-    const emailInput = screen.getByLabelText(/email/i);
-    const passwordInput = screen.getByPlaceholderText(/enter your password/i);
-    await user.type(emailInput, 'test@example.com');
-    await user.type(passwordInput, 'wrong-password');
-    await user.click(screen.getByRole('button', { name: /login/i }));
-
-    await waitFor(() => {
-      expect(screen.getByText(/invalid credentials/i)).toBeInTheDocument();
-    });
-  });
 
   it('should handle logout', async () => {
     const mockUser = {
@@ -552,10 +434,6 @@ describe('App', () => {
       requestLoginMagicLink: jest.fn(),
       requestRegisterMagicLink: jest.fn(),
       verifyMagicLink: jest.fn(),
-      loginWithPassword: jest.fn(),
-      changePassword: jest.fn(),
-      forgotPassword: jest.fn(),
-      resetPassword: jest.fn(),
       logout: mockLogout,
       setTokenFromCallback: jest.fn(),
     });
@@ -609,10 +487,6 @@ describe('App', () => {
       requestLoginMagicLink: jest.fn(),
       requestRegisterMagicLink: jest.fn(),
       verifyMagicLink: jest.fn().mockResolvedValue(undefined),
-      loginWithPassword: jest.fn(),
-      changePassword: jest.fn(),
-      forgotPassword: jest.fn(),
-      resetPassword: jest.fn(),
       logout: jest.fn(),
       setTokenFromCallback: jest.fn(),
     });
