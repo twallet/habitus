@@ -59,6 +59,7 @@ export function useAuth() {
    * @param name - User's name
    * @param email - User's email
    * @param password - User's password
+   * @param profilePicture - Optional profile picture file
    * @returns Promise resolving to user data
    * @throws Error if registration fails
    * @public
@@ -66,14 +67,31 @@ export function useAuth() {
   const register = async (
     name: string,
     email: string,
-    password: string
+    password: string,
+    profilePicture?: File
   ): Promise<UserData> => {
+    // Use FormData if profile picture is provided, otherwise use JSON
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("email", email);
+    formData.append("password", password);
+
+    if (profilePicture) {
+      formData.append("profilePicture", profilePicture);
+    }
+
+    const headers: HeadersInit = {};
+    // Don't set Content-Type header when using FormData - browser will set it with boundary
+    if (!profilePicture) {
+      headers["Content-Type"] = "application/json";
+    }
+
     const response = await fetch(API_ENDPOINTS.auth.register, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ name, email, password }),
+      headers,
+      body: profilePicture
+        ? formData
+        : JSON.stringify({ name, email, password }),
     });
 
     if (!response.ok) {

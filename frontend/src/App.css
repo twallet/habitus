@@ -402,6 +402,59 @@ header h1 {
     margin-bottom: 0;
 }
 
+.profile-picture-preview {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.preview-image {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+}
+
+.remove-image-btn {
+    padding: 6px 16px;
+    background: var(--error-color);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.remove-image-btn:hover {
+    background: #dc2626;
+}
+
+.remove-image-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.form-group input[type="file"] {
+    padding: 8px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius);
+    font-size: 0.95rem;
+    background: var(--bg-primary);
+    cursor: pointer;
+}
+
+.form-group input[type="file"]:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
 .user-info-header {
     display: flex;
     justify-content: space-between;

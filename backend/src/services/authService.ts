@@ -53,6 +53,7 @@ export class AuthService {
    * @param name - User's name
    * @param email - User's email
    * @param password - User's password (will be hashed)
+   * @param profilePictureUrl - Optional profile picture URL
    * @returns Promise resolving to the created user data (without password)
    * @throws Error if email already exists or validation fails
    * @public
@@ -60,7 +61,8 @@ export class AuthService {
   static async register(
     name: string,
     email: string,
-    password: string
+    password: string,
+    profilePictureUrl?: string
   ): Promise<UserData> {
     // Validate inputs
     const validatedName = User.validateName(name);
@@ -83,8 +85,8 @@ export class AuthService {
 
     // Create user
     const result = await dbPromises.run(
-      "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
-      [validatedName, validatedEmail, passwordHash]
+      "INSERT INTO users (name, email, password_hash, profile_picture_url) VALUES (?, ?, ?, ?)",
+      [validatedName, validatedEmail, passwordHash, profilePictureUrl || null]
     );
 
     // Retrieve created user

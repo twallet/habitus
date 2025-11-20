@@ -3,9 +3,12 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
 import { initializeDatabase, closeDatabase } from "./db/database.js";
 import usersRouter from "./routes/users.js";
 import authRouter from "./routes/auth.js";
+import { getUploadsDirectory } from "./middleware/upload.js";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -30,6 +33,11 @@ app.use(
  */
 app.use(cors());
 app.use(express.json());
+
+/**
+ * Serve uploaded files statically.
+ */
+app.use("/uploads", express.static(getUploadsDirectory()));
 
 /**
  * API routes.

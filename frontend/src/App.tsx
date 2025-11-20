@@ -70,11 +70,12 @@ function App() {
    * @param name - User's name
    * @param email - User's email
    * @param password - User's password
+   * @param profilePicture - Optional profile picture file
    * @internal
    */
-  const handleRegister = async (name: string, email: string, password: string) => {
+  const handleRegister = async (name: string, email: string, password: string, profilePicture?: File) => {
     try {
-      await register(name, email, password);
+      await register(name, email, password, profilePicture);
       setMessage({
         text: 'Registration successful!',
         type: 'success',

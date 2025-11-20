@@ -2,7 +2,7 @@ import { useState, FormEvent } from "react";
 
 interface AuthFormProps {
   onLogin: (email: string, password: string) => Promise<void>;
-  onRegister: (name: string, email: string, password: string) => Promise<void>;
+  onRegister: (name: string, email: string, password: string, profilePicture?: File) => Promise<void>;
   onGoogleLogin: () => void;
   onError: (message: string) => void;
 }
@@ -22,6 +22,8 @@ export function AuthForm({ onLogin, onRegister, onGoogleLogin, onError }: AuthFo
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [profilePicture, setProfilePicture] = useState<File | null>(null);
+  const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   /**
@@ -70,7 +72,7 @@ export function AuthForm({ onLogin, onRegister, onGoogleLogin, onError }: AuthFo
           return;
         }
 
-        await onRegister(name.trim(), email.trim(), password);
+        await onRegister(name.trim(), email.trim(), password, profilePicture || undefined);
       }
 
       // Reset form on success
@@ -78,6 +80,8 @@ export function AuthForm({ onLogin, onRegister, onGoogleLogin, onError }: AuthFo
       setEmail("");
       setPassword("");
       setConfirmPassword("");
+      setProfilePicture(null);
+      setProfilePicturePreview(null);
     } catch (error) {
       // Error handling is done in parent component via onError
     } finally {
@@ -95,6 +99,42 @@ export function AuthForm({ onLogin, onRegister, onGoogleLogin, onError }: AuthFo
     setEmail("");
     setPassword("");
     setConfirmPassword("");
+    setProfilePicture(null);
+    setProfilePicturePreview(null);
+  };
+
+  /**
+   * Handle profile picture file selection.
+   * @param e - File input change event
+   * @internal
+   */
+  const handleProfilePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        onError("Please select an image file");
+        return;
+      }
+
+      // Validate file size (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        onError("Image size must be less than 5MB");
+        return;
+      }
+
+      setProfilePicture(file);
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfilePicturePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setProfilePicture(null);
+      setProfilePicturePreview(null);
+    }
   };
 
   return (
@@ -162,20 +202,56 @@ export function AuthForm({ onLogin, onRegister, onGoogleLogin, onError }: AuthFo
         </div>
 
         {!isLoginMode && (
-          <div className="form-group">
-            <label htmlFor="confirmPassword">Confirm Password</label>
-            <input
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              placeholder="Confirm your password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              autoComplete="new-password"
-              disabled={isSubmitting}
-            />
-          </div>
+          <>
+            <div className="form-group">
+              <label htmlFor="confirmPassword">Confirm Password</label>
+              <input
+                type="password"
+                id="confirmPassword"
+                name="confirmPassword"
+                placeholder="Confirm your password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                autoComplete="new-password"
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="profilePicture">Profile Picture (Optional)</label>
+              <input
+                type="file"
+                id="profilePicture"
+                name="profilePicture"
+                accept="image/*"
+                onChange={handleProfilePictureChange}
+                disabled={isSubmitting}
+              />
+              {profilePicturePreview && (
+                <div className="profile-picture-preview">
+                  <img
+                    src={profilePicturePreview}
+                    alt="Profile preview"
+                    className="preview-image"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProfilePicture(null);
+                      setProfilePicturePreview(null);
+                      const fileInput = document.getElementById("profilePicture") as HTMLInputElement;
+                      if (fileInput) fileInput.value = "";
+                    }}
+                    className="remove-image-btn"
+                    disabled={isSubmitting}
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
         )}
 
         <button

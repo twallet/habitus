@@ -1,55 +1,82 @@
 import { Router, Request, Response } from "express";
 import { AuthService } from "../services/authService.js";
+import { uploadProfilePicture } from "../middleware/upload.js";
 
 const router = Router();
 
 /**
  * POST /api/auth/register
- * Register a new user.
+ * Register a new user with optional profile picture upload.
  * @route POST /api/auth/register
  * @body {string} name - The user's name
  * @body {string} email - The user's email
  * @body {string} password - The user's password (must meet robust requirements)
+ * @body {File} profilePicture - Optional profile picture file (image only, max 5MB)
  * @returns {UserData} The created user (without password)
  */
-router.post("/register", async (req: Request, res: Response) => {
-  try {
-    const { name, email, password } = req.body;
+router.post(
+  "/register",
+  uploadProfilePicture,
+  async (req: Request, res: Response) => {
+    try {
+      const { name, email, password } = req.body;
+      const file = req.file;
 
-    if (!name || typeof name !== "string") {
-      return res
-        .status(400)
-        .json({ error: "Name is required and must be a string" });
-    }
+      if (!name || typeof name !== "string") {
+        return res
+          .status(400)
+          .json({ error: "Name is required and must be a string" });
+      }
 
-    if (!email || typeof email !== "string") {
-      return res
-        .status(400)
-        .json({ error: "Email is required and must be a string" });
-    }
+      if (!email || typeof email !== "string") {
+        return res
+          .status(400)
+          .json({ error: "Email is required and must be a string" });
+      }
 
-    if (!password || typeof password !== "string") {
-      return res
-        .status(400)
-        .json({ error: "Password is required and must be a string" });
-    }
+      if (!password || typeof password !== "string") {
+        return res
+          .status(400)
+          .json({ error: "Password is required and must be a string" });
+      }
 
-    const user = await AuthService.register(name, email, password);
-    res.status(201).json(user);
-  } catch (error) {
-    if (error instanceof TypeError) {
-      return res.status(400).json({ error: error.message });
+      // Build profile picture URL if file was uploaded
+      let profilePictureUrl: string | undefined;
+      if (file) {
+        const baseUrl =
+          process.env.BASE_URL ||
+          `http://localhost:${process.env.PORT || 3001}`;
+        profilePictureUrl = `${baseUrl}/uploads/${file.filename}`;
+      }
+
+      const user = await AuthService.register(
+        name,
+        email,
+        password,
+        profilePictureUrl
+      );
+      res.status(201).json(user);
+    } catch (error) {
+      if (error instanceof TypeError) {
+        return res.status(400).json({ error: error.message });
+      }
+      if (
+        error instanceof Error &&
+        error.message === "Email already registered"
+      ) {
+        return res.status(409).json({ error: error.message });
+      }
+      if (
+        error instanceof Error &&
+        error.message.includes("Only image files")
+      ) {
+        return res.status(400).json({ error: error.message });
+      }
+      console.error("Error registering user:", error);
+      res.status(500).json({ error: "Error registering user" });
     }
-    if (
-      error instanceof Error &&
-      error.message === "Email already registered"
-    ) {
-      return res.status(409).json({ error: error.message });
-    }
-    console.error("Error registering user:", error);
-    res.status(500).json({ error: "Error registering user" });
   }
-});
+);
 
 /**
  * POST /api/auth/login
