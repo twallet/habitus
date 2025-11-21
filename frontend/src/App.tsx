@@ -376,7 +376,7 @@ function App() {
     return (
       <div className="container">
         <header>
-          <h1>Habitus</h1>
+          <h1>🌱 Habitus</h1>
         </header>
 
         <main>
@@ -414,7 +414,7 @@ function App() {
     <div className="container">
       <header className="app-header">
         <div>
-          <h1>Habitus</h1>
+          <h1>🌱 Habitus</h1>
           <p className="subtitle">Welcome to your dashboard</p>
         </div>
         {user && (

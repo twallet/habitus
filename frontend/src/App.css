@@ -5,11 +5,13 @@
 }
 
 :root {
-  --primary-color: #6366f1;
-  --primary-hover: #4f46e5;
+  /* Brand colors from ManualMarca.pdf */
+  --primary-color: #005a7f;
+  --primary-hover: #004a6b;
+  --accent-color: #ffcc00;
   --success-color: #10b981;
   --error-color: #ef4444;
-  --text-primary: #1f2937;
+  --text-primary: #000000;
   --text-secondary: #6b7280;
   --bg-primary: #ffffff;
   --bg-secondary: #f9fafb;
@@ -22,9 +24,9 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-family: "Red Hat Display", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: linear-gradient(135deg, #005a7f 0%, #003d5a 100%);
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -123,7 +125,7 @@ header h1 {
 .form-group input:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 90, 127, 0.1);
 }
 
 .form-group input::placeholder {
@@ -511,7 +513,7 @@ header h1 {
 .fab:hover {
   background: var(--primary-hover);
   transform: scale(1.1);
-  box-shadow: 0 12px 20px -5px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 12px 20px -5px rgba(0, 90, 127, 0.4);
 }
 
 .fab:active {

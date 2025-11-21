@@ -78,7 +78,7 @@ app.use("/api/trackings", trackingsRouter);
  */
 app.get("/", (_req: express.Request, res: express.Response) => {
   res.json({
-    message: "Habitus API",
+    message: "🌱 Habitus API",
     version: "1.0.0",
     endpoints: {
       health: "/health",

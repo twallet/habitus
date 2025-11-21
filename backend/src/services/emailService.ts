@@ -72,11 +72,11 @@ export class EmailService {
       const mailTransporter = getTransporter();
       const magicLink = `${FRONTEND_URL}/auth/verify-magic-link?token=${token}`;
       const subject = isRegistration
-        ? "Welcome to Habitus! Verify your email to complete registration"
-        : "Your login link to Habitus";
+        ? "🌱 Welcome to Habitus! Verify your email to complete registration"
+        : "🌱 Your login link to Habitus";
       const text = isRegistration
-        ? `Welcome to Habitus! Click the link below to verify your email and complete your registration to Habitus:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\n\nIf you didn't request this, please ignore this email.`
-        : `Click the link below to log into Habitus:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\n\nIf you didn't request this, please ignore this email.`;
+        ? `🌱 Welcome to Habitus! Click the link below to verify your email and complete your registration to Habitus:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\n\nIf you didn't request this, please ignore this email.`
+        : `🌱 Click the link below to log into Habitus:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\n\nIf you didn't request this, please ignore this email.`;
 
       console.log(
         `[${new Date().toISOString()}] EMAIL | Sending ${emailType} magic link email via SMTP (${SMTP_HOST}:${SMTP_PORT})`
@@ -94,8 +94,8 @@ export class EmailService {
             }</h2>
             <p>${
               isRegistration
-                ? "Click the link below to verify your email and complete your registration to Habitus:"
-                : "Click the link below to log into Habitus:"
+                ? "🌱 Click the link below to verify your email and complete your registration to Habitus:"
+                : "🌱 Click the link below to log into Habitus:"
             }</p>
             <p style="margin: 30px 0;">
               <a href="${magicLink}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
