@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Message } from './components/Message';
 import { AuthForm } from './components/AuthForm';
-import { UserProfile } from './components/UserProfile';
 import { UserMenu } from './components/UserMenu';
 import { EditProfileModal } from './components/EditProfileModal';
 import { DeleteUserConfirmationModal } from './components/DeleteUserConfirmationModal';
