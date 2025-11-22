@@ -165,4 +165,151 @@ describe("UserService", () => {
       expect(typeof user?.created_at).toBe("string");
     });
   });
+
+  describe("updateProfile", () => {
+    let userId: number;
+
+    beforeEach(async () => {
+      const result = await testDb.run(
+        "INSERT INTO users (name, email) VALUES (?, ?)",
+        ["Test User", "test@example.com"]
+      );
+      userId = result.lastID;
+    });
+
+    it("should update user name", async () => {
+      const updatedUser = await userService.updateProfile(userId, "New Name");
+
+      expect(updatedUser.name).toBe("New Name");
+      expect(updatedUser.email).toBe("test@example.com");
+    });
+
+    it("should update user nickname", async () => {
+      const updatedUser = await userService.updateProfile(
+        userId,
+        undefined,
+        "nickname"
+      );
+
+      expect(updatedUser.nickname).toBe("nickname");
+    });
+
+    it("should update user email", async () => {
+      const updatedUser = await userService.updateProfile(
+        userId,
+        undefined,
+        undefined,
+        "newemail@example.com"
+      );
+
+      expect(updatedUser.email).toBe("newemail@example.com");
+    });
+
+    it("should update profile picture URL", async () => {
+      const updatedUser = await userService.updateProfile(
+        userId,
+        undefined,
+        undefined,
+        undefined,
+        "http://example.com/pic.jpg"
+      );
+
+      expect(updatedUser.profile_picture_url).toBe("http://example.com/pic.jpg");
+    });
+
+    it("should update multiple fields at once", async () => {
+      const updatedUser = await userService.updateProfile(
+        userId,
+        "New Name",
+        "New Nickname",
+        "newemail@example.com",
+        "http://example.com/pic.jpg"
+      );
+
+      expect(updatedUser.name).toBe("New Name");
+      expect(updatedUser.nickname).toBe("New Nickname");
+      expect(updatedUser.email).toBe("newemail@example.com");
+      expect(updatedUser.profile_picture_url).toBe("http://example.com/pic.jpg");
+    });
+
+    it("should throw error if email is already taken by another user", async () => {
+      await testDb.run(
+        "INSERT INTO users (name, email) VALUES (?, ?)",
+        ["Other User", "other@example.com"]
+      );
+
+      await expect(
+        userService.updateProfile(userId, undefined, undefined, "other@example.com")
+      ).rejects.toThrow("Email already registered");
+    });
+
+    it("should throw error if no fields to update", async () => {
+      await expect(
+        userService.updateProfile(userId)
+      ).rejects.toThrow("No fields to update");
+    });
+
+    it("should throw error if user not found after update", async () => {
+      // Delete user before update to simulate race condition
+      await testDb.run("DELETE FROM users WHERE id = ?", [userId]);
+
+      await expect(
+        userService.updateProfile(userId, "New Name")
+      ).rejects.toThrow("Failed to retrieve updated user");
+    });
+
+    it("should clear nickname when set to null", async () => {
+      // First set a nickname
+      await userService.updateProfile(userId, undefined, "nickname");
+      
+      // Then clear it
+      const updatedUser = await userService.updateProfile(
+        userId,
+        undefined,
+        ""
+      );
+
+      expect(updatedUser.nickname).toBeUndefined();
+    });
+  });
+
+  describe("deleteUser", () => {
+    it("should delete user successfully", async () => {
+      const result = await testDb.run(
+        "INSERT INTO users (name, email) VALUES (?, ?)",
+        ["Test User", "test@example.com"]
+      );
+      const userId = result.lastID;
+
+      await userService.deleteUser(userId);
+
+      const user = await userService.getUserById(userId);
+      expect(user).toBeNull();
+    });
+
+    it("should throw error if user not found", async () => {
+      await expect(userService.deleteUser(999)).rejects.toThrow("User not found");
+    });
+  });
+
+  describe("updateLastAccess", () => {
+    it("should update last access timestamp", async () => {
+      const result = await testDb.run(
+        "INSERT INTO users (name, email) VALUES (?, ?)",
+        ["Test User", "test@example.com"]
+      );
+      const userId = result.lastID;
+
+      await userService.updateLastAccess(userId);
+
+      const user = await userService.getUserById(userId);
+      expect(user?.last_access).toBeDefined();
+      expect(typeof user?.last_access).toBe("string");
+    });
+
+    it("should not throw error for non-existent user", async () => {
+      // Should not throw, just silently fail
+      await expect(userService.updateLastAccess(999)).resolves.not.toThrow();
+    });
+  });
 });

@@ -1,6 +1,412 @@
-import { Tracking, TrackingType } from "../Tracking.js";
+import { Tracking, TrackingType, TrackingData } from "../Tracking.js";
+import { Database } from "../../db/database.js";
+import sqlite3 from "sqlite3";
+
+/**
+ * Create an in-memory database for testing.
+ * @returns Promise resolving to Database instance
+ */
+async function createTestDatabase(): Promise<Database> {
+  return new Promise((resolve, reject) => {
+    const db = new sqlite3.Database(":memory:", (err) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+
+      db.run("PRAGMA foreign_keys = ON", (err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        db.run("PRAGMA journal_mode = WAL", (err) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+
+          db.exec(
+            `
+            CREATE TABLE IF NOT EXISTS users (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              name TEXT NOT NULL,
+              email TEXT NOT NULL UNIQUE
+            );
+            CREATE TABLE IF NOT EXISTS trackings (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              user_id INTEGER NOT NULL,
+              question TEXT NOT NULL CHECK(length(question) <= 500),
+              type TEXT NOT NULL CHECK(type IN ('true_false', 'register')),
+              start_tracking_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              notes TEXT,
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+          `,
+            (err) => {
+              if (err) {
+                reject(err);
+              } else {
+                const database = new Database();
+                (database as any).db = db;
+                resolve(database);
+              }
+            }
+          );
+        });
+      });
+    });
+  });
+}
 
 describe("Tracking Model", () => {
+  let db: Database;
+  let userId: number;
+
+  beforeEach(async () => {
+    db = await createTestDatabase();
+    const result = await db.run(
+      "INSERT INTO users (name, email) VALUES (?, ?)",
+      ["Test User", "test@example.com"]
+    );
+    userId = result.lastID;
+  });
+
+  afterEach(async () => {
+    await db.close();
+  });
+
+  describe("constructor", () => {
+    it("should create Tracking instance with provided data", () => {
+      const trackingData: TrackingData = {
+        id: 1,
+        user_id: userId,
+        question: "Did I exercise?",
+        type: TrackingType.TRUE_FALSE,
+        start_tracking_date: "2024-01-01T00:00:00Z",
+        notes: "Some notes",
+        created_at: "2024-01-01T00:00:00Z",
+        updated_at: "2024-01-01T00:00:00Z",
+      };
+
+      const tracking = new Tracking(trackingData);
+
+      expect(tracking.id).toBe(1);
+      expect(tracking.user_id).toBe(userId);
+      expect(tracking.question).toBe("Did I exercise?");
+      expect(tracking.type).toBe(TrackingType.TRUE_FALSE);
+      expect(tracking.notes).toBe("Some notes");
+    });
+
+    it("should create Tracking instance with minimal data", () => {
+      const trackingData: TrackingData = {
+        id: 1,
+        user_id: userId,
+        question: "Did I exercise?",
+        type: TrackingType.TRUE_FALSE,
+        start_tracking_date: "2024-01-01T00:00:00Z",
+      };
+
+      const tracking = new Tracking(trackingData);
+
+      expect(tracking.id).toBe(1);
+      expect(tracking.question).toBe("Did I exercise?");
+      expect(tracking.notes).toBeUndefined();
+    });
+  });
+
+  describe("validate", () => {
+    it("should validate and normalize tracking fields", () => {
+      const tracking = new Tracking({
+        id: 1,
+        user_id: userId,
+        question: "  Did I exercise?  ",
+        type: TrackingType.TRUE_FALSE,
+        start_tracking_date: "2024-01-01T00:00:00Z",
+        notes: "  Some notes  ",
+      });
+
+      const validated = tracking.validate();
+
+      expect(validated.question).toBe("Did I exercise?");
+      expect(validated.notes).toBe("Some notes");
+    });
+
+    it("should throw error for invalid question", () => {
+      const tracking = new Tracking({
+        id: 1,
+        user_id: userId,
+        question: "",
+        type: TrackingType.TRUE_FALSE,
+        start_tracking_date: "2024-01-01T00:00:00Z",
+      });
+
+      expect(() => tracking.validate()).toThrow(TypeError);
+    });
+
+    it("should throw error for invalid type", () => {
+      const tracking = new Tracking({
+        id: 1,
+        user_id: userId,
+        question: "Did I exercise?",
+        type: "invalid" as TrackingType,
+        start_tracking_date: "2024-01-01T00:00:00Z",
+      });
+
+      expect(() => tracking.validate()).toThrow(TypeError);
+    });
+  });
+
+  describe("save", () => {
+    it("should create new tracking when id is not set", async () => {
+      const tracking = new Tracking({
+        id: 0,
+        user_id: userId,
+        question: "Did I exercise?",
+        type: TrackingType.TRUE_FALSE,
+        start_tracking_date: "2024-01-01T00:00:00Z",
+      });
+
+      const saved = await tracking.save(db);
+
+      expect(saved.id).toBeGreaterThan(0);
+      expect(saved.question).toBe("Did I exercise?");
+      expect(saved.type).toBe(TrackingType.TRUE_FALSE);
+    });
+
+    it("should update existing tracking when id is set", async () => {
+      const result = await db.run(
+        "INSERT INTO trackings (user_id, question, type, start_tracking_date) VALUES (?, ?, ?, ?)",
+        [userId, "Original question", TrackingType.TRUE_FALSE, "2024-01-01T00:00:00Z"]
+      );
+      const trackingId = result.lastID;
+
+      const tracking = new Tracking({
+        id: trackingId,
+        user_id: userId,
+        question: "Updated question",
+        type: TrackingType.REGISTER,
+        start_tracking_date: "2024-01-01T00:00:00Z",
+      });
+
+      const saved = await tracking.save(db);
+
+      expect(saved.id).toBe(trackingId);
+      expect(saved.question).toBe("Updated question");
+      expect(saved.type).toBe(TrackingType.REGISTER);
+    });
+
+    it("should throw error if creation fails", async () => {
+      const tracking = new Tracking({
+        id: 0,
+        user_id: userId,
+        question: "Did I exercise?",
+        type: TrackingType.TRUE_FALSE,
+        start_tracking_date: "2024-01-01T00:00:00Z",
+      });
+
+      // Close database to cause failure
+      await db.close();
+
+      await expect(tracking.save(db)).rejects.toThrow();
+    });
+  });
+
+  describe("update", () => {
+    it("should update tracking fields", async () => {
+      const result = await db.run(
+        "INSERT INTO trackings (user_id, question, type, start_tracking_date) VALUES (?, ?, ?, ?)",
+        [userId, "Original question", TrackingType.TRUE_FALSE, "2024-01-01T00:00:00Z"]
+      );
+      const trackingId = result.lastID;
+
+      const tracking = new Tracking({
+        id: trackingId,
+        user_id: userId,
+        question: "Original question",
+        type: TrackingType.TRUE_FALSE,
+        start_tracking_date: "2024-01-01T00:00:00Z",
+      });
+
+      const updated = await tracking.update(
+        {
+          question: "Updated question",
+          notes: "Updated notes",
+        },
+        db
+      );
+
+      expect(updated.question).toBe("Updated question");
+      expect(updated.notes).toBe("Updated notes");
+    });
+
+    it("should throw error if tracking has no id", async () => {
+      const tracking = new Tracking({
+        id: 0,
+        user_id: userId,
+        question: "Did I exercise?",
+        type: TrackingType.TRUE_FALSE,
+        start_tracking_date: "2024-01-01T00:00:00Z",
+      });
+
+      await expect(
+        tracking.update({ question: "Updated" }, db)
+      ).rejects.toThrow("Cannot update tracking without ID");
+    });
+  });
+
+  describe("delete", () => {
+    it("should delete tracking from database", async () => {
+      const result = await db.run(
+        "INSERT INTO trackings (user_id, question, type, start_tracking_date) VALUES (?, ?, ?, ?)",
+        [userId, "Did I exercise?", TrackingType.TRUE_FALSE, "2024-01-01T00:00:00Z"]
+      );
+      const trackingId = result.lastID;
+
+      const tracking = new Tracking({
+        id: trackingId,
+        user_id: userId,
+        question: "Did I exercise?",
+        type: TrackingType.TRUE_FALSE,
+        start_tracking_date: "2024-01-01T00:00:00Z",
+      });
+
+      await tracking.delete(db);
+
+      const deleted = await db.get(
+        "SELECT id FROM trackings WHERE id = ?",
+        [trackingId]
+      );
+      expect(deleted).toBeUndefined();
+    });
+
+    it("should throw error if tracking has no id", async () => {
+      const tracking = new Tracking({
+        id: 0,
+        user_id: userId,
+        question: "Did I exercise?",
+        type: TrackingType.TRUE_FALSE,
+        start_tracking_date: "2024-01-01T00:00:00Z",
+      });
+
+      await expect(tracking.delete(db)).rejects.toThrow(
+        "Cannot delete tracking without ID"
+      );
+    });
+
+    it("should throw error if tracking not found", async () => {
+      const tracking = new Tracking({
+        id: 999,
+        user_id: userId,
+        question: "Did I exercise?",
+        type: TrackingType.TRUE_FALSE,
+        start_tracking_date: "2024-01-01T00:00:00Z",
+      });
+
+      await expect(tracking.delete(db)).rejects.toThrow("Tracking not found");
+    });
+  });
+
+  describe("toData", () => {
+    it("should convert tracking instance to TrackingData", () => {
+      const tracking = new Tracking({
+        id: 1,
+        user_id: userId,
+        question: "Did I exercise?",
+        type: TrackingType.TRUE_FALSE,
+        start_tracking_date: "2024-01-01T00:00:00Z",
+        notes: "Some notes",
+        created_at: "2024-01-01T00:00:00Z",
+        updated_at: "2024-01-01T00:00:00Z",
+      });
+
+      const data = tracking.toData();
+
+      expect(data).toEqual({
+        id: 1,
+        user_id: userId,
+        question: "Did I exercise?",
+        type: TrackingType.TRUE_FALSE,
+        start_tracking_date: "2024-01-01T00:00:00Z",
+        notes: "Some notes",
+        created_at: "2024-01-01T00:00:00Z",
+        updated_at: "2024-01-01T00:00:00Z",
+      });
+    });
+  });
+
+  describe("loadById", () => {
+    it("should load tracking by id", async () => {
+      const result = await db.run(
+        "INSERT INTO trackings (user_id, question, type, start_tracking_date) VALUES (?, ?, ?, ?)",
+        [userId, "Did I exercise?", TrackingType.TRUE_FALSE, "2024-01-01T00:00:00Z"]
+      );
+      const trackingId = result.lastID;
+
+      const tracking = await Tracking.loadById(trackingId, userId, db);
+
+      expect(tracking).not.toBeNull();
+      expect(tracking?.id).toBe(trackingId);
+      expect(tracking?.question).toBe("Did I exercise?");
+    });
+
+    it("should return null for non-existent tracking", async () => {
+      const tracking = await Tracking.loadById(999, userId, db);
+      expect(tracking).toBeNull();
+    });
+
+    it("should return null for tracking belonging to different user", async () => {
+      const otherUserResult = await db.run(
+        "INSERT INTO users (name, email) VALUES (?, ?)",
+        ["Other User", "other@example.com"]
+      );
+      const otherUserId = otherUserResult.lastID;
+
+      const result = await db.run(
+        "INSERT INTO trackings (user_id, question, type, start_tracking_date) VALUES (?, ?, ?, ?)",
+        [otherUserId, "Did I exercise?", TrackingType.TRUE_FALSE, "2024-01-01T00:00:00Z"]
+      );
+      const trackingId = result.lastID;
+
+      const tracking = await Tracking.loadById(trackingId, userId, db);
+      expect(tracking).toBeNull();
+    });
+  });
+
+  describe("loadByUserId", () => {
+    it("should load all trackings for a user", async () => {
+      const result1 = await db.run(
+        "INSERT INTO trackings (user_id, question, type, start_tracking_date) VALUES (?, ?, ?, ?)",
+        [userId, "Question 1", TrackingType.TRUE_FALSE, "2024-01-01T00:00:00Z"]
+      );
+      const id1 = result1.lastID;
+      const result2 = await db.run(
+        "INSERT INTO trackings (user_id, question, type, start_tracking_date) VALUES (?, ?, ?, ?)",
+        [userId, "Question 2", TrackingType.REGISTER, "2024-01-01T00:00:00Z"]
+      );
+      const id2 = result2.lastID;
+
+      const trackings = await Tracking.loadByUserId(userId, db);
+
+      expect(trackings).toHaveLength(2);
+      const questions = trackings.map((t) => t.question);
+      const ids = trackings.map((t) => t.id);
+      expect(questions).toContain("Question 1");
+      expect(questions).toContain("Question 2");
+      expect(ids).toContain(id1);
+      expect(ids).toContain(id2);
+      // Should be ordered by created_at DESC (newest first)
+      // Since both have same timestamp, order may vary, so just check both exist
+      expect(trackings.length).toBe(2);
+    });
+
+    it("should return empty array when user has no trackings", async () => {
+      const trackings = await Tracking.loadByUserId(userId, db);
+      expect(trackings).toEqual([]);
+    });
+  });
   describe("validateQuestion", () => {
     it("should accept valid questions", () => {
       expect(Tracking.validateQuestion("Did I drink water today?")).toBe(
