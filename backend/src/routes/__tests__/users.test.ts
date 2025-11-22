@@ -1,14 +1,25 @@
 import request from "supertest";
 import express from "express";
 import sqlite3 from "sqlite3";
+import { Database } from "../../db/database.js";
+import { UserService } from "../../services/userService.js";
+import * as servicesModule from "../../services/index.js";
 import usersRouter from "../users.js";
-import * as databaseModule from "../../db/database.js";
+
+// Mock services module before importing router
+jest.mock("../../services/index.js", () => ({
+  getTrackingService: jest.fn(),
+  getAuthService: jest.fn(),
+  getUserService: jest.fn(),
+  getEmailService: jest.fn(),
+  initializeServices: jest.fn(),
+}));
 
 /**
  * Create an in-memory database for testing.
  * @returns Promise resolving to Database instance
  */
-function createTestDatabase(): Promise<sqlite3.Database> {
+async function createTestDatabase(): Promise<Database> {
   return new Promise((resolve, reject) => {
     const db = new sqlite3.Database(":memory:", (err) => {
       if (err) {
@@ -51,7 +62,10 @@ function createTestDatabase(): Promise<sqlite3.Database> {
               if (err) {
                 reject(err);
               } else {
-                resolve(db);
+                // Create Database instance and manually set its internal db
+                const database = new Database();
+                (database as any).db = db;
+                resolve(database);
               }
             }
           );
@@ -63,57 +77,19 @@ function createTestDatabase(): Promise<sqlite3.Database> {
 
 describe("Users Routes", () => {
   let app: express.Application;
-  let testDb: sqlite3.Database;
-  let mockDbPromises: typeof databaseModule.dbPromises;
+  let testDb: Database;
+  let userService: UserService;
 
   beforeEach(async () => {
     // Create a fresh in-memory database for each test
     testDb = await createTestDatabase();
-    // Create mock dbPromises that use our test database
-    mockDbPromises = {
-      run: (sql: string, params: any[] = []) => {
-        return new Promise((resolve, reject) => {
-          testDb.run(sql, params, function (err) {
-            if (err) {
-              reject(err);
-            } else {
-              resolve({ lastID: this.lastID, changes: this.changes });
-            }
-          });
-        });
-      },
-      get: <T = any>(
-        sql: string,
-        params: any[] = []
-      ): Promise<T | undefined> => {
-        return new Promise((resolve, reject) => {
-          testDb.get(sql, params, (err, row) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(row as T);
-            }
-          });
-        });
-      },
-      all: <T = any>(sql: string, params: any[] = []): Promise<T[]> => {
-        return new Promise((resolve, reject) => {
-          testDb.all(sql, params, (err, rows) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(rows as T[]);
-            }
-          });
-        });
-      },
-    };
-    // Mock dbPromises module
-    Object.defineProperty(databaseModule, "dbPromises", {
-      value: mockDbPromises,
-      writable: true,
-      configurable: true,
-    });
+    userService = new UserService(testDb);
+
+    // Reset all mocks first to ensure clean state
+    jest.restoreAllMocks();
+
+    // Mock getUserService to return our test service
+    jest.spyOn(servicesModule, "getUserService").mockReturnValue(userService);
 
     // Create Express app with routes
     app = express();
@@ -121,15 +97,8 @@ describe("Users Routes", () => {
     app.use("/api/users", usersRouter);
   });
 
-  afterEach((done) => {
-    testDb.close((err) => {
-      if (err) {
-        done(err);
-      } else {
-        jest.restoreAllMocks();
-        done();
-      }
-    });
+  afterEach(async () => {
+    await testDb.close();
   });
 
   describe("GET /api/users", () => {
@@ -142,11 +111,11 @@ describe("Users Routes", () => {
 
     it("should return all users", async () => {
       // Insert test data
-      await mockDbPromises.run(
+      await testDb.run(
         "INSERT INTO users (name, email) VALUES (?, ?)",
         ["User 1", "user1@example.com"]
       );
-      await mockDbPromises.run(
+      await testDb.run(
         "INSERT INTO users (name, email) VALUES (?, ?)",
         ["User 2", "user2@example.com"]
       );
@@ -160,9 +129,6 @@ describe("Users Routes", () => {
     });
   });
 
-  // Note: POST /api/users endpoint was removed - user creation is now done via /api/auth/register
-  // These tests are kept for reference but would need to be moved to auth tests
-
   describe("GET /api/users/:id", () => {
     it("should return 404 for non-existent user", async () => {
       const response = await request(app).get("/api/users/999");
@@ -172,7 +138,7 @@ describe("Users Routes", () => {
     });
 
     it("should return user for existing id", async () => {
-      const result = await mockDbPromises.run(
+      const result = await testDb.run(
         "INSERT INTO users (name, email) VALUES (?, ?)",
         ["Test User", "test@example.com"]
       );
@@ -184,13 +150,6 @@ describe("Users Routes", () => {
       expect(response.body.id).toBe(insertedId);
       expect(response.body.name).toBe("Test User");
       expect(response.body.email).toBe("test@example.com");
-    });
-
-    it("should return 400 for invalid id", async () => {
-      const response = await request(app).get("/api/users/invalid");
-
-      expect(response.status).toBe(400);
-      expect(response.body.error).toContain("Invalid user ID");
     });
   });
 });

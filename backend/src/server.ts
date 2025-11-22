@@ -6,6 +6,7 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import { initializeDatabase, closeDatabase } from "./db/database.js";
+import { initializeServices } from "./services/index.js";
 import usersRouter from "./routes/users.js";
 import authRouter from "./routes/auth.js";
 import trackingsRouter from "./routes/trackings.js";
@@ -103,6 +104,10 @@ initializeDatabase()
   .then(() => {
     console.log(
       `[${new Date().toISOString()}] Database initialized successfully`
+    );
+    initializeServices();
+    console.log(
+      `[${new Date().toISOString()}] Services initialized successfully`
     );
     const server = app.listen(PORT, () => {
       console.log(

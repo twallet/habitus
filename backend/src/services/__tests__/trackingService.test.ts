@@ -1,13 +1,13 @@
 import sqlite3 from "sqlite3";
 import { TrackingService } from "../trackingService.js";
 import { TrackingType } from "../../models/Tracking.js";
-import * as databaseModule from "../../db/database.js";
+import { Database } from "../../db/database.js";
 
 /**
  * Create an in-memory database for testing.
  * @returns Promise resolving to Database instance
  */
-function createTestDatabase(): Promise<sqlite3.Database> {
+async function createTestDatabase(): Promise<Database> {
   return new Promise((resolve, reject) => {
     const db = new sqlite3.Database(":memory:", (err) => {
       if (err) {
@@ -61,7 +61,10 @@ function createTestDatabase(): Promise<sqlite3.Database> {
               if (err) {
                 reject(err);
               } else {
-                resolve(db);
+                // Create Database instance and manually set its internal db
+                const database = new Database();
+                (database as any).db = db;
+                resolve(database);
               }
             }
           );
@@ -72,97 +75,47 @@ function createTestDatabase(): Promise<sqlite3.Database> {
 }
 
 describe("TrackingService", () => {
-  let testDb: sqlite3.Database;
-  let mockDbPromises: typeof databaseModule.dbPromises;
+  let testDb: Database;
+  let trackingService: TrackingService;
   let testUserId: number;
 
   beforeEach(async () => {
     // Create a fresh in-memory database for each test
     testDb = await createTestDatabase();
-    // Create mock dbPromises that use our test database
-    mockDbPromises = {
-      run: (sql: string, params: any[] = []) => {
-        return new Promise((resolve, reject) => {
-          testDb.run(sql, params, function (err) {
-            if (err) {
-              reject(err);
-            } else {
-              resolve({ lastID: this.lastID, changes: this.changes });
-            }
-          });
-        });
-      },
-      get: <T = any>(
-        sql: string,
-        params: any[] = []
-      ): Promise<T | undefined> => {
-        return new Promise((resolve, reject) => {
-          testDb.get(sql, params, (err, row) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(row as T);
-            }
-          });
-        });
-      },
-      all: <T = any>(sql: string, params: any[] = []): Promise<T[]> => {
-        return new Promise((resolve, reject) => {
-          testDb.all(sql, params, (err, rows) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(rows as T[]);
-            }
-          });
-        });
-      },
-    };
-    // Mock dbPromises module
-    Object.defineProperty(databaseModule, "dbPromises", {
-      value: mockDbPromises,
-      writable: true,
-      configurable: true,
-    });
+    trackingService = new TrackingService(testDb);
 
     // Create a test user
-    const userResult = await mockDbPromises.run(
+    const userResult = await testDb.run(
       "INSERT INTO users (name, email) VALUES (?, ?)",
       ["Test User", "test@example.com"]
     );
     testUserId = userResult.lastID;
   });
 
-  afterEach((done) => {
-    testDb.close((err) => {
-      if (err) {
-        done(err);
-      } else {
-        jest.restoreAllMocks();
-        done();
-      }
-    });
+  afterEach(async () => {
+    await testDb.close();
+    jest.restoreAllMocks();
   });
 
   describe("getTrackingsByUserId", () => {
     it("should return empty array when no trackings exist", async () => {
-      const trackings = await TrackingService.getTrackingsByUserId(testUserId);
+      const trackings = await trackingService.getTrackingsByUserId(testUserId);
       expect(trackings).toEqual([]);
     });
 
     it("should return all trackings for a user", async () => {
-      await mockDbPromises.run(
+      await testDb.run(
         "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
         [testUserId, "Question 1", TrackingType.TRUE_FALSE]
       );
       // Add small delay to ensure different timestamps
       await new Promise((resolve) => setTimeout(resolve, 10));
-      await mockDbPromises.run(
+      await testDb.run(
         "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
         [testUserId, "Question 2", TrackingType.REGISTER]
       );
 
-      const trackings = await TrackingService.getTrackingsByUserId(testUserId);
+      const trackings = await trackingService.getTrackingsByUserId(testUserId);
 
       expect(trackings).toHaveLength(2);
       // Check that both questions are present (order may vary due to timing)
@@ -172,22 +125,22 @@ describe("TrackingService", () => {
     });
 
     it("should not return trackings for other users", async () => {
-      const otherUserResult = await mockDbPromises.run(
+      const otherUserResult = await testDb.run(
         "INSERT INTO users (name, email) VALUES (?, ?)",
         ["Other User", "other@example.com"]
       );
       const otherUserId = otherUserResult.lastID;
 
-      await mockDbPromises.run(
+      await testDb.run(
         "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
         [testUserId, "My Question", TrackingType.TRUE_FALSE]
       );
-      await mockDbPromises.run(
+      await testDb.run(
         "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
         [otherUserId, "Other Question", TrackingType.TRUE_FALSE]
       );
 
-      const trackings = await TrackingService.getTrackingsByUserId(testUserId);
+      const trackings = await trackingService.getTrackingsByUserId(testUserId);
 
       expect(trackings).toHaveLength(1);
       expect(trackings[0].question).toBe("My Question");
@@ -196,18 +149,18 @@ describe("TrackingService", () => {
 
   describe("getTrackingById", () => {
     it("should return null for non-existent tracking", async () => {
-      const tracking = await TrackingService.getTrackingById(999, testUserId);
+      const tracking = await trackingService.getTrackingById(999, testUserId);
       expect(tracking).toBeNull();
     });
 
     it("should return tracking for existing id", async () => {
-      const result = await mockDbPromises.run(
+      const result = await testDb.run(
         "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
         [testUserId, "Test Question", TrackingType.TRUE_FALSE]
       );
       const trackingId = result.lastID;
 
-      const tracking = await TrackingService.getTrackingById(
+      const tracking = await trackingService.getTrackingById(
         trackingId,
         testUserId
       );
@@ -219,19 +172,19 @@ describe("TrackingService", () => {
     });
 
     it("should return null for tracking belonging to different user", async () => {
-      const otherUserResult = await mockDbPromises.run(
+      const otherUserResult = await testDb.run(
         "INSERT INTO users (name, email) VALUES (?, ?)",
         ["Other User", "other@example.com"]
       );
       const otherUserId = otherUserResult.lastID;
 
-      const result = await mockDbPromises.run(
+      const result = await testDb.run(
         "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
         [otherUserId, "Other Question", TrackingType.TRUE_FALSE]
       );
       const trackingId = result.lastID;
 
-      const tracking = await TrackingService.getTrackingById(
+      const tracking = await trackingService.getTrackingById(
         trackingId,
         testUserId
       );
@@ -242,7 +195,7 @@ describe("TrackingService", () => {
 
   describe("createTracking", () => {
     it("should create a new tracking", async () => {
-      const tracking = await TrackingService.createTracking(
+      const tracking = await trackingService.createTracking(
         testUserId,
         "Did I exercise today?",
         TrackingType.TRUE_FALSE
@@ -256,7 +209,7 @@ describe("TrackingService", () => {
     });
 
     it("should create tracking with notes", async () => {
-      const tracking = await TrackingService.createTracking(
+      const tracking = await trackingService.createTracking(
         testUserId,
         "Did I meditate?",
         TrackingType.TRUE_FALSE,
@@ -269,7 +222,7 @@ describe("TrackingService", () => {
 
     it("should create tracking with start date", async () => {
       const startDate = "2024-01-01T10:00:00Z";
-      const tracking = await TrackingService.createTracking(
+      const tracking = await trackingService.createTracking(
         testUserId,
         "Did I read?",
         TrackingType.REGISTER,
@@ -281,16 +234,16 @@ describe("TrackingService", () => {
 
     it("should throw error for invalid question", async () => {
       await expect(
-        TrackingService.createTracking(testUserId, "", TrackingType.TRUE_FALSE)
+        trackingService.createTracking(testUserId, "", TrackingType.TRUE_FALSE)
       ).rejects.toThrow();
     });
 
     it("should throw error for invalid type", async () => {
       await expect(
-        TrackingService.createTracking(
+        trackingService.createTracking(
           testUserId,
           "Valid question",
-          "invalid_type" as TrackingType
+          "invalid_type"
         )
       ).rejects.toThrow();
     });
@@ -298,13 +251,13 @@ describe("TrackingService", () => {
 
   describe("updateTracking", () => {
     it("should update tracking question", async () => {
-      const result = await mockDbPromises.run(
+      const result = await testDb.run(
         "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
         [testUserId, "Old Question", TrackingType.TRUE_FALSE]
       );
       const trackingId = result.lastID;
 
-      const updated = await TrackingService.updateTracking(
+      const updated = await trackingService.updateTracking(
         trackingId,
         testUserId,
         "New Question"
@@ -314,13 +267,13 @@ describe("TrackingService", () => {
     });
 
     it("should update tracking type", async () => {
-      const result = await mockDbPromises.run(
+      const result = await testDb.run(
         "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
         [testUserId, "Question", TrackingType.TRUE_FALSE]
       );
       const trackingId = result.lastID;
 
-      const updated = await TrackingService.updateTracking(
+      const updated = await trackingService.updateTracking(
         trackingId,
         testUserId,
         undefined,
@@ -332,52 +285,52 @@ describe("TrackingService", () => {
 
     it("should throw error when tracking not found", async () => {
       await expect(
-        TrackingService.updateTracking(999, testUserId, "New Question")
+        trackingService.updateTracking(999, testUserId, "New Question")
       ).rejects.toThrow("Tracking not found");
     });
 
     it("should throw error when updating tracking belonging to different user", async () => {
-      const otherUserResult = await mockDbPromises.run(
+      const otherUserResult = await testDb.run(
         "INSERT INTO users (name, email) VALUES (?, ?)",
         ["Other User", "other@example.com"]
       );
       const otherUserId = otherUserResult.lastID;
 
-      const result = await mockDbPromises.run(
+      const result = await testDb.run(
         "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
         [otherUserId, "Question", TrackingType.TRUE_FALSE]
       );
       const trackingId = result.lastID;
 
       await expect(
-        TrackingService.updateTracking(trackingId, testUserId, "New Question")
+        trackingService.updateTracking(trackingId, testUserId, "New Question")
       ).rejects.toThrow("Tracking not found");
     });
 
     it("should throw error when no fields to update", async () => {
-      const result = await mockDbPromises.run(
+      const result = await testDb.run(
         "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
         [testUserId, "Question", TrackingType.TRUE_FALSE]
       );
       const trackingId = result.lastID;
 
       await expect(
-        TrackingService.updateTracking(trackingId, testUserId)
+        trackingService.updateTracking(trackingId, testUserId)
       ).rejects.toThrow("No fields to update");
     });
   });
 
   describe("deleteTracking", () => {
     it("should delete tracking", async () => {
-      const result = await mockDbPromises.run(
+      const result = await testDb.run(
         "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
         [testUserId, "Question", TrackingType.TRUE_FALSE]
       );
       const trackingId = result.lastID;
 
-      await TrackingService.deleteTracking(trackingId, testUserId);
+      await trackingService.deleteTracking(trackingId, testUserId);
 
-      const tracking = await TrackingService.getTrackingById(
+      const tracking = await trackingService.getTrackingById(
         trackingId,
         testUserId
       );
@@ -386,25 +339,25 @@ describe("TrackingService", () => {
 
     it("should throw error when tracking not found", async () => {
       await expect(
-        TrackingService.deleteTracking(999, testUserId)
+        trackingService.deleteTracking(999, testUserId)
       ).rejects.toThrow("Tracking not found");
     });
 
     it("should throw error when deleting tracking belonging to different user", async () => {
-      const otherUserResult = await mockDbPromises.run(
+      const otherUserResult = await testDb.run(
         "INSERT INTO users (name, email) VALUES (?, ?)",
         ["Other User", "other@example.com"]
       );
       const otherUserId = otherUserResult.lastID;
 
-      const result = await mockDbPromises.run(
+      const result = await testDb.run(
         "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
         [otherUserId, "Question", TrackingType.TRUE_FALSE]
       );
       const trackingId = result.lastID;
 
       await expect(
-        TrackingService.deleteTracking(trackingId, testUserId)
+        trackingService.deleteTracking(trackingId, testUserId)
       ).rejects.toThrow("Tracking not found");
     });
   });

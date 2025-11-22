@@ -1,21 +1,12 @@
 import { useState, useEffect } from "react";
 import { TrackingData, TrackingType } from "../models/Tracking";
-import { API_ENDPOINTS } from "../config/api";
+import { ApiClient } from "../config/api";
 
 /**
  * Authentication token storage key.
  * @private
  */
 const TOKEN_KEY = "habitus_token";
-
-/**
- * Get authentication token from localStorage.
- * @returns Token string or null
- * @private
- */
-const getAuthToken = (): string | null => {
-  return localStorage.getItem(TOKEN_KEY);
-};
 
 /**
  * Custom hook for managing trackings with API persistence.
@@ -26,13 +17,22 @@ const getAuthToken = (): string | null => {
 export function useTrackings() {
   const [trackings, setTrackings] = useState<TrackingData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [apiClient] = useState(() => {
+    const client = new ApiClient();
+    // Set token from localStorage if available
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (token) {
+      client.setToken(token);
+    }
+    return client;
+  });
 
   /**
    * Load trackings from API.
    * @internal
    */
   const loadTrackings = async () => {
-    const token = getAuthToken();
+    const token = localStorage.getItem(TOKEN_KEY);
     if (!token) {
       console.warn(
         `[${new Date().toISOString()}] FRONTEND_TRACKINGS | No auth token found, cannot load trackings`
@@ -42,33 +42,11 @@ export function useTrackings() {
 
     setIsLoading(true);
     console.log(
-      `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Fetching trackings from API: ${
-        API_ENDPOINTS.trackings
-      }`
+      `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Fetching trackings from API`
     );
-    const startTime = Date.now();
 
     try {
-      const response = await fetch(API_ENDPOINTS.trackings, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const duration = Date.now() - startTime;
-      console.log(
-        `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Trackings fetch completed in ${duration}ms, status: ${
-          response.status
-        }`
-      );
-
-      if (!response.ok) {
-        const errorData = await response
-          .json()
-          .catch(() => ({ error: "Failed to fetch trackings" }));
-        throw new Error(errorData.error || "Failed to fetch trackings");
-      }
-
-      const loadedTrackings = await response.json();
+      const loadedTrackings = await apiClient.getTrackings();
       console.log(
         `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Loaded ${
           loadedTrackings.length
@@ -92,7 +70,7 @@ export function useTrackings() {
    */
   useEffect(() => {
     loadTrackings();
-  }, []);
+  }, [apiClient]);
 
   /**
    * Create a new tracking via API.
@@ -110,7 +88,7 @@ export function useTrackings() {
     startTrackingDate?: string,
     notes?: string
   ): Promise<TrackingData> => {
-    const token = getAuthToken();
+    const token = localStorage.getItem(TOKEN_KEY);
     if (!token) {
       throw new Error("Not authenticated");
     }
@@ -118,38 +96,14 @@ export function useTrackings() {
     console.log(
       `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Creating new tracking with question: ${question}, type: ${type}`
     );
-    const startTime = Date.now();
 
     try {
-      const response = await fetch(API_ENDPOINTS.trackings, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          question,
-          type,
-          start_tracking_date: startTrackingDate,
-          notes,
-        }),
-      });
-
-      const duration = Date.now() - startTime;
-      console.log(
-        `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Create tracking request completed in ${duration}ms, status: ${
-          response.status
-        }`
+      const trackingData = await apiClient.createTracking(
+        question,
+        type,
+        startTrackingDate,
+        notes
       );
-
-      if (!response.ok) {
-        const errorData = await response
-          .json()
-          .catch(() => ({ error: "Error creating tracking" }));
-        throw new Error(errorData.error || "Error creating tracking");
-      }
-
-      const trackingData = await response.json();
       console.log(
         `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Tracking created successfully: ID ${
           trackingData.id
@@ -184,7 +138,7 @@ export function useTrackings() {
     startTrackingDate?: string,
     notes?: string
   ): Promise<TrackingData> => {
-    const token = getAuthToken();
+    const token = localStorage.getItem(TOKEN_KEY);
     if (!token) {
       throw new Error("Not authenticated");
     }
@@ -192,38 +146,15 @@ export function useTrackings() {
     console.log(
       `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Updating tracking ID: ${trackingId}`
     );
-    const startTime = Date.now();
 
     try {
-      const response = await fetch(`${API_ENDPOINTS.trackings}/${trackingId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          question,
-          type,
-          start_tracking_date: startTrackingDate,
-          notes,
-        }),
-      });
-
-      const duration = Date.now() - startTime;
-      console.log(
-        `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Update tracking request completed in ${duration}ms, status: ${
-          response.status
-        }`
+      const trackingData = await apiClient.updateTracking(
+        trackingId,
+        question,
+        type,
+        startTrackingDate,
+        notes
       );
-
-      if (!response.ok) {
-        const errorData = await response
-          .json()
-          .catch(() => ({ error: "Error updating tracking" }));
-        throw new Error(errorData.error || "Error updating tracking");
-      }
-
-      const trackingData = await response.json();
       console.log(
         `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Tracking updated successfully: ID ${
           trackingData.id
@@ -250,7 +181,7 @@ export function useTrackings() {
    * @public
    */
   const deleteTracking = async (trackingId: number): Promise<void> => {
-    const token = getAuthToken();
+    const token = localStorage.getItem(TOKEN_KEY);
     if (!token) {
       throw new Error("Not authenticated");
     }
@@ -258,30 +189,9 @@ export function useTrackings() {
     console.log(
       `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Deleting tracking ID: ${trackingId}`
     );
-    const startTime = Date.now();
 
     try {
-      const response = await fetch(`${API_ENDPOINTS.trackings}/${trackingId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const duration = Date.now() - startTime;
-      console.log(
-        `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Delete tracking request completed in ${duration}ms, status: ${
-          response.status
-        }`
-      );
-
-      if (!response.ok) {
-        const errorData = await response
-          .json()
-          .catch(() => ({ error: "Error deleting tracking" }));
-        throw new Error(errorData.error || "Error deleting tracking");
-      }
-
+      await apiClient.deleteTracking(trackingId);
       console.log(
         `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Tracking deleted successfully: ID ${trackingId}`
       );

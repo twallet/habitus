@@ -1,3 +1,5 @@
+import { Database } from "../db/database.js";
+
 /**
  * Tracking type enumeration.
  * @public
@@ -23,7 +25,7 @@ export interface TrackingData {
 }
 
 /**
- * Tracking model for database operations.
+ * Tracking model class for representing tracking entities and database operations.
  * @public
  */
 export class Tracking {
@@ -32,6 +34,303 @@ export class Tracking {
    * @public
    */
   static readonly MAX_QUESTION_LENGTH: number = 500;
+
+  /**
+   * Tracking ID.
+   * @public
+   */
+  id: number;
+
+  /**
+   * User ID who owns this tracking.
+   * @public
+   */
+  user_id: number;
+
+  /**
+   * Tracking question.
+   * @public
+   */
+  question: string;
+
+  /**
+   * Tracking type.
+   * @public
+   */
+  type: TrackingType;
+
+  /**
+   * Start tracking date.
+   * @public
+   */
+  start_tracking_date: string;
+
+  /**
+   * Optional notes (rich text).
+   * @public
+   */
+  notes?: string;
+
+  /**
+   * Creation timestamp (optional).
+   * @public
+   */
+  created_at?: string;
+
+  /**
+   * Last update timestamp (optional).
+   * @public
+   */
+  updated_at?: string;
+
+  /**
+   * Create a new Tracking instance.
+   * @param data - Tracking data to initialize the instance
+   * @public
+   */
+  constructor(data: TrackingData) {
+    this.id = data.id;
+    this.user_id = data.user_id;
+    this.question = data.question;
+    this.type = data.type;
+    this.start_tracking_date = data.start_tracking_date;
+    this.notes = data.notes;
+    this.created_at = data.created_at;
+    this.updated_at = data.updated_at;
+  }
+
+  /**
+   * Validate the tracking instance.
+   * Validates all fields according to business rules.
+   * @returns The validated tracking instance
+   * @throws {@link TypeError} If validation fails
+   * @public
+   */
+  validate(): Tracking {
+    this.user_id = Tracking.validateUserId(this.user_id);
+    this.question = Tracking.validateQuestion(this.question);
+    this.type = Tracking.validateType(this.type as string);
+    if (this.notes !== undefined) {
+      this.notes = Tracking.validateNotes(this.notes);
+    }
+    return this;
+  }
+
+  /**
+   * Save the tracking to the database.
+   * Creates a new tracking record if id is not set, updates existing tracking otherwise.
+   * @param db - Database instance
+   * @returns Promise resolving to the saved tracking data
+   * @throws Error if save operation fails
+   * @public
+   */
+  async save(db: Database): Promise<TrackingData> {
+    this.validate();
+
+    if (this.id) {
+      // Update existing tracking
+      const updates: string[] = [];
+      const values: any[] = [];
+
+      updates.push("question = ?");
+      values.push(this.question);
+
+      updates.push("type = ?");
+      values.push(this.type);
+
+      updates.push("start_tracking_date = ?");
+      values.push(this.start_tracking_date);
+
+      if (this.notes !== undefined) {
+        updates.push("notes = ?");
+        values.push(this.notes || null);
+      }
+
+      updates.push("updated_at = CURRENT_TIMESTAMP");
+      values.push(this.id, this.user_id);
+
+      await db.run(
+        `UPDATE trackings SET ${updates.join(", ")} WHERE id = ? AND user_id = ?`,
+        values
+      );
+
+      return this.toData();
+    } else {
+      // Create new tracking
+      const result = await db.run(
+        "INSERT INTO trackings (user_id, question, type, start_tracking_date, notes) VALUES (?, ?, ?, ?, ?)",
+        [
+          this.user_id,
+          this.question,
+          this.type,
+          this.start_tracking_date,
+          this.notes || null,
+        ]
+      );
+
+      if (!result.lastID) {
+        throw new Error("Failed to create tracking");
+      }
+
+      this.id = result.lastID;
+      return this.toData();
+    }
+  }
+
+  /**
+   * Update tracking fields.
+   * @param updates - Partial tracking data with fields to update
+   * @param db - Database instance
+   * @returns Promise resolving to updated tracking data
+   * @throws Error if update fails
+   * @public
+   */
+  async update(
+    updates: Partial<TrackingData>,
+    db: Database
+  ): Promise<TrackingData> {
+    if (!this.id) {
+      throw new Error("Cannot update tracking without ID");
+    }
+
+    if (updates.question !== undefined) {
+      this.question = Tracking.validateQuestion(updates.question);
+    }
+    if (updates.type !== undefined) {
+      this.type = Tracking.validateType(updates.type as string);
+    }
+    if (updates.start_tracking_date !== undefined) {
+      this.start_tracking_date = updates.start_tracking_date;
+    }
+    if (updates.notes !== undefined) {
+      this.notes = Tracking.validateNotes(updates.notes);
+    }
+
+    return this.save(db);
+  }
+
+  /**
+   * Delete the tracking from the database.
+   * @param db - Database instance
+   * @returns Promise resolving when tracking is deleted
+   * @throws Error if deletion fails
+   * @public
+   */
+  async delete(db: Database): Promise<void> {
+    if (!this.id) {
+      throw new Error("Cannot delete tracking without ID");
+    }
+
+    const result = await db.run(
+      "DELETE FROM trackings WHERE id = ? AND user_id = ?",
+      [this.id, this.user_id]
+    );
+
+    if (result.changes === 0) {
+      throw new Error("Tracking not found");
+    }
+  }
+
+  /**
+   * Convert tracking instance to TrackingData interface.
+   * @returns Tracking data object
+   * @public
+   */
+  toData(): TrackingData {
+    return {
+      id: this.id,
+      user_id: this.user_id,
+      question: this.question,
+      type: this.type,
+      start_tracking_date: this.start_tracking_date,
+      notes: this.notes,
+      created_at: this.created_at,
+      updated_at: this.updated_at,
+    };
+  }
+
+  /**
+   * Load tracking from database by ID.
+   * @param id - Tracking ID
+   * @param userId - User ID (for authorization)
+   * @param db - Database instance
+   * @returns Promise resolving to Tracking instance or null if not found
+   * @public
+   */
+  static async loadById(
+    id: number,
+    userId: number,
+    db: Database
+  ): Promise<Tracking | null> {
+    const row = await db.get<{
+      id: number;
+      user_id: number;
+      question: string;
+      type: string;
+      start_tracking_date: string;
+      notes: string | null;
+      created_at: string;
+      updated_at: string;
+    }>(
+      "SELECT id, user_id, question, type, start_tracking_date, notes, created_at, updated_at FROM trackings WHERE id = ? AND user_id = ?",
+      [id, userId]
+    );
+
+    if (!row) {
+      return null;
+    }
+
+    return new Tracking({
+      id: row.id,
+      user_id: row.user_id,
+      question: row.question,
+      type: row.type as TrackingType,
+      start_tracking_date: row.start_tracking_date,
+      notes: row.notes || undefined,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    });
+  }
+
+  /**
+   * Load all trackings for a user from database.
+   * @param userId - User ID
+   * @param db - Database instance
+   * @returns Promise resolving to array of Tracking instances
+   * @public
+   */
+  static async loadByUserId(
+    userId: number,
+    db: Database
+  ): Promise<Tracking[]> {
+    const rows = await db.all<{
+      id: number;
+      user_id: number;
+      question: string;
+      type: string;
+      start_tracking_date: string;
+      notes: string | null;
+      created_at: string;
+      updated_at: string;
+    }>(
+      "SELECT id, user_id, question, type, start_tracking_date, notes, created_at, updated_at FROM trackings WHERE user_id = ? ORDER BY created_at DESC",
+      [userId]
+    );
+
+    return rows.map(
+      (row) =>
+        new Tracking({
+          id: row.id,
+          user_id: row.user_id,
+          question: row.question,
+          type: row.type as TrackingType,
+          start_tracking_date: row.start_tracking_date,
+          notes: row.notes || undefined,
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+        })
+    );
+  }
 
   /**
    * Validates a tracking question.

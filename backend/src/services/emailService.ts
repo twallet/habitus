@@ -1,47 +1,15 @@
 import nodemailer, { Transporter } from "nodemailer";
 
 /**
- * SMTP configuration from environment variables.
- * @private
+ * SMTP configuration interface.
+ * @public
  */
-const SMTP_HOST = process.env.SMTP_HOST || "smtp.gmail.com";
-const SMTP_PORT = parseInt(process.env.SMTP_PORT || "587", 10);
-const SMTP_USER = process.env.SMTP_USER || "";
-const SMTP_PASS = process.env.SMTP_PASS || "";
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
-
-/**
- * Email transporter instance.
- * @private
- */
-let transporter: Transporter | null = null;
-
-/**
- * Initialize email transporter.
- * @returns The configured transporter instance
- * @throws Error if SMTP credentials are not configured
- * @private
- */
-function getTransporter(): Transporter {
-  if (!SMTP_USER || !SMTP_PASS) {
-    throw new Error(
-      "SMTP credentials not configured. Please set SMTP_USER and SMTP_PASS environment variables."
-    );
-  }
-
-  if (!transporter) {
-    transporter = nodemailer.createTransport({
-      host: SMTP_HOST,
-      port: SMTP_PORT,
-      secure: SMTP_PORT === 465,
-      auth: {
-        user: SMTP_USER,
-        pass: SMTP_PASS,
-      },
-    });
-  }
-
-  return transporter;
+export interface SmtpConfig {
+  host: string;
+  port: number;
+  user: string;
+  pass: string;
+  frontendUrl: string;
 }
 
 /**
@@ -49,6 +17,53 @@ function getTransporter(): Transporter {
  * @public
  */
 export class EmailService {
+  private transporter: Transporter | null = null;
+  private config: SmtpConfig;
+
+  /**
+   * Create a new EmailService instance.
+   * @param config - SMTP configuration (optional, uses environment variables if not provided)
+   * @public
+   */
+  constructor(config?: Partial<SmtpConfig>) {
+    this.config = {
+      host: config?.host || process.env.SMTP_HOST || "smtp.gmail.com",
+      port: config?.port || parseInt(process.env.SMTP_PORT || "587", 10),
+      user: config?.user || process.env.SMTP_USER || "",
+      pass: config?.pass || process.env.SMTP_PASS || "",
+      frontendUrl:
+        config?.frontendUrl || process.env.FRONTEND_URL || "http://localhost:3000",
+    };
+  }
+
+  /**
+   * Get or create the email transporter instance.
+   * @returns The configured transporter instance
+   * @throws Error if SMTP credentials are not configured
+   * @private
+   */
+  private getTransporter(): Transporter {
+    if (!this.config.user || !this.config.pass) {
+      throw new Error(
+        "SMTP credentials not configured. Please set SMTP_USER and SMTP_PASS environment variables."
+      );
+    }
+
+    if (!this.transporter) {
+      this.transporter = nodemailer.createTransport({
+        host: this.config.host,
+        port: this.config.port,
+        secure: this.config.port === 465,
+        auth: {
+          user: this.config.user,
+          pass: this.config.pass,
+        },
+      });
+    }
+
+    return this.transporter;
+  }
+
   /**
    * Send a magic link email for passwordless authentication.
    * @param email - Recipient email address
@@ -58,7 +73,7 @@ export class EmailService {
    * @throws Error if email sending fails
    * @public
    */
-  static async sendMagicLink(
+  async sendMagicLink(
     email: string,
     token: string,
     isRegistration: boolean = false
@@ -69,8 +84,8 @@ export class EmailService {
     );
 
     try {
-      const mailTransporter = getTransporter();
-      const magicLink = `${FRONTEND_URL}/auth/verify-magic-link?token=${token}`;
+      const mailTransporter = this.getTransporter();
+      const magicLink = `${this.config.frontendUrl}/auth/verify-magic-link?token=${token}`;
       const subject = isRegistration
         ? "🌱 Welcome to Habitus! Verify your email to complete registration"
         : "🌱 Your login link to Habitus";
@@ -79,11 +94,11 @@ export class EmailService {
         : `🌱 Click the link below to log into Habitus:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\n\nIf you didn't request this, please ignore this email.`;
 
       console.log(
-        `[${new Date().toISOString()}] EMAIL | Sending ${emailType} magic link email via SMTP (${SMTP_HOST}:${SMTP_PORT})`
+        `[${new Date().toISOString()}] EMAIL | Sending ${emailType} magic link email via SMTP (${this.config.host}:${this.config.port})`
       );
 
       const info = await mailTransporter.sendMail({
-        from: SMTP_USER,
+        from: this.config.user,
         to: email,
         subject,
         text,

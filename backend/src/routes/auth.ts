@@ -1,9 +1,11 @@
 import { Router, Request, Response } from "express";
-import { AuthService } from "../services/authService.js";
+import { getAuthService } from "../services/index.js";
 import { uploadProfilePicture } from "../middleware/upload.js";
 import { authRateLimiter } from "../middleware/rateLimiter.js";
 
 const router = Router();
+// Lazy-load service to allow dependency injection in tests
+const getAuthServiceInstance = () => getAuthService();
 
 /**
  * POST /api/auth/register
@@ -45,7 +47,7 @@ router.post(
         profilePictureUrl = `${baseUrl}/uploads/${file.filename}`;
       }
 
-      await AuthService.requestRegisterMagicLink(
+      await getAuthServiceInstance().requestRegisterMagicLink(
         name,
         email,
         nickname,
@@ -107,7 +109,7 @@ router.post("/login", authRateLimiter, async (req: Request, res: Response) => {
         .json({ error: "Email is required and must be a string" });
     }
 
-    await AuthService.requestLoginMagicLink(email);
+    await getAuthServiceInstance().requestLoginMagicLink(email);
 
     // Always return success to prevent email enumeration
     // Message doesn't reveal whether email exists or not
@@ -165,7 +167,7 @@ router.get("/verify-magic-link", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Token is required" });
     }
 
-    const result = await AuthService.verifyMagicLink(token);
+    const result = await getAuthServiceInstance().verifyMagicLink(token);
     res.json(result);
   } catch (error) {
     if (
@@ -198,8 +200,9 @@ router.get("/me", async (req: Request, res: Response) => {
     }
 
     const token = authHeader.substring(7);
-    const userId = await AuthService.verifyToken(token);
-    const user = await AuthService.getUserById(userId);
+    const authServiceInstance = getAuthServiceInstance();
+    const userId = await authServiceInstance.verifyToken(token);
+    const user = await authServiceInstance.getUserById(userId);
 
     if (!user) {
       return res.status(404).json({ error: "User not found" });

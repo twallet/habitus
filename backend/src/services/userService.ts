@@ -1,4 +1,4 @@
-import { dbPromises } from "../db/database.js";
+import { Database } from "../db/database.js";
 import { User, UserData } from "../models/User.js";
 
 /**
@@ -6,15 +6,26 @@ import { User, UserData } from "../models/User.js";
  * @public
  */
 export class UserService {
+  private db: Database;
+
+  /**
+   * Create a new UserService instance.
+   * @param db - Database instance
+   * @public
+   */
+  constructor(db: Database) {
+    this.db = db;
+  }
+
   /**
    * Get all users from the database.
    * @returns Promise resolving to array of user data
    * @public
    */
-  static async getAllUsers(): Promise<UserData[]> {
+  async getAllUsers(): Promise<UserData[]> {
     console.log(`[${new Date().toISOString()}] USER | Fetching all users`);
 
-    const rows = await dbPromises.all<{
+    const rows = await this.db.all<{
       id: number;
       name: string;
       nickname: string | null;
@@ -49,12 +60,12 @@ export class UserService {
    * @returns Promise resolving to user data or null if not found
    * @public
    */
-  static async getUserById(id: number): Promise<UserData | null> {
+  async getUserById(id: number): Promise<UserData | null> {
     console.log(
       `[${new Date().toISOString()}] USER | Fetching user by ID: ${id}`
     );
 
-    const row = await dbPromises.get<{
+    const row = await this.db.get<{
       id: number;
       name: string;
       nickname: string | null;
@@ -102,7 +113,7 @@ export class UserService {
    * @throws Error if user not found or validation fails
    * @public
    */
-  static async updateProfile(
+  async updateProfile(
     userId: number,
     name?: string,
     nickname?: string,
@@ -140,7 +151,7 @@ export class UserService {
       const validatedEmail = User.validateEmail(email);
 
       // Check if email is already taken by another user
-      const existingUser = await dbPromises.get<{ id: number }>(
+      const existingUser = await this.db.get<{ id: number }>(
         "SELECT id FROM users WHERE email = ? AND id != ?",
         [validatedEmail, userId]
       );
@@ -177,13 +188,13 @@ export class UserService {
     );
 
     // Update user
-    await dbPromises.run(
+    await this.db.run(
       `UPDATE users SET ${updates.join(", ")} WHERE id = ?`,
       values
     );
 
     // Retrieve updated user
-    const user = await UserService.getUserById(userId);
+    const user = await this.getUserById(userId);
     if (!user) {
       console.error(
         `[${new Date().toISOString()}] USER | Failed to retrieve updated user for userId: ${userId}`
@@ -205,12 +216,12 @@ export class UserService {
    * @throws Error if user not found
    * @public
    */
-  static async deleteUser(userId: number): Promise<void> {
+  async deleteUser(userId: number): Promise<void> {
     console.log(
       `[${new Date().toISOString()}] USER | Deleting user account for userId: ${userId}`
     );
 
-    const result = await dbPromises.run("DELETE FROM users WHERE id = ?", [
+    const result = await this.db.run("DELETE FROM users WHERE id = ?", [
       userId,
     ]);
 
@@ -232,8 +243,8 @@ export class UserService {
    * @returns Promise resolving when last access is updated
    * @public
    */
-  static async updateLastAccess(userId: number): Promise<void> {
-    await dbPromises.run(
+  async updateLastAccess(userId: number): Promise<void> {
+    await this.db.run(
       "UPDATE users SET last_access = CURRENT_TIMESTAMP WHERE id = ?",
       [userId]
     );

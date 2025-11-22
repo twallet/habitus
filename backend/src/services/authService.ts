@@ -1,6 +1,6 @@
 import jwt, { SignOptions } from "jsonwebtoken";
 import crypto from "crypto";
-import { dbPromises } from "../db/database.js";
+import { Database } from "../db/database.js";
 import { User, UserData, UserWithPassword } from "../models/User.js";
 import { EmailService } from "./emailService.js";
 
@@ -36,12 +36,26 @@ const MAGIC_LINK_COOLDOWN_MINUTES = parseInt(
  * @public
  */
 export class AuthService {
+  private db: Database;
+  private emailService: EmailService;
+
+  /**
+   * Create a new AuthService instance.
+   * @param db - Database instance
+   * @param emailService - EmailService instance
+   * @public
+   */
+  constructor(db: Database, emailService: EmailService) {
+    this.db = db;
+    this.emailService = emailService;
+  }
+
   /**
    * Generate a secure random token for magic links.
    * @returns A secure random token
    * @private
    */
-  private static generateToken(): string {
+  private generateToken(): string {
     return crypto.randomBytes(32).toString("hex");
   }
 
@@ -51,8 +65,8 @@ export class AuthService {
    * @returns Promise resolving to true if cooldown period hasn't passed, false otherwise
    * @private
    */
-  private static async checkMagicLinkCooldown(email: string): Promise<boolean> {
-    const user = await dbPromises.get<{
+  private async checkMagicLinkCooldown(email: string): Promise<boolean> {
+    const user = await this.db.get<{
       magic_link_expires: string | null;
     }>("SELECT magic_link_expires FROM users WHERE email = ?", [email]);
 
@@ -92,7 +106,7 @@ export class AuthService {
    * @throws Error if validation fails or email sending fails
    * @public
    */
-  static async requestRegisterMagicLink(
+  async requestRegisterMagicLink(
     name: string,
     email: string,
     nickname?: string,
@@ -108,7 +122,7 @@ export class AuthService {
     const validatedNickname = User.validateNickname(nickname);
 
     // Check cooldown period first (takes precedence over duplicate email check)
-    if (await AuthService.checkMagicLinkCooldown(validatedEmail)) {
+    if (await this.checkMagicLinkCooldown(validatedEmail)) {
       console.warn(
         `[${new Date().toISOString()}] AUTH | Registration magic link cooldown active for email: ${validatedEmail}`
       );
@@ -118,7 +132,7 @@ export class AuthService {
     }
 
     // Check if user with email already exists
-    const existingUser = await dbPromises.get<UserWithPassword>(
+    const existingUser = await this.db.get<UserWithPassword>(
       "SELECT id FROM users WHERE email = ?",
       [validatedEmail]
     );
@@ -131,7 +145,7 @@ export class AuthService {
     }
 
     // Generate magic link token
-    const token = AuthService.generateToken();
+    const token = this.generateToken();
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + MAGIC_LINK_EXPIRY_MINUTES);
 
@@ -140,7 +154,7 @@ export class AuthService {
     );
 
     // Create user with magic link token
-    await dbPromises.run(
+    await this.db.run(
       "INSERT INTO users (name, nickname, email, password_hash, profile_picture_url, magic_link_token, magic_link_expires) VALUES (?, ?, ?, ?, ?, ?, ?)",
       [
         validatedName,
@@ -158,7 +172,7 @@ export class AuthService {
     );
 
     // Send magic link email
-    await EmailService.sendMagicLink(validatedEmail, token, true);
+    await this.emailService.sendMagicLink(validatedEmail, token, true);
 
     console.log(
       `[${new Date().toISOString()}] AUTH | Registration magic link email sent successfully to: ${validatedEmail}`
@@ -173,7 +187,7 @@ export class AuthService {
    * @throws Error if user doesn't exist or email sending fails
    * @public
    */
-  static async requestLoginMagicLink(email: string): Promise<void> {
+  async requestLoginMagicLink(email: string): Promise<void> {
     console.log(
       `[${new Date().toISOString()}] AUTH | Login magic link requested for email: ${email}`
     );
@@ -182,7 +196,7 @@ export class AuthService {
     const validatedEmail = User.validateEmail(email);
 
     // Check if user exists
-    const user = await dbPromises.get<UserWithPassword>(
+    const user = await this.db.get<UserWithPassword>(
       "SELECT id FROM users WHERE email = ?",
       [validatedEmail]
     );
@@ -203,7 +217,7 @@ export class AuthService {
     );
 
     // Check cooldown period for this email
-    if (await AuthService.checkMagicLinkCooldown(validatedEmail)) {
+    if (await this.checkMagicLinkCooldown(validatedEmail)) {
       console.warn(
         `[${new Date().toISOString()}] AUTH | Login magic link cooldown active for email: ${validatedEmail}`
       );
@@ -213,7 +227,7 @@ export class AuthService {
     }
 
     // Generate magic link token
-    const token = AuthService.generateToken();
+    const token = this.generateToken();
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + MAGIC_LINK_EXPIRY_MINUTES);
 
@@ -224,7 +238,7 @@ export class AuthService {
     );
 
     // Update user with magic link token
-    await dbPromises.run(
+    await this.db.run(
       "UPDATE users SET magic_link_token = ?, magic_link_expires = ? WHERE email = ?",
       [token, expiresAt.toISOString(), validatedEmail]
     );
@@ -234,7 +248,7 @@ export class AuthService {
     );
 
     // Send magic link email
-    await EmailService.sendMagicLink(validatedEmail, token, false);
+    await this.emailService.sendMagicLink(validatedEmail, token, false);
 
     console.log(
       `[${new Date().toISOString()}] AUTH | Login magic link email sent successfully to: ${validatedEmail}`
@@ -248,7 +262,7 @@ export class AuthService {
    * @throws Error if token is invalid or expired
    * @public
    */
-  static async verifyMagicLink(token: string): Promise<{
+  async verifyMagicLink(token: string): Promise<{
     user: UserData;
     token: string;
   }> {
@@ -266,7 +280,7 @@ export class AuthService {
     }
 
     // Find user with this token
-    const user = await dbPromises.get<
+    const user = await this.db.get<
       UserWithPassword & {
         magic_link_expires: string;
       }
@@ -306,7 +320,7 @@ export class AuthService {
     );
 
     // Clear magic link token
-    await dbPromises.run(
+    await this.db.run(
       "UPDATE users SET magic_link_token = NULL, magic_link_expires = NULL, last_access = CURRENT_TIMESTAMP WHERE id = ?",
       [user.id]
     );
@@ -347,7 +361,7 @@ export class AuthService {
    * @throws Error if token is invalid
    * @public
    */
-  static async verifyToken(token: string): Promise<number> {
+  async verifyToken(token: string): Promise<number> {
     try {
       const decoded = jwt.verify(token, JWT_SECRET) as {
         userId: number;
@@ -375,12 +389,12 @@ export class AuthService {
    * @returns Promise resolving to user data or null if not found
    * @public
    */
-  static async getUserById(id: number): Promise<UserData | null> {
+  async getUserById(id: number): Promise<UserData | null> {
     console.log(
       `[${new Date().toISOString()}] AUTH | Fetching user by ID: ${id}`
     );
 
-    const row = await dbPromises.get<{
+    const row = await this.db.get<{
       id: number;
       name: string;
       nickname: string | null;

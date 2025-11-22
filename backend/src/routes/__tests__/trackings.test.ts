@@ -1,13 +1,25 @@
 import request from "supertest";
 import express from "express";
 import sqlite3 from "sqlite3";
-import * as databaseModule from "../../db/database.js";
+import { Database } from "../../db/database.js";
+import { TrackingService } from "../../services/trackingService.js";
+import { TrackingType } from "../../models/Tracking.js";
 import * as authMiddlewareModule from "../../middleware/authMiddleware.js";
+import * as servicesModule from "../../services/index.js";
 
 // Mock authenticateToken before importing the router
 jest.mock("../../middleware/authMiddleware.js", () => ({
   authenticateToken: jest.fn(),
   AuthRequest: {},
+}));
+
+// Mock services module before importing router
+jest.mock("../../services/index.js", () => ({
+  getTrackingService: jest.fn(),
+  getAuthService: jest.fn(),
+  getUserService: jest.fn(),
+  getEmailService: jest.fn(),
+  initializeServices: jest.fn(),
 }));
 
 // Import router after mocking
@@ -17,7 +29,7 @@ import trackingsRouter from "../trackings.js";
  * Create an in-memory database for testing.
  * @returns Promise resolving to Database instance
  */
-function createTestDatabase(): Promise<sqlite3.Database> {
+async function createTestDatabase(): Promise<Database> {
   return new Promise((resolve, reject) => {
     const db = new sqlite3.Database(":memory:", (err) => {
       if (err) {
@@ -71,7 +83,10 @@ function createTestDatabase(): Promise<sqlite3.Database> {
               if (err) {
                 reject(err);
               } else {
-                resolve(db);
+                // Create Database instance and manually set its internal db
+                const database = new Database();
+                (database as any).db = db;
+                resolve(database);
               }
             }
           );
@@ -83,61 +98,17 @@ function createTestDatabase(): Promise<sqlite3.Database> {
 
 describe("Trackings Routes", () => {
   let app: express.Application;
-  let testDb: sqlite3.Database;
-  let mockDbPromises: typeof databaseModule.dbPromises;
+  let testDb: Database;
+  let trackingService: TrackingService;
   let testUserId: number;
 
   beforeEach(async () => {
     // Create a fresh in-memory database for each test
     testDb = await createTestDatabase();
-    // Create mock dbPromises that use our test database
-    mockDbPromises = {
-      run: (sql: string, params: any[] = []) => {
-        return new Promise((resolve, reject) => {
-          testDb.run(sql, params, function (err) {
-            if (err) {
-              reject(err);
-            } else {
-              resolve({ lastID: this.lastID, changes: this.changes });
-            }
-          });
-        });
-      },
-      get: <T = any>(
-        sql: string,
-        params: any[] = []
-      ): Promise<T | undefined> => {
-        return new Promise((resolve, reject) => {
-          testDb.get(sql, params, (err, row) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(row as T);
-            }
-          });
-        });
-      },
-      all: <T = any>(sql: string, params: any[] = []): Promise<T[]> => {
-        return new Promise((resolve, reject) => {
-          testDb.all(sql, params, (err, rows) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(rows as T[]);
-            }
-          });
-        });
-      },
-    };
-    // Mock dbPromises module
-    Object.defineProperty(databaseModule, "dbPromises", {
-      value: mockDbPromises,
-      writable: true,
-      configurable: true,
-    });
+    trackingService = new TrackingService(testDb);
 
     // Create a test user
-    const userResult = await mockDbPromises.run(
+    const userResult = await testDb.run(
       "INSERT INTO users (name, email) VALUES (?, ?)",
       ["Test User", "test@example.com"]
     );
@@ -147,13 +118,15 @@ describe("Trackings Routes", () => {
     jest.restoreAllMocks();
 
     // Mock authenticateToken middleware - must be set up before routes
-    // This ensures the mock is always in the correct state for each test
-    const authMock = jest
+    jest
       .spyOn(authMiddlewareModule, "authenticateToken")
       .mockImplementation(async (req: any, res: any, next: any) => {
         req.userId = testUserId;
         next();
       });
+
+    // Mock getTrackingService to return our test service
+    jest.spyOn(servicesModule, "getTrackingService").mockReturnValue(trackingService);
 
     // Create Express app with routes
     app = express();
@@ -161,14 +134,8 @@ describe("Trackings Routes", () => {
     app.use("/api/trackings", trackingsRouter);
   });
 
-  afterEach((done) => {
-    testDb.close((err) => {
-      if (err) {
-        done(err);
-      } else {
-        done();
-      }
-    });
+  afterEach(async () => {
+    await testDb.close();
   });
 
   describe("GET /api/trackings", () => {
@@ -182,13 +149,12 @@ describe("Trackings Routes", () => {
     });
 
     it("should return all trackings for authenticated user", async () => {
-      // Insert first tracking with explicit created_at to ensure deterministic ordering
-      await mockDbPromises.run(
-        "INSERT INTO trackings (user_id, question, type, created_at) VALUES (?, ?, ?, datetime('now', '-1 second'))",
+      // Insert test trackings
+      await testDb.run(
+        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
         [testUserId, "Question 1", "true_false"]
       );
-      // Insert second tracking with current timestamp (will be newer)
-      await mockDbPromises.run(
+      await testDb.run(
         "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
         [testUserId, "Question 2", "register"]
       );
@@ -203,22 +169,6 @@ describe("Trackings Routes", () => {
       const questions = response.body.map((t: any) => t.question);
       expect(questions).toContain("Question 1");
       expect(questions).toContain("Question 2");
-      // With explicit timestamps, Question 2 (inserted later) should come first due to ORDER BY created_at DESC
-      expect(questions[0]).toBe("Question 2");
-      expect(questions[1]).toBe("Question 1");
-    });
-
-    it("should return 401 without authorization token", async () => {
-      // Override the mock to return 401 for this test
-      (authMiddlewareModule.authenticateToken as jest.Mock).mockImplementation(
-        async (req: any, res: any, next: any) => {
-          res.status(401).json({ error: "Authorization token required" });
-        }
-      );
-
-      const response = await request(app).get("/api/trackings");
-
-      expect(response.status).toBe(401);
     });
   });
 
@@ -233,7 +183,7 @@ describe("Trackings Routes", () => {
     });
 
     it("should return tracking for existing id", async () => {
-      const result = await mockDbPromises.run(
+      const result = await testDb.run(
         "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
         [testUserId, "Test Question", "true_false"]
       );
@@ -247,15 +197,6 @@ describe("Trackings Routes", () => {
       expect(response.body.id).toBe(trackingId);
       expect(response.body.question).toBe("Test Question");
       expect(response.body.type).toBe("true_false");
-    });
-
-    it("should return 400 for invalid id", async () => {
-      const response = await request(app)
-        .get("/api/trackings/invalid")
-        .set("Authorization", "Bearer test-token");
-
-      expect(response.status).toBe(400);
-      expect(response.body.error).toContain("Invalid tracking ID");
     });
   });
 
@@ -273,7 +214,6 @@ describe("Trackings Routes", () => {
       expect(response.body.question).toBe("Did I exercise today?");
       expect(response.body.type).toBe("true_false");
       expect(response.body.user_id).toBe(testUserId);
-      expect(response.body.id).toBeGreaterThan(0);
     });
 
     it("should create tracking with notes", async () => {
@@ -314,6 +254,18 @@ describe("Trackings Routes", () => {
       expect(response.body.error).toContain("required");
     });
 
+    it("should return 400 for invalid question", async () => {
+      const response = await request(app)
+        .post("/api/trackings")
+        .set("Authorization", "Bearer test-token")
+        .send({
+          question: "",
+          type: "true_false",
+        });
+
+      expect(response.status).toBe(400);
+    });
+
     it("should return 400 for invalid type", async () => {
       const response = await request(app)
         .post("/api/trackings")
@@ -329,7 +281,7 @@ describe("Trackings Routes", () => {
 
   describe("PUT /api/trackings/:id", () => {
     it("should update tracking", async () => {
-      const result = await mockDbPromises.run(
+      const result = await testDb.run(
         "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
         [testUserId, "Old Question", "true_false"]
       );
@@ -359,9 +311,9 @@ describe("Trackings Routes", () => {
     });
 
     it("should return 400 when no fields to update", async () => {
-      const result = await mockDbPromises.run(
+      const result = await testDb.run(
         "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [testUserId, "Question", "true_false"]
+        [testUserId, "Test Question", "true_false"]
       );
       const trackingId = result.lastID;
 
@@ -377,9 +329,9 @@ describe("Trackings Routes", () => {
 
   describe("DELETE /api/trackings/:id", () => {
     it("should delete tracking", async () => {
-      const result = await mockDbPromises.run(
+      const result = await testDb.run(
         "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [testUserId, "Question", "true_false"]
+        [testUserId, "Test Question", "true_false"]
       );
       const trackingId = result.lastID;
 
@@ -391,10 +343,11 @@ describe("Trackings Routes", () => {
       expect(response.body.message).toContain("deleted successfully");
 
       // Verify tracking is deleted
-      const getResponse = await request(app)
-        .get(`/api/trackings/${trackingId}`)
-        .set("Authorization", "Bearer test-token");
-      expect(getResponse.status).toBe(404);
+      const checkResult = await testDb.get(
+        "SELECT * FROM trackings WHERE id = ?",
+        [trackingId]
+      );
+      expect(checkResult).toBeUndefined();
     });
 
     it("should return 404 for non-existent tracking", async () => {

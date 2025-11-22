@@ -36,13 +36,13 @@ function getDirname(): string {
 
 /**
  * Get database path from environment variable or default location.
+ * @param customPath - Optional custom database path
  * @returns The database file path
  * @private
  */
-function getDatabasePath(): string {
+function getDatabasePath(customPath?: string): string {
   const __dirname = getDirname();
-  const dbPath =
-    process.env.DB_PATH || path.join(__dirname, "../../data/habitus.db");
+  const dbPath = customPath || process.env.DB_PATH || path.join(__dirname, "../../data/habitus.db");
   const dbDir = path.dirname(dbPath);
 
   // Ensure data directory exists
@@ -54,44 +54,40 @@ function getDatabasePath(): string {
 }
 
 /**
- * Database connection instance.
- * Uses SQLite for data persistence.
+ * Database class for managing SQLite database connections and operations.
+ * Encapsulates database connection state and provides instance methods for database operations.
  * @public
  */
-let db: sqlite3.Database | null = null;
+export class Database {
+  private db: sqlite3.Database | null = null;
+  private dbPath: string;
 
-/**
- * Initialize database schema.
- * Creates all necessary tables with clean schema.
- * @returns Promise that resolves when initialization is complete
- * @public
- */
-export function initializeDatabase(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const dbPath = getDatabasePath();
-    console.log(
-      `[${new Date().toISOString()}] DATABASE | Initializing database at: ${dbPath}`
-    );
+  /**
+   * Create a new Database instance.
+   * @param customPath - Optional custom database path
+   * @public
+   */
+  constructor(customPath?: string) {
+    this.dbPath = getDatabasePath(customPath);
+  }
 
-    db = new sqlite3.Database(dbPath, (err) => {
-      if (err) {
-        console.error(
-          `[${new Date().toISOString()}] DATABASE | Failed to open database:`,
-          err
-        );
-        reject(err);
-        return;
-      }
-
+  /**
+   * Initialize database schema.
+   * Creates all necessary tables with clean schema.
+   * @returns Promise that resolves when initialization is complete
+   * @throws Error if initialization fails
+   * @public
+   */
+  async initialize(): Promise<void> {
+    return new Promise((resolve, reject) => {
       console.log(
-        `[${new Date().toISOString()}] DATABASE | Database connection opened successfully`
+        `[${new Date().toISOString()}] DATABASE | Initializing database at: ${this.dbPath}`
       );
 
-      // Enable foreign keys and WAL mode
-      db!.run("PRAGMA foreign_keys = ON", (err) => {
+      this.db = new sqlite3.Database(this.dbPath, (err) => {
         if (err) {
           console.error(
-            `[${new Date().toISOString()}] DATABASE | Failed to enable foreign keys:`,
+            `[${new Date().toISOString()}] DATABASE | Failed to open database:`,
             err
           );
           reject(err);
@@ -99,13 +95,14 @@ export function initializeDatabase(): Promise<void> {
         }
 
         console.log(
-          `[${new Date().toISOString()}] DATABASE | Foreign keys enabled`
+          `[${new Date().toISOString()}] DATABASE | Database connection opened successfully`
         );
 
-        db!.run("PRAGMA journal_mode = WAL", (err) => {
+        // Enable foreign keys and WAL mode
+        this.db!.run("PRAGMA foreign_keys = ON", (err) => {
           if (err) {
             console.error(
-              `[${new Date().toISOString()}] DATABASE | Failed to enable WAL mode:`,
+              `[${new Date().toISOString()}] DATABASE | Failed to enable foreign keys:`,
               err
             );
             reject(err);
@@ -113,15 +110,29 @@ export function initializeDatabase(): Promise<void> {
           }
 
           console.log(
-            `[${new Date().toISOString()}] DATABASE | WAL mode enabled`
+            `[${new Date().toISOString()}] DATABASE | Foreign keys enabled`
           );
 
-          // Create tables with new schema
-          console.log(
-            `[${new Date().toISOString()}] DATABASE | Creating database schema...`
-          );
-          db!.exec(
-            `
+          this.db!.run("PRAGMA journal_mode = WAL", (err) => {
+            if (err) {
+              console.error(
+                `[${new Date().toISOString()}] DATABASE | Failed to enable WAL mode:`,
+                err
+              );
+              reject(err);
+              return;
+            }
+
+            console.log(
+              `[${new Date().toISOString()}] DATABASE | WAL mode enabled`
+            );
+
+            // Create tables with new schema
+            console.log(
+              `[${new Date().toISOString()}] DATABASE | Creating database schema...`
+            );
+            this.db!.exec(
+              `
             CREATE TABLE IF NOT EXISTS users (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               name TEXT NOT NULL CHECK(length(name) <= 30),
@@ -153,96 +164,92 @@ export function initializeDatabase(): Promise<void> {
             CREATE INDEX IF NOT EXISTS idx_trackings_start_tracking_date ON trackings(start_tracking_date);
             CREATE INDEX IF NOT EXISTS idx_trackings_created_at ON trackings(created_at);
           `,
-            (err) => {
-              if (err) {
-                console.error(
-                  `[${new Date().toISOString()}] DATABASE | Failed to create schema:`,
-                  err
+              (err) => {
+                if (err) {
+                  console.error(
+                    `[${new Date().toISOString()}] DATABASE | Failed to create schema:`,
+                    err
+                  );
+                  reject(err);
+                  return;
+                }
+                console.log(
+                  `[${new Date().toISOString()}] DATABASE | Database schema created successfully`
                 );
-                reject(err);
-                return;
+                resolve();
               }
-              console.log(
-                `[${new Date().toISOString()}] DATABASE | Database schema created successfully`
-              );
-              resolve();
-            }
-          );
+            );
+          });
         });
       });
     });
-  });
-}
-
-/**
- * Get the database instance.
- * @returns The database connection
- * @throws Error if database is not initialized
- * @public
- */
-export function getDatabase(): sqlite3.Database {
-  if (!db) {
-    throw new Error(
-      "Database not initialized. Call initializeDatabase() first."
-    );
   }
-  return db;
-}
 
-/**
- * Close the database connection.
- * Should be called when shutting down the application.
- * @returns Promise that resolves when database is closed
- * @public
- */
-export function closeDatabase(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (!db) {
-      console.log(
-        `[${new Date().toISOString()}] DATABASE | Database already closed or not initialized`
+  /**
+   * Get the database connection instance.
+   * @returns The database connection
+   * @throws Error if database is not initialized
+   * @public
+   */
+  getConnection(): sqlite3.Database {
+    if (!this.db) {
+      throw new Error(
+        "Database not initialized. Call initialize() first."
       );
-      resolve();
-      return;
     }
+    return this.db;
+  }
 
-    console.log(
-      `[${new Date().toISOString()}] DATABASE | Closing database connection...`
-    );
-    db.close((err) => {
-      if (err) {
-        console.error(
-          `[${new Date().toISOString()}] DATABASE | Error closing database:`,
-          err
-        );
-        reject(err);
-      } else {
-        db = null;
+  /**
+   * Close the database connection.
+   * Should be called when shutting down the application.
+   * @returns Promise that resolves when database is closed
+   * @public
+   */
+  async close(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
         console.log(
-          `[${new Date().toISOString()}] DATABASE | Database connection closed successfully`
+          `[${new Date().toISOString()}] DATABASE | Database already closed or not initialized`
         );
         resolve();
+        return;
       }
-    });
-  });
-}
 
-/**
- * Promisified database methods for easier async/await usage.
- * @public
- */
-export const dbPromises = {
+      console.log(
+        `[${new Date().toISOString()}] DATABASE | Closing database connection...`
+      );
+      this.db.close((err) => {
+        if (err) {
+          console.error(
+            `[${new Date().toISOString()}] DATABASE | Error closing database:`,
+            err
+          );
+          reject(err);
+        } else {
+          this.db = null;
+          console.log(
+            `[${new Date().toISOString()}] DATABASE | Database connection closed successfully`
+          );
+          resolve();
+        }
+      });
+    });
+  }
+
   /**
    * Run a SQL query.
    * @param sql - SQL query string
    * @param params - Query parameters
    * @returns Promise resolving to the result object
+   * @public
    */
-  run: (
+  async run(
     sql: string,
     params: any[] = []
-  ): Promise<{ lastID: number; changes: number }> => {
+  ): Promise<{ lastID: number; changes: number }> {
     return new Promise((resolve, reject) => {
-      const database = getDatabase();
+      const database = this.getConnection();
       database.run(sql, params, function (err) {
         if (err) {
           console.error(
@@ -261,17 +268,18 @@ export const dbPromises = {
         }
       });
     });
-  },
+  }
 
   /**
    * Get a single row.
    * @param sql - SQL query string
    * @param params - Query parameters
    * @returns Promise resolving to the row or undefined
+   * @public
    */
-  get: <T = any>(sql: string, params: any[] = []): Promise<T | undefined> => {
+  async get<T = any>(sql: string, params: any[] = []): Promise<T | undefined> {
     return new Promise((resolve, reject) => {
-      const database = getDatabase();
+      const database = this.getConnection();
       database.get(sql, params, (err, row) => {
         if (err) {
           console.error(
@@ -289,17 +297,18 @@ export const dbPromises = {
         }
       });
     });
-  },
+  }
 
   /**
    * Get all rows.
    * @param sql - SQL query string
    * @param params - Query parameters
    * @returns Promise resolving to array of rows
+   * @public
    */
-  all: <T = any>(sql: string, params: any[] = []): Promise<T[]> => {
+  async all<T = any>(sql: string, params: any[] = []): Promise<T[]> {
     return new Promise((resolve, reject) => {
-      const database = getDatabase();
+      const database = this.getConnection();
       database.all(sql, params, (err, rows) => {
         if (err) {
           console.error(
@@ -318,5 +327,98 @@ export const dbPromises = {
         }
       });
     });
+  }
+}
+
+/**
+ * Singleton database instance for backward compatibility.
+ * @public
+ */
+let singletonInstance: Database | null = null;
+
+/**
+ * Get or create the singleton database instance.
+ * @returns The singleton database instance
+ * @public
+ */
+export function getDatabaseInstance(): Database {
+  if (!singletonInstance) {
+    singletonInstance = new Database();
+  }
+  return singletonInstance;
+}
+
+/**
+ * Initialize database schema (backward compatibility function).
+ * Creates all necessary tables with clean schema.
+ * @returns Promise that resolves when initialization is complete
+ * @public
+ */
+export function initializeDatabase(): Promise<void> {
+  const db = getDatabaseInstance();
+  return db.initialize();
+}
+
+/**
+ * Get the database connection (backward compatibility function).
+ * @returns The database connection
+ * @throws Error if database is not initialized
+ * @public
+ */
+export function getDatabase(): sqlite3.Database {
+  const db = getDatabaseInstance();
+  return db.getConnection();
+}
+
+/**
+ * Close the database connection (backward compatibility function).
+ * Should be called when shutting down the application.
+ * @returns Promise that resolves when database is closed
+ * @public
+ */
+export function closeDatabase(): Promise<void> {
+  const db = getDatabaseInstance();
+  return db.close();
+}
+
+/**
+ * Promisified database methods for easier async/await usage (backward compatibility).
+ * @public
+ */
+export const dbPromises = {
+  /**
+   * Run a SQL query.
+   * @param sql - SQL query string
+   * @param params - Query parameters
+   * @returns Promise resolving to the result object
+   */
+  run: (
+    sql: string,
+    params: any[] = []
+  ): Promise<{ lastID: number; changes: number }> => {
+    const db = getDatabaseInstance();
+    return db.run(sql, params);
+  },
+
+  /**
+   * Get a single row.
+   * @param sql - SQL query string
+   * @param params - Query parameters
+   * @returns Promise resolving to the row or undefined
+   */
+  get: <T = any>(sql: string, params: any[] = []): Promise<T | undefined> => {
+    const db = getDatabaseInstance();
+    return db.get<T>(sql, params);
+  },
+
+  /**
+   * Get all rows.
+   * @param sql - SQL query string
+   * @param params - Query parameters
+   * @returns Promise resolving to array of rows
+   */
+  all: <T = any>(sql: string, params: any[] = []): Promise<T[]> => {
+    const db = getDatabaseInstance();
+    return db.all<T>(sql, params);
   },
 };

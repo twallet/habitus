@@ -4,23 +4,40 @@ process.env.NODE_ENV = process.env.NODE_ENV || "test";
 import request from "supertest";
 import express from "express";
 import sqlite3 from "sqlite3";
+import { Database } from "../../db/database.js";
+import { AuthService } from "../../services/authService.js";
+import { EmailService } from "../../services/emailService.js";
+import * as servicesModule from "../../services/index.js";
+import * as authMiddlewareModule from "../../middleware/authMiddleware.js";
 import authRouter from "../auth.js";
-import * as databaseModule from "../../db/database.js";
-import * as emailServiceModule from "../../services/emailService.js";
 
 // Mock EmailService
 jest.mock("../../services/emailService.js", () => ({
-  EmailService: {
+  EmailService: jest.fn().mockImplementation(() => ({
     sendMagicLink: jest.fn().mockResolvedValue(undefined),
-    sendPasswordReset: jest.fn().mockResolvedValue(undefined),
-  },
+  })),
+}));
+
+// Mock authenticateToken before importing the router
+jest.mock("../../middleware/authMiddleware.js", () => ({
+  authenticateToken: jest.fn(),
+  AuthRequest: {},
+}));
+
+// Mock services module before importing router
+jest.mock("../../services/index.js", () => ({
+  getTrackingService: jest.fn(),
+  getAuthService: jest.fn(),
+  getUserService: jest.fn(),
+  getEmailService: jest.fn(),
+  initializeServices: jest.fn(),
 }));
 
 /**
  * Create an in-memory database for testing.
  * @returns Promise resolving to Database instance
  */
-function createTestDatabase(): Promise<sqlite3.Database> {
+async function createTestDatabase(): Promise<Database> {
   return new Promise((resolve, reject) => {
     const db = new sqlite3.Database(":memory:", (err) => {
       if (err) {
@@ -63,7 +80,10 @@ function createTestDatabase(): Promise<sqlite3.Database> {
               if (err) {
                 reject(err);
               } else {
-                resolve(db);
+                // Create Database instance and manually set its internal db
+                const database = new Database();
+                (database as any).db = db;
+                resolve(database);
               }
             }
           );
@@ -75,57 +95,39 @@ function createTestDatabase(): Promise<sqlite3.Database> {
 
 describe("Auth Routes", () => {
   let app: express.Application;
-  let testDb: sqlite3.Database;
-  let mockDbPromises: typeof databaseModule.dbPromises;
+  let testDb: Database;
+  let emailService: EmailService;
+  let authService: AuthService;
 
   beforeEach(async () => {
     // Create a fresh in-memory database for each test
     testDb = await createTestDatabase();
-    // Create mock dbPromises that use our test database
-    mockDbPromises = {
-      run: (sql: string, params: any[] = []) => {
-        return new Promise((resolve, reject) => {
-          testDb.run(sql, params, function (err) {
-            if (err) {
-              reject(err);
-            } else {
-              resolve({ lastID: this.lastID, changes: this.changes });
-            }
-          });
-        });
-      },
-      get: <T = any>(
-        sql: string,
-        params: any[] = []
-      ): Promise<T | undefined> => {
-        return new Promise((resolve, reject) => {
-          testDb.get(sql, params, (err, row) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(row as T);
-            }
-          });
-        });
-      },
-      all: <T = any>(sql: string, params: any[] = []): Promise<T[]> => {
-        return new Promise((resolve, reject) => {
-          testDb.all(sql, params, (err, rows) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(rows as T[]);
-            }
-          });
-        });
-      },
-    };
-    // Mock dbPromises module
-    Object.defineProperty(databaseModule, "dbPromises", {
-      value: mockDbPromises,
-      writable: true,
-      configurable: true,
-    });
+    emailService = new EmailService();
+    authService = new AuthService(testDb, emailService);
+
+    // Mock getAuthService to return our test service
+    // The route calls getAuthService() at module load time, so we need to ensure
+    // the mock returns our test service. Since jest.mock() is called before import,
+    // we just need to update the mock implementation here.
+    (servicesModule.getAuthService as jest.Mock).mockReturnValue(authService);
+
+    // Mock authenticateToken middleware - must be set up before routes
+    jest
+      .spyOn(authMiddlewareModule, "authenticateToken")
+      .mockImplementation(async (req: any, res: any, next: any) => {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+          return res.status(401).json({ error: "Token required" });
+        }
+        const token = authHeader.substring(7);
+        try {
+          const userId = await authService.verifyToken(token);
+          req.userId = userId;
+          next();
+        } catch (error) {
+          return res.status(401).json({ error: "Invalid or expired token" });
+        }
+      });
 
     // Create Express app with routes
     app = express();
@@ -133,15 +135,8 @@ describe("Auth Routes", () => {
     app.use("/api/auth", authRouter);
   });
 
-  afterEach((done) => {
-    testDb.close((err) => {
-      if (err) {
-        done(err);
-      } else {
-        jest.restoreAllMocks();
-        done();
-      }
-    });
+  afterEach(async () => {
+    await testDb.close();
   });
 
   describe("POST /api/auth/register", () => {
@@ -153,13 +148,12 @@ describe("Auth Routes", () => {
 
       expect(response.status).toBe(200);
       expect(response.body.message).toContain("magic link");
-      expect(emailServiceModule.EmailService.sendMagicLink).toHaveBeenCalled();
+      expect(emailService.sendMagicLink).toHaveBeenCalled();
     });
 
     it("should return 400 for missing name", async () => {
       const response = await request(app).post("/api/auth/register").send({
         email: "john@example.com",
-        password: "Password123!",
       });
 
       expect(response.status).toBe(400);
@@ -169,20 +163,16 @@ describe("Auth Routes", () => {
     it("should return 400 for missing email", async () => {
       const response = await request(app).post("/api/auth/register").send({
         name: "John Doe",
-        password: "Password123!",
       });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain("Email");
     });
 
-    // Password is now optional for registration
-
     it("should return 400 for invalid email format", async () => {
       const response = await request(app).post("/api/auth/register").send({
         name: "John Doe",
         email: "invalid-email",
-        password: "Password123!",
       });
 
       expect(response.status).toBe(400);
@@ -196,7 +186,7 @@ describe("Auth Routes", () => {
       });
 
       // Clear magic link to avoid cooldown check
-      await mockDbPromises.run(
+      await testDb.run(
         "UPDATE users SET magic_link_expires = NULL WHERE email = ?",
         ["john@example.com"]
       );
@@ -226,7 +216,7 @@ describe("Auth Routes", () => {
       const futureDate = new Date();
       futureDate.setMinutes(futureDate.getMinutes() + 15); // 15 minutes from now
 
-      await mockDbPromises.run(
+      await testDb.run(
         "UPDATE users SET magic_link_expires = ? WHERE email = ?",
         [futureDate.toISOString(), testEmail]
       );
@@ -281,19 +271,20 @@ describe("Auth Routes", () => {
       expect(firstResponse.status).toBe(200);
 
       // Get the call count after first request
-      const callsAfterFirst = (
-        emailServiceModule.EmailService.sendMagicLink as jest.Mock
-      ).mock.calls.length;
+      const callsAfterFirst = (emailService.sendMagicLink as jest.Mock).mock.calls.length;
       expect(callsAfterFirst).toBeGreaterThanOrEqual(1);
 
       // Simulate cooldown by setting recent magic_link_expires
       const futureDate = new Date();
       futureDate.setMinutes(futureDate.getMinutes() + 15); // 15 minutes from now
 
-      await mockDbPromises.run(
+      await testDb.run(
         "UPDATE users SET magic_link_expires = ? WHERE email = ?",
         [futureDate.toISOString(), testEmail]
       );
+
+      // Clear mock to track only second call
+      (emailService.sendMagicLink as jest.Mock).mockClear();
 
       // Second login request should still return success (to prevent email enumeration)
       // but the cooldown is enforced internally
@@ -304,42 +295,8 @@ describe("Auth Routes", () => {
       expect(secondResponse.status).toBe(200);
       expect(secondResponse.body.message).toContain("magic link");
       // Verify that email service was not called again (cooldown prevented it)
-      const callsAfterSecond = (
-        emailServiceModule.EmailService.sendMagicLink as jest.Mock
-      ).mock.calls.length;
-      expect(callsAfterSecond).toBe(callsAfterFirst); // No additional calls
-    });
-  });
-
-  describe("POST /api/auth/login-password", () => {
-    const testEmail = "john@example.com";
-    const testPassword = "Password123!";
-
-    beforeEach(async () => {
-      // Register a test user with password
-      await request(app).post("/api/auth/register").send({
-        name: "John Doe",
-        email: testEmail,
-        password: testPassword,
-      });
-    });
-
-    it("should login with correct password credentials", async () => {
-      // First set password by updating user directly in test DB
-      await mockDbPromises.run(
-        "UPDATE users SET password_hash = ? WHERE email = ?",
-        ["$2b$10$hashedpassword", testEmail]
-      );
-
-      const response = await request(app)
-        .post("/api/auth/login-password")
-        .send({
-          email: testEmail,
-          password: testPassword,
-        });
-
-      // Note: This test may need bcrypt mocking to work properly
-      expect(response.status).toBeGreaterThanOrEqual(200);
+      const callsAfterSecond = (emailService.sendMagicLink as jest.Mock).mock.calls.length;
+      expect(callsAfterSecond).toBe(0); // No additional calls due to cooldown
     });
   });
 
@@ -348,7 +305,7 @@ describe("Auth Routes", () => {
 
     beforeEach(async () => {
       // Create a user and generate a token manually for testing
-      const result = await mockDbPromises.run(
+      const result = await testDb.run(
         "INSERT INTO users (name, email) VALUES (?, ?)",
         ["John Doe", "john@example.com"]
       );

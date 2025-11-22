@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { UserData } from "../models/User";
-import { API_ENDPOINTS } from "../config/api";
+import { ApiClient } from "../config/api";
 
 /**
  * Custom hook for managing users with API persistence.
@@ -12,6 +12,7 @@ export function useUsers() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [apiClient] = useState(() => new ApiClient());
 
   /**
    * Load users from API on component mount.
@@ -20,25 +21,10 @@ export function useUsers() {
   useEffect(() => {
     const fetchUsers = async () => {
       console.log(
-        `[${new Date().toISOString()}] FRONTEND_USERS | Fetching users from API: ${
-          API_ENDPOINTS.users
-        }`
+        `[${new Date().toISOString()}] FRONTEND_USERS | Fetching users from API`
       );
-      const startTime = Date.now();
-
       try {
-        const response = await fetch(API_ENDPOINTS.users);
-        const duration = Date.now() - startTime;
-        console.log(
-          `[${new Date().toISOString()}] FRONTEND_USERS | Users fetch completed in ${duration}ms, status: ${
-            response.status
-          }`
-        );
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch users");
-        }
-        const loadedUsers = await response.json();
+        const loadedUsers = await apiClient.getUsers();
         console.log(
           `[${new Date().toISOString()}] FRONTEND_USERS | Loaded ${
             loadedUsers.length
@@ -61,7 +47,7 @@ export function useUsers() {
     };
 
     fetchUsers();
-  }, []);
+  }, [apiClient]);
 
   /**
    * Create a new user via API.
@@ -75,41 +61,8 @@ export function useUsers() {
     console.log(
       `[${new Date().toISOString()}] FRONTEND_USERS | Creating new user with name: ${name}`
     );
-    console.log(
-      `[${new Date().toISOString()}] FRONTEND_USERS | Sending create request to: ${
-        API_ENDPOINTS.users
-      }`
-    );
-    const startTime = Date.now();
-
     try {
-      const response = await fetch(API_ENDPOINTS.users, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ name }),
-      });
-
-      const duration = Date.now() - startTime;
-      console.log(
-        `[${new Date().toISOString()}] FRONTEND_USERS | Create user request completed in ${duration}ms, status: ${
-          response.status
-        }`
-      );
-
-      if (!response.ok) {
-        const errorData = await response
-          .json()
-          .catch(() => ({ error: "Error creating user" }));
-        console.error(
-          `[${new Date().toISOString()}] FRONTEND_USERS | Create user failed:`,
-          errorData.error
-        );
-        throw new Error(errorData.error || "Error creating user");
-      }
-
-      const userData = await response.json();
+      const userData = await apiClient.createUser(name);
       console.log(
         `[${new Date().toISOString()}] FRONTEND_USERS | User created successfully: ID ${
           userData.id

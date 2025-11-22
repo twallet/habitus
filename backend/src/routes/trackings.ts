@@ -1,11 +1,13 @@
 import { Router, Request, Response } from "express";
-import { TrackingService } from "../services/trackingService.js";
+import { getTrackingService } from "../services/index.js";
 import {
   authenticateToken,
   AuthRequest,
 } from "../middleware/authMiddleware.js";
 
 const router = Router();
+// Lazy-load service to allow dependency injection in tests
+const getTrackingServiceInstance = () => getTrackingService();
 
 /**
  * GET /api/trackings
@@ -17,7 +19,7 @@ const router = Router();
 router.get("/", authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
-    const trackings = await TrackingService.getTrackingsByUserId(userId);
+    const trackings = await getTrackingServiceInstance().getTrackingsByUserId(userId);
     res.json(trackings);
   } catch (error) {
     console.error(
@@ -48,7 +50,7 @@ router.get(
         return res.status(400).json({ error: "Invalid tracking ID" });
       }
 
-      const tracking = await TrackingService.getTrackingById(
+      const tracking = await getTrackingServiceInstance().getTrackingById(
         trackingId,
         userId
       );
@@ -88,7 +90,7 @@ router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: "Question and type are required" });
     }
 
-    const tracking = await TrackingService.createTracking(
+    const tracking = await getTrackingServiceInstance().createTracking(
       userId,
       question,
       type,
@@ -134,7 +136,7 @@ router.put(
         return res.status(400).json({ error: "Invalid tracking ID" });
       }
 
-      const tracking = await TrackingService.updateTracking(
+      const tracking = await getTrackingServiceInstance().updateTracking(
         trackingId,
         userId,
         question,
@@ -183,7 +185,7 @@ router.delete(
         return res.status(400).json({ error: "Invalid tracking ID" });
       }
 
-      await TrackingService.deleteTracking(trackingId, userId);
+      await getTrackingServiceInstance().deleteTracking(trackingId, userId);
 
       res.json({ message: "Tracking deleted successfully" });
     } catch (error) {

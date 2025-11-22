@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { UserService } from "../services/userService.js";
+import { getUserService } from "../services/index.js";
 import {
   authenticateToken,
   AuthRequest,
@@ -7,6 +7,8 @@ import {
 import { uploadProfilePicture } from "../middleware/upload.js";
 
 const router = Router();
+// Lazy-load service to allow dependency injection in tests
+const getUserServiceInstance = () => getUserService();
 
 /**
  * GET /api/users
@@ -16,7 +18,7 @@ const router = Router();
  */
 router.get("/", async (_req: Request, res: Response) => {
   try {
-    const users = await UserService.getAllUsers();
+    const users = await getUserServiceInstance().getAllUsers();
     res.json(users);
   } catch (error) {
     console.error(
@@ -57,7 +59,7 @@ router.put(
         profilePictureUrl = `${baseUrl}/uploads/${file.filename}`;
       }
 
-      const user = await UserService.updateProfile(
+      const user = await getUserServiceInstance().updateProfile(
         userId,
         name,
         nickname,
@@ -105,7 +107,7 @@ router.delete(
     try {
       const userId = req.userId!;
 
-      await UserService.deleteUser(userId);
+      await getUserServiceInstance().deleteUser(userId);
 
       res.json({ message: "Account deleted successfully" });
     } catch (error) {
@@ -136,7 +138,7 @@ router.get("/:id", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Invalid user ID" });
     }
 
-    const user = await UserService.getUserById(id);
+    const user = await getUserServiceInstance().getUserById(id);
 
     if (!user) {
       return res.status(404).json({ error: "User not found" });

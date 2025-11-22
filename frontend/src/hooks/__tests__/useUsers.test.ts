@@ -24,7 +24,10 @@ describe("useUsers", () => {
     });
 
     expect(result.current.users).toEqual([]);
-    expect(global.fetch).toHaveBeenCalledWith(API_ENDPOINTS.users);
+    expect(global.fetch).toHaveBeenCalledWith(
+      API_ENDPOINTS.users,
+      expect.objectContaining({ method: "GET" })
+    );
   });
 
   it("should load users from API on mount", async () => {
@@ -45,7 +48,10 @@ describe("useUsers", () => {
     });
 
     expect(result.current.users).toEqual(storedUsers);
-    expect(global.fetch).toHaveBeenCalledWith(API_ENDPOINTS.users);
+    expect(global.fetch).toHaveBeenCalledWith(
+      API_ENDPOINTS.users,
+      expect.objectContaining({ method: "GET" })
+    );
   });
 
   it("should create a new user", async () => {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { UserData } from "../models/User";
-import { API_ENDPOINTS } from "../config/api";
+import { ApiClient } from "../config/api";
 
 /**
  * Authentication token storage key.
@@ -18,6 +18,7 @@ export function useAuth() {
   const [user, setUser] = useState<UserData | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [apiClient] = useState(() => new ApiClient());
 
   /**
    * Load token from localStorage on mount and verify it.
@@ -34,37 +35,23 @@ export function useAuth() {
           `[${new Date().toISOString()}] FRONTEND_AUTH | Token found in localStorage, verifying with backend`
         );
         try {
+          apiClient.setToken(storedToken);
           // Verify token by fetching current user
-          const response = await fetch(API_ENDPOINTS.auth.me, {
-            headers: {
-              Authorization: `Bearer ${storedToken}`,
-            },
-          });
-
-          if (response.ok) {
-            const userData = await response.json();
-            console.log(
-              `[${new Date().toISOString()}] FRONTEND_AUTH | Token verified successfully, user loaded: ${
-                userData.email
-              } (ID: ${userData.id})`
-            );
-            setUser(userData);
-            setToken(storedToken);
-          } else {
-            // Token is invalid, remove it
-            console.warn(
-              `[${new Date().toISOString()}] FRONTEND_AUTH | Token verification failed (status: ${
-                response.status
-              }), removing from localStorage`
-            );
-            localStorage.removeItem(TOKEN_KEY);
-          }
+          const userData = await apiClient.getMe();
+          console.log(
+            `[${new Date().toISOString()}] FRONTEND_AUTH | Token verified successfully, user loaded: ${
+              userData.email
+            } (ID: ${userData.id})`
+          );
+          setUser(userData);
+          setToken(storedToken);
         } catch (error) {
-          console.error(
-            `[${new Date().toISOString()}] FRONTEND_AUTH | Error verifying token:`,
-            error
+          // Token is invalid, remove it
+          console.warn(
+            `[${new Date().toISOString()}] FRONTEND_AUTH | Token verification failed, removing from localStorage`
           );
           localStorage.removeItem(TOKEN_KEY);
+          apiClient.setToken(null);
         }
       } else {
         console.log(
@@ -75,7 +62,7 @@ export function useAuth() {
     };
 
     loadAuth();
-  }, []);
+  }, [apiClient]);
 
   /**
    * Request registration magic link (passwordless).
@@ -96,57 +83,7 @@ export function useAuth() {
     console.log(
       `[${new Date().toISOString()}] FRONTEND_AUTH | Requesting registration magic link for email: ${email}, name: ${name}`
     );
-
-    const formData = new FormData();
-    formData.append("name", name);
-    formData.append("email", email);
-    if (nickname) {
-      formData.append("nickname", nickname);
-      console.log(
-        `[${new Date().toISOString()}] FRONTEND_AUTH | Registration includes nickname: ${nickname}`
-      );
-    }
-    if (profilePicture) {
-      formData.append("profilePicture", profilePicture);
-      console.log(
-        `[${new Date().toISOString()}] FRONTEND_AUTH | Registration includes profile picture: ${
-          profilePicture.name
-        } (${profilePicture.size} bytes)`
-      );
-    }
-
-    console.log(
-      `[${new Date().toISOString()}] FRONTEND_AUTH | Sending registration request to: ${
-        API_ENDPOINTS.auth.register
-      }`
-    );
-    const startTime = Date.now();
-
-    const response = await fetch(API_ENDPOINTS.auth.register, {
-      method: "POST",
-      body: formData,
-    });
-
-    const duration = Date.now() - startTime;
-    console.log(
-      `[${new Date().toISOString()}] FRONTEND_AUTH | Registration request completed in ${duration}ms, status: ${
-        response.status
-      }`
-    );
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ error: "Error requesting registration magic link" }));
-      console.error(
-        `[${new Date().toISOString()}] FRONTEND_AUTH | Registration request failed:`,
-        errorData.error
-      );
-      throw new Error(
-        errorData.error || "Error requesting registration magic link"
-      );
-    }
-
+    await apiClient.register(name, email, nickname, profilePicture);
     console.log(
       `[${new Date().toISOString()}] FRONTEND_AUTH | Registration magic link request successful for email: ${email}`
     );
@@ -163,39 +100,7 @@ export function useAuth() {
     console.log(
       `[${new Date().toISOString()}] FRONTEND_AUTH | Requesting login magic link for email: ${email}`
     );
-    console.log(
-      `[${new Date().toISOString()}] FRONTEND_AUTH | Sending login request to: ${
-        API_ENDPOINTS.auth.login
-      }`
-    );
-    const startTime = Date.now();
-
-    const response = await fetch(API_ENDPOINTS.auth.login, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email }),
-    });
-
-    const duration = Date.now() - startTime;
-    console.log(
-      `[${new Date().toISOString()}] FRONTEND_AUTH | Login request completed in ${duration}ms, status: ${
-        response.status
-      }`
-    );
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ error: "Error requesting login magic link" }));
-      console.error(
-        `[${new Date().toISOString()}] FRONTEND_AUTH | Login request failed:`,
-        errorData.error
-      );
-      throw new Error(errorData.error || "Error requesting login magic link");
-    }
-
+    await apiClient.login(email);
     console.log(
       `[${new Date().toISOString()}] FRONTEND_AUTH | Login magic link request successful for email: ${email}`
     );
@@ -214,39 +119,7 @@ export function useAuth() {
         magicLinkToken.length
       })`
     );
-    const verifyUrl = `${
-      API_ENDPOINTS.auth.verifyMagicLink
-    }?token=${encodeURIComponent(magicLinkToken)}`;
-    console.log(
-      `[${new Date().toISOString()}] FRONTEND_AUTH | Sending verification request to: ${
-        API_ENDPOINTS.auth.verifyMagicLink
-      }`
-    );
-    const startTime = Date.now();
-
-    const response = await fetch(verifyUrl, {
-      method: "GET",
-    });
-
-    const duration = Date.now() - startTime;
-    console.log(
-      `[${new Date().toISOString()}] FRONTEND_AUTH | Magic link verification completed in ${duration}ms, status: ${
-        response.status
-      }`
-    );
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ error: "Invalid or expired magic link" }));
-      console.error(
-        `[${new Date().toISOString()}] FRONTEND_AUTH | Magic link verification failed:`,
-        errorData.error
-      );
-      throw new Error(errorData.error || "Invalid or expired magic link");
-    }
-
-    const data = await response.json();
+    const data = await apiClient.verifyMagicLink(magicLinkToken);
     console.log(
       `[${new Date().toISOString()}] FRONTEND_AUTH | Magic link verified successfully, user authenticated: ${
         data.user.email
@@ -257,6 +130,7 @@ export function useAuth() {
     );
     setUser(data.user);
     setToken(data.token);
+    apiClient.setToken(data.token);
     localStorage.setItem(TOKEN_KEY, data.token);
 
     return data.user;
@@ -273,6 +147,7 @@ export function useAuth() {
     );
     setUser(null);
     setToken(null);
+    apiClient.setToken(null);
     localStorage.removeItem(TOKEN_KEY);
     console.log(
       `[${new Date().toISOString()}] FRONTEND_AUTH | User logged out successfully, token removed from localStorage`
@@ -292,36 +167,23 @@ export function useAuth() {
       })`
     );
     try {
+      apiClient.setToken(callbackToken);
       // Verify token by fetching current user
-      const response = await fetch(API_ENDPOINTS.auth.me, {
-        headers: {
-          Authorization: `Bearer ${callbackToken}`,
-        },
-      });
-
-      if (response.ok) {
-        const userData = await response.json();
-        console.log(
-          `[${new Date().toISOString()}] FRONTEND_AUTH | Token from callback verified, user loaded: ${
-            userData.email
-          } (ID: ${userData.id})`
-        );
-        setUser(userData);
-        setToken(callbackToken);
-        localStorage.setItem(TOKEN_KEY, callbackToken);
-      } else {
-        console.error(
-          `[${new Date().toISOString()}] FRONTEND_AUTH | Token from callback verification failed (status: ${
-            response.status
-          })`
-        );
-        throw new Error("Invalid token");
-      }
+      const userData = await apiClient.getMe();
+      console.log(
+        `[${new Date().toISOString()}] FRONTEND_AUTH | Token from callback verified, user loaded: ${
+          userData.email
+        } (ID: ${userData.id})`
+      );
+      setUser(userData);
+      setToken(callbackToken);
+      localStorage.setItem(TOKEN_KEY, callbackToken);
     } catch (error) {
       console.error(
         `[${new Date().toISOString()}] FRONTEND_AUTH | Error setting token from callback:`,
         error
       );
+      apiClient.setToken(null);
       throw error;
     }
   };
@@ -355,58 +217,12 @@ export function useAuth() {
       }, email: ${email}`
     );
 
-    const formData = new FormData();
-    formData.append("name", name);
-    formData.append("email", email);
-    if (nickname) {
-      formData.append("nickname", nickname);
-      console.log(
-        `[${new Date().toISOString()}] FRONTEND_AUTH | Profile update includes nickname: ${nickname}`
-      );
-    }
-    if (profilePicture) {
-      formData.append("profilePicture", profilePicture);
-      console.log(
-        `[${new Date().toISOString()}] FRONTEND_AUTH | Profile update includes profile picture: ${
-          profilePicture.name
-        } (${profilePicture.size} bytes)`
-      );
-    }
-
-    console.log(
-      `[${new Date().toISOString()}] FRONTEND_AUTH | Sending profile update request to: ${
-        API_ENDPOINTS.profile.update
-      }`
+    const updatedUser = await apiClient.updateProfile(
+      name,
+      nickname,
+      email,
+      profilePicture
     );
-    const startTime = Date.now();
-
-    const response = await fetch(API_ENDPOINTS.profile.update, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: formData,
-    });
-
-    const duration = Date.now() - startTime;
-    console.log(
-      `[${new Date().toISOString()}] FRONTEND_AUTH | Profile update request completed in ${duration}ms, status: ${
-        response.status
-      }`
-    );
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ error: "Error updating profile" }));
-      console.error(
-        `[${new Date().toISOString()}] FRONTEND_AUTH | Profile update failed:`,
-        errorData.error
-      );
-      throw new Error(errorData.error || "Error updating profile");
-    }
-
-    const updatedUser = await response.json();
     console.log(
       `[${new Date().toISOString()}] FRONTEND_AUTH | Profile updated successfully for user ID: ${
         updatedUser.id
@@ -435,37 +251,8 @@ export function useAuth() {
     console.log(
       `[${new Date().toISOString()}] FRONTEND_AUTH | Deleting user account: ID ${userId}, email: ${userEmail}`
     );
-    console.log(
-      `[${new Date().toISOString()}] FRONTEND_AUTH | Sending delete request to: ${
-        API_ENDPOINTS.profile.delete
-      }`
-    );
-    const startTime = Date.now();
 
-    const response = await fetch(API_ENDPOINTS.profile.delete, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    const duration = Date.now() - startTime;
-    console.log(
-      `[${new Date().toISOString()}] FRONTEND_AUTH | User deletion request completed in ${duration}ms, status: ${
-        response.status
-      }`
-    );
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ error: "Error deleting user" }));
-      console.error(
-        `[${new Date().toISOString()}] FRONTEND_AUTH | User deletion failed:`,
-        errorData.error
-      );
-      throw new Error(errorData.error || "Error deleting user");
-    }
+    await apiClient.deleteProfile();
 
     console.log(
       `[${new Date().toISOString()}] FRONTEND_AUTH | User account deleted successfully, clearing auth state`
@@ -473,6 +260,7 @@ export function useAuth() {
     // Clear auth state after successful deletion
     setUser(null);
     setToken(null);
+    apiClient.setToken(null);
     localStorage.removeItem(TOKEN_KEY);
     console.log(
       `[${new Date().toISOString()}] FRONTEND_AUTH | Auth state cleared after user deletion`

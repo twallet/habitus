@@ -37,11 +37,15 @@ describe("useTrackings", () => {
     });
 
     expect(result.current.trackings).toEqual([]);
-    expect(global.fetch).toHaveBeenCalledWith(API_ENDPOINTS.trackings, {
-      headers: {
-        Authorization: "Bearer test-token",
-      },
-    });
+    expect(global.fetch).toHaveBeenCalledWith(
+      API_ENDPOINTS.trackings,
+      expect.objectContaining({
+        method: "GET",
+        headers: expect.objectContaining({
+          Authorization: "Bearer test-token",
+        }),
+      })
+    );
   });
 
   it("should load trackings from API on mount", async () => {
@@ -74,11 +78,15 @@ describe("useTrackings", () => {
     });
 
     expect(result.current.trackings).toEqual(storedTrackings);
-    expect(global.fetch).toHaveBeenCalledWith(API_ENDPOINTS.trackings, {
-      headers: {
-        Authorization: "Bearer test-token",
-      },
-    });
+    expect(global.fetch).toHaveBeenCalledWith(
+      API_ENDPOINTS.trackings,
+      expect.objectContaining({
+        method: "GET",
+        headers: expect.objectContaining({
+          Authorization: "Bearer test-token",
+        }),
+      })
+    );
   });
 
   it("should create a new tracking", async () => {

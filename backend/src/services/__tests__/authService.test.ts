@@ -1,20 +1,20 @@
 import sqlite3 from "sqlite3";
 import { AuthService } from "../authService.js";
-import * as databaseModule from "../../db/database.js";
+import { Database } from "../../db/database.js";
 import { EmailService } from "../emailService.js";
 
 // Mock EmailService to avoid sending actual emails during tests
 jest.mock("../emailService.js", () => ({
-  EmailService: {
+  EmailService: jest.fn().mockImplementation(() => ({
     sendMagicLink: jest.fn().mockResolvedValue(undefined),
-  },
+  })),
 }));
 
 /**
  * Create an in-memory database for testing.
  * @returns Promise resolving to Database instance
  */
-function createTestDatabase(): Promise<sqlite3.Database> {
+async function createTestDatabase(): Promise<Database> {
   return new Promise((resolve, reject) => {
     const db = new sqlite3.Database(":memory:", (err) => {
       if (err) {
@@ -57,7 +57,10 @@ function createTestDatabase(): Promise<sqlite3.Database> {
               if (err) {
                 reject(err);
               } else {
-                resolve(db);
+                // Create Database instance and manually set its internal db
+                const database = new Database();
+                (database as any).db = db;
+                resolve(database);
               }
             }
           );
@@ -68,76 +71,28 @@ function createTestDatabase(): Promise<sqlite3.Database> {
 }
 
 describe("AuthService", () => {
-  let testDb: sqlite3.Database;
-  let mockDbPromises: typeof databaseModule.dbPromises;
+  let testDb: Database;
+  let emailService: EmailService;
+  let authService: AuthService;
 
   beforeEach(async () => {
     // Create a fresh in-memory database for each test
     testDb = await createTestDatabase();
-    // Create mock dbPromises that use our test database
-    mockDbPromises = {
-      run: (sql: string, params: any[] = []) => {
-        return new Promise((resolve, reject) => {
-          testDb.run(sql, params, function (err) {
-            if (err) {
-              reject(err);
-            } else {
-              resolve({ lastID: this.lastID, changes: this.changes });
-            }
-          });
-        });
-      },
-      get: <T = any>(
-        sql: string,
-        params: any[] = []
-      ): Promise<T | undefined> => {
-        return new Promise((resolve, reject) => {
-          testDb.get(sql, params, (err, row) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(row as T);
-            }
-          });
-        });
-      },
-      all: <T = any>(sql: string, params: any[] = []): Promise<T[]> => {
-        return new Promise((resolve, reject) => {
-          testDb.all(sql, params, (err, rows) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(rows as T[]);
-            }
-          });
-        });
-      },
-    };
-    // Mock dbPromises module
-    Object.defineProperty(databaseModule, "dbPromises", {
-      value: mockDbPromises,
-      writable: true,
-      configurable: true,
-    });
+    emailService = new EmailService();
+    authService = new AuthService(testDb, emailService);
   });
 
-  afterEach((done) => {
-    testDb.close((err) => {
-      if (err) {
-        done(err);
-      } else {
-        jest.restoreAllMocks();
-        done();
-      }
-    });
+  afterEach(async () => {
+    await testDb.close();
+    jest.restoreAllMocks();
   });
 
   describe("verifyToken", () => {
     it("should verify valid token and return user ID", async () => {
       const testEmail = "john@example.com";
-      await AuthService.requestRegisterMagicLink("John Doe", testEmail);
+      await authService.requestRegisterMagicLink("John Doe", testEmail);
 
-      const user = await mockDbPromises.get<{
+      const user = await testDb.get<{
         id: number;
         magic_link_token: string;
       }>("SELECT id, magic_link_token FROM users WHERE email = ?", [testEmail]);
@@ -146,31 +101,31 @@ describe("AuthService", () => {
         throw new Error("User or token not found");
       }
 
-      const result = await AuthService.verifyMagicLink(user.magic_link_token);
-      const userId = await AuthService.verifyToken(result.token);
+      const result = await authService.verifyMagicLink(user.magic_link_token);
+      const userId = await authService.verifyToken(result.token);
 
       expect(userId).toBe(user.id);
     });
 
     it("should throw error for invalid token", async () => {
       await expect(
-        AuthService.verifyToken("invalid.token.here")
+        authService.verifyToken("invalid.token.here")
       ).rejects.toThrow("Invalid or expired token");
     });
 
     it("should throw error for expired token", async () => {
       // This test would require mocking jwt.sign with a short expiration
       // For now, we'll just test that malformed tokens are rejected
-      await expect(AuthService.verifyToken("")).rejects.toThrow();
+      await expect(authService.verifyToken("")).rejects.toThrow();
     });
   });
 
   describe("getUserById", () => {
     it("should return user for existing ID", async () => {
       const testEmail = "john@example.com";
-      await AuthService.requestRegisterMagicLink("John Doe", testEmail);
+      await authService.requestRegisterMagicLink("John Doe", testEmail);
 
-      const user = await mockDbPromises.get<{
+      const user = await testDb.get<{
         id: number;
         magic_link_token: string;
       }>("SELECT id, magic_link_token FROM users WHERE email = ?", [testEmail]);
@@ -179,8 +134,8 @@ describe("AuthService", () => {
         throw new Error("User or token not found");
       }
 
-      const result = await AuthService.verifyMagicLink(user.magic_link_token);
-      const retrievedUser = await AuthService.getUserById(result.user.id);
+      const result = await authService.verifyMagicLink(user.magic_link_token);
+      const retrievedUser = await authService.getUserById(result.user.id);
 
       expect(retrievedUser).not.toBeNull();
       expect(retrievedUser?.id).toBe(result.user.id);
@@ -189,7 +144,7 @@ describe("AuthService", () => {
     });
 
     it("should return null for non-existent ID", async () => {
-      const user = await AuthService.getUserById(999);
+      const user = await authService.getUserById(999);
 
       expect(user).toBeNull();
     });

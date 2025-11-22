@@ -1,4 +1,4 @@
-import { dbPromises } from "../db/database.js";
+import { Database } from "../db/database.js";
 import { Tracking, TrackingData, TrackingType } from "../models/Tracking.js";
 
 /**
@@ -6,18 +6,29 @@ import { Tracking, TrackingData, TrackingType } from "../models/Tracking.js";
  * @public
  */
 export class TrackingService {
+  private db: Database;
+
+  /**
+   * Create a new TrackingService instance.
+   * @param db - Database instance
+   * @public
+   */
+  constructor(db: Database) {
+    this.db = db;
+  }
+
   /**
    * Get all trackings for a user.
    * @param userId - The user ID
    * @returns Promise resolving to array of tracking data
    * @public
    */
-  static async getTrackingsByUserId(userId: number): Promise<TrackingData[]> {
+  async getTrackingsByUserId(userId: number): Promise<TrackingData[]> {
     console.log(
       `[${new Date().toISOString()}] TRACKING | Fetching trackings for userId: ${userId}`
     );
 
-    const rows = await dbPromises.all<{
+    const rows = await this.db.all<{
       id: number;
       user_id: number;
       question: string;
@@ -56,7 +67,7 @@ export class TrackingService {
    * @returns Promise resolving to tracking data or null if not found
    * @public
    */
-  static async getTrackingById(
+  async getTrackingById(
     trackingId: number,
     userId: number
   ): Promise<TrackingData | null> {
@@ -64,7 +75,7 @@ export class TrackingService {
       `[${new Date().toISOString()}] TRACKING | Fetching tracking by ID: ${trackingId} for userId: ${userId}`
     );
 
-    const row = await dbPromises.get<{
+    const row = await this.db.get<{
       id: number;
       user_id: number;
       question: string;
@@ -114,7 +125,7 @@ export class TrackingService {
    * @throws Error if validation fails
    * @public
    */
-  static async createTracking(
+  async createTracking(
     userId: number,
     question: string,
     type: string,
@@ -135,7 +146,7 @@ export class TrackingService {
     const startDate = startTrackingDate || new Date().toISOString();
 
     // Insert tracking
-    const result = await dbPromises.run(
+    const result = await this.db.run(
       "INSERT INTO trackings (user_id, question, type, start_tracking_date, notes) VALUES (?, ?, ?, ?, ?)",
       [
         validatedUserId,
@@ -154,10 +165,7 @@ export class TrackingService {
     }
 
     // Retrieve created tracking
-    const tracking = await TrackingService.getTrackingById(
-      result.lastID,
-      validatedUserId
-    );
+    const tracking = await this.getTrackingById(result.lastID, validatedUserId);
     if (!tracking) {
       console.error(
         `[${new Date().toISOString()}] TRACKING | Failed to retrieve created tracking for userId: ${userId}`
@@ -186,7 +194,7 @@ export class TrackingService {
    * @throws Error if tracking not found or validation fails
    * @public
    */
-  static async updateTracking(
+  async updateTracking(
     trackingId: number,
     userId: number,
     question?: string,
@@ -199,10 +207,7 @@ export class TrackingService {
     );
 
     // Verify tracking exists and belongs to user
-    const existingTracking = await TrackingService.getTrackingById(
-      trackingId,
-      userId
-    );
+    const existingTracking = await this.getTrackingById(trackingId, userId);
     if (!existingTracking) {
       console.warn(
         `[${new Date().toISOString()}] TRACKING | Update failed: tracking not found for ID: ${trackingId} and userId: ${userId}`
@@ -253,13 +258,13 @@ export class TrackingService {
     );
 
     // Update tracking
-    await dbPromises.run(
+    await this.db.run(
       `UPDATE trackings SET ${updates.join(", ")} WHERE id = ? AND user_id = ?`,
       values
     );
 
     // Retrieve updated tracking
-    const tracking = await TrackingService.getTrackingById(trackingId, userId);
+    const tracking = await this.getTrackingById(trackingId, userId);
     if (!tracking) {
       console.error(
         `[${new Date().toISOString()}] TRACKING | Failed to retrieve updated tracking for ID: ${trackingId}`
@@ -284,15 +289,12 @@ export class TrackingService {
    * @throws Error if tracking not found
    * @public
    */
-  static async deleteTracking(
-    trackingId: number,
-    userId: number
-  ): Promise<void> {
+  async deleteTracking(trackingId: number, userId: number): Promise<void> {
     console.log(
       `[${new Date().toISOString()}] TRACKING | Deleting tracking ID: ${trackingId} for userId: ${userId}`
     );
 
-    const result = await dbPromises.run(
+    const result = await this.db.run(
       "DELETE FROM trackings WHERE id = ? AND user_id = ?",
       [trackingId, userId]
     );
