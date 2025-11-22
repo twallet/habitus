@@ -5,7 +5,7 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
-import { initializeDatabase, closeDatabase } from "./db/database.js";
+import { Database } from "./db/database.js";
 import { initializeServices } from "./services/index.js";
 import usersRouter from "./routes/users.js";
 import authRouter from "./routes/auth.js";
@@ -100,12 +100,13 @@ app.get("/health", (_req: express.Request, res: express.Response) => {
 /**
  * Initialize database and start server.
  */
-initializeDatabase()
+const db = new Database();
+db.initialize()
   .then(() => {
     console.log(
       `[${new Date().toISOString()}] Database initialized successfully`
     );
-    initializeServices();
+    initializeServices(db);
     console.log(
       `[${new Date().toISOString()}] Services initialized successfully`
     );
@@ -127,7 +128,7 @@ initializeDatabase()
       console.log("SIGTERM signal received: closing HTTP server");
       server.close(() => {
         console.log("HTTP server closed");
-        closeDatabase().catch(console.error);
+        db.close().catch(console.error);
       });
     });
 
@@ -135,7 +136,7 @@ initializeDatabase()
       console.log("SIGINT signal received: closing HTTP server");
       server.close(() => {
         console.log("HTTP server closed");
-        closeDatabase().catch(console.error);
+        db.close().catch(console.error);
       });
     });
   })

@@ -42,7 +42,10 @@ function getDirname(): string {
  */
 function getDatabasePath(customPath?: string): string {
   const __dirname = getDirname();
-  const dbPath = customPath || process.env.DB_PATH || path.join(__dirname, "../../data/habitus.db");
+  const dbPath =
+    customPath ||
+    process.env.DB_PATH ||
+    path.join(__dirname, "../../data/habitus.db");
   const dbDir = path.dirname(dbPath);
 
   // Ensure data directory exists
@@ -81,7 +84,9 @@ export class Database {
   async initialize(): Promise<void> {
     return new Promise((resolve, reject) => {
       console.log(
-        `[${new Date().toISOString()}] DATABASE | Initializing database at: ${this.dbPath}`
+        `[${new Date().toISOString()}] DATABASE | Initializing database at: ${
+          this.dbPath
+        }`
       );
 
       this.db = new sqlite3.Database(this.dbPath, (err) => {
@@ -193,9 +198,7 @@ export class Database {
    */
   getConnection(): sqlite3.Database {
     if (!this.db) {
-      throw new Error(
-        "Database not initialized. Call initialize() first."
-      );
+      throw new Error("Database not initialized. Call initialize() first.");
     }
     return this.db;
   }
@@ -329,96 +332,3 @@ export class Database {
     });
   }
 }
-
-/**
- * Singleton database instance for backward compatibility.
- * @public
- */
-let singletonInstance: Database | null = null;
-
-/**
- * Get or create the singleton database instance.
- * @returns The singleton database instance
- * @public
- */
-export function getDatabaseInstance(): Database {
-  if (!singletonInstance) {
-    singletonInstance = new Database();
-  }
-  return singletonInstance;
-}
-
-/**
- * Initialize database schema (backward compatibility function).
- * Creates all necessary tables with clean schema.
- * @returns Promise that resolves when initialization is complete
- * @public
- */
-export function initializeDatabase(): Promise<void> {
-  const db = getDatabaseInstance();
-  return db.initialize();
-}
-
-/**
- * Get the database connection (backward compatibility function).
- * @returns The database connection
- * @throws Error if database is not initialized
- * @public
- */
-export function getDatabase(): sqlite3.Database {
-  const db = getDatabaseInstance();
-  return db.getConnection();
-}
-
-/**
- * Close the database connection (backward compatibility function).
- * Should be called when shutting down the application.
- * @returns Promise that resolves when database is closed
- * @public
- */
-export function closeDatabase(): Promise<void> {
-  const db = getDatabaseInstance();
-  return db.close();
-}
-
-/**
- * Promisified database methods for easier async/await usage (backward compatibility).
- * @public
- */
-export const dbPromises = {
-  /**
-   * Run a SQL query.
-   * @param sql - SQL query string
-   * @param params - Query parameters
-   * @returns Promise resolving to the result object
-   */
-  run: (
-    sql: string,
-    params: any[] = []
-  ): Promise<{ lastID: number; changes: number }> => {
-    const db = getDatabaseInstance();
-    return db.run(sql, params);
-  },
-
-  /**
-   * Get a single row.
-   * @param sql - SQL query string
-   * @param params - Query parameters
-   * @returns Promise resolving to the row or undefined
-   */
-  get: <T = any>(sql: string, params: any[] = []): Promise<T | undefined> => {
-    const db = getDatabaseInstance();
-    return db.get<T>(sql, params);
-  },
-
-  /**
-   * Get all rows.
-   * @param sql - SQL query string
-   * @param params - Query parameters
-   * @returns Promise resolving to array of rows
-   */
-  all: <T = any>(sql: string, params: any[] = []): Promise<T[]> => {
-    const db = getDatabaseInstance();
-    return db.all<T>(sql, params);
-  },
-};

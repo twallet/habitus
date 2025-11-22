@@ -1,4 +1,4 @@
-import { Database, getDatabaseInstance } from "../db/database.js";
+import { Database } from "../db/database.js";
 import { AuthService } from "./authService.js";
 import { UserService } from "./userService.js";
 import { TrackingService } from "./trackingService.js";
@@ -17,10 +17,10 @@ let emailService: EmailService | null = null;
 /**
  * Initialize all service instances.
  * Should be called after database is initialized.
+ * @param db - Database instance
  * @public
  */
-export function initializeServices(): void {
-  const db = getDatabaseInstance();
+export function initializeServices(db: Database): void {
   emailService = new EmailService();
   authService = new AuthService(db, emailService);
   userService = new UserService(db);
@@ -35,9 +35,11 @@ export function initializeServices(): void {
  */
 export function getAuthService(): AuthService {
   if (!authService) {
-    initializeServices();
+    throw new Error(
+      "Services not initialized. Call initializeServices() first."
+    );
   }
-  return authService!;
+  return authService;
 }
 
 /**
@@ -48,9 +50,11 @@ export function getAuthService(): AuthService {
  */
 export function getUserService(): UserService {
   if (!userService) {
-    initializeServices();
+    throw new Error(
+      "Services not initialized. Call initializeServices() first."
+    );
   }
-  return userService!;
+  return userService;
 }
 
 /**
@@ -61,9 +65,11 @@ export function getUserService(): UserService {
  */
 export function getTrackingService(): TrackingService {
   if (!trackingService) {
-    initializeServices();
+    throw new Error(
+      "Services not initialized. Call initializeServices() first."
+    );
   }
-  return trackingService!;
+  return trackingService;
 }
 
 /**
@@ -74,8 +80,9 @@ export function getTrackingService(): TrackingService {
  */
 export function getEmailService(): EmailService {
   if (!emailService) {
-    initializeServices();
+    throw new Error(
+      "Services not initialized. Call initializeServices() first."
+    );
   }
-  return emailService!;
+  return emailService;
 }
-
