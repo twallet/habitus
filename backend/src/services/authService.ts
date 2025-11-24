@@ -1,7 +1,7 @@
 import jwt, { SignOptions } from "jsonwebtoken";
 import crypto from "crypto";
 import { Database } from "../db/database.js";
-import { User, UserData, UserWithPassword } from "../models/User.js";
+import { User, UserData } from "../models/User.js";
 import { EmailService } from "./emailService.js";
 
 /**
@@ -132,7 +132,7 @@ export class AuthService {
     }
 
     // Check if user with email already exists
-    const existingUser = await this.db.get<UserWithPassword>(
+    const existingUser = await this.db.get<{ id: number }>(
       "SELECT id FROM users WHERE email = ?",
       [validatedEmail]
     );
@@ -155,12 +155,11 @@ export class AuthService {
 
     // Create user with magic link token
     await this.db.run(
-      "INSERT INTO users (name, nickname, email, password_hash, profile_picture_url, magic_link_token, magic_link_expires) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO users (name, nickname, email, profile_picture_url, magic_link_token, magic_link_expires) VALUES (?, ?, ?, ?, ?, ?)",
       [
         validatedName,
         validatedNickname || null,
         validatedEmail,
-        null,
         profilePictureUrl || null,
         token,
         expiresAt.toISOString(),
@@ -196,7 +195,7 @@ export class AuthService {
     const validatedEmail = User.validateEmail(email);
 
     // Check if user exists
-    const user = await this.db.get<UserWithPassword>(
+    const user = await this.db.get<{ id: number }>(
       "SELECT id FROM users WHERE email = ?",
       [validatedEmail]
     );
@@ -281,11 +280,11 @@ export class AuthService {
 
     // Find user with this token
     const user = await this.db.get<
-      UserWithPassword & {
+      UserData & {
         magic_link_expires: string;
       }
     >(
-      "SELECT id, name, nickname, email, password_hash, profile_picture_url, last_access, created_at, magic_link_expires FROM users WHERE magic_link_token = ?",
+      "SELECT id, name, nickname, email, profile_picture_url, last_access, created_at, magic_link_expires FROM users WHERE magic_link_token = ?",
       [token]
     );
 

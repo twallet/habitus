@@ -41,7 +41,6 @@ async function createTestDatabase(): Promise<Database> {
               name TEXT NOT NULL CHECK(length(name) <= 30),
               nickname TEXT,
               email TEXT NOT NULL UNIQUE,
-              password_hash TEXT,
               profile_picture_url TEXT,
               magic_link_token TEXT,
               magic_link_expires DATETIME,
@@ -140,7 +139,6 @@ describe("AuthService", () => {
       expect(retrievedUser).not.toBeNull();
       expect(retrievedUser?.id).toBe(result.user.id);
       expect(retrievedUser?.email).toBe(testEmail);
-      expect(retrievedUser).not.toHaveProperty("password_hash");
     });
 
     it("should return null for non-existent ID", async () => {

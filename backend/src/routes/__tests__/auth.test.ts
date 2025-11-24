@@ -64,7 +64,6 @@ async function createTestDatabase(): Promise<Database> {
               name TEXT NOT NULL CHECK(length(name) <= 30),
               nickname TEXT,
               email TEXT NOT NULL UNIQUE,
-              password_hash TEXT,
               profile_picture_url TEXT,
               magic_link_token TEXT,
               magic_link_expires DATETIME,
@@ -271,7 +270,8 @@ describe("Auth Routes", () => {
       expect(firstResponse.status).toBe(200);
 
       // Get the call count after first request
-      const callsAfterFirst = (emailService.sendMagicLink as jest.Mock).mock.calls.length;
+      const callsAfterFirst = (emailService.sendMagicLink as jest.Mock).mock
+        .calls.length;
       expect(callsAfterFirst).toBeGreaterThanOrEqual(1);
 
       // Simulate cooldown by setting recent magic_link_expires
@@ -295,7 +295,8 @@ describe("Auth Routes", () => {
       expect(secondResponse.status).toBe(200);
       expect(secondResponse.body.message).toContain("magic link");
       // Verify that email service was not called again (cooldown prevented it)
-      const callsAfterSecond = (emailService.sendMagicLink as jest.Mock).mock.calls.length;
+      const callsAfterSecond = (emailService.sendMagicLink as jest.Mock).mock
+        .calls.length;
       expect(callsAfterSecond).toBe(0); // No additional calls due to cooldown
     });
   });
@@ -328,7 +329,6 @@ describe("Auth Routes", () => {
       expect(response.body.email).toBe("john@example.com");
       expect(response.body.name).toBe("John Doe");
       expect(response.body).not.toHaveProperty("password");
-      expect(response.body).not.toHaveProperty("password_hash");
     });
 
     it("should return 401 for missing authorization header", async () => {

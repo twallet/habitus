@@ -33,7 +33,6 @@ async function createTestDatabase(): Promise<Database> {
               name TEXT NOT NULL CHECK(length(name) <= 30),
               nickname TEXT,
               email TEXT NOT NULL UNIQUE,
-              password_hash TEXT,
               profile_picture_url TEXT,
               magic_link_token TEXT,
               magic_link_expires DATETIME,
@@ -225,9 +224,9 @@ describe("User Model", () => {
         email: "test@example.com",
       });
 
-      await expect(
-        user.update({ name: "Updated" }, db)
-      ).rejects.toThrow("Cannot update user without ID");
+      await expect(user.update({ name: "Updated" }, db)).rejects.toThrow(
+        "Cannot update user without ID"
+      );
     });
   });
 
@@ -247,10 +246,9 @@ describe("User Model", () => {
 
       await user.delete(db);
 
-      const deleted = await db.get(
-        "SELECT id FROM users WHERE id = ?",
-        [userId]
-      );
+      const deleted = await db.get("SELECT id FROM users WHERE id = ?", [
+        userId,
+      ]);
       expect(deleted).toBeUndefined();
     });
 
@@ -327,10 +325,10 @@ describe("User Model", () => {
 
   describe("loadByEmail", () => {
     it("should load user by email", async () => {
-      await db.run(
-        "INSERT INTO users (name, email) VALUES (?, ?)",
-        ["Test User", "test@example.com"]
-      );
+      await db.run("INSERT INTO users (name, email) VALUES (?, ?)", [
+        "Test User",
+        "test@example.com",
+      ]);
 
       const user = await User.loadByEmail("test@example.com", db);
 
@@ -339,10 +337,10 @@ describe("User Model", () => {
     });
 
     it("should normalize email when loading", async () => {
-      await db.run(
-        "INSERT INTO users (name, email) VALUES (?, ?)",
-        ["Test User", "test@example.com"]
-      );
+      await db.run("INSERT INTO users (name, email) VALUES (?, ?)", [
+        "Test User",
+        "test@example.com",
+      ]);
 
       const user = await User.loadByEmail("  TEST@EXAMPLE.COM  ", db);
 

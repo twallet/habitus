@@ -143,7 +143,6 @@ export class Database {
               name TEXT NOT NULL CHECK(length(name) <= 30),
               nickname TEXT,
               email TEXT NOT NULL UNIQUE,
-              password_hash TEXT,
               profile_picture_url TEXT,
               magic_link_token TEXT,
               magic_link_expires DATETIME,

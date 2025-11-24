@@ -63,7 +63,6 @@ async function createTestDatabase(): Promise<Database> {
               name TEXT NOT NULL CHECK(length(name) <= 30),
               nickname TEXT,
               email TEXT NOT NULL UNIQUE,
-              password_hash TEXT,
               profile_picture_url TEXT,
               magic_link_token TEXT,
               magic_link_expires DATETIME,
@@ -128,14 +127,14 @@ describe("Users Routes", () => {
 
     it("should return all users", async () => {
       // Insert test data
-      await testDb.run(
-        "INSERT INTO users (name, email) VALUES (?, ?)",
-        ["User 1", "user1@example.com"]
-      );
-      await testDb.run(
-        "INSERT INTO users (name, email) VALUES (?, ?)",
-        ["User 2", "user2@example.com"]
-      );
+      await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
+        "User 1",
+        "user1@example.com",
+      ]);
+      await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
+        "User 2",
+        "user2@example.com",
+      ]);
 
       const response = await request(app).get("/api/users");
 
@@ -152,7 +151,9 @@ describe("Users Routes", () => {
       const errorService = {
         getAllUsers: jest.fn().mockRejectedValue(new Error("Database error")),
       };
-      jest.spyOn(servicesModule, "getUserService").mockReturnValue(errorService as any);
+      jest
+        .spyOn(servicesModule, "getUserService")
+        .mockReturnValue(errorService as any);
 
       const response = await request(app).get("/api/users");
 
@@ -195,7 +196,9 @@ describe("Users Routes", () => {
       const errorService = {
         getUserById: jest.fn().mockRejectedValue(new Error("Database error")),
       };
-      jest.spyOn(servicesModule, "getUserService").mockReturnValue(errorService as any);
+      jest
+        .spyOn(servicesModule, "getUserService")
+        .mockReturnValue(errorService as any);
 
       const response = await request(app).get("/api/users/1");
 
@@ -216,27 +219,29 @@ describe("Users Routes", () => {
 
       // Reset and update mock to set userId
       jest.clearAllMocks();
-      (authMiddleware.authenticateToken as jest.Mock).mockImplementation((req: any, _res: any, next: any) => {
-        req.userId = userId;
-        next();
-      });
-      
+      (authMiddleware.authenticateToken as jest.Mock).mockImplementation(
+        (req: any, _res: any, next: any) => {
+          req.userId = userId;
+          next();
+        }
+      );
+
       // Mock upload middleware to set req.file
       const uploadMiddleware = require("../../middleware/upload.js");
-      (uploadMiddleware.uploadProfilePicture as jest.Mock).mockImplementation((req: any, _res: any, next: any) => {
-        req.file = undefined;
-        next();
-      });
+      (uploadMiddleware.uploadProfilePicture as jest.Mock).mockImplementation(
+        (req: any, _res: any, next: any) => {
+          req.file = undefined;
+          next();
+        }
+      );
     });
 
     it("should update user profile successfully", async () => {
-      const response = await request(app)
-        .put("/api/users/profile")
-        .send({
-          name: "Updated Name",
-          nickname: "updated",
-          email: "updated@example.com",
-        });
+      const response = await request(app).put("/api/users/profile").send({
+        name: "Updated Name",
+        nickname: "updated",
+        email: "updated@example.com",
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.name).toBe("Updated Name");
@@ -245,28 +250,24 @@ describe("Users Routes", () => {
     });
 
     it("should return 400 for validation errors", async () => {
-      const response = await request(app)
-        .put("/api/users/profile")
-        .send({
-          name: "", // Invalid empty name
-          email: "invalid-email", // Invalid email
-        });
+      const response = await request(app).put("/api/users/profile").send({
+        name: "", // Invalid empty name
+        email: "invalid-email", // Invalid email
+      });
 
       expect(response.status).toBe(400);
     });
 
     it("should return 409 for duplicate email", async () => {
       // Create another user with email
-      await testDb.run(
-        "INSERT INTO users (name, email) VALUES (?, ?)",
-        ["Other User", "other@example.com"]
-      );
+      await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
+        "Other User",
+        "other@example.com",
+      ]);
 
-      const response = await request(app)
-        .put("/api/users/profile")
-        .send({
-          email: "other@example.com", // Email already taken
-        });
+      const response = await request(app).put("/api/users/profile").send({
+        email: "other@example.com", // Email already taken
+      });
 
       expect(response.status).toBe(409);
       expect(response.body.error).toBe("Email already registered");
@@ -276,13 +277,13 @@ describe("Users Routes", () => {
       const errorService = {
         updateProfile: jest.fn().mockRejectedValue(new Error("Database error")),
       };
-      jest.spyOn(servicesModule, "getUserService").mockReturnValue(errorService as any);
+      jest
+        .spyOn(servicesModule, "getUserService")
+        .mockReturnValue(errorService as any);
 
-      const response = await request(app)
-        .put("/api/users/profile")
-        .send({
-          name: "Updated Name",
-        });
+      const response = await request(app).put("/api/users/profile").send({
+        name: "Updated Name",
+      });
 
       expect(response.status).toBe(500);
       expect(response.body.error).toBe("Error updating profile");
@@ -301,10 +302,12 @@ describe("Users Routes", () => {
 
       // Reset and update mock to set userId
       jest.clearAllMocks();
-      (authMiddleware.authenticateToken as jest.Mock).mockImplementation((req: any, _res: any, next: any) => {
-        req.userId = userId;
-        next();
-      });
+      (authMiddleware.authenticateToken as jest.Mock).mockImplementation(
+        (req: any, _res: any, next: any) => {
+          req.userId = userId;
+          next();
+        }
+      );
     });
 
     it("should delete user account successfully", async () => {
@@ -320,10 +323,12 @@ describe("Users Routes", () => {
 
     it("should return 404 if user not found", async () => {
       // Update mock to use non-existent userId
-      (authMiddleware.authenticateToken as jest.Mock).mockImplementation((req: any, _res: any, next: any) => {
-        req.userId = 999; // Non-existent user
-        next();
-      });
+      (authMiddleware.authenticateToken as jest.Mock).mockImplementation(
+        (req: any, _res: any, next: any) => {
+          req.userId = 999; // Non-existent user
+          next();
+        }
+      );
 
       const response = await request(app).delete("/api/users/profile");
 
@@ -335,7 +340,9 @@ describe("Users Routes", () => {
       const errorService = {
         deleteUser: jest.fn().mockRejectedValue(new Error("Database error")),
       };
-      jest.spyOn(servicesModule, "getUserService").mockReturnValue(errorService as any);
+      jest
+        .spyOn(servicesModule, "getUserService")
+        .mockReturnValue(errorService as any);
 
       const response = await request(app).delete("/api/users/profile");
 

@@ -16,21 +16,6 @@ export interface UserData {
 }
 
 /**
- * User data with password hash (for internal use only).
- * @public
- */
-export interface UserWithPassword {
-  id: number;
-  name: string;
-  nickname?: string;
-  email: string;
-  password_hash?: string;
-  profile_picture_url?: string;
-  last_access?: string;
-  created_at?: string;
-}
-
-/**
  * User model class for representing user entities and database operations.
  * @public
  */

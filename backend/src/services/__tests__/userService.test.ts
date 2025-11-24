@@ -33,7 +33,6 @@ async function createTestDatabase(): Promise<Database> {
               name TEXT NOT NULL CHECK(length(name) <= 30),
               nickname TEXT,
               email TEXT NOT NULL UNIQUE,
-              password_hash TEXT,
               profile_picture_url TEXT,
               magic_link_token TEXT,
               magic_link_expires DATETIME,
@@ -86,14 +85,14 @@ describe("UserService", () => {
 
     it("should return all users ordered by id", async () => {
       // Insert test data
-      await testDb.run(
-        "INSERT INTO users (name, email) VALUES (?, ?)",
-        ["User 1", "user1@example.com"]
-      );
-      await testDb.run(
-        "INSERT INTO users (name, email) VALUES (?, ?)",
-        ["User 2", "user2@example.com"]
-      );
+      await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
+        "User 1",
+        "user1@example.com",
+      ]);
+      await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
+        "User 2",
+        "user2@example.com",
+      ]);
 
       const users = await userService.getAllUsers();
 
@@ -104,10 +103,10 @@ describe("UserService", () => {
     });
 
     it("should return users with correct structure", async () => {
-      await testDb.run(
-        "INSERT INTO users (name, email) VALUES (?, ?)",
-        ["Test User", "test@example.com"]
-      );
+      await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
+        "Test User",
+        "test@example.com",
+      ]);
 
       const users = await userService.getAllUsers();
 
@@ -214,7 +213,9 @@ describe("UserService", () => {
         "http://example.com/pic.jpg"
       );
 
-      expect(updatedUser.profile_picture_url).toBe("http://example.com/pic.jpg");
+      expect(updatedUser.profile_picture_url).toBe(
+        "http://example.com/pic.jpg"
+      );
     });
 
     it("should update multiple fields at once", async () => {
@@ -229,24 +230,31 @@ describe("UserService", () => {
       expect(updatedUser.name).toBe("New Name");
       expect(updatedUser.nickname).toBe("New Nickname");
       expect(updatedUser.email).toBe("newemail@example.com");
-      expect(updatedUser.profile_picture_url).toBe("http://example.com/pic.jpg");
+      expect(updatedUser.profile_picture_url).toBe(
+        "http://example.com/pic.jpg"
+      );
     });
 
     it("should throw error if email is already taken by another user", async () => {
-      await testDb.run(
-        "INSERT INTO users (name, email) VALUES (?, ?)",
-        ["Other User", "other@example.com"]
-      );
+      await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
+        "Other User",
+        "other@example.com",
+      ]);
 
       await expect(
-        userService.updateProfile(userId, undefined, undefined, "other@example.com")
+        userService.updateProfile(
+          userId,
+          undefined,
+          undefined,
+          "other@example.com"
+        )
       ).rejects.toThrow("Email already registered");
     });
 
     it("should throw error if no fields to update", async () => {
-      await expect(
-        userService.updateProfile(userId)
-      ).rejects.toThrow("No fields to update");
+      await expect(userService.updateProfile(userId)).rejects.toThrow(
+        "No fields to update"
+      );
     });
 
     it("should throw error if user not found after update", async () => {
@@ -261,7 +269,7 @@ describe("UserService", () => {
     it("should clear nickname when set to null", async () => {
       // First set a nickname
       await userService.updateProfile(userId, undefined, "nickname");
-      
+
       // Then clear it
       const updatedUser = await userService.updateProfile(
         userId,
@@ -288,7 +296,9 @@ describe("UserService", () => {
     });
 
     it("should throw error if user not found", async () => {
-      await expect(userService.deleteUser(999)).rejects.toThrow("User not found");
+      await expect(userService.deleteUser(999)).rejects.toThrow(
+        "User not found"
+      );
     });
   });
 
