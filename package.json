@@ -6,8 +6,6 @@
   "scripts": {
     "dev": "npm run dev:backend",
     "dev:backend": "cd backend && npm run dev",
-    "dev:restart": "powershell -ExecutionPolicy Bypass -File ./scripts/restart-server.ps1",
-    "dev:kill": "powershell -ExecutionPolicy Bypass -File ./scripts/kill-server.ps1",
     "build": "npm run build:backend && npm run build:frontend",
     "build:frontend": "cd frontend && npm run build",
     "build:backend": "cd backend && npm run build",

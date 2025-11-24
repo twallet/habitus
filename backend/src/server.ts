@@ -43,8 +43,20 @@ app.use(
     const ip = req.ip || req.socket.remoteAddress || "unknown";
     const userAgent = req.get("user-agent") || "unknown";
 
+    // Skip logging for Vite HMR routes in development
+    const isViteRoute =
+      isDevelopment &&
+      (req.path.startsWith("/@") ||
+        req.path.startsWith("/node_modules/") ||
+        req.path.startsWith("/src/") ||
+        req.path.endsWith(".ts") ||
+        req.path.endsWith(".tsx") ||
+        req.path.endsWith(".jsx") ||
+        req.path.endsWith(".css") ||
+        req.path.endsWith(".map"));
+
     // In development, skip verbose logging unless VERBOSE_LOGGING is enabled
-    const shouldLogRequest = !isDevelopment || verboseLogging;
+    const shouldLogRequest = (!isDevelopment || verboseLogging) && !isViteRoute;
 
     if (shouldLogRequest) {
       // Log request start
@@ -60,8 +72,11 @@ app.use(
       const duration = Date.now() - startTime;
       const logLevel = res.statusCode >= 400 ? "ERROR" : "INFO";
 
-      // Always log errors, or log all in production/verbose mode
-      if (res.statusCode >= 400 || !isDevelopment || verboseLogging) {
+      // Always log errors (except Vite routes), or log all in production/verbose mode
+      if (
+        (res.statusCode >= 400 || !isDevelopment || verboseLogging) &&
+        !isViteRoute
+      ) {
         console.log(
           `[${new Date().toISOString()}] ${logLevel} | ${req.method} ${
             req.path
@@ -128,6 +143,8 @@ async function initializeViteDevServer() {
       },
       appType: "spa",
       plugins: [react.default()],
+      logLevel: "warn",
+      clearScreen: false,
     });
 
     // Use Vite's connect instance as middleware
