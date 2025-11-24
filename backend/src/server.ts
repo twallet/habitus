@@ -233,28 +233,60 @@ db.initialize()
     /**
      * Graceful shutdown.
      */
+    let isShuttingDown = false;
     const shutdown = async (signal: string) => {
+      if (isShuttingDown) {
+        return;
+      }
+      isShuttingDown = true;
+
       console.log(`\n${signal} signal received: closing HTTP server`);
-      server.close(async () => {
-        console.log("HTTP server closed");
+
+      try {
+        // Close HTTP server
+        await new Promise<void>((resolve) => {
+          server.close(() => {
+            console.log("HTTP server closed");
+            resolve();
+          });
+        });
+
+        // Close Vite server
         if (viteServer) {
           await viteServer.close();
           console.log("Vite dev server closed");
         }
+
+        // Close database
         await db.close().catch(console.error);
         console.log("Database closed");
-        process.exit(0);
-      });
 
-      // Force exit after 10 seconds if cleanup takes too long
-      setTimeout(() => {
-        console.error("Forced shutdown after timeout");
+        process.exit(0);
+      } catch (error) {
+        console.error("Error during shutdown:", error);
         process.exit(1);
-      }, 10000);
+      }
     };
 
-    process.on("SIGTERM", () => shutdown("SIGTERM"));
-    process.on("SIGINT", () => shutdown("SIGINT"));
+    // Handle shutdown signals
+    process.on("SIGTERM", () => {
+      shutdown("SIGTERM").catch(() => process.exit(1));
+    });
+
+    process.on("SIGINT", () => {
+      shutdown("SIGINT").catch(() => process.exit(1));
+    });
+
+    // Handle uncaught errors
+    process.on("uncaughtException", (error) => {
+      console.error("Uncaught exception:", error);
+      shutdown("uncaughtException").catch(() => process.exit(1));
+    });
+
+    process.on("unhandledRejection", (reason, promise) => {
+      console.error("Unhandled rejection at:", promise, "reason:", reason);
+      shutdown("unhandledRejection").catch(() => process.exit(1));
+    });
   })
   .catch((error) => {
     console.error("Failed to initialize database:", error);
