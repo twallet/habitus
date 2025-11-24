@@ -3,12 +3,19 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+import { readFileSync } from "fs";
 import { Database } from "./db/database.js";
 import { initializeServices } from "./services/index.js";
 import usersRouter from "./routes/users.js";
 import authRouter from "./routes/auth.js";
 import trackingsRouter from "./routes/trackings.js";
 import { getUploadsDirectory } from "./middleware/upload.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const isDevelopment = process.env.NODE_ENV !== "production";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -56,8 +63,14 @@ app.use(
 
 /**
  * Middleware configuration.
+ * In development, CORS is simplified since frontend and backend are on same origin.
  */
-app.use(cors());
+if (isDevelopment) {
+  // In development, same origin so CORS is not needed, but keep it for API testing
+  app.use(cors({ origin: true }));
+} else {
+  app.use(cors());
+}
 app.use(express.json());
 
 /**
@@ -73,34 +86,56 @@ app.use("/api/auth", authRouter);
 app.use("/api/trackings", trackingsRouter);
 
 /**
- * Root endpoint.
- */
-app.get("/", (_req: express.Request, res: express.Response) => {
-  res.json({
-    message: "🌱 Habitus API",
-    version: "1.0.0",
-    endpoints: {
-      health: "/health",
-      users: "/api/users",
-      auth: "/api/auth",
-      trackings: "/api/trackings",
-    },
-  });
-});
-
-/**
  * Health check endpoint.
+ * Available at /health for monitoring and health checks.
  */
 app.get("/health", (_req: express.Request, res: express.Response) => {
   res.json({ status: "ok" });
 });
 
 /**
+ * Initialize Vite dev server for development mode.
+ * This serves the React frontend with Hot Module Replacement (HMR) support.
+ * @returns Promise resolving to Vite dev server instance or null in production
+ */
+async function initializeViteDevServer() {
+  if (!isDevelopment) {
+    return null;
+  }
+
+  try {
+    const { createServer } = await import("vite");
+    const react = await import("@vitejs/plugin-react");
+    const frontendPath = join(__dirname, "../../frontend");
+
+    const viteServer = await createServer({
+      root: frontendPath,
+      server: {
+        middlewareMode: true,
+      },
+      appType: "spa",
+      plugins: [react.default()],
+    });
+
+    // Use Vite's connect instance as middleware
+    app.use(viteServer.middlewares);
+
+    console.log(
+      `[${new Date().toISOString()}] Vite dev server initialized for frontend`
+    );
+    return viteServer;
+  } catch (error) {
+    console.error("Failed to initialize Vite dev server:", error);
+    throw error;
+  }
+}
+
+/**
  * Initialize database and start server.
  */
 const db = new Database();
 db.initialize()
-  .then(() => {
+  .then(async () => {
     console.log(
       `[${new Date().toISOString()}] Database initialized successfully`
     );
@@ -108,6 +143,48 @@ db.initialize()
     console.log(
       `[${new Date().toISOString()}] Services initialized successfully`
     );
+
+    // Initialize Vite dev server in development
+    const viteServer = await initializeViteDevServer();
+
+    // In production, serve static files from frontend build
+    if (!isDevelopment) {
+      const frontendBuildPath = join(__dirname, "../../frontend/dist");
+      app.use(express.static(frontendBuildPath));
+
+      // Serve React app for all non-API routes in production
+      app.get("*", (_req, res) => {
+        res.sendFile(join(frontendBuildPath, "index.html"));
+      });
+    } else if (viteServer) {
+      // In development, serve React app for all non-API routes via Vite
+      const frontendPath = join(__dirname, "../../frontend");
+      const indexHtmlPath = join(frontendPath, "index.html");
+      
+      app.get("*", async (req, res, next) => {
+        // Skip API routes, health check, and static files
+        if (
+          req.path.startsWith("/api") ||
+          req.path.startsWith("/uploads") ||
+          req.path === "/health"
+        ) {
+          return next();
+        }
+
+        try {
+          const html = readFileSync(indexHtmlPath, "utf-8");
+          const template = await viteServer.transformIndexHtml(
+            req.originalUrl,
+            html
+          );
+          res.setHeader("Content-Type", "text/html");
+          res.send(template);
+        } catch (error) {
+          next(error);
+        }
+      });
+    }
+
     const server = app.listen(PORT, () => {
       console.log(
         `[${new Date().toISOString()}] Server running on http://localhost:${PORT}`
@@ -117,26 +194,30 @@ db.initialize()
           process.env.NODE_ENV || "development"
         }`
       );
+      if (isDevelopment) {
+        console.log(
+          `[${new Date().toISOString()}] Frontend served via Vite with HMR`
+        );
+      }
     });
 
     /**
      * Graceful shutdown.
      */
-    process.on("SIGTERM", () => {
-      console.log("SIGTERM signal received: closing HTTP server");
-      server.close(() => {
+    const shutdown = async (signal: string) => {
+      console.log(`${signal} signal received: closing HTTP server`);
+      server.close(async () => {
         console.log("HTTP server closed");
-        db.close().catch(console.error);
+        if (viteServer) {
+          await viteServer.close();
+          console.log("Vite dev server closed");
+        }
+        await db.close().catch(console.error);
       });
-    });
+    };
 
-    process.on("SIGINT", () => {
-      console.log("SIGINT signal received: closing HTTP server");
-      server.close(() => {
-        console.log("HTTP server closed");
-        db.close().catch(console.error);
-      });
-    });
+    process.on("SIGTERM", () => shutdown("SIGTERM"));
+    process.on("SIGINT", () => shutdown("SIGINT"));
   })
   .catch((error) => {
     console.error("Failed to initialize database:", error);

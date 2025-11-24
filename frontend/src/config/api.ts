@@ -3,7 +3,8 @@ import { TrackingData, TrackingType } from "../models/Tracking.js";
 
 /**
  * API configuration.
- * Uses import.meta.env in Vite, defaults to localhost in tests.
+ * Uses relative URLs when served from same origin (development with single server),
+ * falls back to environment variable or localhost for tests.
  * @public
  */
 const getEnvValue = (): string => {
@@ -30,11 +31,21 @@ const getEnvValue = (): string => {
     // Ignore errors in test environment where import.meta is not available
   }
 
-  // Fallback for tests or Node.js environment
-  return (
-    (typeof process !== "undefined" && process.env?.VITE_API_BASE_URL) ||
-    "http://localhost:3001"
-  );
+  // In development with single server, use relative URLs (same origin)
+  // In production or when explicitly set, use the environment variable
+  // Fallback to localhost:3001 for tests
+  const envUrl =
+    typeof process !== "undefined" && process.env?.VITE_API_BASE_URL
+      ? process.env.VITE_API_BASE_URL
+      : "";
+
+  // If no explicit URL is set and we're in a browser (not test), use relative URL
+  if (!envUrl && typeof window !== "undefined") {
+    return "";
+  }
+
+  // Fallback for tests or when explicitly configured
+  return envUrl || "http://localhost:3001";
 };
 
 export const API_BASE_URL = getEnvValue();
@@ -186,7 +197,10 @@ export class ApiClient {
    * @throws Error if request fails
    * @private
    */
-  private async request(url: string, options: RequestInit = {}): Promise<Response> {
+  private async request(
+    url: string,
+    options: RequestInit = {}
+  ): Promise<Response> {
     const fullUrl = url.startsWith("http") ? url : `${this.baseUrl}${url}`;
     const headers: HeadersInit = {
       ...options.headers,
@@ -205,7 +219,9 @@ export class ApiClient {
       const errorData = await response.json().catch(() => ({
         error: `HTTP ${response.status}: ${response.statusText}`,
       }));
-      throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+      throw new Error(
+        errorData.error || `HTTP ${response.status}: ${response.statusText}`
+      );
     }
 
     return response;
@@ -292,7 +308,9 @@ export class ApiClient {
     user: UserData;
     token: string;
   }> {
-    const url = `${API_ENDPOINTS.auth.verifyMagicLink}?token=${encodeURIComponent(token)}`;
+    const url = `${
+      API_ENDPOINTS.auth.verifyMagicLink
+    }?token=${encodeURIComponent(token)}`;
     return this.get<{ user: UserData; token: string }>(url);
   }
 

@@ -4,8 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "npm run dev:backend & npm run dev:frontend",
-    "dev:frontend": "cd frontend && npm run dev",
+    "dev": "npm run dev:backend",
     "dev:backend": "cd backend && npm run dev",
     "dev:restart": "powershell -ExecutionPolicy Bypass -File ./restart-dev.ps1",
     "dev:kill": "powershell -ExecutionPolicy Bypass -File ./kill-servers.ps1",
