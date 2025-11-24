@@ -234,7 +234,7 @@ db.initialize()
      * Graceful shutdown.
      */
     const shutdown = async (signal: string) => {
-      console.log(`${signal} signal received: closing HTTP server`);
+      console.log(`\n${signal} signal received: closing HTTP server`);
       server.close(async () => {
         console.log("HTTP server closed");
         if (viteServer) {
@@ -242,7 +242,15 @@ db.initialize()
           console.log("Vite dev server closed");
         }
         await db.close().catch(console.error);
+        console.log("Database closed");
+        process.exit(0);
       });
+
+      // Force exit after 10 seconds if cleanup takes too long
+      setTimeout(() => {
+        console.error("Forced shutdown after timeout");
+        process.exit(1);
+      }, 10000);
     };
 
     process.on("SIGTERM", () => shutdown("SIGTERM"));
