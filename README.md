@@ -4,10 +4,12 @@ Full-stack web application with separated frontend and backend for creating and 
 
 ## Architecture
 
-The application is split into two separate projects:
+The application uses a unified server architecture where the backend serves both the API and the frontend:
 
-- **Frontend** - React application built with TypeScript and Vite
-- **Backend** - Node.js/Express API server with SQLite database
+- **Backend** - Node.js/Express API server with SQLite database that also serves the frontend
+  - In development: Uses Vite middleware to serve the React frontend with Hot Module Replacement (HMR)
+  - In production: Serves static files from the frontend build
+- **Frontend** - React application built with TypeScript and Vite (served by the backend)
 
 ## Features
 
@@ -98,8 +100,8 @@ JWT_EXPIRES_IN=7d
 # Magic Link Configuration
 MAGIC_LINK_EXPIRY_MINUTES=15
 
-# Frontend URL
-FRONTEND_URL=http://localhost:3000
+# Frontend URL (used for email links)
+FRONTEND_URL=http://localhost:3001
 
 # SMTP Configuration (Required for email functionality)
 SMTP_HOST=smtp.gmail.com
@@ -144,37 +146,22 @@ SMTP_PASS=your-password
 
 ## Development
 
-You can run both frontend and backend together:
+Start the unified development server (backend serves both API and frontend):
 
 ```bash
 npm run dev
 ```
 
-Or run them separately in different terminals:
+This starts a single server on `http://localhost:3001` that:
+- Serves the backend API at `/api/*` endpoints
+- Serves the React frontend with Vite HMR (Hot Module Replacement) for all other routes
+- Automatically reloads on file changes using `tsx watch`
 
-1. **Backend server**:
-
-```bash
-npm run dev:backend
-# or
-cd backend && npm run dev
-```
-
-The backend API will be available at `http://localhost:3001`.
-
-2. **Frontend development server**:
-
-```bash
-npm run dev:frontend
-# or
-cd frontend && npm run dev
-```
-
-The frontend application will be available at `http://localhost:3000`.
+The application will be available at `http://localhost:3001`.
 
 ### Server Management
 
-You can manage the backend server using utility scripts:
+You can manage the unified server using utility scripts:
 
 **Kill the server:**
 
@@ -182,7 +169,7 @@ You can manage the backend server using utility scripts:
 npm run dev:kill
 ```
 
-This will stop the backend server running on port 3001.
+This will stop the server running on port 3001.
 
 **Restart the server:**
 
@@ -316,8 +303,8 @@ habitus/
 
 ## Usage
 
-1. Start both servers: `npm run dev` (or run them separately)
-2. Open the application in your browser at `http://localhost:3000`
+1. Start the unified server: `npm run dev`
+2. Open the application in your browser at `http://localhost:3001`
 3. Register or login using the magic link authentication
 4. Create and manage users and trackings
 5. All data is persisted in the SQLite database located at `backend/data/habitus.db`
@@ -362,11 +349,10 @@ npm test -- src/models/__tests__/User.test.ts
 
 ### Root Scripts (Workspace)
 
-- `npm run dev` - Start both frontend and backend servers
-- `npm run dev:frontend` - Start frontend development server only
-- `npm run dev:backend` - Start backend development server only
-- `npm run dev:kill` - Kill the backend server running on port 3001
-- `npm run dev:restart` - Restart the backend server (kills and starts in same terminal)
+- `npm run dev` - Start unified development server (backend serves both API and frontend)
+- `npm run dev:backend` - Start backend development server (same as `npm run dev`)
+- `npm run dev:kill` - Kill the server running on port 3001
+- `npm run dev:restart` - Restart the server (kills and starts in same terminal)
 - `npm run build` - Build both frontend and backend for production
 - `npm run build:frontend` - Build frontend for production
 - `npm run build:backend` - Build backend for production
@@ -378,13 +364,14 @@ npm test -- src/models/__tests__/User.test.ts
 
 ### Frontend Scripts (in `frontend/` directory)
 
-- `npm run dev` - Start frontend development server
 - `npm run build` - Build frontend for production
 - `npm run preview` - Preview production build
 - `npm run lint` - Run ESLint
 - `npm test` - Run frontend tests
 - `npm run test:watch` - Run tests in watch mode
 - `npm run test:coverage` - Run tests with coverage report
+
+**Note**: The `dev` script is not used directly. The frontend is served by the unified backend server via Vite middleware in development mode.
 
 ### Backend Scripts (in `backend/` directory)
 

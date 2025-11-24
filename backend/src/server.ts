@@ -30,8 +30,12 @@ if (process.env.TRUST_PROXY === "true") {
 
 /**
  * Request logging middleware.
- * Logs request details including method, path, IP, user agent, response status, and response time.
+ * In development, only logs errors (status >= 400) to reduce console noise.
+ * In production, logs all requests for monitoring.
+ * Set VERBOSE_LOGGING=true to enable full request logging in development.
  */
+const verboseLogging = process.env.VERBOSE_LOGGING === "true";
+
 app.use(
   (req: express.Request, res: express.Response, next: express.NextFunction) => {
     const startTime = Date.now();
@@ -39,22 +43,31 @@ app.use(
     const ip = req.ip || req.socket.remoteAddress || "unknown";
     const userAgent = req.get("user-agent") || "unknown";
 
-    // Log request start
-    console.log(
-      `[${timestamp}] ${req.method} ${
-        req.path
-      } | IP: ${ip} | User-Agent: ${userAgent.substring(0, 50)}`
-    );
+    // In development, skip verbose logging unless VERBOSE_LOGGING is enabled
+    const shouldLogRequest = !isDevelopment || verboseLogging;
+
+    if (shouldLogRequest) {
+      // Log request start
+      console.log(
+        `[${timestamp}] ${req.method} ${
+          req.path
+        } | IP: ${ip} | User-Agent: ${userAgent.substring(0, 50)}`
+      );
+    }
 
     // Log response when finished
     res.on("finish", () => {
       const duration = Date.now() - startTime;
       const logLevel = res.statusCode >= 400 ? "ERROR" : "INFO";
-      console.log(
-        `[${new Date().toISOString()}] ${logLevel} | ${req.method} ${
-          req.path
-        } | Status: ${res.statusCode} | Duration: ${duration}ms | IP: ${ip}`
-      );
+
+      // Always log errors, or log all in production/verbose mode
+      if (res.statusCode >= 400 || !isDevelopment || verboseLogging) {
+        console.log(
+          `[${new Date().toISOString()}] ${logLevel} | ${req.method} ${
+            req.path
+          } | Status: ${res.statusCode} | Duration: ${duration}ms | IP: ${ip}`
+        );
+      }
     });
 
     next();
@@ -160,7 +173,7 @@ db.initialize()
       // In development, serve React app for all non-API routes via Vite
       const frontendPath = join(__dirname, "../../frontend");
       const indexHtmlPath = join(frontendPath, "index.html");
-      
+
       app.get("*", async (req, res, next) => {
         // Skip API routes, health check, and static files
         if (
