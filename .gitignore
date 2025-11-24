@@ -33,7 +33,8 @@ dist-ssr
 coverage
 .nyc_output
 
-# Database
+# Database and uploads
 backend/data/
+backend/uploads/
 frontend/dist/
 backend/dist/
