@@ -12,13 +12,14 @@ import usersRouter from "./routes/users.js";
 import authRouter from "./routes/auth.js";
 import trackingsRouter from "./routes/trackings.js";
 import { getUploadsDirectory } from "./middleware/upload.js";
+import { DEFAULT_PORT } from "./config/constants.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const isDevelopment = process.env.NODE_ENV !== "production";
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || DEFAULT_PORT;
 
 /**
  * Trust proxy configuration for rate limiting.

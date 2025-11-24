@@ -1,4 +1,5 @@
 import nodemailer, { Transporter } from "nodemailer";
+import { getDefaultFrontendUrl } from "../config/constants.js";
 
 /**
  * SMTP configuration interface.
@@ -34,7 +35,8 @@ export class EmailService {
       frontendUrl:
         config?.frontendUrl ||
         process.env.FRONTEND_URL ||
-        "http://localhost:3001",
+        process.env.BASE_URL ||
+        getDefaultFrontendUrl(),
     };
   }
 
