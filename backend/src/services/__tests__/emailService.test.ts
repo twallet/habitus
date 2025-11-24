@@ -84,7 +84,8 @@ describe("EmailService", () => {
         expect.objectContaining({
           from: "test@test.com",
           to: "user@example.com",
-          subject: "🌱 Welcome to Habitus! Verify your email to complete registration",
+          subject:
+            "Welcome to 🌱 Habitus! Verify your email to complete registration",
         })
       );
     });
@@ -96,7 +97,7 @@ describe("EmailService", () => {
         expect.objectContaining({
           from: "test@test.com",
           to: "user@example.com",
-          subject: "🌱 Your login link to Habitus",
+          subject: "Your login link to 🌱 Habitus",
         })
       );
     });
@@ -105,8 +106,12 @@ describe("EmailService", () => {
       await emailService.sendMagicLink("user@example.com", "test-token", true);
 
       const callArgs = mockTransporter.sendMail.mock.calls[0][0];
-      expect(callArgs.text).toContain("http://test.com/auth/verify-magic-link?token=test-token");
-      expect(callArgs.html).toContain("http://test.com/auth/verify-magic-link?token=test-token");
+      expect(callArgs.text).toContain(
+        "http://test.com/auth/verify-magic-link?token=test-token"
+      );
+      expect(callArgs.html).toContain(
+        "http://test.com/auth/verify-magic-link?token=test-token"
+      );
     });
 
     it("should throw error when SMTP credentials are missing", async () => {
@@ -174,12 +179,19 @@ describe("EmailService", () => {
     });
 
     it("should reuse transporter instance", async () => {
-      await emailService.sendMagicLink("user@example.com", "test-token-1", true);
-      await emailService.sendMagicLink("user@example.com", "test-token-2", false);
+      await emailService.sendMagicLink(
+        "user@example.com",
+        "test-token-1",
+        true
+      );
+      await emailService.sendMagicLink(
+        "user@example.com",
+        "test-token-2",
+        false
+      );
 
       expect(nodemailer.createTransport).toHaveBeenCalledTimes(1);
       expect(mockTransporter.sendMail).toHaveBeenCalledTimes(2);
     });
   });
 });
-

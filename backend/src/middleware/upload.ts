@@ -4,12 +4,22 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 
 /**
- * Get __dirname in ES modules.
+ * Get __dirname in a way that works in both ESM and Jest.
  * @returns The directory path
  * @private
  */
 function getDirname(): string {
+  // Check if we're in a test environment
+  if (
+    typeof process !== "undefined" &&
+    (process.env.NODE_ENV === "test" || process.env.JEST_WORKER_ID)
+  ) {
+    return path.resolve();
+  }
+
   try {
+    // Use eval to avoid TypeScript/Jest parsing issues with import.meta
+    // eslint-disable-next-line @typescript-eslint/no-implied-eval
     const importMeta = new Function(
       'return typeof import !== "undefined" ? import.meta : null'
     )();
@@ -18,8 +28,9 @@ function getDirname(): string {
       return path.dirname(__filename);
     }
   } catch {
-    // Fallback
+    // Fallback if import.meta is not available
   }
+
   return path.resolve();
 }
 
@@ -51,11 +62,48 @@ export class UploadConfig {
     ] as const;
 
     // Use the same directory as the database (data folder)
-    const dataDir = customDataDir
-      ? customDataDir
-      : process.env.DB_PATH
-      ? path.dirname(process.env.DB_PATH)
-      : path.join(getDirname(), "../../data");
+    // This ensures uploads are stored in the same location as the database
+    let dataDir: string;
+    if (customDataDir) {
+      dataDir = customDataDir;
+    } else if (process.env.DB_PATH) {
+      dataDir = path.dirname(process.env.DB_PATH);
+    } else {
+      // Resolve path relative to the backend source folder
+      // From backend/src/middleware/upload.ts, go up to backend/, then to data/
+      const fileDir = getDirname();
+      const fileDirNormalized = path.normalize(fileDir);
+
+      // Check if getDirname() returned the actual file directory or current working directory
+      // The file directory should contain 'middleware' or 'src/middleware'
+      const isActualFileDir =
+        fileDirNormalized.includes("middleware") ||
+        fileDirNormalized.includes(path.join("src", "middleware"));
+
+      let resolvedDataDir: string;
+      if (isActualFileDir) {
+        // We have the correct file directory, resolve relative to it
+        resolvedDataDir = path.resolve(fileDir, "../../data");
+      } else {
+        // getDirname() likely returned current working directory
+        // Try to find backend folder from current working directory
+        const cwd = process.cwd();
+        const backendDataInCwd = path.resolve(cwd, "backend", "data");
+        const backendDataInParent = path.resolve(cwd, "..", "backend", "data");
+
+        // Prefer backend/data in current directory, then parent, then fallback to cwd/data
+        if (fs.existsSync(path.resolve(cwd, "backend"))) {
+          resolvedDataDir = backendDataInCwd;
+        } else if (fs.existsSync(path.resolve(cwd, "..", "backend"))) {
+          resolvedDataDir = backendDataInParent;
+        } else {
+          // Last resort: assume we're in backend folder or project root
+          resolvedDataDir = path.resolve(cwd, "data");
+        }
+      }
+
+      dataDir = resolvedDataDir;
+    }
     this.uploadsDir = path.join(dataDir, "uploads");
 
     // Ensure uploads directory exists
