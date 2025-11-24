@@ -107,22 +107,22 @@ export class EmailService {
         subject,
         text,
         html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #333;">${
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; text-align: left;">
+            <h2 style="color: #333; text-align: left;">${
               isRegistration ? "Welcome!" : "Login Request"
             }</h2>
-            <p>${
+            <p style="text-align: left;">${
               isRegistration
                 ? "Click the link below to verify your email and complete your registration to 🌱 Habitus:"
                 : "Click the link below to log into 🌱 Habitus:"
             }</p>
-            <p style="margin: 30px 0;">
+            <p style="margin: 30px 0; text-align: left;">
               <a href="${magicLink}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
                 ${isRegistration ? "Verify email" : "Log in"}
               </a>
             </p>
-            <p style="color: #666; font-size: 14px;">This link will expire in 15 minutes.</p>
-            <p style="color: #666; font-size: 14px;">If you didn't request this, please ignore this email.</p>
+            <p style="color: #666; font-size: 14px; text-align: left;">This link will expire in 15 minutes.</p>
+            <p style="color: #666; font-size: 14px; text-align: left;">If you didn't request this, please ignore this email.</p>
           </div>
         `,
       });
