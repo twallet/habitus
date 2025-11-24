@@ -14,6 +14,8 @@ export const DEFAULT_PORT = 3001;
  * Can be overridden via FRONTEND_URL or BASE_URL environment variables.
  */
 export const getDefaultFrontendUrl = (): string => {
-  const port = process.env.PORT || DEFAULT_PORT;
+  // Default to port 3001 for frontend URL
+  // Can be overridden by FRONTEND_PORT or PORT environment variables
+  const port = process.env.FRONTEND_PORT || process.env.PORT || DEFAULT_PORT;
   return `http://localhost:${port}`;
 };
