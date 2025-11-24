@@ -1,6 +1,13 @@
 import sqlite3 from "sqlite3";
 import { UserService } from "../userService.js";
 import { Database } from "../../db/database.js";
+import fs from "fs";
+import path from "path";
+
+// Mock the upload module
+jest.mock("../../middleware/upload.js", () => ({
+  getUploadsDirectory: jest.fn(),
+}));
 
 /**
  * Create an in-memory database for testing.
@@ -299,6 +306,169 @@ describe("UserService", () => {
       await expect(userService.deleteUser(999)).rejects.toThrow(
         "User not found"
       );
+    });
+
+    it("should delete profile picture file when user has profile picture URL", async () => {
+      const { getUploadsDirectory } = require("../../middleware/upload.js");
+      const result = await testDb.run(
+        "INSERT INTO users (name, email, profile_picture_url) VALUES (?, ?, ?)",
+        [
+          "Test User",
+          "test@example.com",
+          "http://localhost:3001/uploads/test-image-123.jpg",
+        ]
+      );
+      const userId = result.lastID;
+
+      // Mock fs and getUploadsDirectory
+      const mockUnlinkSync = jest.spyOn(fs, "unlinkSync").mockImplementation();
+      const mockExistsSync = jest.spyOn(fs, "existsSync").mockReturnValue(true);
+      (getUploadsDirectory as jest.Mock).mockReturnValue("/test/uploads");
+      const mockPathJoin = jest
+        .spyOn(path, "join")
+        .mockReturnValue("/test/uploads/test-image-123.jpg");
+
+      await userService.deleteUser(userId);
+
+      // Verify file deletion was attempted
+      expect(getUploadsDirectory).toHaveBeenCalled();
+      expect(mockPathJoin).toHaveBeenCalledWith(
+        "/test/uploads",
+        "test-image-123.jpg"
+      );
+      expect(mockExistsSync).toHaveBeenCalledWith(
+        "/test/uploads/test-image-123.jpg"
+      );
+      expect(mockUnlinkSync).toHaveBeenCalledWith(
+        "/test/uploads/test-image-123.jpg"
+      );
+
+      // Verify user was deleted
+      const user = await userService.getUserById(userId);
+      expect(user).toBeNull();
+
+      // Cleanup mocks
+      mockUnlinkSync.mockRestore();
+      mockExistsSync.mockRestore();
+      (getUploadsDirectory as jest.Mock).mockClear();
+      mockPathJoin.mockRestore();
+    });
+
+    it("should handle missing profile picture file gracefully", async () => {
+      const { getUploadsDirectory } = require("../../middleware/upload.js");
+      const result = await testDb.run(
+        "INSERT INTO users (name, email, profile_picture_url) VALUES (?, ?, ?)",
+        [
+          "Test User",
+          "test@example.com",
+          "http://localhost:3001/uploads/missing-image.jpg",
+        ]
+      );
+      const userId = result.lastID;
+
+      // Mock fs and getUploadsDirectory - file doesn't exist
+      const mockUnlinkSync = jest.spyOn(fs, "unlinkSync");
+      const mockExistsSync = jest
+        .spyOn(fs, "existsSync")
+        .mockReturnValue(false);
+      (getUploadsDirectory as jest.Mock).mockReturnValue("/test/uploads");
+
+      await userService.deleteUser(userId);
+
+      // Verify file existence was checked but deletion was not attempted
+      expect(mockExistsSync).toHaveBeenCalled();
+      expect(mockUnlinkSync).not.toHaveBeenCalled();
+
+      // Verify user was still deleted
+      const user = await userService.getUserById(userId);
+      expect(user).toBeNull();
+
+      // Cleanup mocks
+      mockUnlinkSync.mockRestore();
+      mockExistsSync.mockRestore();
+      (getUploadsDirectory as jest.Mock).mockClear();
+    });
+
+    it("should handle invalid profile picture URL format gracefully", async () => {
+      const { getUploadsDirectory } = require("../../middleware/upload.js");
+      const result = await testDb.run(
+        "INSERT INTO users (name, email, profile_picture_url) VALUES (?, ?, ?)",
+        ["Test User", "test@example.com", "invalid-url-format"]
+      );
+      const userId = result.lastID;
+
+      // Mock getUploadsDirectory (should not be called for invalid URL)
+      (getUploadsDirectory as jest.Mock).mockReturnValue("/test/uploads");
+
+      await userService.deleteUser(userId);
+
+      // Verify getUploadsDirectory was not called for invalid URL
+      expect(getUploadsDirectory).not.toHaveBeenCalled();
+
+      // Verify user was still deleted
+      const user = await userService.getUserById(userId);
+      expect(user).toBeNull();
+
+      // Cleanup mocks
+      (getUploadsDirectory as jest.Mock).mockClear();
+    });
+
+    it("should handle file deletion errors gracefully and still delete user", async () => {
+      const { getUploadsDirectory } = require("../../middleware/upload.js");
+      const result = await testDb.run(
+        "INSERT INTO users (name, email, profile_picture_url) VALUES (?, ?, ?)",
+        [
+          "Test User",
+          "test@example.com",
+          "http://localhost:3001/uploads/test-image.jpg",
+        ]
+      );
+      const userId = result.lastID;
+
+      // Mock fs to throw error on unlinkSync
+      const mockUnlinkSync = jest
+        .spyOn(fs, "unlinkSync")
+        .mockImplementation(() => {
+          throw new Error("File system error");
+        });
+      const mockExistsSync = jest.spyOn(fs, "existsSync").mockReturnValue(true);
+      (getUploadsDirectory as jest.Mock).mockReturnValue("/test/uploads");
+
+      // Should not throw error, user deletion should succeed
+      await expect(userService.deleteUser(userId)).resolves.not.toThrow();
+
+      // Verify user was still deleted despite file deletion error
+      const user = await userService.getUserById(userId);
+      expect(user).toBeNull();
+
+      // Cleanup mocks
+      mockUnlinkSync.mockRestore();
+      mockExistsSync.mockRestore();
+      (getUploadsDirectory as jest.Mock).mockClear();
+    });
+
+    it("should delete user without profile picture URL", async () => {
+      const { getUploadsDirectory } = require("../../middleware/upload.js");
+      const result = await testDb.run(
+        "INSERT INTO users (name, email) VALUES (?, ?)",
+        ["Test User", "test@example.com"]
+      );
+      const userId = result.lastID;
+
+      // Mock getUploadsDirectory (should not be called when no profile picture)
+      (getUploadsDirectory as jest.Mock).mockReturnValue("/test/uploads");
+
+      await userService.deleteUser(userId);
+
+      // Verify getUploadsDirectory was not called
+      expect(getUploadsDirectory).not.toHaveBeenCalled();
+
+      // Verify user was deleted
+      const user = await userService.getUserById(userId);
+      expect(user).toBeNull();
+
+      // Cleanup mocks
+      (getUploadsDirectory as jest.Mock).mockClear();
     });
   });
 
