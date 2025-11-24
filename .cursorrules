@@ -1,0 +1,20 @@
+# Cursor Rules for Habitus Project
+
+## Code Style and Best Practices
+
+1. **Object-Oriented Programming**: Use object-oriented programming whenever it's possible. Prefer classes and instances over static functions and procedural code.
+
+2. **Dead Code**: Always check for dead code in the modified files when doing some changes. Remove unused code, functions, and imports.
+
+3. **Error Messages**: Error texts must be in English.
+
+4. **Testing**:
+
+   - Always run all available test suites after changing code.
+   - Tests must be in English.
+   - Maintain test coverage above 75%.
+
+5. **Documentation**:
+   - Always comment in English.
+   - Use JSDoc style for comments.
+   - Document classes, methods, and complex logic.
