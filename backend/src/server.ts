@@ -244,23 +244,37 @@ db.initialize()
 
       try {
         // Close HTTP server
-        await new Promise<void>((resolve) => {
-          server.close(() => {
-            console.log("HTTP server closed");
-            resolve();
+        await new Promise<void>((resolve, reject) => {
+          server.close((err) => {
+            if (err) {
+              console.error("Error closing HTTP server:", err);
+              reject(err);
+            } else {
+              console.log("HTTP server closed");
+              resolve();
+            }
           });
         });
 
         // Close Vite server
         if (viteServer) {
-          await viteServer.close();
-          console.log("Vite dev server closed");
+          try {
+            await viteServer.close();
+            console.log("Vite dev server closed");
+          } catch (error) {
+            console.error("Error closing Vite server:", error);
+          }
         }
 
         // Close database
-        await db.close().catch(console.error);
-        console.log("Database closed");
+        try {
+          await db.close();
+          console.log("Database closed");
+        } catch (error) {
+          console.error("Error closing database:", error);
+        }
 
+        // Exit gracefully - let tsx watch handle the exit
         process.exit(0);
       } catch (error) {
         console.error("Error during shutdown:", error);
@@ -268,24 +282,17 @@ db.initialize()
       }
     };
 
-    // Handle shutdown signals
-    process.on("SIGTERM", () => {
-      shutdown("SIGTERM").catch(() => process.exit(1));
+    // Handle shutdown signals - use once to prevent multiple handlers
+    process.once("SIGTERM", () => {
+      shutdown("SIGTERM").catch(() => {
+        process.exit(1);
+      });
     });
 
-    process.on("SIGINT", () => {
-      shutdown("SIGINT").catch(() => process.exit(1));
-    });
-
-    // Handle uncaught errors
-    process.on("uncaughtException", (error) => {
-      console.error("Uncaught exception:", error);
-      shutdown("uncaughtException").catch(() => process.exit(1));
-    });
-
-    process.on("unhandledRejection", (reason, promise) => {
-      console.error("Unhandled rejection at:", promise, "reason:", reason);
-      shutdown("unhandledRejection").catch(() => process.exit(1));
+    process.once("SIGINT", () => {
+      shutdown("SIGINT").catch(() => {
+        process.exit(1);
+      });
     });
   })
   .catch((error) => {
