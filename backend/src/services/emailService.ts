@@ -34,8 +34,8 @@ export class EmailService {
       pass: config?.pass || process.env.SMTP_PASS || "",
       frontendUrl:
         config?.frontendUrl ||
-        process.env.FRONTEND_URL ||
         process.env.BASE_URL ||
+        process.env.FRONTEND_URL ||
         getDefaultFrontendUrl(),
     };
   }
