@@ -60,15 +60,7 @@ npm install
 
 This will install dependencies for both frontend and backend projects.
 
-Alternatively, you can install them separately:
-
-```bash
-# Install frontend dependencies
-cd frontend && npm install && cd ..
-
-# Install backend dependencies
-cd backend && npm install && cd ..
-```
+````
 
 ### Environment Variables
 
@@ -78,7 +70,7 @@ Create a `.env` file in the `frontend` directory:
 
 ```env
 VITE_API_BASE_URL=http://localhost:3001
-```
+````
 
 #### Backend
 
@@ -153,33 +145,12 @@ npm run dev
 ```
 
 This starts a single server on `http://localhost:3001` that:
+
 - Serves the backend API at `/api/*` endpoints
 - Serves the React frontend with Vite HMR (Hot Module Replacement) for all other routes
 - Automatically reloads on file changes using `tsx watch`
 
 The application will be available at `http://localhost:3001`.
-
-### Server Management
-
-You can manage the unified server using utility scripts:
-
-**Kill the server:**
-
-```bash
-npm run dev:kill
-```
-
-This will stop the server running on port 3001.
-
-**Restart the server:**
-
-```bash
-npm run dev:restart
-```
-
-This will kill the existing server and start it again in the same terminal. The server will run in the foreground, and you can stop it with `Ctrl+C`.
-
-**Note**: The server uses `tsx watch` for development, which automatically reloads on file changes. You typically only need to restart manually if the auto-reload isn't working or if you need a clean restart.
 
 ## Build
 
@@ -294,9 +265,6 @@ habitus/
 │   ├── tsconfig.json          # TypeScript configuration
 │   ├── jest.config.cjs        # Jest configuration
 │   └── vite.config.ts         # Vite configuration
-├── scripts/                    # Development utility scripts
-│   ├── kill-server.ps1        # Script to kill the backend server
-│   └── restart-server.ps1     # Script to restart the backend server
 ├── package.json                # Root workspace configuration
 └── README.md                   # This file
 ```
@@ -350,12 +318,7 @@ npm test -- src/models/__tests__/User.test.ts
 ### Root Scripts (Workspace)
 
 - `npm run dev` - Start unified development server (backend serves both API and frontend)
-- `npm run dev:backend` - Start backend development server (same as `npm run dev`)
-- `npm run dev:kill` - Kill the server running on port 3001
-- `npm run dev:restart` - Restart the server (kills and starts in same terminal)
 - `npm run build` - Build both frontend and backend for production
-- `npm run build:frontend` - Build frontend for production
-- `npm run build:backend` - Build backend for production
 - `npm test` - Run all tests (frontend and backend)
 - `npm run test:frontend` - Run frontend tests only
 - `npm run test:backend` - Run backend tests only
@@ -379,141 +342,6 @@ npm test -- src/models/__tests__/User.test.ts
 - `npm run build` - Build backend for production
 - `npm start` - Run production server
 - `npm test` - Run backend tests
-
-## Code Standards
-
-This project follows strict coding standards to ensure code quality and maintainability:
-
-### Comments
-
-- **All comments must be in English and use JSDoc/TSDoc format**
-  - Use JSDoc/TSDoc comments for functions, classes, and complex logic
-  - Mark public APIs appropriately
-  - Document parameters, return values, and exceptions
-
-### Code Language
-
-- **All code must be in English, including error messages**
-  - Variable names, function names, and all identifiers must be in English
-  - Error messages and user-facing text must be in English
-  - Console logs and debug messages must be in English
-
-### Testing
-
-- **Add or adjust relevant test cases after making code changes**
-
-  - When adding new features, add corresponding test cases
-  - When modifying existing code, update tests to reflect changes
-  - Ensure tests cover edge cases and error scenarios
-
-- **Run all test suites after making code changes**
-
-  - Always run `npm test` before committing code
-  - Ensure all tests pass before submitting changes
-  - Use `npm run test:coverage` to verify test coverage
-
-- **Verify test coverage after each code change and add tests as needed**
-  - After making code changes, run `npm run test:coverage` to check coverage
-  - Review the coverage report to identify untested code paths
-  - Add tests for any new or modified code that lacks adequate coverage
-  - Aim for high coverage (ideally >75%) while ensuring tests are meaningful
-
-### Code Quality
-
-- **Check for dead/duplicated code after making code changes**
-  - Remove unused imports, functions, and variables
-  - Refactor duplicated code into reusable functions/components
-  - Use ESLint to identify unused code: `npm run lint`
-
-### Naming Conventions
-
-- **Use descriptive names in English following consistent conventions**
-  - Constants: `UPPER_SNAKE_CASE` (e.g., `MAX_NAME_LENGTH`, `STORAGE_KEY`)
-  - Components: `PascalCase` (e.g., `UserForm`, `Message`)
-  - Functions/Variables: `camelCase` (e.g., `createUser`, `handleSubmit`)
-  - Files: `camelCase` for components, `kebab-case` for utilities
-  - Avoid abbreviations unless widely understood
-  - Names should clearly indicate purpose and intent
-
-### Code Structure
-
-- **Write clean, maintainable code following best practices**
-  - Functions should be small and have a single responsibility
-  - Avoid functions longer than ~50 lines (consider breaking them down)
-  - Maximum 3-4 parameters per function (use objects for more parameters)
-  - Avoid deep nesting (maximum 3 levels)
-  - Extract complex logic into separate functions or custom hooks
-  - Keep components focused and composable
-
-### TypeScript Standards
-
-- **Follow TypeScript best practices for type safety**
-  - Avoid `any` type; use `unknown` if type is truly unknown
-  - Provide explicit return types for public functions
-  - Use `interface` for object shapes, `type` for unions/primitives
-  - Never use `@ts-ignore` without a justified comment explaining why
-  - Leverage TypeScript's type system to catch errors at compile time
-  - Use type guards and assertions appropriately
-
-### React Best Practices
-
-- **Follow React conventions and patterns**
-  - Use functional components with hooks (avoid class components)
-  - Use `useCallback` and `useMemo` when appropriate to prevent unnecessary re-renders
-  - Provide unique and stable keys for list items
-  - Separate business logic from presentation (use custom hooks)
-  - Keep components small and focused on a single responsibility
-  - Use proper prop types/interfaces for all components
-
-### Error Handling
-
-- **Implement comprehensive error handling**
-  - Handle all possible error scenarios
-  - Provide descriptive error messages that help users understand the issue
-  - Use Error Boundaries in React for component-level error handling
-  - Log errors appropriately for debugging (use `console.error` for errors)
-  - Never silently swallow errors unless explicitly intended
-  - Validate inputs and handle edge cases gracefully
-
-### Performance
-
-- **Optimize code for performance**
-  - Avoid unnecessary re-renders (use React DevTools Profiler)
-  - Implement lazy loading for large components or routes
-  - Optimize images and assets (use appropriate formats and sizes)
-  - Review bundle size periodically (`npm run build` and check output)
-  - Use code splitting when appropriate
-  - Profile performance-critical code paths
-
-### Security
-
-- **Follow security best practices**
-  - Validate and sanitize all user inputs
-  - Prevent XSS attacks (use proper escaping for user-generated content)
-  - Never expose secrets, API keys, or sensitive data in code
-  - Use HTTPS in production environments
-  - Keep dependencies updated to avoid known vulnerabilities
-  - Review security advisories regularly (`npm audit`)
-
-### Accessibility
-
-- **Ensure application is accessible to all users**
-  - Use semantic HTML elements (`<button>`, `<nav>`, `<main>`, etc.)
-  - Add ARIA attributes when semantic HTML is insufficient
-  - Ensure keyboard navigation works for all interactive elements
-  - Maintain proper color contrast ratios (WCAG AA minimum)
-  - Provide alternative text for images (`alt` attribute)
-  - Test with screen readers when possible
-
-### Dependencies
-
-- **Manage dependencies responsibly**
-  - Keep dependencies updated to latest stable versions
-  - Regularly check for vulnerabilities: `npm audit`
-  - Avoid unnecessary dependencies (prefer native solutions when possible)
-  - Document critical dependencies and their purpose
-  - Review and remove unused dependencies periodically
-  - Use exact versions (`package-lock.json`) for reproducible builds
 
 ## License
 
