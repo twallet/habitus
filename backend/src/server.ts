@@ -133,16 +133,15 @@ async function initializeViteDevServer() {
 
   try {
     const { createServer } = await import("vite");
-    const react = await import("@vitejs/plugin-react");
     const frontendPath = join(__dirname, "../../frontend");
 
     const viteServer = await createServer({
       root: frontendPath,
+      configFile: join(frontendPath, "vite.config.ts"),
       server: {
         middlewareMode: true,
       },
       appType: "spa",
-      plugins: [react.default()],
       logLevel: "warn",
       clearScreen: false,
     });
