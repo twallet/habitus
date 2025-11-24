@@ -381,8 +381,16 @@ function App() {
           </h1>
         </header>
 
+        {message && message.type === 'success' && (
+          <Message
+            text={message.text}
+            type={message.type}
+            onHide={handleHideMessage}
+          />
+        )}
+
         <main>
-          {message && (
+          {message && message.type === 'error' && (
             <Message
               text={message.text}
               type={message.type}
@@ -432,13 +440,21 @@ function App() {
         )}
       </header>
 
+      {message && message.type === 'success' && (
+        <Message
+          text={message.text}
+          type={message.type}
+          onHide={handleHideMessage}
+        />
+      )}
+
       <main>
         <div className="dashboard-header">
           <h2>Your Trackings</h2>
           <p className="dashboard-subtitle">Manage your nanohabit trackings</p>
         </div>
 
-        {message && (
+        {message && message.type === 'error' && (
           <Message
             text={message.text}
             type={message.type}
