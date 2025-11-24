@@ -1,5 +1,8 @@
 import { Database } from "../db/database.js";
 import { User, UserData } from "../models/User.js";
+import { getUploadsDirectory } from "../middleware/upload.js";
+import fs from "fs";
+import path from "path";
 
 /**
  * Service for user-related database operations.
@@ -211,6 +214,7 @@ export class UserService {
 
   /**
    * Delete a user by ID.
+   * Also deletes the user's profile picture file if it exists.
    * @param userId - The user ID to delete
    * @returns Promise resolving when user is deleted
    * @throws Error if user not found
@@ -221,6 +225,53 @@ export class UserService {
       `[${new Date().toISOString()}] USER | Deleting user account for userId: ${userId}`
     );
 
+    // Get user data before deletion to retrieve profile picture URL
+    const user = await this.getUserById(userId);
+    if (!user) {
+      console.warn(
+        `[${new Date().toISOString()}] USER | Delete failed: user not found for userId: ${userId}`
+      );
+      throw new Error("User not found");
+    }
+
+    // Delete profile picture file if it exists
+    if (user.profile_picture_url) {
+      try {
+        // Extract filename from URL (e.g., "http://localhost:3001/uploads/filename.jpg" -> "filename.jpg")
+        const urlParts = user.profile_picture_url.split("/uploads/");
+        if (urlParts.length === 2) {
+          const filename = urlParts[1];
+          const uploadsDir = getUploadsDirectory();
+          const filePath = path.join(uploadsDir, filename);
+
+          // Check if file exists and delete it
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+            console.log(
+              `[${new Date().toISOString()}] USER | Deleted profile picture file: ${filename} for userId: ${userId}`
+            );
+          } else {
+            console.warn(
+              `[${new Date().toISOString()}] USER | Profile picture file not found: ${filePath} for userId: ${userId}`
+            );
+          }
+        } else {
+          console.warn(
+            `[${new Date().toISOString()}] USER | Invalid profile picture URL format: ${
+              user.profile_picture_url
+            } for userId: ${userId}`
+          );
+        }
+      } catch (error) {
+        // Log error but don't fail user deletion if file deletion fails
+        console.error(
+          `[${new Date().toISOString()}] USER | Error deleting profile picture file for userId: ${userId}:`,
+          error
+        );
+      }
+    }
+
+    // Delete user from database
     const result = await this.db.run("DELETE FROM users WHERE id = ?", [
       userId,
     ]);
