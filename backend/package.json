@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch --exclude \"dist/**\" --exclude \"data/**\" --exclude \"coverage/**\" --exclude \"node_modules/**\" --exclude \"../frontend/**\" --clear-screen false src/server.ts",
+    "dev": "tsx watch --exclude \"dist/**\" --exclude \"data/**\" --exclude \"coverage/**\" --exclude \"node_modules/**\" --exclude \"../frontend/**\" src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
     "test": "jest --forceExit --passWithNoTests"
