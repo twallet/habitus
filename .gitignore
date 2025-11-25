@@ -38,7 +38,6 @@ coverage
 .nyc_output
 
 # Database and uploads
-backend/data/
-backend/uploads/
+data/
 frontend/dist/
 backend/dist/

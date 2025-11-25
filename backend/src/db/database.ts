@@ -4,45 +4,78 @@ import { fileURLToPath } from "url";
 import fs from "fs";
 
 /**
- * Get __dirname in a way that works in both ESM and Jest.
- * @returns The directory path
+ * Get project root directory (workspace root).
+ * Uses import.meta.url to reliably find the workspace root regardless of current working directory.
+ * From backend/src/db/ we need to go up 3 levels to reach the workspace root.
+ * @returns The project root path
  * @private
  */
-function getDirname(): string {
+function getProjectRoot(): string {
   // Check if we're in a test environment
   if (
     typeof process !== "undefined" &&
     (process.env.NODE_ENV === "test" || process.env.JEST_WORKER_ID)
   ) {
+    // In test environment, use current working directory
     return path.resolve();
   }
 
   try {
-    // Use eval to avoid TypeScript/Jest parsing issues with import.meta
+    // Access import.meta.url directly (this works in ESM modules)
+    // The eval workaround is needed for Jest/TypeScript compatibility
     // eslint-disable-next-line @typescript-eslint/no-implied-eval
     const importMeta = new Function(
       'return typeof import !== "undefined" ? import.meta : null'
     )();
+
     if (importMeta && importMeta.url) {
-      const __filename = fileURLToPath(importMeta.url);
-      return path.dirname(__filename);
+      const currentFile = fileURLToPath(importMeta.url);
+      const currentDir = path.dirname(currentFile);
+
+      // From backend/src/db/ go up 3 levels to workspace root: ../../../
+      // Use path.resolve to get absolute path, then normalize
+      let projectRoot = path.resolve(currentDir, "../../..");
+      projectRoot = path.normalize(projectRoot);
+
+      // Verify we found the workspace root by checking for package.json
+      const packageJsonPath = path.join(projectRoot, "package.json");
+      if (fs.existsSync(packageJsonPath)) {
+        return projectRoot;
+      }
+
+      // If package.json not found, try going up one more level (in case of build output)
+      projectRoot = path.resolve(currentDir, "../../../..");
+      projectRoot = path.normalize(projectRoot);
+      const altPackageJsonPath = path.join(projectRoot, "package.json");
+      if (fs.existsSync(altPackageJsonPath)) {
+        return projectRoot;
+      }
+
+      // If still not found, return the original calculation
+      return path.resolve(currentDir, "../../..");
     }
-  } catch {
+  } catch (error) {
     // Fallback if import.meta is not available
+    console.warn(
+      `[${new Date().toISOString()}] DATABASE | Could not determine project root from import.meta.url, using fallback:`,
+      error
+    );
   }
 
-  return path.resolve();
-}
+  // Fallback: try to find workspace root by looking for package.json
+  let currentDir = process.cwd();
+  const root = path.parse(currentDir).root; // Get drive root (e.g., "D:\")
 
-/**
- * Get project root directory (workspace root).
- * @returns The project root path
- * @private
- */
-function getProjectRoot(): string {
-  const __dirname = getDirname();
-  // From backend/src/db/ go up to workspace root: ../../../
-  return path.resolve(__dirname, "../../..");
+  while (currentDir !== root) {
+    const packageJsonPath = path.join(currentDir, "package.json");
+    if (fs.existsSync(packageJsonPath)) {
+      return currentDir;
+    }
+    currentDir = path.dirname(currentDir);
+  }
+
+  // Last resort: use current working directory
+  return path.resolve(process.cwd());
 }
 
 /**

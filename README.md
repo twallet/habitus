@@ -254,11 +254,11 @@ habitus/
 │   │   │   ├── rateLimiter.ts # Rate limiting
 │   │   │   └── upload.ts      # File upload handling
 │   │   └── server.ts          # Express server
-│   ├── data/                  # SQLite database (gitignored)
 │   ├── package.json           # Backend dependencies
 │   ├── tsconfig.json          # TypeScript config
 │   └── jest.config.cjs        # Jest configuration
-├── frontend/                   # Frontend React application
+├── data/                      # SQLite database (gitignored)
+├── frontend/                  # Frontend React application
 │   ├── src/
 │   │   ├── components/        # React components
 │   │   │   ├── __tests__/     # Component tests
