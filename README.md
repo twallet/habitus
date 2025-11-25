@@ -1,6 +1,6 @@
 # Habitus - Full Stack Application
 
-Full-stack web application with separated frontend and backend for creating and managing users in Habitus.
+Full-stack web application for creating and managing users in Habitus.
 
 ## Architecture
 
