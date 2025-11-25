@@ -70,15 +70,36 @@ describe("Database", () => {
       expect(db).toBeInstanceOf(Database);
     });
 
-    it("should create data directory when using default path", () => {
-      // Clear DB_PATH to use default
-      delete process.env.DB_PATH;
-      const db = new Database();
-      expect(db).toBeInstanceOf(Database);
-      // In test environment, it uses process.cwd(), so data dir should exist
-      const dataDir = path.join(process.cwd(), "data");
-      // Note: This might not exist if tests run in different contexts
-      // but the Database constructor should handle it
+    it("should create data directory when using default path", async () => {
+      // Use a temporary directory for the database to avoid creating directories in the project root
+      const testDataDir = fs.mkdtempSync(
+        path.join(os.tmpdir(), "habitus-test-data-")
+      );
+      const testDbPath = path.join(testDataDir, "habitus.db");
+
+      try {
+        // Set DB_PATH to use the test directory (simulating default path behavior)
+        process.env.DB_PATH = testDbPath;
+        const db = new Database();
+        expect(db).toBeInstanceOf(Database);
+
+        // Initialize database to ensure path resolution happens
+        await db.initialize();
+
+        // Verify directory was created (getDatabasePath creates the parent directory)
+        expect(fs.existsSync(testDataDir)).toBe(true);
+        expect(fs.existsSync(testDbPath)).toBe(true);
+
+        // Cleanup: close database
+        await db.close();
+      } finally {
+        // Clean up test directory
+        if (fs.existsSync(testDataDir)) {
+          fs.rmSync(testDataDir, { recursive: true, force: true });
+        }
+        // Restore DB_PATH
+        delete process.env.DB_PATH;
+      }
     });
   });
 

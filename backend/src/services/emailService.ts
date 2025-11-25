@@ -90,8 +90,8 @@ export class EmailService {
         ? "Welcome to 🌱 Habitus! Verify your email to complete registration"
         : "Your login link to 🌱 Habitus";
       const text = isRegistration
-        ? `Welcome to 🌱 Habitus! Click the link below to verify your email and complete your registration to 🌱 Habitus:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\n\nIf you didn't request this, please ignore this email.`
-        : `Click the link below to log into 🌱 Habitus:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\n\nIf you didn't request this, please ignore this email.`;
+        ? `Welcome to 🌱 Habitus! Click the link below to verify your email and complete your registration to 🌱 Habitus:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\nIf you didn't request this, please ignore this email.`
+        : `Click the link below to log into 🌱 Habitus:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\nIf you didn't request this, please ignore this email.`;
 
       console.log(
         `[${new Date().toISOString()}] EMAIL | Sending ${emailType} magic link email via SMTP (${
@@ -116,11 +116,11 @@ export class EmailService {
               <tr>
                 <td style="padding: 40px 30px; text-align: left;">
                   <h2 style="color: #333; text-align: left; margin: 0 0 16px 0; font-size: 24px; font-weight: bold;">${
-                    isRegistration ? "Welcome!" : "Login Request"
+                    isRegistration ? "Welcome to 🌱 Habitus!" : "Login Request"
                   }</h2>
                   <p style="text-align: left; margin: 0 0 16px 0; font-size: 16px; line-height: 1.5; color: #333;">${
                     isRegistration
-                      ? "Click the link below to verify your email and complete your registration to 🌱 Habitus:"
+                      ? "Click the link below to verify your email and complete your registration:"
                       : "Click the link below to log into 🌱 Habitus:"
                   }</p>
                   <p style="margin: 30px 0; text-align: left;">
@@ -128,8 +128,7 @@ export class EmailService {
                       ${isRegistration ? "Verify email" : "Log in"}
                     </a>
                   </p>
-                  <p style="color: #666; font-size: 14px; text-align: left; margin: 0 0 8px 0; line-height: 1.5;">This link will expire in 15 minutes.</p>
-                  <p style="color: #666; font-size: 14px; text-align: left; margin: 0; line-height: 1.5;">If you didn't request this, please ignore this email.</p>
+                  <p style="color: #666; font-size: 14px; text-align: left; margin: 0 0 8px 0; line-height: 1.5;">This link will expire in 15 minutes. If you didn't request this, please ignore this email.</p>
                 </td>
               </tr>
             </table>

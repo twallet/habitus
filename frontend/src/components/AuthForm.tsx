@@ -145,9 +145,7 @@ export function AuthForm({
           {isLoginMode ? (
             <>
               <p>
-                If an account exists for <strong>{email}</strong>, a magic link has been sent.
-              </p>
-              <p>Click the link in the email to log in.</p>
+                If an account exists for <strong>{email}</strong>, a magic link has been sent. Click the link in the email to log in.</p>
               <p className="magic-link-help">
                 The link will expire in 15 minutes. If you don't see the email, check your spam folder. If you don't have an account, please register first.
               </p>
@@ -155,9 +153,7 @@ export function AuthForm({
           ) : (
             <>
               <p>
-                We've sent a magic link to <strong>{email}</strong>
-              </p>
-              <p>Click the link in the email to complete your registration.</p>
+                We've sent a magic link to <strong>{email}</strong>. Click the link in the email to complete your registration.</p>
               <p className="magic-link-help">
                 The link will expire in 15 minutes. If you don't see the email, check your spam folder.
               </p>
@@ -170,6 +166,7 @@ export function AuthForm({
               setEmail("");
             }}
             className="btn-primary"
+            style={{ marginTop: "2rem" }}
           >
             Send another link
           </button>

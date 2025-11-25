@@ -87,10 +87,10 @@ export function DeleteUserConfirmationModal({
                 <form onSubmit={handleSubmit} className="delete-confirmation-form">
                     <div className="delete-warning">
                         <p>
-                            Are you sure you want to delete <strong>{userName}'s</strong> account? This action cannot be undone.
+                            Are you sure you want to delete <strong>{userName}'s</strong> account?
                         </p>
                         <p className="delete-warning-strong">
-                            All your data will be permanently deleted.
+                            All your data will be permanently deleted. This action cannot be undone.
                         </p>
                     </div>
 
