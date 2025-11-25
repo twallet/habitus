@@ -206,6 +206,21 @@ export function AuthForm({
             </div>
 
             <div className="form-group">
+              <label htmlFor="email">Email *</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="form-group">
               <label htmlFor="profilePicture">Profile picture</label>
               <div className="file-input-wrapper">
                 <input
@@ -257,20 +272,22 @@ export function AuthForm({
           </>
         )}
 
-        <div className="form-group">
-          <label htmlFor="email">Email *</label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            placeholder="Enter your email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoComplete="email"
-            disabled={isSubmitting}
-          />
-        </div>
+        {isLoginMode && (
+          <div className="form-group">
+            <label htmlFor="email">Email *</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+              disabled={isSubmitting}
+            />
+          </div>
+        )}
 
         <button
           type="submit"
