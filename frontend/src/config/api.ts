@@ -31,29 +31,13 @@ const getApiBaseUrl = (): string => {
     port = globalImport.meta.env.VITE_PORT;
   }
 
-  // In browser/Vite environment, import.meta.env is available directly
-  // Vite replaces import.meta.env at build/dev time with actual values
-  // Check if we're not in a Jest environment and import.meta.env is available
-  if ((!serverUrl || !port) && typeof window !== "undefined") {
-    // In browser, access import.meta.env directly (Vite injects it)
-    // Type assertion needed because TypeScript might not see the Vite types in all contexts
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const viteEnv = (import.meta as any).env;
-    if (viteEnv) {
-      serverUrl = serverUrl || viteEnv.VITE_SERVER_URL;
-      port = port || viteEnv.VITE_PORT;
-    }
-  }
-
-  // Fallback: Try to access import.meta.env directly (works in Vite dev server)
-  // This is the primary way Vite provides environment variables
+  // In browser/Vite environment, access import.meta.env directly
+  // Vite replaces import.meta.env at build/dev time with actual values from .env file
+  // Only access if we didn't get values from Jest mock
   if (!serverUrl || !port) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const viteEnv = (import.meta as any)?.env;
-    if (viteEnv?.VITE_SERVER_URL || viteEnv?.VITE_PORT) {
-      serverUrl = serverUrl || viteEnv.VITE_SERVER_URL;
-      port = port || viteEnv.VITE_PORT;
-    }
+    // Direct access - Vite provides this in the browser and replaces at build/dev time
+    serverUrl = serverUrl || import.meta.env.VITE_SERVER_URL;
+    port = port || import.meta.env.VITE_PORT;
   }
 
   // Fallback to process.env for tests (Node.js environment)
