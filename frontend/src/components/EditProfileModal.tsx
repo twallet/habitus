@@ -37,6 +37,7 @@ export function EditProfileModal({
     );
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [emailChanged, setEmailChanged] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     /**
@@ -107,13 +108,21 @@ export function EditProfileModal({
                 return;
             }
 
+            const emailWasChanged = email.trim() !== user.email;
+
             await onSave(
                 validatedName,
                 validatedNickname,
                 email.trim(),
                 profilePicture
             );
-            onClose();
+
+            if (emailWasChanged) {
+                setEmailChanged(true);
+                // Don't close modal, show message instead
+            } else {
+                onClose();
+            }
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Error updating profile');
         } finally {
@@ -161,6 +170,26 @@ export function EditProfileModal({
                                 type="button"
                                 className="message-close"
                                 onClick={() => setError(null)}
+                                aria-label="Close"
+                            >
+                                ×
+                            </button>
+                        </div>
+                    )}
+                    {emailChanged && (
+                        <div className="message success show">
+                            <span className="message-text">
+                                A verification link has been sent to <strong>{email.trim()}</strong>.
+                                Please check your email and click the link to verify your new email address.
+                                Your email will be updated after verification.
+                            </span>
+                            <button
+                                type="button"
+                                className="message-close"
+                                onClick={() => {
+                                    setEmailChanged(false);
+                                    onClose();
+                                }}
                                 aria-label="Close"
                             >
                                 ×
@@ -218,7 +247,7 @@ export function EditProfileModal({
                     </div>
 
                     <div className="form-group">
-                        <label htmlFor="edit-profile-picture">Profile Picture (Optional)</label>
+                        <label htmlFor="edit-profile-picture">Profile Picture</label>
                         <div className="file-input-wrapper">
                             <input
                                 ref={fileInputRef}

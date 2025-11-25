@@ -72,14 +72,14 @@ header {
 .app-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   position: relative;
   text-align: left;
 }
 
-.app-header > div {
+.app-header > div:first-child {
   flex: 1;
-  text-align: center;
+  text-align: left;
 }
 
 header h1 {

@@ -23,7 +23,7 @@ let emailService: EmailService | null = null;
 export function initializeServices(db: Database): void {
   emailService = new EmailService();
   authService = new AuthService(db, emailService);
-  userService = new UserService(db);
+  userService = new UserService(db, emailService);
   trackingService = new TrackingService(db);
 }
 

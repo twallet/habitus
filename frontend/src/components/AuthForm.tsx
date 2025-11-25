@@ -211,7 +211,7 @@ export function AuthForm({
             </div>
 
             <div className="form-group">
-              <label htmlFor="nickname">Nickname (Optional)</label>
+              <label htmlFor="nickname">Nickname</label>
               <input
                 type="text"
                 id="nickname"
@@ -226,7 +226,7 @@ export function AuthForm({
             </div>
 
             <div className="form-group">
-              <label htmlFor="profilePicture">Profile Picture (Optional)</label>
+              <label htmlFor="profilePicture">Profile Picture</label>
               <div className="file-input-wrapper">
                 <input
                   ref={fileInputRef}

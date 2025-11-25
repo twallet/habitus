@@ -232,6 +232,9 @@ export class Database {
               profile_picture_url TEXT,
               magic_link_token TEXT,
               magic_link_expires DATETIME,
+              pending_email TEXT,
+              email_verification_token TEXT,
+              email_verification_expires DATETIME,
               last_access DATETIME,
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -239,6 +242,7 @@ export class Database {
             CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at);
             CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
             CREATE INDEX IF NOT EXISTS idx_users_magic_link_token ON users(magic_link_token);
+            CREATE INDEX IF NOT EXISTS idx_users_email_verification_token ON users(email_verification_token);
             CREATE TABLE IF NOT EXISTS trackings (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               user_id INTEGER NOT NULL,
@@ -266,6 +270,66 @@ export class Database {
                 console.log(
                   `[${new Date().toISOString()}] DATABASE | Database schema created successfully`
                 );
+
+                // Migrate existing databases: add email verification columns if they don't exist
+                this.db!.run(
+                  `ALTER TABLE users ADD COLUMN pending_email TEXT`,
+                  (alterErr) => {
+                    // Ignore error if column already exists
+                    if (
+                      alterErr &&
+                      !alterErr.message.includes("duplicate column")
+                    ) {
+                      console.warn(
+                        `[${new Date().toISOString()}] DATABASE | Warning adding pending_email column:`,
+                        alterErr.message
+                      );
+                    }
+                  }
+                );
+                this.db!.run(
+                  `ALTER TABLE users ADD COLUMN email_verification_token TEXT`,
+                  (alterErr) => {
+                    // Ignore error if column already exists
+                    if (
+                      alterErr &&
+                      !alterErr.message.includes("duplicate column")
+                    ) {
+                      console.warn(
+                        `[${new Date().toISOString()}] DATABASE | Warning adding email_verification_token column:`,
+                        alterErr.message
+                      );
+                    }
+                  }
+                );
+                this.db!.run(
+                  `ALTER TABLE users ADD COLUMN email_verification_expires DATETIME`,
+                  (alterErr) => {
+                    // Ignore error if column already exists
+                    if (
+                      alterErr &&
+                      !alterErr.message.includes("duplicate column")
+                    ) {
+                      console.warn(
+                        `[${new Date().toISOString()}] DATABASE | Warning adding email_verification_expires column:`,
+                        alterErr.message
+                      );
+                    }
+                  }
+                );
+                // Create index for email verification token if it doesn't exist
+                this.db!.run(
+                  `CREATE INDEX IF NOT EXISTS idx_users_email_verification_token ON users(email_verification_token)`,
+                  (indexErr) => {
+                    if (indexErr) {
+                      console.warn(
+                        `[${new Date().toISOString()}] DATABASE | Warning creating email_verification_token index:`,
+                        indexErr.message
+                      );
+                    }
+                  }
+                );
+
                 resolve();
               }
             );

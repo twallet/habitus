@@ -1,8 +1,27 @@
 import { Database } from "../db/database.js";
 import { User, UserData } from "../models/User.js";
 import { getUploadsDirectory } from "../middleware/upload.js";
+import { EmailService } from "./emailService.js";
+import crypto from "crypto";
 import fs from "fs";
 import path from "path";
+
+/**
+ * Get magic link expiration time in minutes (lazy loading).
+ * @returns Magic link expiration time in minutes
+ * @private
+ */
+function getMagicLinkExpiryMinutes(): number {
+  const minutes = process.env.MAGIC_LINK_EXPIRY_MINUTES;
+  if (!minutes) {
+    return 15; // Default to 15 minutes
+  }
+  const parsed = parseInt(minutes, 10);
+  if (isNaN(parsed) || parsed <= 0) {
+    return 15; // Default to 15 minutes
+  }
+  return parsed;
+}
 
 /**
  * Service for user-related database operations.
@@ -10,14 +29,17 @@ import path from "path";
  */
 export class UserService {
   private db: Database;
+  private emailService: EmailService | null;
 
   /**
    * Create a new UserService instance.
    * @param db - Database instance
+   * @param emailService - Optional EmailService instance for email verification
    * @public
    */
-  constructor(db: Database) {
+  constructor(db: Database, emailService?: EmailService) {
     this.db = db;
+    this.emailService = emailService || null;
   }
 
   /**
@@ -153,21 +175,81 @@ export class UserService {
     if (email !== undefined) {
       const validatedEmail = User.validateEmail(email);
 
-      // Check if email is already taken by another user
-      const existingUser = await this.db.get<{ id: number }>(
-        "SELECT id FROM users WHERE email = ? AND id != ?",
-        [validatedEmail, userId]
+      // Get current user email to check if it's changing
+      const currentUser = await this.db.get<{ email: string }>(
+        "SELECT email FROM users WHERE id = ?",
+        [userId]
       );
 
-      if (existingUser) {
-        console.warn(
-          `[${new Date().toISOString()}] USER | Profile update failed: email already registered for userId: ${userId}`
-        );
-        throw new Error("Email already registered");
+      if (!currentUser) {
+        throw new Error("User not found");
       }
 
-      updates.push("email = ?");
-      values.push(validatedEmail);
+      // If email is changing, require verification
+      if (validatedEmail !== currentUser.email) {
+        // Check if new email is already taken by another user
+        const existingUser = await this.db.get<{ id: number }>(
+          "SELECT id FROM users WHERE email = ? AND id != ?",
+          [validatedEmail, userId]
+        );
+
+        if (existingUser) {
+          console.warn(
+            `[${new Date().toISOString()}] USER | Profile update failed: email already registered for userId: ${userId}`
+          );
+          throw new Error("Email already registered");
+        }
+
+        // Generate verification token
+        const verificationToken = crypto.randomBytes(32).toString("hex");
+        const expiresAt = new Date();
+        expiresAt.setMinutes(
+          expiresAt.getMinutes() + getMagicLinkExpiryMinutes()
+        );
+
+        // Store pending email and verification token
+        updates.push("pending_email = ?");
+        updates.push("email_verification_token = ?");
+        updates.push("email_verification_expires = ?");
+        values.push(validatedEmail);
+        values.push(verificationToken);
+        values.push(expiresAt.toISOString());
+
+        // Send verification email if EmailService is available
+        if (this.emailService) {
+          try {
+            const serverUrl = process.env.SERVER_URL || "http://localhost";
+            const port = process.env.PORT || "3001";
+            const verificationUrl = `${serverUrl}:${port}/api/auth/verify-email?token=${verificationToken}`;
+
+            await this.emailService.sendEmail(
+              validatedEmail,
+              "Verify your new email address",
+              `Please click the following link to verify your new email address: ${verificationUrl}\n\nThis link will expire in ${getMagicLinkExpiryMinutes()} minutes.`
+            );
+
+            console.log(
+              `[${new Date().toISOString()}] USER | Email verification sent to: ${validatedEmail} for userId: ${userId}`
+            );
+          } catch (emailError) {
+            console.error(
+              `[${new Date().toISOString()}] USER | Failed to send email verification:`,
+              emailError
+            );
+            // Don't fail the update if email sending fails, but log the error
+          }
+        } else {
+          console.warn(
+            `[${new Date().toISOString()}] USER | EmailService not available, cannot send verification email`
+          );
+        }
+      } else {
+        // Email is not changing, update normally
+        // Clear any pending email verification if email is set back to current
+        updates.push("pending_email = NULL");
+        updates.push("email_verification_token = NULL");
+        updates.push("email_verification_expires = NULL");
+      }
     }
 
     if (profilePictureUrl !== undefined) {
@@ -210,6 +292,96 @@ export class UserService {
     );
 
     return user;
+  }
+
+  /**
+   * Verify email change using verification token.
+   * Updates user's email from pending_email to email if token is valid.
+   * @param token - Email verification token
+   * @returns Promise resolving to updated user data
+   * @throws Error if token is invalid or expired
+   * @public
+   */
+  async verifyEmailChange(token: string): Promise<UserData> {
+    console.log(
+      `[${new Date().toISOString()}] USER | Verifying email change with token`
+    );
+
+    // Find user with this verification token
+    const user = await this.db.get<{
+      id: number;
+      pending_email: string | null;
+      email_verification_expires: string | null;
+    }>(
+      "SELECT id, pending_email, email_verification_expires FROM users WHERE email_verification_token = ?",
+      [token]
+    );
+
+    if (!user || !user.pending_email) {
+      console.warn(
+        `[${new Date().toISOString()}] USER | Email verification failed: invalid token`
+      );
+      throw new Error("Invalid verification token");
+    }
+
+    // Check if token has expired
+    if (user.email_verification_expires) {
+      const expiresAt = new Date(user.email_verification_expires);
+      const now = new Date();
+      if (expiresAt < now) {
+        console.warn(
+          `[${new Date().toISOString()}] USER | Email verification failed: token expired for userId: ${
+            user.id
+          }`
+        );
+        // Clear expired token
+        await this.db.run(
+          "UPDATE users SET pending_email = NULL, email_verification_token = NULL, email_verification_expires = NULL WHERE id = ?",
+          [user.id]
+        );
+        throw new Error("Verification token has expired");
+      }
+    }
+
+    // Check if pending email is already taken
+    const existingUser = await this.db.get<{ id: number }>(
+      "SELECT id FROM users WHERE email = ? AND id != ?",
+      [user.pending_email, user.id]
+    );
+
+    if (existingUser) {
+      console.warn(
+        `[${new Date().toISOString()}] USER | Email verification failed: email already registered for userId: ${
+          user.id
+        }`
+      );
+      // Clear pending email
+      await this.db.run(
+        "UPDATE users SET pending_email = NULL, email_verification_token = NULL, email_verification_expires = NULL WHERE id = ?",
+        [user.id]
+      );
+      throw new Error("Email already registered");
+    }
+
+    // Update email and clear verification fields
+    await this.db.run(
+      "UPDATE users SET email = ?, pending_email = NULL, email_verification_token = NULL, email_verification_expires = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+      [user.pending_email, user.id]
+    );
+
+    console.log(
+      `[${new Date().toISOString()}] USER | Email verified and updated for userId: ${
+        user.id
+      }, new email: ${user.pending_email}`
+    );
+
+    // Retrieve updated user
+    const updatedUser = await this.getUserById(user.id);
+    if (!updatedUser) {
+      throw new Error("Failed to retrieve updated user");
+    }
+
+    return updatedUser;
   }
 
   /**

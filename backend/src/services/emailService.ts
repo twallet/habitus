@@ -176,4 +176,81 @@ export class EmailService {
       );
     }
   }
+
+  /**
+   * Send a generic email.
+   * @param email - Recipient email address
+   * @param subject - Email subject
+   * @param text - Email body text
+   * @param html - Optional HTML email body
+   * @returns Promise that resolves when email is sent
+   * @throws Error if email sending fails
+   * @public
+   */
+  async sendEmail(
+    email: string,
+    subject: string,
+    text: string,
+    html?: string
+  ): Promise<void> {
+    console.log(
+      `[${new Date().toISOString()}] EMAIL | Preparing to send email to: ${email}, subject: ${subject}`
+    );
+
+    try {
+      const mailTransporter = this.getTransporter();
+
+      console.log(
+        `[${new Date().toISOString()}] EMAIL | Sending email via SMTP (${
+          this.config.host
+        }:${this.config.port})`
+      );
+
+      const info = await mailTransporter.sendMail({
+        from: this.config.user,
+        to: email,
+        subject,
+        text,
+        html: html || text.replace(/\n/g, "<br>"),
+      });
+
+      console.log(
+        `[${new Date().toISOString()}] EMAIL | Email sent successfully to: ${email}, messageId: ${
+          info.messageId
+        }`
+      );
+    } catch (error: any) {
+      console.error(
+        `[${new Date().toISOString()}] EMAIL | Error sending email to ${email}:`,
+        error
+      );
+
+      // Check for Gmail app-specific password requirement
+      if (
+        error.code === "EAUTH" &&
+        (error.responseCode === 534 ||
+          (error.response &&
+            error.response.includes("Application-specific password required")))
+      ) {
+        throw new Error(
+          "SMTP authentication failed: Application-specific password required. " +
+            "For Gmail accounts with 2FA enabled, you must use an app-specific password. " +
+            "Generate one at: https://myaccount.google.com/apppasswords " +
+            "Then set SMTP_PASS in your .env file to the generated app password."
+        );
+      }
+
+      // Check for other authentication errors
+      if (error.code === "EAUTH") {
+        throw new Error(
+          `SMTP authentication failed: ${error.response || error.message}. ` +
+            "Please verify your SMTP_USER and SMTP_PASS environment variables are correct."
+        );
+      }
+
+      throw new Error(
+        `Failed to send email: ${error.message || "Unknown error"}`
+      );
+    }
+  }
 }

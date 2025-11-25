@@ -185,6 +185,60 @@ router.get("/verify-magic-link", async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/auth/verify-email
+ * Verify email change using verification token.
+ * @route GET /api/auth/verify-email
+ * @query {string} token - Email verification token
+ * @returns {Object} Success message with redirect URL
+ */
+router.get("/verify-email", async (req: Request, res: Response) => {
+  try {
+    const { token } = req.query;
+
+    if (!token || typeof token !== "string") {
+      return res.status(400).json({ error: "Token is required" });
+    }
+
+    const { getUserService } = await import("../services/index.js");
+    await getUserService().verifyEmailChange(token);
+
+    // Redirect to frontend with success message
+    const serverUrl = getServerUrl();
+    const port = getPort();
+    const frontendUrl = `${serverUrl}:${port}`;
+    res.redirect(`${frontendUrl}?emailVerified=true`);
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      (error.message.includes("Invalid") ||
+        error.message.includes("expired") ||
+        error.message.includes("already registered"))
+    ) {
+      const serverUrl = getServerUrl();
+      const port = getPort();
+      const frontendUrl = `${serverUrl}:${port}`;
+      return res.redirect(
+        `${frontendUrl}?emailVerified=false&error=${encodeURIComponent(
+          error.message
+        )}`
+      );
+    }
+    console.error(
+      `[${new Date().toISOString()}] AUTH_ROUTE | Error verifying email:`,
+      error
+    );
+    const serverUrl = getServerUrl();
+    const port = getPort();
+    const frontendUrl = `${serverUrl}:${port}`;
+    res.redirect(
+      `${frontendUrl}?emailVerified=false&error=${encodeURIComponent(
+        "Error verifying email"
+      )}`
+    );
+  }
+});
+
+/**
  * GET /api/auth/me
  * Get current user information from JWT token.
  * @route GET /api/auth/me
