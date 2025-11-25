@@ -86,4 +86,6 @@ module.exports = {
   },
   forceExit: true,
   testTimeout: 10000,
+  maxWorkers: 2,
+  logHeapUsage: false,
 };
