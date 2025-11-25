@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { getAuthService } from "../services/index.js";
 import { uploadProfilePicture } from "../middleware/upload.js";
 import { authRateLimiter } from "../middleware/rateLimiter.js";
+import { SERVER_URL, PORT } from "../config/constants.js";
 
 const router = Router();
 // Lazy-load service to allow dependency injection in tests
@@ -41,10 +42,7 @@ router.post(
       // Build profile picture URL if file was uploaded
       let profilePictureUrl: string | undefined;
       if (file) {
-        const baseUrl =
-          process.env.BASE_URL ||
-          `http://localhost:${process.env.PORT || 3001}`;
-        profilePictureUrl = `${baseUrl}/uploads/${file.filename}`;
+        profilePictureUrl = `${SERVER_URL}:${PORT}/uploads/${file.filename}`;
       }
 
       await getAuthServiceInstance().requestRegisterMagicLink(

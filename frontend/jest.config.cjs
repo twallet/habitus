@@ -15,7 +15,8 @@ module.exports = {
   globals: {
     "import.meta": {
       env: {
-        VITE_API_BASE_URL: "http://localhost:3001",
+        VITE_SERVER_URL: "http://localhost",
+        VITE_PORT: "3001",
       },
     },
   },

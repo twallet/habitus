@@ -5,31 +5,73 @@ import { User, UserData } from "../models/User.js";
 import { EmailService } from "./emailService.js";
 
 /**
- * JWT secret key from environment variable or default.
+ * JWT secret key from environment variable (required, no default).
  * @private
  */
-const JWT_SECRET =
-  process.env.JWT_SECRET || "your-secret-key-change-in-production";
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
+const JWT_SECRET = ((): string => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error(
+      "JWT_SECRET environment variable is required. Please set it in your .env file."
+    );
+  }
+  return secret;
+})();
 
 /**
- * Magic link expiration time in minutes.
+ * JWT expiration time from environment variable (required, no default).
  * @private
  */
-const MAGIC_LINK_EXPIRY_MINUTES = parseInt(
-  process.env.MAGIC_LINK_EXPIRY_MINUTES || "15",
-  10
-);
+const JWT_EXPIRES_IN = ((): string => {
+  const expiresIn = process.env.JWT_EXPIRES_IN;
+  if (!expiresIn) {
+    throw new Error(
+      "JWT_EXPIRES_IN environment variable is required. Please set it in your .env file."
+    );
+  }
+  return expiresIn;
+})();
+
+/**
+ * Magic link expiration time in minutes (required, no default).
+ * @private
+ */
+const MAGIC_LINK_EXPIRY_MINUTES = ((): number => {
+  const minutes = process.env.MAGIC_LINK_EXPIRY_MINUTES;
+  if (!minutes) {
+    throw new Error(
+      "MAGIC_LINK_EXPIRY_MINUTES environment variable is required. Please set it in your .env file."
+    );
+  }
+  const parsed = parseInt(minutes, 10);
+  if (isNaN(parsed) || parsed <= 0) {
+    throw new Error(
+      `Invalid MAGIC_LINK_EXPIRY_MINUTES value: ${minutes}. Must be a positive number.`
+    );
+  }
+  return parsed;
+})();
 
 /**
  * Cooldown period in minutes before allowing another magic link request for the same email.
- * Prevents email spam and abuse.
+ * Prevents email spam and abuse (required, no default).
  * @private
  */
-const MAGIC_LINK_COOLDOWN_MINUTES = parseInt(
-  process.env.MAGIC_LINK_COOLDOWN_MINUTES || "5",
-  10
-);
+const MAGIC_LINK_COOLDOWN_MINUTES = ((): number => {
+  const minutes = process.env.MAGIC_LINK_COOLDOWN_MINUTES;
+  if (!minutes) {
+    throw new Error(
+      "MAGIC_LINK_COOLDOWN_MINUTES environment variable is required. Please set it in your .env file."
+    );
+  }
+  const parsed = parseInt(minutes, 10);
+  if (isNaN(parsed) || parsed <= 0) {
+    throw new Error(
+      `Invalid MAGIC_LINK_COOLDOWN_MINUTES value: ${minutes}. Must be a positive number.`
+    );
+  }
+  return parsed;
+})();
 
 /**
  * Service for authentication-related operations.

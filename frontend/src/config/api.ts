@@ -3,52 +3,83 @@ import { TrackingData, TrackingType } from "../models/Tracking.js";
 
 /**
  * API configuration.
- * Uses relative URLs when served from same origin (development with single server),
- * falls back to environment variable or localhost for tests.
+ * Constructs API base URL from VITE_SERVER_URL and VITE_PORT environment variables.
+ * Uses relative URLs when served from same origin (development with single server).
  * @public
  */
-const getEnvValue = (): string => {
+const getApiBaseUrl = (): string => {
   // In Jest tests, import.meta is mocked via setupTests.ts as a global property
   const globalImport = (
     globalThis as {
-      import?: { meta?: { env?: { VITE_API_BASE_URL?: string } } };
+      import?: {
+        meta?: {
+          env?: {
+            VITE_SERVER_URL?: string;
+            VITE_PORT?: string;
+          };
+        };
+      };
     }
   ).import;
-  if (globalImport?.meta?.env?.VITE_API_BASE_URL) {
-    return globalImport.meta.env.VITE_API_BASE_URL;
+
+  let serverUrl: string | undefined;
+  let port: string | undefined;
+
+  // Try to get from global mock (Jest tests)
+  if (globalImport?.meta?.env) {
+    serverUrl = globalImport.meta.env.VITE_SERVER_URL;
+    port = globalImport.meta.env.VITE_PORT;
   }
 
   // In Vite runtime, access import.meta.env via eval to avoid syntax errors in Jest
   // This is safe because Vite transforms this at build time
-  try {
-    const viteEnv = new Function(
-      "return import.meta?.env?.VITE_API_BASE_URL"
-    )();
-    if (viteEnv) {
-      return viteEnv;
+  if (!serverUrl || !port) {
+    try {
+      const viteEnv = new Function("return import.meta?.env")();
+      if (viteEnv) {
+        serverUrl = serverUrl || viteEnv.VITE_SERVER_URL;
+        port = port || viteEnv.VITE_PORT;
+      }
+    } catch {
+      // Ignore errors in test environment where import.meta is not available
     }
-  } catch {
-    // Ignore errors in test environment where import.meta is not available
+  }
+
+  // Fallback to process.env for tests
+  if (!serverUrl || !port) {
+    if (typeof process !== "undefined" && process.env) {
+      serverUrl = serverUrl || process.env.VITE_SERVER_URL;
+      port = port || process.env.VITE_PORT;
+    }
+  }
+
+  // Validate required environment variables
+  if (!serverUrl) {
+    throw new Error(
+      "VITE_SERVER_URL environment variable is required. Please set it in your .env file."
+    );
+  }
+  if (!port) {
+    throw new Error(
+      "VITE_PORT environment variable is required. Please set it in your .env file."
+    );
   }
 
   // In development with single server, use relative URLs (same origin)
-  // In production or when explicitly set, use the environment variable
-  // Fallback to localhost:3001 for tests
-  const envUrl =
-    typeof process !== "undefined" && process.env?.VITE_API_BASE_URL
-      ? process.env.VITE_API_BASE_URL
-      : "";
-
-  // If no explicit URL is set and we're in a browser (not test), use relative URL
-  if (!envUrl && typeof window !== "undefined") {
-    return "";
+  // If we're in a browser and the URL matches the current origin, use relative URL
+  if (typeof window !== "undefined") {
+    const currentOrigin = `${window.location.protocol}//${window.location.host}`;
+    const apiUrl = `${serverUrl}:${port}`;
+    if (currentOrigin === apiUrl) {
+      return "";
+    }
   }
 
-  // Fallback for tests or when explicitly configured
-  return envUrl || "http://localhost:3001";
+  // Return full URL
+  return `${serverUrl}:${port}`;
 };
 
-export const API_BASE_URL = getEnvValue();
+export const API_BASE_URL = getApiBaseUrl();
 
 /**
  * API endpoints.

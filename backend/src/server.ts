@@ -1,10 +1,17 @@
 // Load environment variables from .env file
 // This must be imported first before any other imports that use process.env
-import "dotenv/config";
-import express from "express";
-import cors from "cors";
+import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+
+// Load .env from project root BEFORE importing constants
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+dotenv.config({ path: join(__dirname, "../../.env") });
+
+// Now import everything else (constants will read from process.env)
+import express from "express";
+import cors from "cors";
 import { readFileSync } from "fs";
 import { Database } from "./db/database.js";
 import { initializeServices } from "./services/index.js";
@@ -12,14 +19,11 @@ import usersRouter from "./routes/users.js";
 import authRouter from "./routes/auth.js";
 import trackingsRouter from "./routes/trackings.js";
 import { getUploadsDirectory } from "./middleware/upload.js";
-import { DEFAULT_PORT } from "./config/constants.js";
+import { PORT, SERVER_URL } from "./config/constants.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 const isDevelopment = process.env.NODE_ENV !== "production";
 
 const app = express();
-const PORT = process.env.PORT || DEFAULT_PORT;
 
 /**
  * Trust proxy configuration for rate limiting.
@@ -217,7 +221,7 @@ db.initialize()
 
     const server = app.listen(PORT, () => {
       console.log(
-        `[${new Date().toISOString()}] Server running on http://localhost:${PORT}`
+        `[${new Date().toISOString()}] Server running on ${SERVER_URL}:${PORT}`
       );
       console.log(
         `[${new Date().toISOString()}] Environment: ${

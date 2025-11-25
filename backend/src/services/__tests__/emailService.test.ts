@@ -29,7 +29,8 @@ describe("EmailService", () => {
         SMTP_PORT: "465",
         SMTP_USER: "test@test.com",
         SMTP_PASS: "testpass",
-        FRONTEND_URL: "http://test.com",
+        SERVER_URL: "http://test.com",
+        PORT: "3000",
       };
 
       emailService = new EmailService();
@@ -57,7 +58,8 @@ describe("EmailService", () => {
       delete process.env.SMTP_PORT;
       delete process.env.SMTP_USER;
       delete process.env.SMTP_PASS;
-      delete process.env.FRONTEND_URL;
+      delete process.env.SERVER_URL;
+      delete process.env.PORT;
 
       emailService = new EmailService();
       expect(emailService).toBeInstanceOf(EmailService);

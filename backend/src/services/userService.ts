@@ -237,7 +237,7 @@ export class UserService {
     // Delete profile picture file if it exists
     if (user.profile_picture_url) {
       try {
-        // Extract filename from URL (e.g., "http://localhost:3001/uploads/filename.jpg" -> "filename.jpg")
+        // Extract filename from URL (e.g., "http://localhost:3001/uploads/filename.jpg" or "${SERVER_URL}:${PORT}/uploads/filename.jpg" -> "filename.jpg")
         const urlParts = user.profile_picture_url.split("/uploads/");
         if (urlParts.length === 2) {
           const filename = urlParts[1];

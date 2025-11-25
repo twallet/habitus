@@ -1,11 +1,12 @@
-import '@testing-library/jest-dom';
+import "@testing-library/jest-dom";
 
 // Mock import.meta.env for Vite environment variables
-Object.defineProperty(globalThis, 'import', {
+Object.defineProperty(globalThis, "import", {
   value: {
     meta: {
       env: {
-        VITE_API_BASE_URL: 'http://localhost:3001',
+        VITE_SERVER_URL: "http://localhost",
+        VITE_PORT: "3001",
       },
     },
   },
@@ -20,20 +21,23 @@ beforeAll(() => {
   // Suppress console.log and console.warn during tests
   console.log = jest.fn();
   console.warn = jest.fn();
-  
+
   // Keep console.error but filter out React act warnings
   console.error = (...args: unknown[]) => {
     if (
-      typeof args[0] === 'string' &&
-      args[0].includes('Warning: An update to') &&
-      args[0].includes('inside a test was not wrapped in act(...)')
+      typeof args[0] === "string" &&
+      args[0].includes("Warning: An update to") &&
+      args[0].includes("inside a test was not wrapped in act(...)")
     ) {
       return;
     }
     // Also suppress our custom logging messages during tests
     if (
-      typeof args[0] === 'string' &&
-      (args[0].includes('FRONTEND_') || args[0].includes('FRONTEND_AUTH') || args[0].includes('FRONTEND_USERS') || args[0].includes('FRONTEND_APP'))
+      typeof args[0] === "string" &&
+      (args[0].includes("FRONTEND_") ||
+        args[0].includes("FRONTEND_AUTH") ||
+        args[0].includes("FRONTEND_USERS") ||
+        args[0].includes("FRONTEND_APP"))
     ) {
       return;
     }
@@ -46,4 +50,3 @@ afterAll(() => {
   console.warn = originalWarn;
   console.error = originalError;
 });
-

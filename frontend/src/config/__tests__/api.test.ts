@@ -1,40 +1,49 @@
 import { API_ENDPOINTS, API_BASE_URL } from "../api";
 
 describe("api", () => {
-  const originalProcessEnv = process.env.VITE_API_BASE_URL;
+  const originalServerUrl = process.env.VITE_SERVER_URL;
+  const originalPort = process.env.VITE_PORT;
 
   beforeEach(() => {
     // Reset mocks
     jest.clearAllMocks();
     // Note: globalThis.import is read-only (defined in setupTests.ts), so we can't delete it
-    delete process.env.VITE_API_BASE_URL;
+    delete process.env.VITE_SERVER_URL;
+    delete process.env.VITE_PORT;
   });
 
   afterEach(() => {
     // Restore original values
-    if (originalProcessEnv !== undefined) {
-      process.env.VITE_API_BASE_URL = originalProcessEnv;
+    if (originalServerUrl !== undefined) {
+      process.env.VITE_SERVER_URL = originalServerUrl;
+    }
+    if (originalPort !== undefined) {
+      process.env.VITE_PORT = originalPort;
     }
   });
 
-  it("should use globalThis.import.meta.env.VITE_API_BASE_URL when available", () => {
+  it("should use globalThis.import.meta.env.VITE_SERVER_URL and VITE_PORT when available", () => {
     // This test verifies the module loads correctly with mocked globalThis
-    // The actual value is set in setupTests.ts, so we just verify it's used
+    // The actual values are set in setupTests.ts, so we just verify it's used
     expect(API_BASE_URL).toBeDefined();
     expect(typeof API_BASE_URL).toBe("string");
+    expect(API_BASE_URL).toBe("http://localhost:3001");
   });
 
-  it("should use process.env.VITE_API_BASE_URL as fallback", () => {
-    // This test verifies the module loads correctly
-    // The actual env var handling is tested via setupTests.ts configuration
-    expect(API_BASE_URL).toBeDefined();
-    expect(typeof API_BASE_URL).toBe("string");
+  it("should use process.env.VITE_SERVER_URL and VITE_PORT as fallback", () => {
+    // Set process.env values
+    process.env.VITE_SERVER_URL = "http://localhost";
+    process.env.VITE_PORT = "3001";
+    // Reload module to pick up new env vars
+    jest.resetModules();
+    const { API_BASE_URL: reloadedUrl } = require("../api");
+    expect(reloadedUrl).toBe("http://localhost:3001");
   });
 
-  it("should default to localhost:3001 when no env vars are set", () => {
-    // The default is set in setupTests.ts, so we verify it's a valid URL
+  it("should construct URL from VITE_SERVER_URL and VITE_PORT", () => {
+    // The values are set in setupTests.ts, so we verify the constructed URL
     expect(API_BASE_URL).toBeDefined();
-    expect(API_BASE_URL).toMatch(/^https?:\/\//);
+    expect(API_BASE_URL).toBe("http://localhost:3001");
   });
 
   it("should construct correct API endpoints", () => {

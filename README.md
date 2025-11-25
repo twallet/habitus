@@ -64,43 +64,55 @@ This will install dependencies for both frontend and backend projects.
 
 ### Environment Variables
 
-#### Frontend
-
-Create a `.env` file in the `frontend` directory:
-
-```env
-VITE_API_BASE_URL=http://localhost:3001
-````
-
-#### Backend
-
-Create a `.env` file in the `backend` directory:
+Create a single `.env` file in the project root (not in `backend` or `frontend` directories):
 
 ```env
 # Server Configuration
+# Base URL for the server (without port)
+SERVER_URL=http://localhost
+# Server port number
 PORT=3001
+# Frontend server URL (Vite requires VITE_ prefix for client-side access)
+VITE_SERVER_URL=http://localhost
+# Frontend server port (Vite requires VITE_ prefix for client-side access)
+VITE_PORT=3001
+
+# Application Configuration
+# Node environment: development, production, or test
 NODE_ENV=development
-BASE_URL=http://localhost:3001
+# Set to true when behind a reverse proxy (nginx, etc.) for rate limiting
+TRUST_PROXY=false
+# Enable verbose request logging in development
+VERBOSE_LOGGING=false
 
 # Database Configuration
+# Path to SQLite database file (relative to project root)
 DB_PATH=./data/habitus.db
 
 # JWT Configuration
+# Secret key for signing JWT tokens (change in production!)
 JWT_SECRET=your-secret-key-change-in-production
+# JWT token expiration time (e.g., 7d, 24h, 1h)
 JWT_EXPIRES_IN=7d
 
 # Magic Link Configuration
+# Magic link expiration time in minutes
 MAGIC_LINK_EXPIRY_MINUTES=15
-
-# Frontend URL (used for email links)
-FRONTEND_URL=http://localhost:3001
+# Cooldown period in minutes before allowing another magic link request
+MAGIC_LINK_COOLDOWN_MINUTES=5
 
 # SMTP Configuration (Required for email functionality)
+# SMTP server hostname
 SMTP_HOST=smtp.gmail.com
+# SMTP server port (587 for TLS, 465 for SSL)
 SMTP_PORT=587
+# SMTP username (usually your email address)
 SMTP_USER=your-email@gmail.com
+# SMTP password (for Gmail, use an app-specific password)
 SMTP_PASS=your-app-password
 ```
+
+**Note:** Both backend and frontend read from this single root-level `.env` file. The frontend uses `VITE_` prefixed variables because Vite only exposes environment variables with this prefix to client-side code for security reasons.
 
 ### Setting Up SMTP (Required for Magic Link Emails)
 
@@ -346,3 +358,4 @@ npm test -- src/models/__tests__/User.test.ts
 ## License
 
 MIT
+````
