@@ -15,15 +15,11 @@ if (!jestArgs.includes("--forceExit")) {
   jestArgs.push("--forceExit");
 }
 
-// Suppress Node.js deprecation warnings
-process.env.NODE_NO_WARNINGS = "1";
-
 // Use npx to run jest (works cross-platform)
 const jestProcess = spawn("npx", jestArgs, {
   stdio: ["inherit", "pipe", "pipe"],
   shell: true,
   cwd: rootDir,
-  env: { ...process.env, NODE_NO_WARNINGS: "1" },
 });
 
 let stdoutBuffer = "";
