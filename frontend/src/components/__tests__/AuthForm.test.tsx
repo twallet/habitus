@@ -70,6 +70,41 @@ describe('AuthForm', () => {
             expect(screen.getByText(/test@example.com/i)).toBeInTheDocument();
         });
 
+        it('should allow sending another link in login mode', async () => {
+            const user = userEvent.setup();
+            mockRequestLoginMagicLink.mockResolvedValue(undefined);
+
+            render(
+                <AuthForm
+                    onRequestLoginMagicLink={mockRequestLoginMagicLink}
+                    onRequestRegisterMagicLink={mockRequestRegisterMagicLink}
+                    onError={mockOnError}
+                />
+            );
+
+            const emailInput = screen.getByLabelText(/email/i);
+            await user.type(emailInput, 'test@example.com');
+            await user.click(screen.getByRole('button', { name: /send magic link/i }));
+
+            await waitFor(() => {
+                expect(screen.getByText(/check your email/i)).toBeInTheDocument();
+            });
+
+            expect(mockRequestLoginMagicLink).toHaveBeenCalledTimes(1);
+            expect(mockRequestLoginMagicLink).toHaveBeenCalledWith('test@example.com');
+
+            const sendAnotherButton = screen.getByRole('button', { name: /send another link/i });
+            await user.click(sendAnotherButton);
+
+            // Wait for the magic link to be sent again
+            await waitFor(() => {
+                expect(mockRequestLoginMagicLink).toHaveBeenCalledTimes(2);
+            });
+
+            // After sending, should still show the success message
+            expect(screen.getByText(/check your email/i)).toBeInTheDocument();
+            expect(mockRequestLoginMagicLink).toHaveBeenLastCalledWith('test@example.com');
+        });
 
         it('should show error when email is empty', async () => {
             render(
@@ -433,12 +468,19 @@ describe('AuthForm', () => {
                 expect(screen.getByText(/check your email/i)).toBeInTheDocument();
             });
 
+            expect(mockRequestRegisterMagicLink).toHaveBeenCalledTimes(1);
+
             const sendAnotherButton = screen.getByRole('button', { name: /send another link/i });
             await user.click(sendAnotherButton);
 
+            // Wait for the magic link to be sent again
             await waitFor(() => {
-                expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+                expect(mockRequestRegisterMagicLink).toHaveBeenCalledTimes(2);
             });
+
+            // After sending, should still show the success message
+            expect(screen.getByText(/check your email/i)).toBeInTheDocument();
+            expect(mockRequestRegisterMagicLink).toHaveBeenLastCalledWith('John Doe', 'john@example.com', undefined);
         });
     });
 

@@ -295,7 +295,11 @@ export class UserService {
         // Extract filename from URL (e.g., "http://localhost:3001/uploads/filename.jpg" or "${SERVER_URL}:${PORT}/uploads/filename.jpg" -> "filename.jpg")
         const urlParts = user.profile_picture_url.split("/uploads/");
         if (urlParts.length === 2) {
-          const filename = urlParts[1];
+          // Extract filename and remove query parameters and fragments (e.g., "filename.jpg?v=1#section" -> "filename.jpg")
+          let filename = urlParts[1].split("?")[0].split("#")[0];
+          // Remove any path traversal attempts for security
+          filename = path.basename(filename);
+
           const uploadsDir = getUploadsDirectory();
           const filePath = path.join(uploadsDir, filename);
 

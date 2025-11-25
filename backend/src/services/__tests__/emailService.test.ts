@@ -196,4 +196,131 @@ describe("EmailService", () => {
       expect(mockTransporter.sendMail).toHaveBeenCalledTimes(2);
     });
   });
+
+  describe("sendEmail", () => {
+    beforeEach(() => {
+      emailService = new EmailService({
+        host: "smtp.test.com",
+        port: 587,
+        user: "test@test.com",
+        pass: "testpass",
+        frontendUrl: "http://test.com",
+      });
+    });
+
+    it("should send email successfully", async () => {
+      await emailService.sendEmail(
+        "user@example.com",
+        "Test Subject",
+        "Test body"
+      );
+
+      expect(mockTransporter.sendMail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          from: "test@test.com",
+          to: "user@example.com",
+          subject: "Test Subject",
+          text: "Test body",
+        })
+      );
+    });
+
+    it("should send email with HTML content", async () => {
+      const html = "<h1>Test HTML</h1>";
+      await emailService.sendEmail(
+        "user@example.com",
+        "Test Subject",
+        "Test body",
+        html
+      );
+
+      const callArgs = mockTransporter.sendMail.mock.calls[0][0];
+      expect(callArgs.html).toBe(html);
+    });
+
+    it("should convert newlines to <br> when no HTML provided", async () => {
+      await emailService.sendEmail(
+        "user@example.com",
+        "Test Subject",
+        "Line 1\nLine 2"
+      );
+
+      const callArgs = mockTransporter.sendMail.mock.calls[0][0];
+      expect(callArgs.html).toBe("Line 1<br>Line 2");
+    });
+
+    it("should send email change verification email with button", async () => {
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <body>
+          <h2>Verify your new email address</h2>
+          <a href="http://test.com/api/auth/verify-email-change?token=test-token">Verify email address</a>
+        </body>
+        </html>
+      `;
+      await emailService.sendEmail(
+        "newemail@example.com",
+        "Verify your new email address for 🌱 Habitus",
+        "Please click the following link to verify your new email address: http://test.com/api/auth/verify-email-change?token=test-token",
+        html
+      );
+
+      const callArgs = mockTransporter.sendMail.mock.calls[0][0];
+      expect(callArgs.to).toBe("newemail@example.com");
+      expect(callArgs.subject).toBe(
+        "Verify your new email address for 🌱 Habitus"
+      );
+      expect(callArgs.html).toContain("Verify your new email address");
+      expect(callArgs.html).toContain("Verify email address");
+      expect(callArgs.html).toContain(
+        "http://test.com/api/auth/verify-email-change?token=test-token"
+      );
+    });
+
+    it("should throw error when SMTP credentials are missing", async () => {
+      emailService = new EmailService({
+        host: "smtp.test.com",
+        port: 587,
+        user: "",
+        pass: "",
+        frontendUrl: "http://test.com",
+      });
+
+      await expect(
+        emailService.sendEmail("user@example.com", "Test", "Body")
+      ).rejects.toThrow("SMTP credentials not configured");
+    });
+
+    it("should throw error for Gmail app-specific password requirement", async () => {
+      const error: any = new Error("Authentication failed");
+      error.code = "EAUTH";
+      error.responseCode = 534;
+      mockTransporter.sendMail.mockRejectedValueOnce(error);
+
+      await expect(
+        emailService.sendEmail("user@example.com", "Test", "Body")
+      ).rejects.toThrow("Application-specific password required");
+    });
+
+    it("should throw error for other EAUTH errors", async () => {
+      const error: any = new Error("Invalid credentials");
+      error.code = "EAUTH";
+      error.response = "Invalid login";
+      mockTransporter.sendMail.mockRejectedValueOnce(error);
+
+      await expect(
+        emailService.sendEmail("user@example.com", "Test", "Body")
+      ).rejects.toThrow("SMTP authentication failed");
+    });
+
+    it("should throw error for generic email sending failures", async () => {
+      const error = new Error("Network error");
+      mockTransporter.sendMail.mockRejectedValueOnce(error);
+
+      await expect(
+        emailService.sendEmail("user@example.com", "Test", "Body")
+      ).rejects.toThrow("Failed to send email");
+    });
+  });
 });

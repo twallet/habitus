@@ -7,6 +7,7 @@ import { EmailService } from "../emailService.js";
 jest.mock("../emailService.js", () => ({
   EmailService: jest.fn().mockImplementation(() => ({
     sendMagicLink: jest.fn().mockResolvedValue(undefined),
+    sendEmail: jest.fn().mockResolvedValue(undefined),
   })),
 }));
 
@@ -45,11 +46,15 @@ async function createTestDatabase(): Promise<Database> {
               magic_link_expires DATETIME,
               last_access DATETIME,
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              pending_email TEXT,
+              email_verification_token TEXT,
+              email_verification_expires DATETIME
             );
             CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at);
             CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
             CREATE INDEX IF NOT EXISTS idx_users_magic_link_token ON users(magic_link_token);
+            CREATE INDEX IF NOT EXISTS idx_users_email_verification_token ON users(email_verification_token);
           `,
             (err) => {
               if (err) {
@@ -144,6 +149,91 @@ describe("AuthService", () => {
       const user = await authService.getUserById(999);
 
       expect(user).toBeNull();
+    });
+  });
+
+  describe("requestEmailChange", () => {
+    let userId: number;
+
+    beforeEach(async () => {
+      // Create a test user
+      const result = await testDb.run(
+        "INSERT INTO users (name, email) VALUES (?, ?)",
+        ["John Doe", "john@example.com"]
+      );
+      userId = result.lastID;
+    });
+
+    it("should request email change successfully", async () => {
+      await authService.requestEmailChange(userId, "newemail@example.com");
+
+      // Check that pending email and token were stored
+      const user = await testDb.get<{
+        pending_email: string | null;
+        email_verification_token: string | null;
+        email_verification_expires: string | null;
+      }>(
+        "SELECT pending_email, email_verification_token, email_verification_expires FROM users WHERE id = ?",
+        [userId]
+      );
+
+      expect(user?.pending_email).toBe("newemail@example.com");
+      expect(user?.email_verification_token).not.toBeNull();
+      expect(user?.email_verification_expires).not.toBeNull();
+
+      // Check that email was sent
+      expect(emailService.sendEmail).toHaveBeenCalledWith(
+        "newemail@example.com",
+        "Verify your new email address for 🌱 Habitus",
+        expect.stringContaining("verify your new email address"),
+        expect.stringContaining("Verify email address")
+      );
+    });
+
+    it("should throw error if user not found", async () => {
+      await expect(
+        authService.requestEmailChange(999, "newemail@example.com")
+      ).rejects.toThrow("User not found");
+    });
+
+    it("should throw error if new email is same as current email", async () => {
+      await expect(
+        authService.requestEmailChange(userId, "john@example.com")
+      ).rejects.toThrow("New email must be different from current email");
+    });
+
+    it("should throw error if new email is already registered", async () => {
+      // Create another user with the target email
+      await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
+        "Jane Doe",
+        "jane@example.com",
+      ]);
+
+      await expect(
+        authService.requestEmailChange(userId, "jane@example.com")
+      ).rejects.toThrow("Email already registered");
+    });
+
+    it("should throw error for invalid email format", async () => {
+      await expect(
+        authService.requestEmailChange(userId, "invalid-email")
+      ).rejects.toThrow();
+    });
+
+    it("should check for duplicate email before cooldown", async () => {
+      // The cooldown check happens on the target email, but duplicate email check happens first
+      // Create a user with the target email to verify duplicate check works
+      const futureDate = new Date();
+      futureDate.setMinutes(futureDate.getMinutes() + 15);
+      await testDb.run(
+        "INSERT INTO users (name, email, magic_link_expires) VALUES (?, ?, ?)",
+        ["Temp User", "cooldown@example.com", futureDate.toISOString()]
+      );
+
+      // Request should fail on duplicate email check (which happens before cooldown)
+      await expect(
+        authService.requestEmailChange(userId, "cooldown@example.com")
+      ).rejects.toThrow("Email already registered");
     });
   });
 });

@@ -72,14 +72,49 @@ export function AuthForm({
         setMagicLinkSent(true);
       }
 
-      // Reset form on success (but keep email for magic link sent message)
-      if (!magicLinkSent) {
-        setName("");
-        setProfilePicture(null);
-        setProfilePicturePreview(null);
+      // Don't reset form fields - we need them to resend the magic link
+    } catch (error) {
+      // Error handling is done in parent component via onError
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  /**
+   * Handle resending magic link.
+   * Resends the magic link with the same email and form data.
+   * @internal
+   */
+  const handleResendMagicLink = async () => {
+    if (!email.trim()) {
+      // If email is somehow missing, just show the form
+      setMagicLinkSent(false);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      if (isLoginMode) {
+        await onRequestLoginMagicLink(email.trim());
+        setMagicLinkSent(true);
+      } else {
+        if (!name.trim()) {
+          // If name is missing, show the form
+          setMagicLinkSent(false);
+          setIsSubmitting(false);
+          return;
+        }
+        await onRequestRegisterMagicLink(
+          name.trim(),
+          email.trim(),
+          profilePicture || undefined
+        );
+        setMagicLinkSent(true);
       }
     } catch (error) {
       // Error handling is done in parent component via onError
+      // Show the form so user can try again
+      setMagicLinkSent(false);
     } finally {
       setIsSubmitting(false);
     }
@@ -156,13 +191,12 @@ export function AuthForm({
           )}
           <button
             type="button"
-            onClick={() => {
-              setMagicLinkSent(false);
-            }}
+            onClick={handleResendMagicLink}
             className="btn-primary"
+            disabled={isSubmitting}
             style={{ marginTop: "2rem", display: "inline-block", width: "auto" }}
           >
-            Send another link
+            {isSubmitting ? "Sending..." : "Send another link"}
           </button>
         </div>
       </div>
