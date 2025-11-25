@@ -200,21 +200,9 @@ describe("UserService", () => {
       expect(updatedUser.nickname).toBe("nickname");
     });
 
-    it("should update user email", async () => {
-      const updatedUser = await userService.updateProfile(
-        userId,
-        undefined,
-        undefined,
-        "newemail@example.com"
-      );
-
-      expect(updatedUser.email).toBe("newemail@example.com");
-    });
-
     it("should update profile picture URL", async () => {
       const updatedUser = await userService.updateProfile(
         userId,
-        undefined,
         undefined,
         undefined,
         "http://example.com/pic.jpg"
@@ -230,32 +218,16 @@ describe("UserService", () => {
         userId,
         "New Name",
         "New Nickname",
-        "newemail@example.com",
         "http://example.com/pic.jpg"
       );
 
       expect(updatedUser.name).toBe("New Name");
       expect(updatedUser.nickname).toBe("New Nickname");
-      expect(updatedUser.email).toBe("newemail@example.com");
+      // Email should remain unchanged (email changes are handled separately)
+      expect(updatedUser.email).toBe("test@example.com");
       expect(updatedUser.profile_picture_url).toBe(
         "http://example.com/pic.jpg"
       );
-    });
-
-    it("should throw error if email is already taken by another user", async () => {
-      await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
-        "Other User",
-        "other@example.com",
-      ]);
-
-      await expect(
-        userService.updateProfile(
-          userId,
-          undefined,
-          undefined,
-          "other@example.com"
-        )
-      ).rejects.toThrow("Email already registered");
     });
 
     it("should throw error if no fields to update", async () => {

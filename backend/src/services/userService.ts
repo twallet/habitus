@@ -2,26 +2,8 @@ import { Database } from "../db/database.js";
 import { User, UserData } from "../models/User.js";
 import { getUploadsDirectory } from "../middleware/upload.js";
 import { EmailService } from "./emailService.js";
-import crypto from "crypto";
 import fs from "fs";
 import path from "path";
-
-/**
- * Get magic link expiration time in minutes (lazy loading).
- * @returns Magic link expiration time in minutes
- * @private
- */
-function getMagicLinkExpiryMinutes(): number {
-  const minutes = process.env.MAGIC_LINK_EXPIRY_MINUTES;
-  if (!minutes) {
-    return 15; // Default to 15 minutes
-  }
-  const parsed = parseInt(minutes, 10);
-  if (isNaN(parsed) || parsed <= 0) {
-    return 15; // Default to 15 minutes
-  }
-  return parsed;
-}
 
 /**
  * Service for user-related database operations.
@@ -29,17 +11,14 @@ function getMagicLinkExpiryMinutes(): number {
  */
 export class UserService {
   private db: Database;
-  private emailService: EmailService | null;
 
   /**
    * Create a new UserService instance.
    * @param db - Database instance
-   * @param emailService - Optional EmailService instance for email verification
    * @public
    */
-  constructor(db: Database, emailService?: EmailService) {
+  constructor(db: Database) {
     this.db = db;
-    this.emailService = emailService || null;
   }
 
   /**

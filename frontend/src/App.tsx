@@ -80,26 +80,6 @@ function App() {
       return;
     }
 
-    // Check for email verification (works even when authenticated)
-    const emailVerified = urlParams.get('emailVerified');
-    if (emailVerified === 'true') {
-      console.log(`[${new Date().toISOString()}] FRONTEND_APP | Email verification successful`);
-      window.history.replaceState({}, document.title, window.location.pathname);
-      setMessage({
-        text: 'Email verified successfully! Your email has been updated.',
-        type: 'success',
-      });
-      return;
-    } else if (emailVerified === 'false') {
-      const errorMsg = urlParams.get('error');
-      console.error(`[${new Date().toISOString()}] FRONTEND_APP | Email verification failed:`, errorMsg);
-      window.history.replaceState({}, document.title, window.location.pathname);
-      setMessage({
-        text: errorMsg ? decodeURIComponent(errorMsg) : 'Email verification failed',
-        type: 'error',
-      });
-      return;
-    }
 
     // Skip magic link verification if already authenticated or if verification was already attempted
     if (isAuthenticated || verificationAttempted.current) {

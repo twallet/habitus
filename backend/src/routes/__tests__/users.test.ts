@@ -240,37 +240,21 @@ describe("Users Routes", () => {
       const response = await request(app).put("/api/users/profile").send({
         name: "Updated Name",
         nickname: "updated",
-        email: "updated@example.com",
       });
 
       expect(response.status).toBe(200);
       expect(response.body.name).toBe("Updated Name");
       expect(response.body.nickname).toBe("updated");
-      expect(response.body.email).toBe("updated@example.com");
+      // Email should remain unchanged (email changes are handled separately)
+      expect(response.body.email).toBe("test@example.com");
     });
 
     it("should return 400 for validation errors", async () => {
       const response = await request(app).put("/api/users/profile").send({
         name: "", // Invalid empty name
-        email: "invalid-email", // Invalid email
       });
 
       expect(response.status).toBe(400);
-    });
-
-    it("should return 409 for duplicate email", async () => {
-      // Create another user with email
-      await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
-        "Other User",
-        "other@example.com",
-      ]);
-
-      const response = await request(app).put("/api/users/profile").send({
-        email: "other@example.com", // Email already taken
-      });
-
-      expect(response.status).toBe(409);
-      expect(response.body.error).toBe("Email already registered");
     });
 
     it("should handle errors when update fails", async () => {
