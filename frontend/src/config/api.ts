@@ -11,6 +11,7 @@ const getApiBaseUrl = (): string => {
   let serverUrl: string | undefined;
   let port: string | undefined;
 
+  // Try to get from global mock first (Jest tests)
   // In Jest tests, import.meta is mocked via setupTests.ts as a global property
   const globalImport = (
     globalThis as {
@@ -25,29 +26,27 @@ const getApiBaseUrl = (): string => {
     }
   ).import;
 
-  // Try to get from global mock (Jest tests)
   if (globalImport?.meta?.env) {
     serverUrl = globalImport.meta.env.VITE_SERVER_URL;
     port = globalImport.meta.env.VITE_PORT;
   }
 
-  // In Vite runtime, access import.meta.env via globalThis (works in both Vite and Jest)
-  // Vite transforms import.meta.env at build time, and setupTests.ts mocks it for Jest
+  // Access import.meta.env directly - Vite will transform these at build time
+  // Vite requires direct property access like import.meta.env.VITE_* for static replacement
+  // We need to access the properties directly so Vite can detect and replace them
   if (!serverUrl || !port) {
-    try {
-      // Access via globalThis to avoid Jest parsing errors with direct import.meta syntax
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const viteEnv = (globalThis as any).import?.meta?.env;
-      if (viteEnv) {
-        serverUrl = serverUrl || viteEnv.VITE_SERVER_URL;
-        port = port || viteEnv.VITE_PORT;
-      }
-    } catch {
-      // Ignore errors in test environment where import.meta is not available
+    // Direct access to import.meta.env - Vite transforms this at build/transform time
+    // Type assertion needed for TypeScript, but Vite will still detect the pattern
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const env: any = import.meta.env;
+    if (env) {
+      // Direct property access - Vite will replace these references with actual values
+      serverUrl = serverUrl || env.VITE_SERVER_URL;
+      port = port || env.VITE_PORT;
     }
   }
 
-  // Fallback to process.env for tests
+  // Fallback to process.env for tests (Node.js environment)
   if (!serverUrl || !port) {
     if (typeof process !== "undefined" && process.env) {
       serverUrl = serverUrl || process.env.VITE_SERVER_URL;
