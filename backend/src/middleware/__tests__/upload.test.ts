@@ -61,15 +61,21 @@ describe("Upload Middleware", () => {
 
       it("should use DB_PATH environment variable if set", () => {
         const originalDbPath = process.env.DB_PATH;
-        const testDbPath = "/custom/path/database.db";
+        // Use a temporary directory within the project for testing
+        const testDataDir = path.join(__dirname, "../../../test-db-path");
+        const testDbPath = path.join(testDataDir, "database.db");
         process.env.DB_PATH = testDbPath;
 
         const config = new UploadConfig();
         const uploadsDir = config.getUploadsDirectory();
 
-        expect(uploadsDir).toContain("custom");
-        expect(uploadsDir).toContain("path");
+        expect(uploadsDir).toContain("test-db-path");
         expect(uploadsDir).toContain("uploads");
+
+        // Cleanup: remove the created directory
+        if (fs.existsSync(testDataDir)) {
+          fs.rmSync(testDataDir, { recursive: true, force: true });
+        }
 
         // Restore
         if (originalDbPath) {
