@@ -376,11 +376,41 @@ export class AuthService {
     const serverUrl = process.env.SERVER_URL || "http://localhost";
     const port = process.env.PORT || "3001";
     const magicLink = `${serverUrl}:${port}/api/auth/verify-email-change?token=${token}`;
+    const expiryMinutes = getMagicLinkExpiryMinutes();
+    const text = `Please click the following link to verify your new email address: ${magicLink}\n\nThis link will expire in ${expiryMinutes} minutes. If you didn't request this, please ignore this email.`;
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #ffffff;">
+        <table role="presentation" style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 40px 30px; text-align: left;">
+              <h2 style="color: #333; text-align: left; margin: 0 0 16px 0; font-size: 24px; font-weight: bold;">Verify your new email address</h2>
+              <p style="text-align: left; margin: 0 0 16px 0; font-size: 16px; line-height: 1.5; color: #333;">
+                Click the button below to verify your new email address for 🌱 Habitus:
+              </p>
+              <p style="margin: 30px 0; text-align: left;">
+                <a href="${magicLink}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; text-align: center;">
+                  Verify email address
+                </a>
+              </p>
+              <p style="color: #666; font-size: 14px; text-align: left; margin: 0 0 8px 0; line-height: 1.5;">This link will expire in ${expiryMinutes} minutes. If you didn't request this, please ignore this email.</p>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
 
     await this.emailService.sendEmail(
       validatedEmail,
       "Verify your new email address for 🌱 Habitus",
-      `Please click the following link to verify your new email address: ${magicLink}\n\nThis link will expire in ${getMagicLinkExpiryMinutes()} minutes.\nIf you didn't request this, please ignore this email.`
+      text,
+      html
     );
 
     console.log(

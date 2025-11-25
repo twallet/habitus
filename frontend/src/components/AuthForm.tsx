@@ -158,7 +158,6 @@ export function AuthForm({
             type="button"
             onClick={() => {
               setMagicLinkSent(false);
-              setEmail("");
             }}
             className="btn-primary"
             style={{ marginTop: "2rem", display: "inline-block", width: "auto" }}

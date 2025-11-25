@@ -61,7 +61,7 @@ function App() {
       console.log(`[${new Date().toISOString()}] FRONTEND_APP | Email change verification successful`);
       window.history.replaceState({}, document.title, window.location.pathname);
       setMessage({
-        text: 'Email change successful! Your email has been updated.',
+        text: 'Your email has been updated!',
         type: 'success',
       });
       // Refresh user data if authenticated
