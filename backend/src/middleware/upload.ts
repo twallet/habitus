@@ -4,6 +4,79 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 
 /**
+ * Get project root directory (workspace root).
+ * Uses import.meta.url to reliably find the workspace root regardless of current working directory.
+ * @returns The project root path
+ * @private
+ */
+function getProjectRoot(): string {
+  // Check if we're in a test environment
+  if (
+    typeof process !== "undefined" &&
+    (process.env.NODE_ENV === "test" || process.env.JEST_WORKER_ID)
+  ) {
+    // In test environment, use current working directory
+    return path.resolve();
+  }
+
+  try {
+    // Access import.meta.url directly (this works in ESM modules)
+    // The eval workaround is needed for Jest/TypeScript compatibility
+    // eslint-disable-next-line @typescript-eslint/no-implied-eval
+    const importMeta = new Function(
+      'return typeof import !== "undefined" ? import.meta : null'
+    )();
+
+    if (importMeta && importMeta.url) {
+      const currentFile = fileURLToPath(importMeta.url);
+      const currentDir = path.dirname(currentFile);
+
+      // From backend/src/middleware/ go up 3 levels to workspace root: ../../../
+      let projectRoot = path.resolve(currentDir, "../../..");
+      projectRoot = path.normalize(projectRoot);
+
+      // Verify we found the workspace root by checking for package.json
+      const packageJsonPath = path.join(projectRoot, "package.json");
+      if (fs.existsSync(packageJsonPath)) {
+        return projectRoot;
+      }
+
+      // If package.json not found, try going up one more level (in case of build output)
+      projectRoot = path.resolve(currentDir, "../../../..");
+      projectRoot = path.normalize(projectRoot);
+      const altPackageJsonPath = path.join(projectRoot, "package.json");
+      if (fs.existsSync(altPackageJsonPath)) {
+        return projectRoot;
+      }
+
+      // If still not found, return the original calculation
+      return path.resolve(currentDir, "../../..");
+    }
+  } catch (error) {
+    // Fallback if import.meta is not available
+    console.warn(
+      `[${new Date().toISOString()}] UPLOAD | Could not determine project root from import.meta.url, using fallback:`,
+      error
+    );
+  }
+
+  // Fallback: try to find workspace root by looking for package.json
+  let currentDir = process.cwd();
+  const root = path.parse(currentDir).root; // Get drive root (e.g., "D:\")
+
+  while (currentDir !== root) {
+    const packageJsonPath = path.join(currentDir, "package.json");
+    if (fs.existsSync(packageJsonPath)) {
+      return currentDir;
+    }
+    currentDir = path.dirname(currentDir);
+  }
+
+  // Last resort: use current working directory
+  return path.resolve(process.cwd());
+}
+
+/**
  * Get __dirname in a way that works in both ESM and Jest.
  * @returns The directory path
  * @private
@@ -63,46 +136,36 @@ export class UploadConfig {
 
     // Use the same directory as the database (data folder)
     // This ensures uploads are stored in the same location as the database
+    // Use the same path resolution logic as the database to ensure consistency
     let dataDir: string;
     if (customDataDir) {
       dataDir = customDataDir;
     } else if (process.env.DB_PATH) {
-      dataDir = path.dirname(process.env.DB_PATH);
-    } else {
-      // Resolve path relative to the backend source folder
-      // From backend/src/middleware/upload.ts, go up to backend/, then to data/
-      const fileDir = getDirname();
-      const fileDirNormalized = path.normalize(fileDir);
+      // Resolve DB_PATH the same way as getDatabasePath does
+      const projectRoot = getProjectRoot();
+      const backendDir = path.join(projectRoot, "backend");
+      let resolvedDbPath: string;
 
-      // Check if getDirname() returned the actual file directory or current working directory
-      // The file directory should contain 'middleware' or 'src/middleware'
-      const isActualFileDir =
-        fileDirNormalized.includes("middleware") ||
-        fileDirNormalized.includes(path.join("src", "middleware"));
-
-      let resolvedDataDir: string;
-      if (isActualFileDir) {
-        // We have the correct file directory, resolve relative to it
-        resolvedDataDir = path.resolve(fileDir, "../../data");
+      if (path.isAbsolute(process.env.DB_PATH)) {
+        resolvedDbPath = process.env.DB_PATH;
       } else {
-        // getDirname() likely returned current working directory
-        // Try to find backend folder from current working directory
-        const cwd = process.cwd();
-        const backendDataInCwd = path.resolve(cwd, "backend", "data");
-        const backendDataInParent = path.resolve(cwd, "..", "backend", "data");
-
-        // Prefer backend/data in current directory, then parent, then fallback to cwd/data
-        if (fs.existsSync(path.resolve(cwd, "backend"))) {
-          resolvedDataDir = backendDataInCwd;
-        } else if (fs.existsSync(path.resolve(cwd, "..", "backend"))) {
-          resolvedDataDir = backendDataInParent;
+        // For relative paths, resolve relative to backend directory
+        const dbPathEnv = process.env.DB_PATH;
+        if (
+          dbPathEnv.startsWith("backend/") ||
+          dbPathEnv.startsWith("./backend/")
+        ) {
+          resolvedDbPath = path.resolve(projectRoot, dbPathEnv);
         } else {
-          // Last resort: assume we're in backend folder or project root
-          resolvedDataDir = path.resolve(cwd, "data");
+          resolvedDbPath = path.resolve(backendDir, dbPathEnv);
         }
       }
-
-      dataDir = resolvedDataDir;
+      dataDir = path.dirname(resolvedDbPath);
+    } else {
+      // Default: backend/data (same as database default)
+      const projectRoot = getProjectRoot();
+      const backendDir = path.join(projectRoot, "backend");
+      dataDir = path.join(backendDir, "data");
     }
     this.uploadsDir = path.join(dataDir, "uploads");
 

@@ -166,7 +166,7 @@ export function AuthForm({
               setEmail("");
             }}
             className="btn-primary"
-            style={{ marginTop: "2rem" }}
+            style={{ marginTop: "2rem", display: "inline-block", width: "auto" }}
           >
             Send another link
           </button>

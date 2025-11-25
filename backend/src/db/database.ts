@@ -80,6 +80,7 @@ function getProjectRoot(): string {
 
 /**
  * Get database path from environment variable or default location.
+ * Always resolves to backend/data/habitus.db by default.
  * @param customPath - Optional custom database path
  * @returns The database file path
  * @private
@@ -94,19 +95,32 @@ function getDatabasePath(customPath?: string): string {
   }
 
   const projectRoot = getProjectRoot();
+  const backendDir = path.join(projectRoot, "backend");
   let dbPath: string;
 
   if (customPath) {
     dbPath = path.isAbsolute(customPath)
       ? customPath
-      : path.resolve(projectRoot, customPath);
+      : path.resolve(backendDir, customPath);
   } else if (process.env.DB_PATH) {
-    dbPath = path.isAbsolute(process.env.DB_PATH)
-      ? process.env.DB_PATH
-      : path.resolve(projectRoot, process.env.DB_PATH);
+    if (path.isAbsolute(process.env.DB_PATH)) {
+      dbPath = process.env.DB_PATH;
+    } else {
+      // For relative paths, resolve relative to backend directory
+      // If path already starts with backend/, use as is, otherwise prepend backend/
+      const dbPathEnv = process.env.DB_PATH;
+      if (
+        dbPathEnv.startsWith("backend/") ||
+        dbPathEnv.startsWith("./backend/")
+      ) {
+        dbPath = path.resolve(projectRoot, dbPathEnv);
+      } else {
+        dbPath = path.resolve(backendDir, dbPathEnv);
+      }
+    }
   } else {
-    // Default path: workspace root/data/habitus.db
-    dbPath = path.join(projectRoot, "data/habitus.db");
+    // Default path: backend/data/habitus.db
+    dbPath = path.join(backendDir, "data/habitus.db");
   }
 
   // Only create directory for file-based databases (not :memory: or file: URIs)
