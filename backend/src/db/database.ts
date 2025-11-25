@@ -37,9 +37,10 @@ function getProjectRoot(): string {
       let projectRoot = path.resolve(currentDir, "../../..");
       projectRoot = path.normalize(projectRoot);
 
-      // Verify we found the workspace root by checking for package.json
+      // Verify we found the workspace root by checking for package.json and backend/ directory
       const packageJsonPath = path.join(projectRoot, "package.json");
-      if (fs.existsSync(packageJsonPath)) {
+      const backendDir = path.join(projectRoot, "backend");
+      if (fs.existsSync(packageJsonPath) && fs.existsSync(backendDir)) {
         return projectRoot;
       }
 
@@ -47,7 +48,8 @@ function getProjectRoot(): string {
       projectRoot = path.resolve(currentDir, "../../../..");
       projectRoot = path.normalize(projectRoot);
       const altPackageJsonPath = path.join(projectRoot, "package.json");
-      if (fs.existsSync(altPackageJsonPath)) {
+      const altBackendDir = path.join(projectRoot, "backend");
+      if (fs.existsSync(altPackageJsonPath) && fs.existsSync(altBackendDir)) {
         return projectRoot;
       }
 
@@ -63,13 +65,19 @@ function getProjectRoot(): string {
   }
 
   // Fallback: try to find workspace root by looking for package.json
+  // Verify it's the workspace root by checking for both backend/ and frontend/ directories
   let currentDir = process.cwd();
   const root = path.parse(currentDir).root; // Get drive root (e.g., "D:\")
 
   while (currentDir !== root) {
     const packageJsonPath = path.join(currentDir, "package.json");
     if (fs.existsSync(packageJsonPath)) {
-      return currentDir;
+      // Verify this is the workspace root by checking for backend/ directory
+      const backendDir = path.join(currentDir, "backend");
+      const frontendDir = path.join(currentDir, "frontend");
+      if (fs.existsSync(backendDir) && fs.existsSync(frontendDir)) {
+        return currentDir;
+      }
     }
     currentDir = path.dirname(currentDir);
   }
