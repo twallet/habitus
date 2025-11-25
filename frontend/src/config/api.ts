@@ -2,17 +2,22 @@ import { UserData } from "../models/User.js";
 import { TrackingData, TrackingType } from "../models/Tracking.js";
 
 /**
- * API configuration.
- * Constructs API base URL from VITE_SERVER_URL and VITE_PORT environment variables.
- * Uses relative URLs when served from same origin (development with single server).
- * @public
+ * Get Vite environment variables.
+ * This function abstracts access to import.meta.env to make it Jest-compatible.
+ * In Jest, we use globalThis.import.meta.env (mocked in setupTests.ts).
+ * In browser/Vite, we use import.meta.env directly (Vite replaces it at build/dev time).
+ * @returns Object with VITE_SERVER_URL and VITE_PORT, or undefined if not available
+ * @private
  */
-const getApiBaseUrl = (): string => {
-  let serverUrl: string | undefined;
-  let port: string | undefined;
-
-  // Try to get from global mock first (Jest tests)
-  // In Jest tests, import.meta is mocked via setupTests.ts as a global property
+function getViteEnv():
+  | {
+      VITE_SERVER_URL?: string;
+      VITE_PORT?: string;
+    }
+  | undefined {
+  // First, try to get from globalThis.import.meta.env (works in both Jest and browser)
+  // In Jest, this is mocked in setupTests.ts
+  // In browser, Vite also exposes it here sometimes, but primarily uses import.meta.env
   const globalImport = (
     globalThis as {
       import?: {
@@ -26,26 +31,45 @@ const getApiBaseUrl = (): string => {
     }
   ).import;
 
-  // Check if we're in Jest environment (global mock exists)
-  const isJestEnvironment = !!globalImport?.meta?.env;
-
-  if (isJestEnvironment) {
-    serverUrl = globalImport!.meta!.env!.VITE_SERVER_URL;
-    port = globalImport!.meta!.env!.VITE_PORT;
+  if (globalImport?.meta?.env) {
+    return globalImport.meta.env;
   }
 
-  // In browser/Vite environment, access import.meta.env directly
-  // Vite replaces import.meta.env at build/dev time with actual values from .env file
-  // Only access if we're NOT in Jest (Jest can't parse import.meta)
-  if ((!serverUrl || !port) && !isJestEnvironment) {
-    // Direct access - Vite provides this in the browser and replaces at build/dev time
-    // Type assertion needed because TypeScript might not see Vite types in all contexts
+  // If globalThis doesn't have it, try import.meta.env (browser/Vite only)
+  // Jest will fail to parse import.meta directly, so we use eval to avoid parsing at module load time
+  // This is safe because:
+  // 1. We only reach here if globalThis.import.meta.env is not available (i.e., not in Jest)
+  // 2. In browser/Vite, import.meta.env is available and Vite replaces it at build/dev time
+  // eslint-disable-next-line no-eval
+  try {
+    // Access import.meta.env dynamically to avoid Jest parsing errors
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const viteEnv = (import.meta as any)?.env;
-    if (viteEnv) {
-      serverUrl = serverUrl || viteEnv.VITE_SERVER_URL;
-      port = port || viteEnv.VITE_PORT;
+    const env = eval("import.meta.env");
+    if (env && (env.VITE_SERVER_URL || env.VITE_PORT)) {
+      return env;
     }
+  } catch {
+    // If eval fails or import.meta is not available, return undefined
+  }
+
+  return undefined;
+}
+
+/**
+ * API configuration.
+ * Constructs API base URL from VITE_SERVER_URL and VITE_PORT environment variables.
+ * Uses relative URLs when served from same origin (development with single server).
+ * @public
+ */
+const getApiBaseUrl = (): string => {
+  let serverUrl: string | undefined;
+  let port: string | undefined;
+
+  // Get environment variables from Vite or Jest mock
+  const viteEnv = getViteEnv();
+  if (viteEnv) {
+    serverUrl = viteEnv.VITE_SERVER_URL;
+    port = viteEnv.VITE_PORT;
   }
 
   // Fallback to process.env for tests (Node.js environment)
