@@ -35,22 +35,54 @@ function getDirname(): string {
 }
 
 /**
+ * Get project root directory (workspace root).
+ * @returns The project root path
+ * @private
+ */
+function getProjectRoot(): string {
+  const __dirname = getDirname();
+  // From backend/src/db/ go up to workspace root: ../../../
+  return path.resolve(__dirname, "../../..");
+}
+
+/**
  * Get database path from environment variable or default location.
  * @param customPath - Optional custom database path
  * @returns The database file path
  * @private
  */
 function getDatabasePath(customPath?: string): string {
-  const __dirname = getDirname();
-  const dbPath =
-    customPath ||
-    process.env.DB_PATH ||
-    path.join(__dirname, "../../data/habitus.db");
-  const dbDir = path.dirname(dbPath);
+  // Handle SQLite special identifiers (e.g., :memory:)
+  if (
+    customPath &&
+    (customPath === ":memory:" || customPath.startsWith("file:"))
+  ) {
+    return customPath;
+  }
 
-  // Ensure data directory exists
-  if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
+  const projectRoot = getProjectRoot();
+  let dbPath: string;
+
+  if (customPath) {
+    dbPath = path.isAbsolute(customPath)
+      ? customPath
+      : path.resolve(projectRoot, customPath);
+  } else if (process.env.DB_PATH) {
+    dbPath = path.isAbsolute(process.env.DB_PATH)
+      ? process.env.DB_PATH
+      : path.resolve(projectRoot, process.env.DB_PATH);
+  } else {
+    // Default path: workspace root/data/habitus.db
+    dbPath = path.join(projectRoot, "data/habitus.db");
+  }
+
+  // Only create directory for file-based databases (not :memory: or file: URIs)
+  if (!dbPath.startsWith(":") && !dbPath.startsWith("file:")) {
+    const dbDir = path.dirname(dbPath);
+    // Ensure data directory exists
+    if (!fs.existsSync(dbDir)) {
+      fs.mkdirSync(dbDir, { recursive: true });
+    }
   }
 
   return dbPath;
