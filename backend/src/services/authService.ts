@@ -5,10 +5,12 @@ import { User, UserData } from "../models/User.js";
 import { EmailService } from "./emailService.js";
 
 /**
- * JWT secret key from environment variable (required, no default).
+ * Get JWT secret key from environment variable (lazy loading).
+ * @returns JWT secret key
+ * @throws Error if JWT_SECRET is not set
  * @private
  */
-const JWT_SECRET = ((): string => {
+function getJwtSecret(): string {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
     throw new Error(
@@ -16,13 +18,15 @@ const JWT_SECRET = ((): string => {
     );
   }
   return secret;
-})();
+}
 
 /**
- * JWT expiration time from environment variable (required, no default).
+ * Get JWT expiration time from environment variable (lazy loading).
+ * @returns JWT expiration time
+ * @throws Error if JWT_EXPIRES_IN is not set
  * @private
  */
-const JWT_EXPIRES_IN = ((): string => {
+function getJwtExpiresIn(): string {
   const expiresIn = process.env.JWT_EXPIRES_IN;
   if (!expiresIn) {
     throw new Error(
@@ -30,13 +34,15 @@ const JWT_EXPIRES_IN = ((): string => {
     );
   }
   return expiresIn;
-})();
+}
 
 /**
- * Magic link expiration time in minutes (required, no default).
+ * Get magic link expiration time in minutes (lazy loading).
+ * @returns Magic link expiration time in minutes
+ * @throws Error if MAGIC_LINK_EXPIRY_MINUTES is not set or invalid
  * @private
  */
-const MAGIC_LINK_EXPIRY_MINUTES = ((): number => {
+function getMagicLinkExpiryMinutes(): number {
   const minutes = process.env.MAGIC_LINK_EXPIRY_MINUTES;
   if (!minutes) {
     throw new Error(
@@ -50,14 +56,16 @@ const MAGIC_LINK_EXPIRY_MINUTES = ((): number => {
     );
   }
   return parsed;
-})();
+}
 
 /**
- * Cooldown period in minutes before allowing another magic link request for the same email.
- * Prevents email spam and abuse (required, no default).
+ * Get cooldown period in minutes before allowing another magic link request (lazy loading).
+ * Prevents email spam and abuse.
+ * @returns Cooldown period in minutes
+ * @throws Error if MAGIC_LINK_COOLDOWN_MINUTES is not set or invalid
  * @private
  */
-const MAGIC_LINK_COOLDOWN_MINUTES = ((): number => {
+function getMagicLinkCooldownMinutes(): number {
   const minutes = process.env.MAGIC_LINK_COOLDOWN_MINUTES;
   if (!minutes) {
     throw new Error(
@@ -71,7 +79,7 @@ const MAGIC_LINK_COOLDOWN_MINUTES = ((): number => {
     );
   }
   return parsed;
-})();
+}
 
 /**
  * Service for authentication-related operations.
@@ -123,12 +131,14 @@ export class AuthService {
     if (expiresAt > now) {
       // Calculate when the magic link was created (expires - expiry time)
       const createdAt = new Date(expiresAt);
-      createdAt.setMinutes(createdAt.getMinutes() - MAGIC_LINK_EXPIRY_MINUTES);
+      createdAt.setMinutes(
+        createdAt.getMinutes() - getMagicLinkExpiryMinutes()
+      );
 
       // Check if it was created within the cooldown period
       const cooldownExpires = new Date(createdAt);
       cooldownExpires.setMinutes(
-        cooldownExpires.getMinutes() + MAGIC_LINK_COOLDOWN_MINUTES
+        cooldownExpires.getMinutes() + getMagicLinkCooldownMinutes()
       );
 
       return cooldownExpires > now;
@@ -169,7 +179,7 @@ export class AuthService {
         `[${new Date().toISOString()}] AUTH | Registration magic link cooldown active for email: ${validatedEmail}`
       );
       throw new Error(
-        `Please wait ${MAGIC_LINK_COOLDOWN_MINUTES} minutes before requesting another magic link.`
+        `Please wait ${getMagicLinkCooldownMinutes()} minutes before requesting another magic link.`
       );
     }
 
@@ -189,7 +199,7 @@ export class AuthService {
     // Generate magic link token
     const token = this.generateToken();
     const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + MAGIC_LINK_EXPIRY_MINUTES);
+    expiresAt.setMinutes(expiresAt.getMinutes() + getMagicLinkExpiryMinutes());
 
     console.log(
       `[${new Date().toISOString()}] AUTH | Creating new user account for email: ${validatedEmail}, name: ${validatedName}`
@@ -263,14 +273,14 @@ export class AuthService {
         `[${new Date().toISOString()}] AUTH | Login magic link cooldown active for email: ${validatedEmail}`
       );
       throw new Error(
-        `Please wait ${MAGIC_LINK_COOLDOWN_MINUTES} minutes before requesting another magic link.`
+        `Please wait ${getMagicLinkCooldownMinutes()} minutes before requesting another magic link.`
       );
     }
 
     // Generate magic link token
     const token = this.generateToken();
     const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + MAGIC_LINK_EXPIRY_MINUTES);
+    expiresAt.setMinutes(expiresAt.getMinutes() + getMagicLinkExpiryMinutes());
 
     console.log(
       `[${new Date().toISOString()}] AUTH | Updating magic link token for userId: ${
@@ -369,9 +379,9 @@ export class AuthService {
     // Generate JWT token
     const jwtToken = jwt.sign(
       { userId: user.id, email: user.email },
-      JWT_SECRET,
+      getJwtSecret(),
       {
-        expiresIn: JWT_EXPIRES_IN,
+        expiresIn: getJwtExpiresIn(),
       } as SignOptions
     );
 
@@ -404,7 +414,7 @@ export class AuthService {
    */
   async verifyToken(token: string): Promise<number> {
     try {
-      const decoded = jwt.verify(token, JWT_SECRET) as {
+      const decoded = jwt.verify(token, getJwtSecret()) as {
         userId: number;
         email: string;
       };
