@@ -89,9 +89,13 @@ export function DeleteUserConfirmationModal({
                         <p>
                             Are you sure you want to delete <strong>{userName}'s</strong> account?
                         </p>
-                        <p className="delete-warning-strong">
-                            All your data will be permanently deleted. This action cannot be undone.
+                        <p>
+                            All your data will be permanently deleted.
                         </p>
+                        <p>
+                            This action cannot be undone.
+                        </p>
+
                     </div>
 
                     <div className="form-group">

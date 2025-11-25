@@ -428,6 +428,13 @@ function App() {
             <img src="/te-verde.png" alt="🌱" style={{ height: '1em', width: 'auto', verticalAlign: 'baseline', marginRight: '0.4em', display: 'inline-block' }} />
             Habitus
           </h1>
+          {message && message.type === 'success' && (
+            <Message
+              text={message.text}
+              type={message.type}
+              onHide={handleHideMessage}
+            />
+          )}
           <p className="subtitle">Welcome to your dashboard</p>
         </div>
         {user && (
@@ -439,14 +446,6 @@ function App() {
           />
         )}
       </header>
-
-      {message && message.type === 'success' && (
-        <Message
-          text={message.text}
-          type={message.type}
-          onHide={handleHideMessage}
-        />
-      )}
 
       <main>
         <div className="dashboard-header">
