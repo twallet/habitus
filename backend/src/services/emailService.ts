@@ -1,5 +1,5 @@
 import nodemailer, { Transporter } from "nodemailer";
-import { SERVER_URL, PORT } from "../config/constants.js";
+import { getServerUrl, getPort } from "../config/constants.js";
 
 /**
  * SMTP configuration interface.
@@ -32,7 +32,7 @@ export class EmailService {
       port: config?.port || parseInt(process.env.SMTP_PORT || "587", 10),
       user: config?.user || process.env.SMTP_USER || "",
       pass: config?.pass || process.env.SMTP_PASS || "",
-      frontendUrl: config?.frontendUrl || `${SERVER_URL}:${PORT}`,
+      frontendUrl: config?.frontendUrl || `${getServerUrl()}:${getPort()}`,
     };
   }
 

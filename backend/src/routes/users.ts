@@ -5,7 +5,7 @@ import {
   AuthRequest,
 } from "../middleware/authMiddleware.js";
 import { uploadProfilePicture } from "../middleware/upload.js";
-import { SERVER_URL, PORT } from "../config/constants.js";
+import { getServerUrl, getPort } from "../config/constants.js";
 
 const router = Router();
 // Lazy-load service to allow dependency injection in tests
@@ -54,7 +54,9 @@ router.put(
       // Build profile picture URL if file was uploaded
       let profilePictureUrl: string | undefined;
       if (file) {
-        profilePictureUrl = `${SERVER_URL}:${PORT}/uploads/${file.filename}`;
+        profilePictureUrl = `${getServerUrl()}:${getPort()}/uploads/${
+          file.filename
+        }`;
       }
 
       const user = await getUserServiceInstance().updateProfile(

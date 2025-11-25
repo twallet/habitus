@@ -4,11 +4,12 @@
  */
 
 /**
- * Server port used by the application.
- * Reads from PORT environment variable (required, no default).
+ * Get server port from environment variable (lazy loading).
+ * @returns Server port number
+ * @throws Error if PORT is not set or invalid
  * @public
  */
-export const PORT = ((): number => {
+export function getPort(): number {
   const port = process.env.PORT;
   if (!port) {
     throw new Error(
@@ -22,14 +23,16 @@ export const PORT = ((): number => {
     );
   }
   return parsedPort;
-})();
+}
 
 /**
- * Base URL for the server (used for constructing absolute URLs).
- * Reads from SERVER_URL environment variable (required, no default).
+ * Get base URL for the server from environment variable (lazy loading).
+ * Used for constructing absolute URLs.
+ * @returns Server base URL
+ * @throws Error if SERVER_URL is not set
  * @public
  */
-export const SERVER_URL = ((): string => {
+export function getServerUrl(): string {
   const url = process.env.SERVER_URL;
   if (!url) {
     throw new Error(
@@ -37,4 +40,4 @@ export const SERVER_URL = ((): string => {
     );
   }
   return url;
-})();
+}

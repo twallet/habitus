@@ -19,7 +19,7 @@ import usersRouter from "./routes/users.js";
 import authRouter from "./routes/auth.js";
 import trackingsRouter from "./routes/trackings.js";
 import { getUploadsDirectory } from "./middleware/upload.js";
-import { PORT, SERVER_URL } from "./config/constants.js";
+import { getPort, getServerUrl } from "./config/constants.js";
 
 const isDevelopment = process.env.NODE_ENV !== "production";
 
@@ -219,9 +219,9 @@ db.initialize()
       });
     }
 
-    const server = app.listen(PORT, () => {
+    const server = app.listen(getPort(), () => {
       console.log(
-        `[${new Date().toISOString()}] Server running on ${SERVER_URL}:${PORT}`
+        `[${new Date().toISOString()}] Server running on ${getServerUrl()}:${getPort()}`
       );
       console.log(
         `[${new Date().toISOString()}] Environment: ${
