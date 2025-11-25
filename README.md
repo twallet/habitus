@@ -86,8 +86,10 @@ TRUST_PROXY=false
 VERBOSE_LOGGING=false
 
 # Database Configuration
-# Path to SQLite database file (relative to project root)
-DB_PATH=./data/habitus.db
+# Path to SQLite database file
+# Can be absolute path (e.g., /path/to/habitus.db) or relative to backend directory (e.g., data/habitus.db)
+# If not set, defaults to backend/data/habitus.db relative to workspace root
+DB_PATH=data/habitus.db
 
 # JWT Configuration
 # Secret key for signing JWT tokens (change in production!)

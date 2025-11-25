@@ -88,8 +88,9 @@ function getProjectRoot(): string {
 
 /**
  * Get database path from environment variable or default location.
- * Always resolves to backend/data/habitus.db by default.
- * @param customPath - Optional custom database path
+ * DB_PATH environment variable is the single source of truth.
+ * If DB_PATH is not set, defaults to backend/data/habitus.db relative to workspace root.
+ * @param customPath - Optional custom database path (overrides DB_PATH)
  * @returns The database file path
  * @private
  */
@@ -102,32 +103,30 @@ function getDatabasePath(customPath?: string): string {
     return customPath;
   }
 
-  const projectRoot = getProjectRoot();
-  const backendDir = path.join(projectRoot, "backend");
   let dbPath: string;
 
+  // Priority 1: Custom path (for testing or explicit override)
   if (customPath) {
     dbPath = path.isAbsolute(customPath)
       ? customPath
-      : path.resolve(backendDir, customPath);
-  } else if (process.env.DB_PATH) {
+      : path.resolve(process.cwd(), customPath);
+  }
+  // Priority 2: DB_PATH environment variable (single source of truth)
+  else if (process.env.DB_PATH) {
     if (path.isAbsolute(process.env.DB_PATH)) {
       dbPath = process.env.DB_PATH;
     } else {
       // For relative paths, resolve relative to backend directory
-      // If path already starts with backend/, use as is, otherwise prepend backend/
-      const dbPathEnv = process.env.DB_PATH;
-      if (
-        dbPathEnv.startsWith("backend/") ||
-        dbPathEnv.startsWith("./backend/")
-      ) {
-        dbPath = path.resolve(projectRoot, dbPathEnv);
-      } else {
-        dbPath = path.resolve(backendDir, dbPathEnv);
-      }
+      // This ensures consistent behavior regardless of where the code runs from
+      const projectRoot = getProjectRoot();
+      const backendDir = path.join(projectRoot, "backend");
+      dbPath = path.resolve(backendDir, process.env.DB_PATH);
     }
-  } else {
-    // Default path: backend/data/habitus.db
+  }
+  // Priority 3: Default path (backend/data/habitus.db relative to workspace root)
+  else {
+    const projectRoot = getProjectRoot();
+    const backendDir = path.join(projectRoot, "backend");
     dbPath = path.join(backendDir, "data/habitus.db");
   }
 

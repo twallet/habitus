@@ -3,6 +3,9 @@
  * Suppresses console output during tests to keep test output clean.
  */
 
+import path from "path";
+import os from "os";
+
 // Set required environment variables for tests before any modules are imported
 // These are required by constants.ts which is evaluated at module load time
 if (!process.env.SERVER_URL) {
@@ -22,6 +25,11 @@ if (!process.env.MAGIC_LINK_EXPIRY_MINUTES) {
 }
 if (!process.env.MAGIC_LINK_COOLDOWN_MINUTES) {
   process.env.MAGIC_LINK_COOLDOWN_MINUTES = "5";
+}
+// Set DB_PATH for tests to use a test-specific location (can be overridden in individual tests)
+// Use absolute path to avoid issues with different working directories
+if (!process.env.DB_PATH) {
+  process.env.DB_PATH = path.join(os.tmpdir(), "habitus-test.db");
 }
 
 const originalLog = console.log;
