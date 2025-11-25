@@ -53,13 +53,13 @@ describe("EmailService", () => {
     });
 
     it("should use defaults when no config or environment variables", () => {
-      const originalEnv = process.env;
+      const originalEnv = { ...process.env };
       delete process.env.SMTP_HOST;
       delete process.env.SMTP_PORT;
       delete process.env.SMTP_USER;
       delete process.env.SMTP_PASS;
-      delete process.env.SERVER_URL;
-      delete process.env.PORT;
+      // Keep SERVER_URL and PORT as they are required by getServerUrl() and getPort()
+      // These are set by setupTests.ts, so we don't need to delete them
 
       emailService = new EmailService();
       expect(emailService).toBeInstanceOf(EmailService);

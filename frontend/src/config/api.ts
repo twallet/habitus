@@ -31,11 +31,11 @@ const getApiBaseUrl = (): string => {
     port = globalImport.meta.env.VITE_PORT;
   }
 
-  // In Vite runtime, directly access import.meta.env
-  // Vite transforms this at build time, so it's safe to use directly
+  // In Vite runtime, access import.meta.env via globalThis (works in both Vite and Jest)
+  // Vite transforms import.meta.env at build time, and setupTests.ts mocks it for Jest
   if (!serverUrl || !port) {
     try {
-      // Use a type assertion to access import.meta.env in a way that works in both Vite and Jest
+      // Access via globalThis to avoid Jest parsing errors with direct import.meta syntax
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const viteEnv = (globalThis as any).import?.meta?.env;
       if (viteEnv) {
@@ -44,20 +44,6 @@ const getApiBaseUrl = (): string => {
       }
     } catch {
       // Ignore errors in test environment where import.meta is not available
-    }
-  }
-
-  // Try direct access to import.meta.env (works in Vite)
-  if (!serverUrl || !port) {
-    try {
-      // Direct access - Vite will transform this
-      const env = import.meta.env;
-      if (env) {
-        serverUrl = serverUrl || env.VITE_SERVER_URL;
-        port = port || env.VITE_PORT;
-      }
-    } catch {
-      // Ignore if import.meta is not available
     }
   }
 
