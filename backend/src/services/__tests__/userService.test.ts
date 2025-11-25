@@ -226,13 +226,13 @@ describe("UserService", () => {
       );
     });
 
-    it("should throw error if user not found after update", async () => {
-      // Delete user before update to simulate race condition
+    it("should throw error if user not found", async () => {
+      // Delete user before update
       await testDb.run("DELETE FROM users WHERE id = ?", [userId]);
 
       await expect(
         userService.updateProfile(userId, "New Name")
-      ).rejects.toThrow("Failed to retrieve updated user");
+      ).rejects.toThrow("User not found");
     });
   });
 

@@ -88,6 +88,12 @@ export function EditProfileModal({
      */
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+
+        // Prevent double submission
+        if (isSubmitting) {
+            return;
+        }
+
         setIsSubmitting(true);
         setError(null);
 

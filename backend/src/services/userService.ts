@@ -125,6 +125,56 @@ export class UserService {
       )}`
     );
 
+    // Get current user data before updating to retrieve old profile picture URL
+    const currentUser = await this.getUserById(userId);
+    if (!currentUser) {
+      console.warn(
+        `[${new Date().toISOString()}] USER | Update failed: user not found for userId: ${userId}`
+      );
+      throw new Error("User not found");
+    }
+
+    // Delete old profile picture file if a new one is being uploaded
+    if (profilePictureUrl !== undefined && currentUser.profile_picture_url) {
+      try {
+        // Extract filename from URL (e.g., "http://localhost:3001/uploads/filename.jpg" or "${SERVER_URL}:${PORT}/uploads/filename.jpg" -> "filename.jpg")
+        const urlParts = currentUser.profile_picture_url.split("/uploads/");
+        if (urlParts.length === 2) {
+          // Extract filename and remove query parameters and fragments (e.g., "filename.jpg?v=1#section" -> "filename.jpg")
+          let filename = urlParts[1].split("?")[0].split("#")[0];
+          // Remove any path traversal attempts for security
+          filename = path.basename(filename);
+
+          const uploadsDir = getUploadsDirectory();
+          const filePath = path.join(uploadsDir, filename);
+
+          // Check if file exists and delete it
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+            console.log(
+              `[${new Date().toISOString()}] USER | Deleted old profile picture file: ${filename} for userId: ${userId}`
+            );
+          } else {
+            console.warn(
+              `[${new Date().toISOString()}] USER | Old profile picture file not found: ${filePath} for userId: ${userId}`
+            );
+          }
+        } else {
+          console.warn(
+            `[${new Date().toISOString()}] USER | Invalid old profile picture URL format: ${
+              currentUser.profile_picture_url
+            } for userId: ${userId}`
+          );
+        }
+      } catch (error) {
+        // Log error but don't fail profile update if file deletion fails
+        console.error(
+          `[${new Date().toISOString()}] USER | Error deleting old profile picture file for userId: ${userId}:`,
+          error
+        );
+      }
+    }
+
     // Build update fields
     const updates: string[] = [];
     const values: any[] = [];

@@ -4,8 +4,13 @@ import {
   authenticateToken,
   AuthRequest,
 } from "../middleware/authMiddleware.js";
-import { uploadProfilePicture } from "../middleware/upload.js";
+import {
+  uploadProfilePicture,
+  getUploadsDirectory,
+} from "../middleware/upload.js";
 import { getServerUrl, getPort } from "../config/constants.js";
+import fs from "fs";
+import path from "path";
 
 const router = Router();
 // Lazy-load service to allow dependency injection in tests
@@ -44,10 +49,18 @@ router.put(
   authenticateToken,
   uploadProfilePicture,
   async (req: AuthRequest, res: Response) => {
+    const file = req.file;
+    let uploadedFilePath: string | null = null;
+
     try {
       const userId = req.userId!;
       const { name } = req.body;
-      const file = req.file;
+
+      // Store uploaded file path for cleanup in case of error
+      if (file) {
+        const uploadsDir = getUploadsDirectory();
+        uploadedFilePath = path.join(uploadsDir, file.filename);
+      }
 
       // Build profile picture URL if file was uploaded
       let profilePictureUrl: string | undefined;
@@ -65,6 +78,23 @@ router.put(
 
       res.json(user);
     } catch (error) {
+      // Clean up uploaded file if update failed
+      if (uploadedFilePath) {
+        try {
+          if (fs.existsSync(uploadedFilePath)) {
+            fs.unlinkSync(uploadedFilePath);
+            console.log(
+              `[${new Date().toISOString()}] USER_ROUTE | Cleaned up uploaded file after error: ${uploadedFilePath}`
+            );
+          }
+        } catch (cleanupError) {
+          console.error(
+            `[${new Date().toISOString()}] USER_ROUTE | Error cleaning up uploaded file:`,
+            cleanupError
+          );
+        }
+      }
+
       if (error instanceof TypeError) {
         return res.status(400).json({ error: error.message });
       }
