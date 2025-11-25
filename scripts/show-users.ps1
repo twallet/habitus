@@ -6,8 +6,9 @@ param(
 )
 
 # Get the script directory and project root
+# Script is in scripts/ directory, so project root is one level up
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$projectRoot = $scriptDir
+$projectRoot = Split-Path -Parent $scriptDir
 
 # Determine database path
 if ([string]::IsNullOrEmpty($DbPath)) {
@@ -17,12 +18,30 @@ if ([string]::IsNullOrEmpty($DbPath)) {
         if ([System.IO.Path]::IsPathRooted($envDbPath)) {
             $dbPath = $envDbPath
         } else {
-            $dbPath = Join-Path $projectRoot "backend" $envDbPath
+            $backendDir = Join-Path $projectRoot "backend"
+            $dbPath = Join-Path $backendDir $envDbPath
         }
     } else {
         # Default path: backend/data/habitus.db
-        $dbPath = Join-Path $projectRoot "backend" "data" "habitus.db"
+        $backendDir = Join-Path $projectRoot "backend"
+        $dataDir = Join-Path $backendDir "data"
+        $dbPath = Join-Path $dataDir "habitus.db"
     }
+} else {
+    # If custom path provided, make it absolute if it's relative
+    if (-not [System.IO.Path]::IsPathRooted($DbPath)) {
+        $dbPath = Join-Path $projectRoot $DbPath
+    } else {
+        $dbPath = $DbPath
+    }
+}
+
+# Ensure the path is absolute
+try {
+    $dbPath = [System.IO.Path]::GetFullPath($dbPath)
+} catch {
+    Write-Host "Error: Invalid database path: $dbPath" -ForegroundColor Red
+    exit 1
 }
 
 # Check if database file exists
@@ -37,9 +56,20 @@ Write-Host ""
 # Create a temporary Node.js script to query the database
 $tempScript = Join-Path $env:TEMP "habitus-query-users-$(Get-Date -Format 'yyyyMMddHHmmss').js"
 
+$backendDir = Join-Path $projectRoot "backend"
+$backendNodeModules = Join-Path $backendDir "node_modules"
 $nodeScript = @"
-const sqlite3 = require('sqlite3');
 const path = require('path');
+
+// Try to require sqlite3 from backend node_modules
+let sqlite3;
+try {
+  sqlite3 = require('sqlite3');
+} catch (e) {
+  // If not found, try with full path
+  const backendNodeModules = '$($backendNodeModules.Replace('\', '\\'))';
+  sqlite3 = require(path.join(backendNodeModules, 'sqlite3'));
+}
 
 const dbPath = '$($dbPath.Replace('\', '\\'))';
 
@@ -51,15 +81,14 @@ const db = new sqlite3.Database(dbPath, (err) => {
 });
 
 // Get count of users
-db.get('SELECT COUNT(*) as count FROM users', (err, row) => {
+db.get('SELECT COUNT(*) as count FROM users', (err, countRow) => {
   if (err) {
     console.error('Error querying database:', err.message);
     db.close();
     process.exit(1);
   }
   
-  const count = row ? row.count : 0;
-  console.log(JSON.stringify({ count: count }));
+  const count = countRow ? countRow.count : 0;
   
   // Get all users with name and email
   db.all('SELECT id, name, email FROM users ORDER BY id', (err, rows) => {
@@ -69,7 +98,12 @@ db.get('SELECT COUNT(*) as count FROM users', (err, row) => {
       process.exit(1);
     }
     
-    console.log(JSON.stringify({ users: rows || [] }));
+    const result = {
+      count: count,
+      users: rows || []
+    };
+    
+    console.log(JSON.stringify(result));
     db.close();
   });
 });
@@ -86,8 +120,18 @@ try {
         exit 1
     }
     
-    # Execute the Node.js script and capture output
-    $output = node $tempScript 2>&1
+    # Execute the Node.js script from backend directory to ensure sqlite3 module is found
+    # Set NODE_PATH to include backend node_modules
+    $env:NODE_PATH = $backendNodeModules
+    $backendDir = Join-Path $projectRoot "backend"
+    Push-Location $backendDir
+    try {
+        $output = node $tempScript 2>&1
+    } finally {
+        Pop-Location
+        # Restore NODE_PATH
+        Remove-Item Env:\NODE_PATH -ErrorAction SilentlyContinue
+    }
     
     if ($LASTEXITCODE -ne 0) {
         Write-Host "Error executing query:" -ForegroundColor Red
@@ -95,23 +139,28 @@ try {
         exit 1
     }
     
-    # Parse JSON output - filter out error stream and split by lines
-    $jsonLines = $output | Where-Object { $_ -match '^\s*\{' } | ForEach-Object { $_.Trim() }
+    # Parse JSON output - get the JSON line (filter out any error messages)
+    $jsonOutput = $output | Where-Object { $_ -match '^\s*\{' } | Select-Object -First 1
     
-    if ($jsonLines.Count -lt 2) {
-        Write-Host "Error: Unexpected output from database query" -ForegroundColor Red
+    if (-not $jsonOutput) {
+        Write-Host "Error: Could not parse database query output" -ForegroundColor Red
         Write-Host "Output: $output"
         exit 1
     }
     
-    $countData = $jsonLines[0] | ConvertFrom-Json
-    $usersData = $jsonLines[1] | ConvertFrom-Json
+    try {
+        $result = $jsonOutput.Trim() | ConvertFrom-Json
+    } catch {
+        Write-Host "Error: Failed to parse JSON output" -ForegroundColor Red
+        Write-Host "Output: $jsonOutput"
+        exit 1
+    }
     
     # Display results
-    Write-Host "Total number of users: $($countData.count)" -ForegroundColor Green
+    Write-Host "Total number of users: $($result.count)" -ForegroundColor Green
     Write-Host ""
     
-    if ($usersData.users.Count -eq 0) {
+    if ($result.users.Count -eq 0) {
         Write-Host "No users found in the database." -ForegroundColor Yellow
     } else {
         Write-Host "Users:" -ForegroundColor Green
@@ -119,7 +168,7 @@ try {
         Write-Host ("{0,-5} {1,-30} {2,-40}" -f "ID", "Name", "Email")
         Write-Host ("-" * 80)
         
-        foreach ($user in $usersData.users) {
+        foreach ($user in $result.users) {
             $name = if ($user.name) { $user.name } else { "" }
             $email = if ($user.email) { $user.email } else { "" }
             Write-Host ("{0,-5} {1,-30} {2,-40}" -f $user.id, $name, $email)
