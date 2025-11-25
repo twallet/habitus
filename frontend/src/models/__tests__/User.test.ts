@@ -42,39 +42,9 @@ describe("User", () => {
     });
   });
 
-  describe("validateNickname", () => {
-    it("should accept valid nickname", () => {
-      expect(User.validateNickname("CoolNick")).toBe("CoolNick");
-      expect(User.validateNickname("  Trimmed  ")).toBe("Trimmed");
-    });
-
-    it("should return undefined for empty/null/undefined nickname", () => {
-      expect(User.validateNickname("")).toBeUndefined();
-      expect(User.validateNickname("   ")).toBeUndefined();
-      expect(User.validateNickname(null)).toBeUndefined();
-      expect(User.validateNickname(undefined)).toBeUndefined();
-    });
-
-    it("should throw TypeError if nickname exceeds MAX_NICKNAME_LENGTH", () => {
-      const longNickname = "a".repeat(User.MAX_NICKNAME_LENGTH + 1);
-      expect(() => User.validateNickname(longNickname)).toThrow(TypeError);
-    });
-
-    it("should accept nickname with exactly MAX_NICKNAME_LENGTH characters", () => {
-      const maxLengthNickname = "a".repeat(User.MAX_NICKNAME_LENGTH);
-      expect(User.validateNickname(maxLengthNickname)).toBe(maxLengthNickname);
-    });
-  });
-
   describe("MAX_NAME_LENGTH", () => {
     it("should be 30", () => {
       expect(User.MAX_NAME_LENGTH).toBe(30);
-    });
-  });
-
-  describe("MAX_NICKNAME_LENGTH", () => {
-    it("should be 30", () => {
-      expect(User.MAX_NICKNAME_LENGTH).toBe(30);
     });
   });
 });

@@ -32,7 +32,6 @@ async function createTestDatabase(): Promise<Database> {
             CREATE TABLE IF NOT EXISTS users (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               name TEXT NOT NULL CHECK(length(name) <= 30),
-              nickname TEXT,
               email TEXT NOT NULL UNIQUE,
               profile_picture_url TEXT,
               magic_link_token TEXT,

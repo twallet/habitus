@@ -37,11 +37,10 @@ describe('App', () => {
           body: JSON.stringify({ email }),
         });
       }),
-      requestRegisterMagicLink: jest.fn().mockImplementation(async (name: string, email: string, nickname?: string, profilePicture?: File) => {
+      requestRegisterMagicLink: jest.fn().mockImplementation(async (name: string, email: string, profilePicture?: File) => {
         const formData = new FormData();
         formData.append('name', name);
         formData.append('email', email);
-        if (nickname) formData.append('nickname', nickname);
         if (profilePicture) formData.append('profilePicture', profilePicture);
         return fetch(API_ENDPOINTS.auth.register, {
           method: 'POST',
@@ -191,7 +190,7 @@ describe('App', () => {
     // Verify user menu is present
     const userMenuButton = screen.getByRole('button', { name: /user menu/i });
     expect(userMenuButton).toBeInTheDocument();
-    
+
     // Verify FAB button is present
     const fabButton = screen.getByRole('button', { name: /add new tracking/i });
     expect(fabButton).toBeInTheDocument();

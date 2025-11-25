@@ -36,8 +36,6 @@ router.get("/", async (_req: Request, res: Response) => {
  * @route PUT /api/users/profile
  * @header {string} Authorization - Bearer token
  * @body {string} name - Updated name (optional)
- * @body {string} nickname - Updated nickname (optional)
- * @body {string} email - Updated email (optional)
  * @body {File} profilePicture - Optional profile picture file (image only, max 5MB)
  * @returns {UserData} Updated user data
  */
@@ -48,7 +46,7 @@ router.put(
   async (req: AuthRequest, res: Response) => {
     try {
       const userId = req.userId!;
-      const { name, nickname } = req.body;
+      const { name } = req.body;
       const file = req.file;
 
       // Build profile picture URL if file was uploaded
@@ -62,7 +60,6 @@ router.put(
       const user = await getUserServiceInstance().updateProfile(
         userId,
         name,
-        nickname,
         profilePictureUrl
       );
 

@@ -152,7 +152,6 @@ export class AuthService {
    * Creates user if doesn't exist, sends magic link email.
    * @param name - User's name
    * @param email - User's email
-   * @param nickname - Optional nickname
    * @param profilePictureUrl - Optional profile picture URL
    * @returns Promise resolving when magic link is sent
    * @throws Error if validation fails or email sending fails
@@ -161,7 +160,6 @@ export class AuthService {
   async requestRegisterMagicLink(
     name: string,
     email: string,
-    nickname?: string,
     profilePictureUrl?: string
   ): Promise<void> {
     console.log(
@@ -171,7 +169,6 @@ export class AuthService {
     // Validate inputs
     const validatedName = User.validateName(name);
     const validatedEmail = User.validateEmail(email);
-    const validatedNickname = User.validateNickname(nickname);
 
     // Check cooldown period first (takes precedence over duplicate email check)
     if (await this.checkMagicLinkCooldown(validatedEmail)) {
@@ -207,10 +204,9 @@ export class AuthService {
 
     // Create user with magic link token
     await this.db.run(
-      "INSERT INTO users (name, nickname, email, profile_picture_url, magic_link_token, magic_link_expires) VALUES (?, ?, ?, ?, ?, ?)",
+      "INSERT INTO users (name, email, profile_picture_url, magic_link_token, magic_link_expires) VALUES (?, ?, ?, ?, ?)",
       [
         validatedName,
-        validatedNickname || null,
         validatedEmail,
         profilePictureUrl || null,
         token,
@@ -422,7 +418,7 @@ export class AuthService {
         magic_link_expires: string;
       }
     >(
-      "SELECT id, name, nickname, email, profile_picture_url, last_access, created_at, magic_link_expires FROM users WHERE magic_link_token = ?",
+      "SELECT id, name, email, profile_picture_url, last_access, created_at, magic_link_expires FROM users WHERE magic_link_token = ?",
       [token]
     );
 
@@ -481,7 +477,6 @@ export class AuthService {
       user: {
         id: user.id,
         name: user.name,
-        nickname: user.nickname,
         email: user.email,
         profile_picture_url: user.profile_picture_url || undefined,
         last_access: user.last_access || undefined,
@@ -534,13 +529,12 @@ export class AuthService {
     const row = await this.db.get<{
       id: number;
       name: string;
-      nickname: string | null;
       email: string;
       profile_picture_url: string | null;
       last_access: string | null;
       created_at: string;
     }>(
-      "SELECT id, name, nickname, email, profile_picture_url, last_access, created_at FROM users WHERE id = ?",
+      "SELECT id, name, email, profile_picture_url, last_access, created_at FROM users WHERE id = ?",
       [id]
     );
 
@@ -560,7 +554,6 @@ export class AuthService {
     return {
       id: row.id,
       name: row.name,
-      nickname: row.nickname || undefined,
       email: row.email,
       profile_picture_url: row.profile_picture_url || undefined,
       last_access: row.last_access || undefined,

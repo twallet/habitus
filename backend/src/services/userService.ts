@@ -32,13 +32,12 @@ export class UserService {
     const rows = await this.db.all<{
       id: number;
       name: string;
-      nickname: string | null;
       email: string;
       profile_picture_url: string | null;
       last_access: string | null;
       created_at: string;
     }>(
-      "SELECT id, name, nickname, email, profile_picture_url, last_access, created_at FROM users ORDER BY id"
+      "SELECT id, name, email, profile_picture_url, last_access, created_at FROM users ORDER BY id"
     );
 
     console.log(
@@ -50,7 +49,6 @@ export class UserService {
     return rows.map((row) => ({
       id: row.id,
       name: row.name,
-      nickname: row.nickname || undefined,
       email: row.email,
       profile_picture_url: row.profile_picture_url || undefined,
       last_access: row.last_access || undefined,
@@ -72,13 +70,12 @@ export class UserService {
     const row = await this.db.get<{
       id: number;
       name: string;
-      nickname: string | null;
       email: string;
       profile_picture_url: string | null;
       last_access: string | null;
       created_at: string;
     }>(
-      "SELECT id, name, nickname, email, profile_picture_url, last_access, created_at FROM users WHERE id = ?",
+      "SELECT id, name, email, profile_picture_url, last_access, created_at FROM users WHERE id = ?",
       [id]
     );
 
@@ -98,7 +95,6 @@ export class UserService {
     return {
       id: row.id,
       name: row.name,
-      nickname: row.nickname || undefined,
       email: row.email,
       profile_picture_url: row.profile_picture_url || undefined,
       last_access: row.last_access || undefined,
@@ -110,7 +106,6 @@ export class UserService {
    * Update user profile.
    * @param userId - The user ID
    * @param name - Updated name (optional)
-   * @param nickname - Updated nickname (optional)
    * @param profilePictureUrl - Updated profile picture URL (optional)
    * @returns Promise resolving to updated user data
    * @throws Error if user not found or validation fails
@@ -119,14 +114,12 @@ export class UserService {
   async updateProfile(
     userId: number,
     name?: string,
-    nickname?: string,
     profilePictureUrl?: string
   ): Promise<UserData> {
     console.log(
       `[${new Date().toISOString()}] USER | Updating profile for userId: ${userId}, fields: ${JSON.stringify(
         {
           name: name !== undefined,
-          nickname: nickname !== undefined,
           profilePicture: profilePictureUrl !== undefined,
         }
       )}`
@@ -140,12 +133,6 @@ export class UserService {
       const validatedName = User.validateName(name);
       updates.push("name = ?");
       values.push(validatedName);
-    }
-
-    if (nickname !== undefined) {
-      const validatedNickname = User.validateNickname(nickname);
-      updates.push("nickname = ?");
-      values.push(validatedNickname || null);
     }
 
     if (profilePictureUrl !== undefined) {

@@ -61,7 +61,6 @@ async function createTestDatabase(): Promise<Database> {
             CREATE TABLE IF NOT EXISTS users (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               name TEXT NOT NULL CHECK(length(name) <= 30),
-              nickname TEXT,
               email TEXT NOT NULL UNIQUE,
               profile_picture_url TEXT,
               magic_link_token TEXT,
@@ -239,12 +238,10 @@ describe("Users Routes", () => {
     it("should update user profile successfully", async () => {
       const response = await request(app).put("/api/users/profile").send({
         name: "Updated Name",
-        nickname: "updated",
       });
 
       expect(response.status).toBe(200);
       expect(response.body.name).toBe("Updated Name");
-      expect(response.body.nickname).toBe("updated");
       // Email should remain unchanged (email changes are handled separately)
       expect(response.body.email).toBe("test@example.com");
     });

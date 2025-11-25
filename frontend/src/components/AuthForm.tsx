@@ -5,7 +5,6 @@ interface AuthFormProps {
   onRequestRegisterMagicLink: (
     name: string,
     email: string,
-    nickname?: string,
     profilePicture?: File
   ) => Promise<void>;
   onError: (message: string) => void;
@@ -27,7 +26,6 @@ export function AuthForm({
 }: AuthFormProps) {
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [name, setName] = useState("");
-  const [nickname, setNickname] = useState("");
   const [email, setEmail] = useState("");
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(null);
@@ -69,7 +67,6 @@ export function AuthForm({
         await onRequestRegisterMagicLink(
           name.trim(),
           email.trim(),
-          nickname.trim() || undefined,
           profilePicture || undefined
         );
         setMagicLinkSent(true);
@@ -78,7 +75,6 @@ export function AuthForm({
       // Reset form on success (but keep email for magic link sent message)
       if (!magicLinkSent) {
         setName("");
-        setNickname("");
         setProfilePicture(null);
         setProfilePicturePreview(null);
       }
@@ -97,7 +93,6 @@ export function AuthForm({
     setIsLoginMode(!isLoginMode);
     setMagicLinkSent(false);
     setName("");
-    setNickname("");
     setEmail("");
     setProfilePicture(null);
     setProfilePicturePreview(null);
@@ -211,22 +206,7 @@ export function AuthForm({
             </div>
 
             <div className="form-group">
-              <label htmlFor="nickname">Nickname</label>
-              <input
-                type="text"
-                id="nickname"
-                name="nickname"
-                placeholder="Enter a nickname"
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-                autoComplete="nickname"
-                disabled={isSubmitting}
-                maxLength={30}
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="profilePicture">Profile Picture</label>
+              <label htmlFor="profilePicture">Profile picture</label>
               <div className="file-input-wrapper">
                 <input
                   ref={fileInputRef}

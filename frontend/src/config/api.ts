@@ -380,7 +380,6 @@ export class ApiClient {
    * Request registration magic link.
    * @param name - User's name
    * @param email - User's email
-   * @param nickname - Optional nickname
    * @param profilePicture - Optional profile picture file
    * @returns Promise resolving when magic link is sent
    * @throws Error if request fails
@@ -389,15 +388,11 @@ export class ApiClient {
   async register(
     name: string,
     email: string,
-    nickname?: string,
     profilePicture?: File
   ): Promise<void> {
     const formData = new FormData();
     formData.append("name", name);
     formData.append("email", email);
-    if (nickname) {
-      formData.append("nickname", nickname);
-    }
     if (profilePicture) {
       formData.append("profilePicture", profilePicture);
     }
@@ -455,7 +450,6 @@ export class ApiClient {
   /**
    * Update user profile.
    * @param name - Updated name
-   * @param nickname - Updated nickname (optional)
    * @param profilePicture - Optional profile picture file
    * @returns Promise resolving to updated user data
    * @throws Error if request fails
@@ -463,14 +457,10 @@ export class ApiClient {
    */
   async updateProfile(
     name: string,
-    nickname: string | undefined,
     profilePicture: File | null
   ): Promise<UserData> {
     const formData = new FormData();
     formData.append("name", name);
-    if (nickname) {
-      formData.append("nickname", nickname);
-    }
     if (profilePicture) {
       formData.append("profilePicture", profilePicture);
     }

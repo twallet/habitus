@@ -200,7 +200,7 @@ cd backend && npm start
 ### Authentication
 
 - `POST /api/auth/register` - Request registration magic link (passwordless)
-  - Body: `{ "name": "string", "email": "string", "nickname": "string" (optional), "profilePicture": File (optional) }`
+  - Body: `{ "name": "string", "email": "string", "profilePicture": File (optional) }`
 - `POST /api/auth/login` - Request login magic link (passwordless)
   - Body: `{ "email": "string" }`
 - `GET /api/auth/verify-magic-link` - Verify magic link token and log user in

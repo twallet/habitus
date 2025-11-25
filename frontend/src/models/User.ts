@@ -11,12 +11,6 @@ export class User {
   static readonly MAX_NAME_LENGTH: number = 30;
 
   /**
-   * Maximum allowed length for user nicknames.
-   * @public
-   */
-  static readonly MAX_NICKNAME_LENGTH: number = 30;
-
-  /**
    * User ID.
    * @public
    */
@@ -27,12 +21,6 @@ export class User {
    * @public
    */
   name: string;
-
-  /**
-   * User's nickname (optional).
-   * @public
-   */
-  nickname?: string;
 
   /**
    * User's email address.
@@ -66,7 +54,6 @@ export class User {
   constructor(data: UserData) {
     this.id = data.id;
     this.name = data.name;
-    this.nickname = data.nickname;
     this.email = data.email;
     this.profile_picture_url = data.profile_picture_url;
     this.last_access = data.last_access;
@@ -82,9 +69,6 @@ export class User {
    */
   validate(): User {
     this.name = User.validateName(this.name);
-    if (this.nickname !== undefined) {
-      this.nickname = User.validateNickname(this.nickname);
-    }
     return this;
   }
 
@@ -97,7 +81,6 @@ export class User {
     return {
       id: this.id,
       name: this.name,
-      nickname: this.nickname,
       email: this.email,
       profile_picture_url: this.profile_picture_url,
       last_access: this.last_access,
@@ -133,39 +116,6 @@ export class User {
 
     return trimmedName;
   }
-
-  /**
-   * Validates a user nickname according to the rules:
-   * - Must be a string (if provided)
-   * - Must not exceed MAX_NICKNAME_LENGTH characters if provided
-   * - Can be empty/null/undefined (optional field)
-   * @param nickname - The nickname to validate (optional)
-   * @returns The trimmed nickname or undefined if empty
-   * @throws {@link TypeError} If the nickname is invalid
-   * @public
-   */
-  static validateNickname(nickname?: string | null): string | undefined {
-    if (nickname === null || nickname === undefined) {
-      return undefined;
-    }
-
-    if (typeof nickname !== "string") {
-      throw new TypeError("Nickname must be a string");
-    }
-
-    const trimmedNickname = nickname.trim();
-    if (!trimmedNickname) {
-      return undefined;
-    }
-
-    if (trimmedNickname.length > User.MAX_NICKNAME_LENGTH) {
-      throw new TypeError(
-        `Nickname must be smaller than ${User.MAX_NICKNAME_LENGTH} characters`
-      );
-    }
-
-    return trimmedNickname;
-  }
 }
 
 /**
@@ -176,7 +126,6 @@ export class User {
 export interface UserData {
   id: number;
   name: string;
-  nickname?: string;
   email: string;
   profile_picture_url?: string;
   last_access?: string;

@@ -68,7 +68,6 @@ export function useAuth() {
    * Request registration magic link (passwordless).
    * @param name - User's name
    * @param email - User's email
-   * @param nickname - Optional nickname
    * @param profilePicture - Optional profile picture file
    * @returns Promise resolving when magic link is sent
    * @throws Error if request fails
@@ -77,13 +76,12 @@ export function useAuth() {
   const requestRegisterMagicLink = async (
     name: string,
     email: string,
-    nickname?: string,
     profilePicture?: File
   ): Promise<void> => {
     console.log(
       `[${new Date().toISOString()}] FRONTEND_AUTH | Requesting registration magic link for email: ${email}, name: ${name}`
     );
-    await apiClient.register(name, email, nickname, profilePicture);
+    await apiClient.register(name, email, profilePicture);
     console.log(
       `[${new Date().toISOString()}] FRONTEND_AUTH | Registration magic link request successful for email: ${email}`
     );
@@ -214,8 +212,7 @@ export function useAuth() {
 
   /**
    * Update user profile.
-   * @param name - Updated name (optional)
-   * @param nickname - Updated nickname (optional)
+   * @param name - Updated name
    * @param profilePicture - Optional profile picture file
    * @returns Promise resolving to updated user data
    * @throws Error if request fails
@@ -223,7 +220,6 @@ export function useAuth() {
    */
   const updateProfile = async (
     name: string,
-    nickname: string | undefined,
     profilePicture: File | null
   ): Promise<UserData> => {
     if (!token) {
@@ -239,11 +235,7 @@ export function useAuth() {
       }`
     );
 
-    const updatedUser = await apiClient.updateProfile(
-      name,
-      nickname,
-      profilePicture
-    );
+    const updatedUser = await apiClient.updateProfile(name, profilePicture);
     console.log(
       `[${new Date().toISOString()}] FRONTEND_AUTH | Profile updated successfully for user ID: ${
         updatedUser.id

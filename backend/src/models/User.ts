@@ -8,7 +8,6 @@ import { Database } from "../db/database.js";
 export interface UserData {
   id: number;
   name: string;
-  nickname?: string;
   email: string;
   profile_picture_url?: string;
   last_access?: string;
@@ -27,12 +26,6 @@ export class User {
   static readonly MAX_NAME_LENGTH: number = 30;
 
   /**
-   * Maximum allowed length for user nicknames.
-   * @public
-   */
-  static readonly MAX_NICKNAME_LENGTH: number = 30;
-
-  /**
    * User ID.
    * @public
    */
@@ -43,12 +36,6 @@ export class User {
    * @public
    */
   name: string;
-
-  /**
-   * User's nickname (optional).
-   * @public
-   */
-  nickname?: string;
 
   /**
    * User's email address.
@@ -82,7 +69,6 @@ export class User {
   constructor(data: UserData) {
     this.id = data.id;
     this.name = data.name;
-    this.nickname = data.nickname;
     this.email = data.email;
     this.profile_picture_url = data.profile_picture_url;
     this.last_access = data.last_access;
@@ -99,9 +85,6 @@ export class User {
   validate(): User {
     this.name = User.validateName(this.name);
     this.email = User.validateEmail(this.email);
-    if (this.nickname !== undefined) {
-      this.nickname = User.validateNickname(this.nickname);
-    }
     return this;
   }
 
@@ -124,11 +107,6 @@ export class User {
       updates.push("name = ?");
       values.push(this.name);
 
-      if (this.nickname !== undefined) {
-        updates.push("nickname = ?");
-        values.push(this.nickname || null);
-      }
-
       updates.push("email = ?");
       values.push(this.email);
 
@@ -149,13 +127,8 @@ export class User {
     } else {
       // Create new user
       const result = await db.run(
-        "INSERT INTO users (name, nickname, email, profile_picture_url) VALUES (?, ?, ?, ?)",
-        [
-          this.name,
-          this.nickname || null,
-          this.email,
-          this.profile_picture_url || null,
-        ]
+        "INSERT INTO users (name, email, profile_picture_url) VALUES (?, ?, ?)",
+        [this.name, this.email, this.profile_picture_url || null]
       );
 
       if (!result.lastID) {
@@ -182,9 +155,6 @@ export class User {
 
     if (updates.name !== undefined) {
       this.name = User.validateName(updates.name);
-    }
-    if (updates.nickname !== undefined) {
-      this.nickname = User.validateNickname(updates.nickname);
     }
     if (updates.email !== undefined) {
       this.email = User.validateEmail(updates.email);
@@ -224,7 +194,6 @@ export class User {
     return {
       id: this.id,
       name: this.name,
-      nickname: this.nickname,
       email: this.email,
       profile_picture_url: this.profile_picture_url,
       last_access: this.last_access,
@@ -243,13 +212,12 @@ export class User {
     const row = await db.get<{
       id: number;
       name: string;
-      nickname: string | null;
       email: string;
       profile_picture_url: string | null;
       last_access: string | null;
       created_at: string;
     }>(
-      "SELECT id, name, nickname, email, profile_picture_url, last_access, created_at FROM users WHERE id = ?",
+      "SELECT id, name, email, profile_picture_url, last_access, created_at FROM users WHERE id = ?",
       [id]
     );
 
@@ -260,7 +228,6 @@ export class User {
     return new User({
       id: row.id,
       name: row.name,
-      nickname: row.nickname || undefined,
       email: row.email,
       profile_picture_url: row.profile_picture_url || undefined,
       last_access: row.last_access || undefined,
@@ -280,13 +247,12 @@ export class User {
     const row = await db.get<{
       id: number;
       name: string;
-      nickname: string | null;
       email: string;
       profile_picture_url: string | null;
       last_access: string | null;
       created_at: string;
     }>(
-      "SELECT id, name, nickname, email, profile_picture_url, last_access, created_at FROM users WHERE email = ?",
+      "SELECT id, name, email, profile_picture_url, last_access, created_at FROM users WHERE email = ?",
       [validatedEmail]
     );
 
@@ -297,7 +263,6 @@ export class User {
     return new User({
       id: row.id,
       name: row.name,
-      nickname: row.nickname || undefined,
       email: row.email,
       profile_picture_url: row.profile_picture_url || undefined,
       last_access: row.last_access || undefined,
@@ -332,39 +297,6 @@ export class User {
     }
 
     return trimmedName;
-  }
-
-  /**
-   * Validates a user nickname according to the rules:
-   * - Must be a string (if provided)
-   * - Must not exceed MAX_NICKNAME_LENGTH characters if provided
-   * - Can be empty/null/undefined (optional field)
-   * @param nickname - The nickname to validate (optional)
-   * @returns The trimmed nickname or undefined if empty
-   * @throws {@link TypeError} If the nickname is invalid
-   * @public
-   */
-  static validateNickname(nickname?: string | null): string | undefined {
-    if (nickname === null || nickname === undefined) {
-      return undefined;
-    }
-
-    if (typeof nickname !== "string") {
-      throw new TypeError("Nickname must be a string");
-    }
-
-    const trimmedNickname = nickname.trim();
-    if (!trimmedNickname) {
-      return undefined;
-    }
-
-    if (trimmedNickname.length > User.MAX_NICKNAME_LENGTH) {
-      throw new TypeError(
-        `Nickname must be smaller than ${User.MAX_NICKNAME_LENGTH} characters`
-      );
-    }
-
-    return trimmedNickname;
   }
 
   /**

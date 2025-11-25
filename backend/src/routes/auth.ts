@@ -16,7 +16,6 @@ const getAuthServiceInstance = () => getAuthService();
  * @route POST /api/auth/register
  * @body {string} name - The user's name
  * @body {string} email - The user's email
- * @body {string} nickname - Optional nickname
  * @body {File} profilePicture - Optional profile picture file (image only, max 5MB)
  * @returns {Object} Success message
  */
@@ -26,7 +25,7 @@ router.post(
   uploadProfilePicture,
   async (req: Request, res: Response) => {
     try {
-      const { name, email, nickname } = req.body;
+      const { name, email } = req.body;
       const file = req.file;
 
       if (!name || typeof name !== "string") {
@@ -52,7 +51,6 @@ router.post(
       await getAuthServiceInstance().requestRegisterMagicLink(
         name,
         email,
-        nickname,
         profilePictureUrl
       );
 

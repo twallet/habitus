@@ -8,14 +8,13 @@ interface EditProfileModalProps {
     onClose: () => void;
     onSave: (
         name: string,
-        nickname: string | undefined,
         profilePicture: File | null
     ) => Promise<void>;
 }
 
 /**
  * Modal component for editing user profile.
- * Allows editing name, nickname, email, and profile picture.
+ * Allows editing name and profile picture.
  * @param props - Component props
  * @param props.user - The current user's data
  * @param props.onClose - Callback when modal is closed
@@ -28,7 +27,6 @@ export function EditProfileModal({
     onSave,
 }: EditProfileModalProps) {
     const [name, setName] = useState(user.name);
-    const [nickname, setNickname] = useState(user.nickname || '');
     const [profilePicture, setProfilePicture] = useState<File | null>(null);
     const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(
         user.profile_picture_url || null
@@ -96,11 +94,9 @@ export function EditProfileModal({
         try {
             // Validate name
             const validatedName = User.validateName(name.trim());
-            const validatedNickname = User.validateNickname(nickname.trim() || undefined);
 
             await onSave(
                 validatedName,
-                validatedNickname,
                 profilePicture
             );
             onClose();
@@ -172,23 +168,6 @@ export function EditProfileModal({
                         />
                         <span className="char-count">
                             {name.length}/{User.MAX_NAME_LENGTH}
-                        </span>
-                    </div>
-
-                    <div className="form-group">
-                        <label htmlFor="edit-nickname">Nickname (Optional)</label>
-                        <input
-                            type="text"
-                            id="edit-nickname"
-                            name="nickname"
-                            placeholder="Enter a nickname"
-                            value={nickname}
-                            onChange={(e) => setNickname(e.target.value)}
-                            disabled={isSubmitting}
-                            maxLength={User.MAX_NICKNAME_LENGTH}
-                        />
-                        <span className="char-count">
-                            {nickname.length}/{User.MAX_NICKNAME_LENGTH}
                         </span>
                     </div>
 

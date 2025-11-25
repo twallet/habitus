@@ -6,7 +6,7 @@ interface UserProfileProps {
 
 /**
  * Component for displaying the current user's profile information.
- * Shows editable fields (name, nickname, email) and
+ * Shows editable fields (name, email) and
  * non-editable fields (id, last_access).
  * @param props - Component props
  * @param props.user - The current user's data
@@ -68,12 +68,6 @@ export function UserProfile({ user }: UserProfileProps) {
             <label>Name</label>
             <div className="profile-value">{user.name}</div>
           </div>
-          {user.nickname && (
-            <div className="profile-field">
-              <label>Nickname</label>
-              <div className="profile-value">{user.nickname}</div>
-            </div>
-          )}
           <div className="profile-field">
             <label>Email</label>
             <div className="profile-value">{user.email}</div>

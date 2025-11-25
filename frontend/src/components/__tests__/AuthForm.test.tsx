@@ -159,11 +159,9 @@ describe('AuthForm', () => {
             await user.click(screen.getByRole('button', { name: /don't have an account\? register/i }));
 
             const nameInput = screen.getByLabelText(/^name \*$/i);
-            const nicknameInput = screen.getByLabelText(/nickname/i);
             const emailInput = screen.getByLabelText(/email/i);
 
             await user.type(nameInput, 'John Doe');
-            await user.type(nicknameInput, 'johndoe');
             await user.type(emailInput, 'john@example.com');
 
             await user.click(screen.getByRole('button', { name: /send registration link/i }));

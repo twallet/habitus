@@ -150,19 +150,17 @@ function App() {
    * Handle register magic link request.
    * @param name - User's name
    * @param email - User's email
-   * @param nickname - Optional nickname
    * @param profilePicture - Optional profile picture file
    * @internal
    */
   const handleRequestRegisterMagicLink = async (
     name: string,
     email: string,
-    nickname?: string,
     profilePicture?: File
   ) => {
     console.log(`[${new Date().toISOString()}] FRONTEND_APP | Registration magic link requested via form for email: ${email}, name: ${name}`);
     try {
-      await requestRegisterMagicLink(name, email, nickname, profilePicture);
+      await requestRegisterMagicLink(name, email, profilePicture);
       console.log(`[${new Date().toISOString()}] FRONTEND_APP | Registration magic link request successful, showing success message`);
       setMessage({
         text: 'Registration magic link sent! Check your email.',
@@ -248,18 +246,16 @@ function App() {
   /**
    * Handle save profile.
    * @param name - Updated name
-   * @param nickname - Updated nickname
    * @param profilePicture - Updated profile picture file
    * @internal
    */
   const handleSaveProfile = async (
     name: string,
-    nickname: string | undefined,
     profilePicture: File | null
   ) => {
     console.log(`[${new Date().toISOString()}] FRONTEND_APP | Profile save initiated by user`);
     try {
-      await updateProfile(name, nickname, profilePicture);
+      await updateProfile(name, profilePicture);
       setShowEditProfile(false);
       console.log(`[${new Date().toISOString()}] FRONTEND_APP | Profile updated successfully, showing success message`);
       setMessage({

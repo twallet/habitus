@@ -38,7 +38,6 @@ async function createTestDatabase(): Promise<Database> {
             CREATE TABLE IF NOT EXISTS users (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               name TEXT NOT NULL CHECK(length(name) <= 30),
-              nickname TEXT,
               email TEXT NOT NULL UNIQUE,
               profile_picture_url TEXT,
               magic_link_token TEXT,
@@ -190,20 +189,9 @@ describe("UserService", () => {
       expect(updatedUser.email).toBe("test@example.com");
     });
 
-    it("should update user nickname", async () => {
-      const updatedUser = await userService.updateProfile(
-        userId,
-        undefined,
-        "nickname"
-      );
-
-      expect(updatedUser.nickname).toBe("nickname");
-    });
-
     it("should update profile picture URL", async () => {
       const updatedUser = await userService.updateProfile(
         userId,
-        undefined,
         undefined,
         "http://example.com/pic.jpg"
       );
@@ -217,12 +205,10 @@ describe("UserService", () => {
       const updatedUser = await userService.updateProfile(
         userId,
         "New Name",
-        "New Nickname",
         "http://example.com/pic.jpg"
       );
 
       expect(updatedUser.name).toBe("New Name");
-      expect(updatedUser.nickname).toBe("New Nickname");
       // Email should remain unchanged (email changes are handled separately)
       expect(updatedUser.email).toBe("test@example.com");
       expect(updatedUser.profile_picture_url).toBe(
@@ -243,20 +229,6 @@ describe("UserService", () => {
       await expect(
         userService.updateProfile(userId, "New Name")
       ).rejects.toThrow("Failed to retrieve updated user");
-    });
-
-    it("should clear nickname when set to null", async () => {
-      // First set a nickname
-      await userService.updateProfile(userId, undefined, "nickname");
-
-      // Then clear it
-      const updatedUser = await userService.updateProfile(
-        userId,
-        undefined,
-        ""
-      );
-
-      expect(updatedUser.nickname).toBeUndefined();
     });
   });
 

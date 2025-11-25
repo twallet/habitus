@@ -31,7 +31,6 @@ async function createTestDatabase(): Promise<Database> {
             CREATE TABLE IF NOT EXISTS users (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               name TEXT NOT NULL CHECK(length(name) <= 30),
-              nickname TEXT,
               email TEXT NOT NULL UNIQUE,
               profile_picture_url TEXT,
               magic_link_token TEXT,
@@ -73,7 +72,6 @@ describe("User Model", () => {
       const userData: UserData = {
         id: 1,
         name: "Test User",
-        nickname: "test",
         email: "test@example.com",
         profile_picture_url: "http://example.com/pic.jpg",
         last_access: "2024-01-01T00:00:00Z",
@@ -84,7 +82,6 @@ describe("User Model", () => {
 
       expect(user.id).toBe(1);
       expect(user.name).toBe("Test User");
-      expect(user.nickname).toBe("test");
       expect(user.email).toBe("test@example.com");
       expect(user.profile_picture_url).toBe("http://example.com/pic.jpg");
     });
@@ -101,7 +98,6 @@ describe("User Model", () => {
       expect(user.id).toBe(1);
       expect(user.name).toBe("Test User");
       expect(user.email).toBe("test@example.com");
-      expect(user.nickname).toBeUndefined();
     });
   });
 
@@ -111,14 +107,12 @@ describe("User Model", () => {
         id: 1,
         name: "  Test User  ",
         email: "  TEST@EXAMPLE.COM  ",
-        nickname: "  test  ",
       });
 
       const validated = user.validate();
 
       expect(validated.name).toBe("Test User");
       expect(validated.email).toBe("test@example.com");
-      expect(validated.nickname).toBe("test");
     });
 
     it("should throw error for invalid name", () => {
@@ -208,13 +202,11 @@ describe("User Model", () => {
       const updated = await user.update(
         {
           name: "Updated Name",
-          nickname: "updated",
         },
         db
       );
 
       expect(updated.name).toBe("Updated Name");
-      expect(updated.nickname).toBe("updated");
     });
 
     it("should throw error if user has no id", async () => {
@@ -280,7 +272,6 @@ describe("User Model", () => {
       const user = new User({
         id: 1,
         name: "Test User",
-        nickname: "test",
         email: "test@example.com",
         profile_picture_url: "http://example.com/pic.jpg",
         last_access: "2024-01-01T00:00:00Z",
@@ -292,7 +283,6 @@ describe("User Model", () => {
       expect(data).toEqual({
         id: 1,
         name: "Test User",
-        nickname: "test",
         email: "test@example.com",
         profile_picture_url: "http://example.com/pic.jpg",
         last_access: "2024-01-01T00:00:00Z",
@@ -382,34 +372,6 @@ describe("User Model", () => {
     it("should accept name with exactly MAX_NAME_LENGTH characters", () => {
       const maxLengthName = "a".repeat(User.MAX_NAME_LENGTH);
       expect(User.validateName(maxLengthName)).toBe(maxLengthName);
-    });
-  });
-
-  describe("validateNickname", () => {
-    it("should accept valid nicknames", () => {
-      expect(User.validateNickname("CoolNick")).toBe("CoolNick");
-      expect(User.validateNickname("  Trimmed  ")).toBe("Trimmed");
-    });
-
-    it("should return undefined for empty/null/undefined nickname", () => {
-      expect(User.validateNickname("")).toBeUndefined();
-      expect(User.validateNickname("   ")).toBeUndefined();
-      expect(User.validateNickname(null)).toBeUndefined();
-      expect(User.validateNickname(undefined)).toBeUndefined();
-    });
-
-    it("should throw TypeError for non-string nickname", () => {
-      expect(() => User.validateNickname(123 as any)).toThrow(TypeError);
-    });
-
-    it("should throw TypeError for nickname exceeding max length", () => {
-      const longNickname = "a".repeat(User.MAX_NICKNAME_LENGTH + 1);
-      expect(() => User.validateNickname(longNickname)).toThrow(TypeError);
-    });
-
-    it("should accept nickname with exactly MAX_NICKNAME_LENGTH characters", () => {
-      const maxLengthNickname = "a".repeat(User.MAX_NICKNAME_LENGTH);
-      expect(User.validateNickname(maxLengthNickname)).toBe(maxLengthNickname);
     });
   });
 
