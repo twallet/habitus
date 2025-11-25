@@ -48,7 +48,25 @@ const getApiBaseUrl = (): string => {
     }
   }
 
-  // Validate required environment variables
+  // In development with single server, use relative URLs (same origin)
+  // If we're in a browser, we can detect same origin and use relative URLs
+  if (typeof window !== "undefined") {
+    // If we have env vars, check if they match current origin
+    if (serverUrl && port) {
+      const currentOrigin = `${window.location.protocol}//${window.location.host}`;
+      const apiUrl = `${serverUrl}:${port}`;
+      if (currentOrigin === apiUrl) {
+        return ""; // Use relative URL (same origin)
+      }
+      // Return full URL from env vars
+      return `${serverUrl}:${port}`;
+    }
+    // If env vars are not available but we're in browser, use relative URLs
+    // This works because frontend and backend are served from same origin in development
+    return "";
+  }
+
+  // Validate required environment variables for non-browser environments
   if (!serverUrl) {
     throw new Error(
       "VITE_SERVER_URL environment variable is required. Please set it in your .env file."
@@ -58,16 +76,6 @@ const getApiBaseUrl = (): string => {
     throw new Error(
       "VITE_PORT environment variable is required. Please set it in your .env file."
     );
-  }
-
-  // In development with single server, use relative URLs (same origin)
-  // If we're in a browser and the URL matches the current origin, use relative URL
-  if (typeof window !== "undefined") {
-    const currentOrigin = `${window.location.protocol}//${window.location.host}`;
-    const apiUrl = `${serverUrl}:${port}`;
-    if (currentOrigin === apiUrl) {
-      return "";
-    }
   }
 
   // Return full URL
