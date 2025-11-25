@@ -107,6 +107,30 @@ export function useAuth() {
   };
 
   /**
+   * Request email change magic link.
+   * @param newEmail - New email address
+   * @returns Promise resolving when magic link is sent
+   * @throws Error if request fails
+   * @public
+   */
+  const requestEmailChange = async (newEmail: string): Promise<void> => {
+    if (!token) {
+      console.error(
+        `[${new Date().toISOString()}] FRONTEND_AUTH | Email change request failed: not authenticated`
+      );
+      throw new Error("Not authenticated");
+    }
+
+    console.log(
+      `[${new Date().toISOString()}] FRONTEND_AUTH | Requesting email change magic link for new email: ${newEmail}`
+    );
+    await apiClient.requestEmailChange(newEmail);
+    console.log(
+      `[${new Date().toISOString()}] FRONTEND_AUTH | Email change magic link request successful for email: ${newEmail}`
+    );
+  };
+
+  /**
    * Verify magic link token and log user in.
    * @param magicLinkToken - Magic link token from email
    * @returns Promise resolving to user data
@@ -192,7 +216,6 @@ export function useAuth() {
    * Update user profile.
    * @param name - Updated name (optional)
    * @param nickname - Updated nickname (optional)
-   * @param email - Updated email (optional)
    * @param profilePicture - Optional profile picture file
    * @returns Promise resolving to updated user data
    * @throws Error if request fails
@@ -201,7 +224,6 @@ export function useAuth() {
   const updateProfile = async (
     name: string,
     nickname: string | undefined,
-    email: string,
     profilePicture: File | null
   ): Promise<UserData> => {
     if (!token) {
@@ -214,13 +236,12 @@ export function useAuth() {
     console.log(
       `[${new Date().toISOString()}] FRONTEND_AUTH | Updating profile for user ID: ${
         user?.id
-      }, email: ${email}`
+      }`
     );
 
     const updatedUser = await apiClient.updateProfile(
       name,
       nickname,
-      email,
       profilePicture
     );
     console.log(
@@ -281,6 +302,7 @@ export function useAuth() {
     isAuthenticated,
     requestRegisterMagicLink,
     requestLoginMagicLink,
+    requestEmailChange,
     verifyMagicLink,
     logout,
     setTokenFromCallback,

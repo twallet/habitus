@@ -3,6 +3,7 @@ import { Message } from './components/Message';
 import { AuthForm } from './components/AuthForm';
 import { UserMenu } from './components/UserMenu';
 import { EditProfileModal } from './components/EditProfileModal';
+import { ChangeEmailModal } from './components/ChangeEmailModal';
 import { DeleteUserConfirmationModal } from './components/DeleteUserConfirmationModal';
 import { TrackingsList } from './components/TrackingsList';
 import { TrackingForm } from './components/TrackingForm';
@@ -24,6 +25,7 @@ function App() {
     isAuthenticated,
     requestLoginMagicLink,
     requestRegisterMagicLink,
+    requestEmailChange,
     verifyMagicLink,
     logout,
     updateProfile,
@@ -31,6 +33,7 @@ function App() {
   } = useAuth();
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showChangeEmail, setShowChangeEmail] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [editingTracking, setEditingTracking] = useState<TrackingData | null>(null);
   const [showTrackingForm, setShowTrackingForm] = useState(false);
@@ -51,6 +54,31 @@ function App() {
    */
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
+
+    // Check for email change verification (works even when authenticated)
+    const emailChangeVerified = urlParams.get('emailChangeVerified');
+    if (emailChangeVerified === 'true') {
+      console.log(`[${new Date().toISOString()}] FRONTEND_APP | Email change verification successful`);
+      window.history.replaceState({}, document.title, window.location.pathname);
+      setMessage({
+        text: 'Email change successful! Your email has been updated.',
+        type: 'success',
+      });
+      // Refresh user data if authenticated
+      if (isAuthenticated && user) {
+        // User data will be refreshed on next render via useAuth hook
+      }
+      return;
+    } else if (emailChangeVerified === 'false') {
+      const errorMsg = urlParams.get('error');
+      console.error(`[${new Date().toISOString()}] FRONTEND_APP | Email change verification failed:`, errorMsg);
+      window.history.replaceState({}, document.title, window.location.pathname);
+      setMessage({
+        text: errorMsg ? decodeURIComponent(errorMsg) : 'Email change verification failed',
+        type: 'error',
+      });
+      return;
+    }
 
     // Check for email verification (works even when authenticated)
     const emailVerified = urlParams.get('emailVerified');
@@ -215,22 +243,43 @@ function App() {
   };
 
   /**
+   * Handle change email.
+   * @internal
+   */
+  const handleChangeEmail = () => {
+    setShowChangeEmail(true);
+  };
+
+  /**
+   * Handle request email change.
+   * @param newEmail - New email address
+   * @internal
+   */
+  const handleRequestEmailChange = async (newEmail: string) => {
+    console.log(`[${new Date().toISOString()}] FRONTEND_APP | Email change requested for: ${newEmail}`);
+    try {
+      await requestEmailChange(newEmail);
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] FRONTEND_APP | Email change request failed:`, error);
+      throw error;
+    }
+  };
+
+  /**
    * Handle save profile.
    * @param name - Updated name
    * @param nickname - Updated nickname
-   * @param email - Updated email
    * @param profilePicture - Updated profile picture file
    * @internal
    */
   const handleSaveProfile = async (
     name: string,
     nickname: string | undefined,
-    email: string,
     profilePicture: File | null
   ) => {
     console.log(`[${new Date().toISOString()}] FRONTEND_APP | Profile save initiated by user`);
     try {
-      await updateProfile(name, nickname, email, profilePicture);
+      await updateProfile(name, nickname, profilePicture);
       setShowEditProfile(false);
       console.log(`[${new Date().toISOString()}] FRONTEND_APP | Profile updated successfully, showing success message`);
       setMessage({
@@ -462,6 +511,7 @@ function App() {
           <UserMenu
             user={user}
             onEditProfile={handleEditProfile}
+            onChangeEmail={handleChangeEmail}
             onLogout={handleLogout}
             onDeleteUser={handleDeleteUser}
           />
@@ -505,6 +555,14 @@ function App() {
           user={user}
           onClose={() => setShowEditProfile(false)}
           onSave={handleSaveProfile}
+        />
+      )}
+
+      {showChangeEmail && user && (
+        <ChangeEmailModal
+          user={user}
+          onClose={() => setShowChangeEmail(false)}
+          onRequestEmailChange={handleRequestEmailChange}
         />
       )}
 

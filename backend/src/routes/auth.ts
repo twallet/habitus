@@ -2,6 +2,8 @@ import { Router, Request, Response } from "express";
 import { getAuthService } from "../services/index.js";
 import { uploadProfilePicture } from "../middleware/upload.js";
 import { authRateLimiter } from "../middleware/rateLimiter.js";
+import { authenticateToken } from "../middleware/authMiddleware.js";
+import { AuthRequest } from "../middleware/authMiddleware.js";
 import { getServerUrl, getPort } from "../config/constants.js";
 
 const router = Router();
@@ -233,6 +235,123 @@ router.get("/verify-email", async (req: Request, res: Response) => {
     res.redirect(
       `${frontendUrl}?emailVerified=false&error=${encodeURIComponent(
         "Error verifying email"
+      )}`
+    );
+  }
+});
+
+/**
+ * POST /api/auth/change-email
+ * Request email change magic link.
+ * @route POST /api/auth/change-email
+ * @header {string} Authorization - Bearer token
+ * @body {string} email - New email address
+ * @returns {Object} Success message
+ */
+router.post(
+  "/change-email",
+  authenticateToken,
+  authRateLimiter,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId!;
+      const { email } = req.body;
+
+      if (!email || typeof email !== "string") {
+        return res
+          .status(400)
+          .json({ error: "Email is required and must be a string" });
+      }
+
+      await getAuthServiceInstance().requestEmailChange(userId, email);
+
+      res.json({
+        message:
+          "Email change verification link sent to your new email. Please check your inbox.",
+      });
+    } catch (error) {
+      if (error instanceof TypeError) {
+        return res.status(400).json({ error: error.message });
+      }
+      if (
+        error instanceof Error &&
+        (error.message === "Email already registered" ||
+          error.message.includes("must be different"))
+      ) {
+        return res.status(400).json({ error: error.message });
+      }
+      if (
+        error instanceof Error &&
+        error.message.includes("wait") &&
+        error.message.includes("minutes")
+      ) {
+        return res.status(400).json({ error: error.message });
+      }
+      console.error(
+        `[${new Date().toISOString()}] AUTH_ROUTE | Error requesting email change:`,
+        error
+      );
+      res.status(500).json({ error: "Error requesting email change" });
+    }
+  }
+);
+
+/**
+ * GET /api/auth/verify-email-change
+ * Verify email change token and update user's email.
+ * @route GET /api/auth/verify-email-change
+ * @query {string} token - Email verification token
+ * @returns Redirect to frontend with success/error message
+ */
+router.get("/verify-email-change", async (req: Request, res: Response) => {
+  try {
+    const { token } = req.query;
+
+    if (!token || typeof token !== "string") {
+      const serverUrl = getServerUrl();
+      const port = getPort();
+      const frontendUrl = `${serverUrl}:${port}`;
+      return res.redirect(
+        `${frontendUrl}?emailChangeVerified=false&error=${encodeURIComponent(
+          "Token is required"
+        )}`
+      );
+    }
+
+    const { getUserService } = await import("../services/index.js");
+    await getUserService().verifyEmailChange(token);
+
+    // Redirect to frontend with success message
+    const serverUrl = getServerUrl();
+    const port = getPort();
+    const frontendUrl = `${serverUrl}:${port}`;
+    res.redirect(`${frontendUrl}?emailChangeVerified=true`);
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      (error.message.includes("Invalid") ||
+        error.message.includes("expired") ||
+        error.message.includes("already registered"))
+    ) {
+      const serverUrl = getServerUrl();
+      const port = getPort();
+      const frontendUrl = `${serverUrl}:${port}`;
+      return res.redirect(
+        `${frontendUrl}?emailChangeVerified=false&error=${encodeURIComponent(
+          error.message
+        )}`
+      );
+    }
+    console.error(
+      `[${new Date().toISOString()}] AUTH_ROUTE | Error verifying email change:`,
+      error
+    );
+    const serverUrl = getServerUrl();
+    const port = getPort();
+    const frontendUrl = `${serverUrl}:${port}`;
+    res.redirect(
+      `${frontendUrl}?emailChangeVerified=false&error=${encodeURIComponent(
+        "Error verifying email change"
       )}`
     );
   }

@@ -1,0 +1,31 @@
+.change-email-form {
+  padding: 24px;
+}
+
+.change-email-sent {
+  padding: 24px;
+  text-align: center;
+}
+
+.change-email-sent p {
+  margin-bottom: 16px;
+  color: var(--text-primary);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.change-email-help {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.disabled-input {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+}
+
+.modal-actions .btn-primary {
+  width: auto;
+  display: inline-block;
+}

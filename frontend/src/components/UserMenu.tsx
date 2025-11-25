@@ -5,6 +5,7 @@ import './UserMenu.css';
 interface UserMenuProps {
     user: UserData;
     onEditProfile: () => void;
+    onChangeEmail: () => void;
     onLogout: () => void;
     onDeleteUser: () => void;
 }
@@ -22,6 +23,7 @@ interface UserMenuProps {
 export function UserMenu({
     user,
     onEditProfile,
+    onChangeEmail,
     onLogout,
     onDeleteUser,
 }: UserMenuProps) {
@@ -107,6 +109,13 @@ export function UserMenu({
                         onClick={() => handleMenuItemClick(onEditProfile)}
                     >
                         Edit profile
+                    </button>
+                    <button
+                        type="button"
+                        className="user-menu-item"
+                        onClick={() => handleMenuItemClick(onChangeEmail)}
+                    >
+                        Change email
                     </button>
                     <button
                         type="button"

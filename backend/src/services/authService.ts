@@ -307,6 +307,92 @@ export class AuthService {
   }
 
   /**
+   * Request email change magic link.
+   * Sends magic link email to new email address for verification.
+   * @param userId - The user ID requesting email change
+   * @param newEmail - New email address
+   * @returns Promise resolving when magic link is sent
+   * @throws Error if validation fails or email sending fails
+   * @public
+   */
+  async requestEmailChange(userId: number, newEmail: string): Promise<void> {
+    console.log(
+      `[${new Date().toISOString()}] AUTH | Email change requested for userId: ${userId}, new email: ${newEmail}`
+    );
+
+    // Validate email format
+    const validatedEmail = User.validateEmail(newEmail);
+
+    // Get current user
+    const currentUser = await this.db.get<{ email: string }>(
+      "SELECT email FROM users WHERE id = ?",
+      [userId]
+    );
+
+    if (!currentUser) {
+      throw new Error("User not found");
+    }
+
+    // Check if email is the same
+    if (validatedEmail === currentUser.email) {
+      throw new Error("New email must be different from current email");
+    }
+
+    // Check if new email is already taken by another user
+    const existingUser = await this.db.get<{ id: number }>(
+      "SELECT id FROM users WHERE email = ? AND id != ?",
+      [validatedEmail, userId]
+    );
+
+    if (existingUser) {
+      console.warn(
+        `[${new Date().toISOString()}] AUTH | Email change failed: email already registered for userId: ${userId}`
+      );
+      throw new Error("Email already registered");
+    }
+
+    // Check cooldown period
+    if (await this.checkMagicLinkCooldown(validatedEmail)) {
+      console.warn(
+        `[${new Date().toISOString()}] AUTH | Email change cooldown active for email: ${validatedEmail}`
+      );
+      throw new Error(
+        `Please wait ${getMagicLinkCooldownMinutes()} minutes before requesting another magic link.`
+      );
+    }
+
+    // Generate magic link token for email change
+    const token = this.generateToken();
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + getMagicLinkExpiryMinutes());
+
+    // Store pending email and token
+    await this.db.run(
+      "UPDATE users SET pending_email = ?, email_verification_token = ?, email_verification_expires = ? WHERE id = ?",
+      [validatedEmail, token, expiresAt.toISOString(), userId]
+    );
+
+    console.log(
+      `[${new Date().toISOString()}] AUTH | Sending email change magic link to: ${validatedEmail}`
+    );
+
+    // Send magic link email with special subject for email change
+    const serverUrl = process.env.SERVER_URL || "http://localhost";
+    const port = process.env.PORT || "3001";
+    const magicLink = `${serverUrl}:${port}/api/auth/verify-email-change?token=${token}`;
+
+    await this.emailService.sendEmail(
+      validatedEmail,
+      "Verify your new email address for 🌱 Habitus",
+      `Please click the following link to verify your new email address: ${magicLink}\n\nThis link will expire in ${getMagicLinkExpiryMinutes()} minutes.\nIf you didn't request this, please ignore this email.`
+    );
+
+    console.log(
+      `[${new Date().toISOString()}] AUTH | Email change magic link sent successfully to: ${validatedEmail}`
+    );
+  }
+
+  /**
    * Verify magic link token and log user in.
    * @param token - Magic link token
    * @returns Promise resolving to an object with user data and JWT token

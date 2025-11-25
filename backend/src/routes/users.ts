@@ -48,7 +48,7 @@ router.put(
   async (req: AuthRequest, res: Response) => {
     try {
       const userId = req.userId!;
-      const { name, nickname, email } = req.body;
+      const { name, nickname } = req.body;
       const file = req.file;
 
       // Build profile picture URL if file was uploaded
@@ -63,7 +63,6 @@ router.put(
         userId,
         name,
         nickname,
-        email,
         profilePictureUrl
       );
 

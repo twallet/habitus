@@ -132,7 +132,6 @@ export class UserService {
    * @param userId - The user ID
    * @param name - Updated name (optional)
    * @param nickname - Updated nickname (optional)
-   * @param email - Updated email (optional)
    * @param profilePictureUrl - Updated profile picture URL (optional)
    * @returns Promise resolving to updated user data
    * @throws Error if user not found or validation fails
@@ -142,7 +141,6 @@ export class UserService {
     userId: number,
     name?: string,
     nickname?: string,
-    email?: string,
     profilePictureUrl?: string
   ): Promise<UserData> {
     console.log(
@@ -150,7 +148,6 @@ export class UserService {
         {
           name: name !== undefined,
           nickname: nickname !== undefined,
-          email: email !== undefined,
           profilePicture: profilePictureUrl !== undefined,
         }
       )}`
@@ -170,86 +167,6 @@ export class UserService {
       const validatedNickname = User.validateNickname(nickname);
       updates.push("nickname = ?");
       values.push(validatedNickname || null);
-    }
-
-    if (email !== undefined) {
-      const validatedEmail = User.validateEmail(email);
-
-      // Get current user email to check if it's changing
-      const currentUser = await this.db.get<{ email: string }>(
-        "SELECT email FROM users WHERE id = ?",
-        [userId]
-      );
-
-      if (!currentUser) {
-        throw new Error("User not found");
-      }
-
-      // If email is changing, require verification
-      if (validatedEmail !== currentUser.email) {
-        // Check if new email is already taken by another user
-        const existingUser = await this.db.get<{ id: number }>(
-          "SELECT id FROM users WHERE email = ? AND id != ?",
-          [validatedEmail, userId]
-        );
-
-        if (existingUser) {
-          console.warn(
-            `[${new Date().toISOString()}] USER | Profile update failed: email already registered for userId: ${userId}`
-          );
-          throw new Error("Email already registered");
-        }
-
-        // Generate verification token
-        const verificationToken = crypto.randomBytes(32).toString("hex");
-        const expiresAt = new Date();
-        expiresAt.setMinutes(
-          expiresAt.getMinutes() + getMagicLinkExpiryMinutes()
-        );
-
-        // Store pending email and verification token
-        updates.push("pending_email = ?");
-        updates.push("email_verification_token = ?");
-        updates.push("email_verification_expires = ?");
-        values.push(validatedEmail);
-        values.push(verificationToken);
-        values.push(expiresAt.toISOString());
-
-        // Send verification email if EmailService is available
-        if (this.emailService) {
-          try {
-            const serverUrl = process.env.SERVER_URL || "http://localhost";
-            const port = process.env.PORT || "3001";
-            const verificationUrl = `${serverUrl}:${port}/api/auth/verify-email?token=${verificationToken}`;
-
-            await this.emailService.sendEmail(
-              validatedEmail,
-              "Verify your new email address",
-              `Please click the following link to verify your new email address: ${verificationUrl}\n\nThis link will expire in ${getMagicLinkExpiryMinutes()} minutes.`
-            );
-
-            console.log(
-              `[${new Date().toISOString()}] USER | Email verification sent to: ${validatedEmail} for userId: ${userId}`
-            );
-          } catch (emailError) {
-            console.error(
-              `[${new Date().toISOString()}] USER | Failed to send email verification:`,
-              emailError
-            );
-            // Don't fail the update if email sending fails, but log the error
-          }
-        } else {
-          console.warn(
-            `[${new Date().toISOString()}] USER | EmailService not available, cannot send verification email`
-          );
-        }
-      } else {
-        // Email is not changing, update normally
-        // Clear any pending email verification if email is set back to current
-        updates.push("pending_email = NULL");
-        updates.push("email_verification_token = NULL");
-        updates.push("email_verification_expires = NULL");
-      }
     }
 
     if (profilePictureUrl !== undefined) {

@@ -148,6 +148,7 @@ type API_ENDPOINTS_TYPE = {
     readonly register: string;
     readonly login: string;
     readonly verifyMagicLink: string;
+    readonly changeEmail: string;
     readonly me: string;
   };
   readonly profile: {
@@ -177,6 +178,7 @@ function getApiEndpointsLazy(): API_ENDPOINTS_TYPE {
         register: `${baseUrl}/api/auth/register`,
         login: `${baseUrl}/api/auth/login`,
         verifyMagicLink: `${baseUrl}/api/auth/verify-magic-link`,
+        changeEmail: `${baseUrl}/api/auth/change-email`,
         me: `${baseUrl}/api/auth/me`,
       },
       profile: {
@@ -454,7 +456,6 @@ export class ApiClient {
    * Update user profile.
    * @param name - Updated name
    * @param nickname - Updated nickname (optional)
-   * @param email - Updated email
    * @param profilePicture - Optional profile picture file
    * @returns Promise resolving to updated user data
    * @throws Error if request fails
@@ -463,12 +464,10 @@ export class ApiClient {
   async updateProfile(
     name: string,
     nickname: string | undefined,
-    email: string,
     profilePicture: File | null
   ): Promise<UserData> {
     const formData = new FormData();
     formData.append("name", name);
-    formData.append("email", email);
     if (nickname) {
       formData.append("nickname", nickname);
     }
@@ -477,6 +476,19 @@ export class ApiClient {
     }
 
     return this.put<UserData>(API_ENDPOINTS.profile.update, formData);
+  }
+
+  /**
+   * Request email change magic link.
+   * @param newEmail - New email address
+   * @returns Promise resolving when magic link is sent
+   * @throws Error if request fails
+   * @public
+   */
+  async requestEmailChange(newEmail: string): Promise<void> {
+    await this.post<void>(`${API_ENDPOINTS.auth.changeEmail}`, {
+      email: newEmail,
+    });
   }
 
   /**

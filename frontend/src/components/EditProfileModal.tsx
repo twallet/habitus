@@ -9,7 +9,6 @@ interface EditProfileModalProps {
     onSave: (
         name: string,
         nickname: string | undefined,
-        email: string,
         profilePicture: File | null
     ) => Promise<void>;
 }
@@ -30,14 +29,12 @@ export function EditProfileModal({
 }: EditProfileModalProps) {
     const [name, setName] = useState(user.name);
     const [nickname, setNickname] = useState(user.nickname || '');
-    const [email, setEmail] = useState(user.email);
     const [profilePicture, setProfilePicture] = useState<File | null>(null);
     const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(
         user.profile_picture_url || null
     );
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [emailChanged, setEmailChanged] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     /**
@@ -101,28 +98,12 @@ export function EditProfileModal({
             const validatedName = User.validateName(name.trim());
             const validatedNickname = User.validateNickname(nickname.trim() || undefined);
 
-            // Basic email validation
-            if (!email.trim()) {
-                setError('Email is required');
-                setIsSubmitting(false);
-                return;
-            }
-
-            const emailWasChanged = email.trim() !== user.email;
-
             await onSave(
                 validatedName,
                 validatedNickname,
-                email.trim(),
                 profilePicture
             );
-
-            if (emailWasChanged) {
-                setEmailChanged(true);
-                // Don't close modal, show message instead
-            } else {
-                onClose();
-            }
+            onClose();
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Error updating profile');
         } finally {
@@ -176,27 +157,6 @@ export function EditProfileModal({
                             </button>
                         </div>
                     )}
-                    {emailChanged && (
-                        <div className="message success show">
-                            <span className="message-text">
-                                A verification link has been sent to <strong>{email.trim()}</strong>.
-                                Please check your email and click the link to verify your new email address.
-                                Your email will be updated after verification.
-                            </span>
-                            <button
-                                type="button"
-                                className="message-close"
-                                onClick={() => {
-                                    setEmailChanged(false);
-                                    onClose();
-                                }}
-                                aria-label="Close"
-                            >
-                                ×
-                            </button>
-                        </div>
-                    )}
-
                     <div className="form-group">
                         <label htmlFor="edit-name">Name *</label>
                         <input
@@ -230,20 +190,6 @@ export function EditProfileModal({
                         <span className="char-count">
                             {nickname.length}/{User.MAX_NICKNAME_LENGTH}
                         </span>
-                    </div>
-
-                    <div className="form-group">
-                        <label htmlFor="edit-email">Email *</label>
-                        <input
-                            type="email"
-                            id="edit-email"
-                            name="email"
-                            placeholder="Enter your email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                            disabled={isSubmitting}
-                        />
                     </div>
 
                     <div className="form-group">
