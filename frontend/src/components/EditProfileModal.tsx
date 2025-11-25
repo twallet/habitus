@@ -8,7 +8,8 @@ interface EditProfileModalProps {
     onClose: () => void;
     onSave: (
         name: string,
-        profilePicture: File | null
+        profilePicture: File | null,
+        removeProfilePicture?: boolean
     ) => Promise<void>;
 }
 
@@ -31,6 +32,7 @@ export function EditProfileModal({
     const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(
         user.profile_picture_url || null
     );
+    const [removeProfilePicture, setRemoveProfilePicture] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -56,6 +58,7 @@ export function EditProfileModal({
             }
 
             setProfilePicture(file);
+            setRemoveProfilePicture(false); // User selected a new file, so don't remove
             setError(null);
 
             // Create preview
@@ -76,6 +79,7 @@ export function EditProfileModal({
     const handleRemovePicture = () => {
         setProfilePicture(null);
         setProfilePicturePreview(null);
+        setRemoveProfilePicture(true);
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
@@ -103,7 +107,8 @@ export function EditProfileModal({
 
             await onSave(
                 validatedName,
-                profilePicture
+                profilePicture,
+                removeProfilePicture
             );
             onClose();
         } catch (err) {

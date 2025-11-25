@@ -214,13 +214,15 @@ export function useAuth() {
    * Update user profile.
    * @param name - Updated name
    * @param profilePicture - Optional profile picture file
+   * @param removeProfilePicture - Whether to remove the profile picture
    * @returns Promise resolving to updated user data
    * @throws Error if request fails
    * @public
    */
   const updateProfile = async (
     name: string,
-    profilePicture: File | null
+    profilePicture: File | null,
+    removeProfilePicture?: boolean
   ): Promise<UserData> => {
     if (!token) {
       console.error(
@@ -235,7 +237,11 @@ export function useAuth() {
       }`
     );
 
-    const updatedUser = await apiClient.updateProfile(name, profilePicture);
+    const updatedUser = await apiClient.updateProfile(
+      name,
+      profilePicture,
+      removeProfilePicture
+    );
     console.log(
       `[${new Date().toISOString()}] FRONTEND_AUTH | Profile updated successfully for user ID: ${
         updatedUser.id

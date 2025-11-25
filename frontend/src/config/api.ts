@@ -451,18 +451,23 @@ export class ApiClient {
    * Update user profile.
    * @param name - Updated name
    * @param profilePicture - Optional profile picture file
+   * @param removeProfilePicture - Whether to remove the profile picture
    * @returns Promise resolving to updated user data
    * @throws Error if request fails
    * @public
    */
   async updateProfile(
     name: string,
-    profilePicture: File | null
+    profilePicture: File | null,
+    removeProfilePicture?: boolean
   ): Promise<UserData> {
     const formData = new FormData();
     formData.append("name", name);
     if (profilePicture) {
       formData.append("profilePicture", profilePicture);
+    }
+    if (removeProfilePicture) {
+      formData.append("removeProfilePicture", "true");
     }
 
     return this.put<UserData>(API_ENDPOINTS.profile.update, formData);

@@ -54,7 +54,7 @@ router.put(
 
     try {
       const userId = req.userId!;
-      const { name } = req.body;
+      const { name, removeProfilePicture } = req.body;
 
       // Store uploaded file path for cleanup in case of error
       if (file) {
@@ -62,13 +62,17 @@ router.put(
         uploadedFilePath = path.join(uploadsDir, file.filename);
       }
 
-      // Build profile picture URL if file was uploaded
-      let profilePictureUrl: string | undefined;
-      if (file) {
+      // Build profile picture URL if file was uploaded, or set to null if removing
+      let profilePictureUrl: string | null | undefined;
+      if (removeProfilePicture === "true" || removeProfilePicture === true) {
+        // Explicitly set to null to indicate removal
+        profilePictureUrl = null;
+      } else if (file) {
         profilePictureUrl = `${getServerUrl()}:${getPort()}/uploads/${
           file.filename
         }`;
       }
+      // If neither file nor removeProfilePicture, profilePictureUrl remains undefined (no change)
 
       const user = await getUserServiceInstance().updateProfile(
         userId,

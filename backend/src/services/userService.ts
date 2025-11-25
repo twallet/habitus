@@ -106,7 +106,7 @@ export class UserService {
    * Update user profile.
    * @param userId - The user ID
    * @param name - Updated name (optional)
-   * @param profilePictureUrl - Updated profile picture URL (optional)
+   * @param profilePictureUrl - Updated profile picture URL (optional). Use null to remove, undefined to keep unchanged, or string to set new URL
    * @returns Promise resolving to updated user data
    * @throws Error if user not found or validation fails
    * @public
@@ -114,7 +114,7 @@ export class UserService {
   async updateProfile(
     userId: number,
     name?: string,
-    profilePictureUrl?: string
+    profilePictureUrl?: string | null
   ): Promise<UserData> {
     console.log(
       `[${new Date().toISOString()}] USER | Updating profile for userId: ${userId}, fields: ${JSON.stringify(
@@ -134,7 +134,8 @@ export class UserService {
       throw new Error("User not found");
     }
 
-    // Delete old profile picture file if a new one is being uploaded
+    // Delete old profile picture file if a new one is being uploaded or if explicitly removing
+    // profilePictureUrl can be: undefined (no change), null (remove), or string (new file)
     if (profilePictureUrl !== undefined && currentUser.profile_picture_url) {
       try {
         // Extract filename from URL (e.g., "http://localhost:3001/uploads/filename.jpg" or "${SERVER_URL}:${PORT}/uploads/filename.jpg" -> "filename.jpg")

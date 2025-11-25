@@ -247,15 +247,17 @@ function App() {
    * Handle save profile.
    * @param name - Updated name
    * @param profilePicture - Updated profile picture file
+   * @param removeProfilePicture - Whether to remove the profile picture
    * @internal
    */
   const handleSaveProfile = async (
     name: string,
-    profilePicture: File | null
+    profilePicture: File | null,
+    removeProfilePicture?: boolean
   ) => {
     console.log(`[${new Date().toISOString()}] FRONTEND_APP | Profile save initiated by user`);
     try {
-      await updateProfile(name, profilePicture);
+      await updateProfile(name, profilePicture, removeProfilePicture);
       setShowEditProfile(false);
       console.log(`[${new Date().toISOString()}] FRONTEND_APP | Profile updated successfully, showing success message`);
       setMessage({
