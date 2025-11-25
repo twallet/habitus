@@ -138,13 +138,12 @@ describe('AuthForm', () => {
                 expect(mockRequestRegisterMagicLink).toHaveBeenCalledWith(
                     'John Doe',
                     'john@example.com',
-                    undefined,
                     undefined
                 );
             });
         });
 
-        it('should request registration with all optional fields', async () => {
+        it('should request registration with profile picture', async () => {
             const user = userEvent.setup();
             mockRequestRegisterMagicLink.mockResolvedValue(undefined);
 
@@ -164,14 +163,21 @@ describe('AuthForm', () => {
             await user.type(nameInput, 'John Doe');
             await user.type(emailInput, 'john@example.com');
 
+            // Create a mock file
+            const file = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
+            const fileInput = screen.getByLabelText(/profile picture/i).closest('div')?.querySelector('input[type="file"]') as HTMLInputElement;
+
+            if (fileInput) {
+                await user.upload(fileInput, file);
+            }
+
             await user.click(screen.getByRole('button', { name: /send registration link/i }));
 
             await waitFor(() => {
                 expect(mockRequestRegisterMagicLink).toHaveBeenCalledWith(
                     'John Doe',
                     'john@example.com',
-                    'johndoe',
-                    undefined
+                    expect.any(File)
                 );
             });
         });
