@@ -8,6 +8,9 @@ import { TrackingData, TrackingType } from "../models/Tracking.js";
  * @public
  */
 const getApiBaseUrl = (): string => {
+  let serverUrl: string | undefined;
+  let port: string | undefined;
+
   // In Jest tests, import.meta is mocked via setupTests.ts as a global property
   const globalImport = (
     globalThis as {
@@ -22,26 +25,39 @@ const getApiBaseUrl = (): string => {
     }
   ).import;
 
-  let serverUrl: string | undefined;
-  let port: string | undefined;
-
   // Try to get from global mock (Jest tests)
   if (globalImport?.meta?.env) {
     serverUrl = globalImport.meta.env.VITE_SERVER_URL;
     port = globalImport.meta.env.VITE_PORT;
   }
 
-  // In Vite runtime, access import.meta.env via eval to avoid syntax errors in Jest
-  // This is safe because Vite transforms this at build time
+  // In Vite runtime, directly access import.meta.env
+  // Vite transforms this at build time, so it's safe to use directly
   if (!serverUrl || !port) {
     try {
-      const viteEnv = new Function("return import.meta?.env")();
+      // Use a type assertion to access import.meta.env in a way that works in both Vite and Jest
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const viteEnv = (globalThis as any).import?.meta?.env;
       if (viteEnv) {
         serverUrl = serverUrl || viteEnv.VITE_SERVER_URL;
         port = port || viteEnv.VITE_PORT;
       }
     } catch {
       // Ignore errors in test environment where import.meta is not available
+    }
+  }
+
+  // Try direct access to import.meta.env (works in Vite)
+  if (!serverUrl || !port) {
+    try {
+      // Direct access - Vite will transform this
+      const env = import.meta.env;
+      if (env) {
+        serverUrl = serverUrl || env.VITE_SERVER_URL;
+        port = port || env.VITE_PORT;
+      }
+    } catch {
+      // Ignore if import.meta is not available
     }
   }
 
@@ -79,26 +95,86 @@ const getApiBaseUrl = (): string => {
   return `${serverUrl}:${port}`;
 };
 
-export const API_BASE_URL = getApiBaseUrl();
+/**
+ * Cached API base URL (lazy loaded).
+ * @private
+ */
+let cachedApiBaseUrl: string | null = null;
 
 /**
- * API endpoints.
+ * Get API base URL (lazy loading with caching).
+ * @returns API base URL
  * @public
  */
-export const API_ENDPOINTS = {
-  users: `${API_BASE_URL}/api/users`,
-  auth: {
-    register: `${API_BASE_URL}/api/auth/register`,
-    login: `${API_BASE_URL}/api/auth/login`,
-    verifyMagicLink: `${API_BASE_URL}/api/auth/verify-magic-link`,
-    me: `${API_BASE_URL}/api/auth/me`,
-  },
-  profile: {
-    update: `${API_BASE_URL}/api/users/profile`,
-    delete: `${API_BASE_URL}/api/users/profile`,
-  },
-  trackings: `${API_BASE_URL}/api/trackings`,
-} as const;
+function getApiBaseUrlLazy(): string {
+  if (cachedApiBaseUrl === null) {
+    cachedApiBaseUrl = getApiBaseUrl();
+  }
+  return cachedApiBaseUrl;
+}
+
+/**
+ * API base URL (lazy loaded - only evaluated when first accessed).
+ * @public
+ */
+export const API_BASE_URL = getApiBaseUrlLazy();
+
+/**
+ * API endpoints type.
+ * @private
+ */
+type API_ENDPOINTS_TYPE = {
+  readonly users: string;
+  readonly auth: {
+    readonly register: string;
+    readonly login: string;
+    readonly verifyMagicLink: string;
+    readonly me: string;
+  };
+  readonly profile: {
+    readonly update: string;
+    readonly delete: string;
+  };
+  readonly trackings: string;
+};
+
+/**
+ * Cached API endpoints (lazy loaded).
+ * @private
+ */
+let cachedApiEndpoints: API_ENDPOINTS_TYPE | null = null;
+
+/**
+ * Get API endpoints (lazy loading).
+ * @returns API endpoints object
+ * @private
+ */
+function getApiEndpointsLazy(): API_ENDPOINTS_TYPE {
+  if (cachedApiEndpoints === null) {
+    const baseUrl = getApiBaseUrlLazy();
+    cachedApiEndpoints = {
+      users: `${baseUrl}/api/users`,
+      auth: {
+        register: `${baseUrl}/api/auth/register`,
+        login: `${baseUrl}/api/auth/login`,
+        verifyMagicLink: `${baseUrl}/api/auth/verify-magic-link`,
+        me: `${baseUrl}/api/auth/me`,
+      },
+      profile: {
+        update: `${baseUrl}/api/users/profile`,
+        delete: `${baseUrl}/api/users/profile`,
+      },
+      trackings: `${baseUrl}/api/trackings`,
+    } as const;
+  }
+  return cachedApiEndpoints;
+}
+
+/**
+ * API endpoints (lazy loaded - only evaluated when first accessed).
+ * @public
+ */
+export const API_ENDPOINTS = getApiEndpointsLazy();
 
 /**
  * API Client class for making HTTP requests to the backend API.
@@ -233,8 +309,8 @@ export class ApiClient {
     options: RequestInit = {}
   ): Promise<Response> {
     const fullUrl = url.startsWith("http") ? url : `${this.baseUrl}${url}`;
-    const headers: HeadersInit = {
-      ...options.headers,
+    const headers: Record<string, string> = {
+      ...(options.headers as Record<string, string>),
     };
 
     if (this.token) {
