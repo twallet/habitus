@@ -35,9 +35,10 @@ function getProjectRoot(): string {
       let projectRoot = path.resolve(currentDir, "../../..");
       projectRoot = path.normalize(projectRoot);
 
-      // Verify we found the workspace root by checking for package.json
+      // Verify we found the workspace root by checking for package.json and backend/ directory
       const packageJsonPath = path.join(projectRoot, "package.json");
-      if (fs.existsSync(packageJsonPath)) {
+      const backendDir = path.join(projectRoot, "backend");
+      if (fs.existsSync(packageJsonPath) && fs.existsSync(backendDir)) {
         return projectRoot;
       }
 
@@ -45,7 +46,8 @@ function getProjectRoot(): string {
       projectRoot = path.resolve(currentDir, "../../../..");
       projectRoot = path.normalize(projectRoot);
       const altPackageJsonPath = path.join(projectRoot, "package.json");
-      if (fs.existsSync(altPackageJsonPath)) {
+      const altBackendDir = path.join(projectRoot, "backend");
+      if (fs.existsSync(altPackageJsonPath) && fs.existsSync(altBackendDir)) {
         return projectRoot;
       }
 
@@ -61,13 +63,19 @@ function getProjectRoot(): string {
   }
 
   // Fallback: try to find workspace root by looking for package.json
+  // Verify it's the workspace root by checking for both backend/ and frontend/ directories
   let currentDir = process.cwd();
   const root = path.parse(currentDir).root; // Get drive root (e.g., "D:\")
 
   while (currentDir !== root) {
     const packageJsonPath = path.join(currentDir, "package.json");
     if (fs.existsSync(packageJsonPath)) {
-      return currentDir;
+      // Verify this is the workspace root by checking for backend/ directory
+      const backendDir = path.join(currentDir, "backend");
+      const frontendDir = path.join(currentDir, "frontend");
+      if (fs.existsSync(backendDir) && fs.existsSync(frontendDir)) {
+        return currentDir;
+      }
     }
     currentDir = path.dirname(currentDir);
   }
@@ -142,23 +150,15 @@ export class UploadConfig {
       dataDir = customDataDir;
     } else if (process.env.DB_PATH) {
       // Resolve DB_PATH the same way as getDatabasePath does
-      const projectRoot = getProjectRoot();
-      const backendDir = path.join(projectRoot, "backend");
       let resolvedDbPath: string;
 
       if (path.isAbsolute(process.env.DB_PATH)) {
         resolvedDbPath = process.env.DB_PATH;
       } else {
         // For relative paths, resolve relative to backend directory
-        const dbPathEnv = process.env.DB_PATH;
-        if (
-          dbPathEnv.startsWith("backend/") ||
-          dbPathEnv.startsWith("./backend/")
-        ) {
-          resolvedDbPath = path.resolve(projectRoot, dbPathEnv);
-        } else {
-          resolvedDbPath = path.resolve(backendDir, dbPathEnv);
-        }
+        const projectRoot = getProjectRoot();
+        const backendDir = path.join(projectRoot, "backend");
+        resolvedDbPath = path.resolve(backendDir, process.env.DB_PATH);
       }
       dataDir = path.dirname(resolvedDbPath);
     } else {
