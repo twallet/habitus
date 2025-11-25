@@ -64,7 +64,11 @@ This will install dependencies for both frontend and backend projects.
 
 ### Environment Variables
 
-Create a single `.env` file in the project root (not in `backend` or `frontend` directories):
+Create two `.env` files:
+
+#### Root `.env` file (for backend)
+
+Create a `.env` file in the project root:
 
 ```env
 # Server Configuration
@@ -72,10 +76,6 @@ Create a single `.env` file in the project root (not in `backend` or `frontend` 
 SERVER_URL=http://localhost
 # Server port number
 PORT=3001
-# Frontend server URL (Vite requires VITE_ prefix for client-side access)
-VITE_SERVER_URL=http://localhost
-# Frontend server port (Vite requires VITE_ prefix for client-side access)
-VITE_PORT=3001
 
 # Application Configuration
 # Node environment: development, production, or test
@@ -112,7 +112,18 @@ SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
 ```
 
-**Note:** Both backend and frontend read from this single root-level `.env` file. The frontend uses `VITE_` prefixed variables because Vite only exposes environment variables with this prefix to client-side code for security reasons.
+#### Frontend `.env` file
+
+Create a `.env` file in the `frontend` directory:
+
+```env
+# Frontend server URL (Vite requires VITE_ prefix for client-side access)
+VITE_SERVER_URL=http://localhost
+# Frontend server port (Vite requires VITE_ prefix for client-side access)
+VITE_PORT=3001
+```
+
+**Note:** The frontend uses `VITE_` prefixed variables because Vite only exposes environment variables with this prefix to client-side code for security reasons. Vite automatically loads `.env` files from the `frontend` directory.
 
 ### Setting Up SMTP (Required for Magic Link Emails)
 
