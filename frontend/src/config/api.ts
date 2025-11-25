@@ -32,19 +32,27 @@ const getApiBaseUrl = (): string => {
   }
 
   // In browser/Vite environment, import.meta.env is available directly
-  // Vite replaces import.meta.env at build/dev time
-  // Use try-catch because TypeScript/Jest might not recognize import.meta in all contexts
+  // Vite replaces import.meta.env at build/dev time with actual values
+  // Check if we're not in a Jest environment and import.meta.env is available
+  if ((!serverUrl || !port) && typeof window !== "undefined") {
+    // In browser, access import.meta.env directly (Vite injects it)
+    // Type assertion needed because TypeScript might not see the Vite types in all contexts
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const viteEnv = (import.meta as any).env;
+    if (viteEnv) {
+      serverUrl = serverUrl || viteEnv.VITE_SERVER_URL;
+      port = port || viteEnv.VITE_PORT;
+    }
+  }
+
+  // Fallback: Try to access import.meta.env directly (works in Vite dev server)
+  // This is the primary way Vite provides environment variables
   if (!serverUrl || !port) {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const viteEnv = (import.meta as any)?.env;
-      if (viteEnv) {
-        serverUrl = serverUrl || viteEnv.VITE_SERVER_URL;
-        port = port || viteEnv.VITE_PORT;
-      }
-    } catch {
-      // import.meta not available (e.g., in some test environments)
-      // Continue to next fallback
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const viteEnv = (import.meta as any)?.env;
+    if (viteEnv?.VITE_SERVER_URL || viteEnv?.VITE_PORT) {
+      serverUrl = serverUrl || viteEnv.VITE_SERVER_URL;
+      port = port || viteEnv.VITE_PORT;
     }
   }
 
