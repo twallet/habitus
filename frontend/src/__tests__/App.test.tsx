@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../App';
 import { API_ENDPOINTS } from '../config/api';
@@ -1182,7 +1182,14 @@ describe('App', () => {
     await userEvent.click(saveButton);
 
     await waitFor(() => {
-      expect(screen.getByText(/update failed/i)).toBeInTheDocument();
+      // The error message appears both in the modal and in the main app message
+      // Query within the modal form to get the specific error in the modal
+      const form = document.querySelector('.edit-profile-form');
+      expect(form).toBeInTheDocument();
+      if (form) {
+        const formContent = within(form as HTMLElement);
+        expect(formContent.getByText(/update failed/i)).toBeInTheDocument();
+      }
     });
   });
 
