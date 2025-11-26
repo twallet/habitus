@@ -865,7 +865,9 @@ describe('App', () => {
     await userEvent.click(deleteUserMenuItem);
 
     await waitFor(() => {
-      expect(screen.getByText(/delete account/i)).toBeInTheDocument();
+      // "Delete account" appears as both a heading and a button, so use getAllByText
+      const deleteAccountElements = screen.getAllByText(/delete account/i);
+      expect(deleteAccountElements.length).toBeGreaterThan(0);
     });
   });
 
@@ -1275,7 +1277,9 @@ describe('App', () => {
     await userEvent.click(deleteAccountMenuItem);
 
     await waitFor(() => {
-      expect(screen.getByText(/delete account/i)).toBeInTheDocument();
+      // "Delete account" appears as both a heading and a button, so use getAllByText
+      const deleteAccountElements = screen.getAllByText(/delete account/i);
+      expect(deleteAccountElements.length).toBeGreaterThan(0);
     });
 
     const confirmButton = screen.getByRole('button', { name: /confirm delete/i });
@@ -1325,7 +1329,9 @@ describe('App', () => {
     await userEvent.click(deleteUserMenuItem);
 
     await waitFor(() => {
-      expect(screen.getByText(/delete account/i)).toBeInTheDocument();
+      // "Delete account" appears as both a heading and a button, so use getAllByText
+      const deleteAccountElements = screen.getAllByText(/delete account/i);
+      expect(deleteAccountElements.length).toBeGreaterThan(0);
     });
 
     // Type DELETE to confirm
@@ -1337,7 +1343,9 @@ describe('App', () => {
 
     await waitFor(() => {
       expect(mockDeleteUser).toHaveBeenCalled();
-      expect(screen.getByText(/deletion failed/i)).toBeInTheDocument();
+      // "Deletion failed" appears in both the app message and modal error, so use getAllByText
+      const deletionFailedElements = screen.getAllByText(/deletion failed/i);
+      expect(deletionFailedElements.length).toBeGreaterThan(0);
     });
   });
 
