@@ -34,23 +34,23 @@ describe("api", () => {
       // The actual values are set in setupTests.ts, so we just verify it's used
       expect(API_BASE_URL).toBeDefined();
       expect(typeof API_BASE_URL).toBe("string");
-      expect(API_BASE_URL).toBe("http://localhost:3001");
+      expect(API_BASE_URL).toBe("http://localhost:3005");
     });
 
     it("should use process.env.VITE_SERVER_URL and VITE_PORT as fallback", () => {
       // Set process.env values
       process.env.VITE_SERVER_URL = "http://localhost";
-      process.env.VITE_PORT = "3001";
+      process.env.VITE_PORT = "3005";
       // Reload module to pick up new env vars
       jest.resetModules();
       const { API_BASE_URL: reloadedUrl } = require("../api");
-      expect(reloadedUrl).toBe("http://localhost:3001");
+      expect(reloadedUrl).toBe("http://localhost:3005");
     });
 
     it("should construct URL from VITE_SERVER_URL and VITE_PORT", () => {
       // The values are set in setupTests.ts, so we verify the constructed URL
       expect(API_BASE_URL).toBeDefined();
-      expect(API_BASE_URL).toBe("http://localhost:3001");
+      expect(API_BASE_URL).toBe("http://localhost:3005");
     });
 
     it("should construct correct API endpoints", () => {

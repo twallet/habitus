@@ -16,7 +16,7 @@ module.exports = {
     "import.meta": {
       env: {
         VITE_SERVER_URL: "http://localhost",
-        VITE_PORT: "3001",
+        VITE_PORT: "3005",
       },
     },
   },

@@ -263,9 +263,7 @@ describe("UserService", () => {
         [
           "Test User",
           "test@example.com",
-          `${process.env.SERVER_URL || "http://localhost"}:${
-            process.env.PORT || "3001"
-          }/uploads/test-image-123.jpg`,
+          `${process.env.SERVER_URL}:${process.env.PORT}/uploads/test-image-123.jpg`,
         ]
       );
       const userId = result.lastID;
@@ -311,9 +309,7 @@ describe("UserService", () => {
         [
           "Test User",
           "test@example.com",
-          `${process.env.SERVER_URL || "http://localhost"}:${
-            process.env.PORT || "3001"
-          }/uploads/missing-image.jpg`,
+          `${process.env.SERVER_URL}:${process.env.PORT}/uploads/missing-image.jpg`,
         ]
       );
       const userId = result.lastID;
@@ -372,9 +368,7 @@ describe("UserService", () => {
         [
           "Test User",
           "test@example.com",
-          `${process.env.SERVER_URL || "http://localhost"}:${
-            process.env.PORT || "3001"
-          }/uploads/test-image.jpg`,
+          `${process.env.SERVER_URL}:${process.env.PORT}/uploads/test-image.jpg`,
         ]
       );
       const userId = result.lastID;
