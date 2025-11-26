@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { EditTrackingModal } from '../EditTrackingModal';
 import { TrackingData, TrackingType } from '../../models/Tracking';
@@ -185,8 +185,7 @@ describe('EditTrackingModal', () => {
     );
 
     const questionInput = screen.getByLabelText(/question \*/i);
-    await user.clear(questionInput);
-    await user.type(questionInput, 'x'.repeat(501));
+    fireEvent.change(questionInput, { target: { value: 'x'.repeat(501) } });
 
     const saveButton = screen.getByRole('button', { name: /save changes/i });
     await user.click(saveButton);
@@ -210,8 +209,7 @@ describe('EditTrackingModal', () => {
     );
 
     const questionInput = screen.getByLabelText(/question \*/i);
-    await user.clear(questionInput);
-    await user.type(questionInput, 'New question?');
+    fireEvent.change(questionInput, { target: { value: 'New question?' } });
 
     const saveButton = screen.getByRole('button', { name: /save changes/i });
     await user.click(saveButton);
@@ -344,8 +342,8 @@ describe('EditTrackingModal', () => {
 
     await waitFor(() => {
       expect(mockOnDelete).toHaveBeenCalledWith(1);
+      expect(mockOnClose).toHaveBeenCalledTimes(1);
     });
-    expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 
   it('should cancel delete confirmation', async () => {

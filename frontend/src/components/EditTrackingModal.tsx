@@ -74,11 +74,23 @@ export function EditTrackingModal({
         }
 
         try {
+            // Convert original start_tracking_date to datetime-local format for comparison
+            let originalStartDate = "";
+            if (tracking.start_tracking_date) {
+                const date = new Date(tracking.start_tracking_date);
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, "0");
+                const day = String(date.getDate()).padStart(2, "0");
+                const hours = String(date.getHours()).padStart(2, "0");
+                const minutes = String(date.getMinutes()).padStart(2, "0");
+                originalStartDate = `${year}-${month}-${day}T${hours}:${minutes}`;
+            }
+
             await onSave(
                 tracking.id,
                 question.trim() !== tracking.question ? question.trim() : undefined,
                 type !== tracking.type ? type : undefined,
-                startTrackingDate || undefined,
+                startTrackingDate !== originalStartDate ? (startTrackingDate || undefined) : undefined,
                 notes.trim() !== (tracking.notes || "") ? notes.trim() || undefined : undefined
             );
             onClose();
@@ -168,9 +180,7 @@ export function EditTrackingModal({
                             placeholder="e.g., Did I drink 8 glasses of water today?"
                             value={question}
                             onChange={(e) => setQuestion(e.target.value)}
-                            required
                             disabled={isSubmitting}
-                            maxLength={500}
                             rows={3}
                         />
                         <span className="char-count">
@@ -185,7 +195,6 @@ export function EditTrackingModal({
                             name="type"
                             value={type}
                             onChange={(e) => setType(e.target.value as TrackingType)}
-                            required
                             disabled={isSubmitting}
                         >
                             <option value={TrackingType.TRUE_FALSE}>True/False</option>
