@@ -252,13 +252,16 @@ export function EditTrackingModal({
                     </div>
 
                     {showDeleteConfirmation && (
-                        <div className="delete-confirmation">
+                        <div className="delete-confirmation" onClick={(e) => e.stopPropagation()}>
                             <p>Are you sure you want to delete this tracking?</p>
                             <div className="delete-confirmation-actions">
                                 <button
                                     type="button"
                                     className="btn-secondary"
-                                    onClick={() => setShowDeleteConfirmation(false)}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowDeleteConfirmation(false);
+                                    }}
                                     disabled={isDeleting}
                                 >
                                     Cancel
@@ -266,7 +269,10 @@ export function EditTrackingModal({
                                 <button
                                     type="button"
                                     className="btn-delete"
-                                    onClick={handleDelete}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDelete();
+                                    }}
                                     disabled={isDeleting}
                                 >
                                     {isDeleting ? "Deleting..." : "Delete"}
