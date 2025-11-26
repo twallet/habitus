@@ -343,12 +343,13 @@ describe("useAuth", () => {
       const registerCalls = (global.fetch as jest.Mock).mock.calls.filter(
         (call: any[]) => {
           const url = call[0];
-          const urlString = typeof url === "string" ? url : url?.toString() || "";
+          const urlString =
+            typeof url === "string" ? url : url?.toString() || "";
           return urlString.includes("/api/auth/register");
         }
       );
       expect(registerCalls.length).toBeGreaterThanOrEqual(1);
-      
+
       const callArgs = registerCalls[0];
       expect(callArgs?.[1]?.body).toBeInstanceOf(FormData);
     });
@@ -773,11 +774,560 @@ describe("useAuth", () => {
       });
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        expect.stringContaining("FRONTEND_AUTH | Error setting token from callback:"),
+        expect.stringContaining(
+          "FRONTEND_AUTH | Error setting token from callback:"
+        ),
         expect.any(Error)
       );
 
       consoleErrorSpy.mockRestore();
+    });
+  });
+
+  describe("requestEmailChange", () => {
+    it("should request email change successfully when authenticated", async () => {
+      const mockUser = {
+        id: 1,
+        name: "John Doe",
+        email: "john@example.com",
+        created_at: "2024-01-01T00:00:00Z",
+      };
+
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as jest.Mock).mockImplementation(
+        (url: string | Request | URL) => {
+          const urlString =
+            typeof url === "string"
+              ? url
+              : url instanceof Request
+              ? url.url
+              : url.toString();
+
+          if (urlString.includes("/api/auth/me")) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => Promise.resolve(mockUser),
+            });
+          }
+
+          if (urlString.includes("/api/auth/request-email-change")) {
+            return Promise.resolve({
+              ok: true,
+              status: 200,
+              json: async () =>
+                Promise.resolve({ message: "Email change link sent" }),
+            });
+          }
+
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            json: async () => ({}),
+          });
+        }
+      );
+
+      const { result } = renderHook(() => useAuth());
+
+      await waitFor(() => {
+        expect(result.current.isAuthenticated).toBe(true);
+      });
+
+      await act(async () => {
+        await result.current.requestEmailChange("newemail@example.com");
+      });
+
+      const emailChangeCalls = (global.fetch as jest.Mock).mock.calls.filter(
+        (call: any[]) => {
+          const url = call[0];
+          const urlString =
+            typeof url === "string" ? url : url?.toString() || "";
+          return urlString.includes("/api/auth/request-email-change");
+        }
+      );
+      expect(emailChangeCalls.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it("should throw error when not authenticated", async () => {
+      (global.fetch as jest.Mock).mockImplementation(
+        (url: string | Request | URL) => {
+          const urlString =
+            typeof url === "string"
+              ? url
+              : url instanceof Request
+              ? url.url
+              : url.toString();
+
+          if (urlString.includes("/api/auth/me")) {
+            return Promise.resolve({
+              ok: false,
+              status: 401,
+              json: async () => ({}),
+            });
+          }
+
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            json: async () => ({}),
+          });
+        }
+      );
+
+      const { result } = renderHook(() => useAuth());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await expect(
+        act(async () => {
+          await result.current.requestEmailChange("newemail@example.com");
+        })
+      ).rejects.toThrow("Not authenticated");
+    });
+
+    it("should throw error when request fails", async () => {
+      const mockUser = {
+        id: 1,
+        name: "John Doe",
+        email: "john@example.com",
+        created_at: "2024-01-01T00:00:00Z",
+      };
+
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as jest.Mock).mockImplementation(
+        (url: string | Request | URL) => {
+          const urlString =
+            typeof url === "string"
+              ? url
+              : url instanceof Request
+              ? url.url
+              : url.toString();
+
+          if (urlString.includes("/api/auth/me")) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => Promise.resolve(mockUser),
+            });
+          }
+
+          if (urlString.includes("/api/auth/request-email-change")) {
+            return Promise.resolve({
+              ok: false,
+              status: 400,
+              json: async () =>
+                Promise.resolve({ error: "Email already in use" }),
+            });
+          }
+
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            json: async () => ({}),
+          });
+        }
+      );
+
+      const { result } = renderHook(() => useAuth());
+
+      await waitFor(() => {
+        expect(result.current.isAuthenticated).toBe(true);
+      });
+
+      await expect(
+        act(async () => {
+          await result.current.requestEmailChange("existing@example.com");
+        })
+      ).rejects.toThrow("Email already in use");
+    });
+  });
+
+  describe("updateProfile", () => {
+    it("should update profile successfully when authenticated", async () => {
+      const mockUser = {
+        id: 1,
+        name: "John Doe",
+        email: "john@example.com",
+        created_at: "2024-01-01T00:00:00Z",
+      };
+
+      const updatedUser = {
+        ...mockUser,
+        name: "John Updated",
+      };
+
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as jest.Mock).mockImplementation(
+        (url: string | Request | URL) => {
+          const urlString =
+            typeof url === "string"
+              ? url
+              : url instanceof Request
+              ? url.url
+              : url.toString();
+
+          if (urlString.includes("/api/auth/me")) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => Promise.resolve(mockUser),
+            });
+          }
+
+          if (urlString.includes("/api/auth/profile")) {
+            return Promise.resolve({
+              ok: true,
+              status: 200,
+              json: async () => Promise.resolve(updatedUser),
+            });
+          }
+
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            json: async () => ({}),
+          });
+        }
+      );
+
+      const { result } = renderHook(() => useAuth());
+
+      await waitFor(() => {
+        expect(result.current.isAuthenticated).toBe(true);
+      });
+
+      await act(async () => {
+        const user = await result.current.updateProfile("John Updated", null);
+        expect(user).toEqual(updatedUser);
+      });
+
+      expect(result.current.user).toEqual(updatedUser);
+    });
+
+    it("should update profile with profile picture", async () => {
+      const mockUser = {
+        id: 1,
+        name: "John Doe",
+        email: "john@example.com",
+        created_at: "2024-01-01T00:00:00Z",
+      };
+
+      const updatedUser = {
+        ...mockUser,
+        profile_picture_url: "https://example.com/pic.jpg",
+      };
+
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as jest.Mock).mockImplementation(
+        (url: string | Request | URL) => {
+          const urlString =
+            typeof url === "string"
+              ? url
+              : url instanceof Request
+              ? url.url
+              : url.toString();
+
+          if (urlString.includes("/api/auth/me")) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => Promise.resolve(mockUser),
+            });
+          }
+
+          if (urlString.includes("/api/auth/profile")) {
+            return Promise.resolve({
+              ok: true,
+              status: 200,
+              json: async () => Promise.resolve(updatedUser),
+            });
+          }
+
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            json: async () => ({}),
+          });
+        }
+      );
+
+      const { result } = renderHook(() => useAuth());
+
+      await waitFor(() => {
+        expect(result.current.isAuthenticated).toBe(true);
+      });
+
+      const mockFile = new File(["content"], "profile.jpg", {
+        type: "image/jpeg",
+      });
+
+      await act(async () => {
+        const user = await result.current.updateProfile("John Doe", mockFile);
+        expect(user).toEqual(updatedUser);
+      });
+
+      expect(result.current.user).toEqual(updatedUser);
+    });
+
+    it("should throw error when not authenticated", async () => {
+      (global.fetch as jest.Mock).mockImplementation(
+        (url: string | Request | URL) => {
+          const urlString =
+            typeof url === "string"
+              ? url
+              : url instanceof Request
+              ? url.url
+              : url.toString();
+
+          if (urlString.includes("/api/auth/me")) {
+            return Promise.resolve({
+              ok: false,
+              status: 401,
+              json: async () => ({}),
+            });
+          }
+
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            json: async () => ({}),
+          });
+        }
+      );
+
+      const { result } = renderHook(() => useAuth());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await expect(
+        act(async () => {
+          await result.current.updateProfile("New Name", null);
+        })
+      ).rejects.toThrow("Not authenticated");
+    });
+
+    it("should throw error when update fails", async () => {
+      const mockUser = {
+        id: 1,
+        name: "John Doe",
+        email: "john@example.com",
+        created_at: "2024-01-01T00:00:00Z",
+      };
+
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as jest.Mock).mockImplementation(
+        (url: string | Request | URL) => {
+          const urlString =
+            typeof url === "string"
+              ? url
+              : url instanceof Request
+              ? url.url
+              : url.toString();
+
+          if (urlString.includes("/api/auth/me")) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => Promise.resolve(mockUser),
+            });
+          }
+
+          if (urlString.includes("/api/auth/profile")) {
+            return Promise.resolve({
+              ok: false,
+              status: 400,
+              json: async () => Promise.resolve({ error: "Invalid name" }),
+            });
+          }
+
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            json: async () => ({}),
+          });
+        }
+      );
+
+      const { result } = renderHook(() => useAuth());
+
+      await waitFor(() => {
+        expect(result.current.isAuthenticated).toBe(true);
+      });
+
+      await expect(
+        act(async () => {
+          await result.current.updateProfile("", null);
+        })
+      ).rejects.toThrow("Invalid name");
+    });
+  });
+
+  describe("deleteUser", () => {
+    it("should delete user successfully when authenticated", async () => {
+      const mockUser = {
+        id: 1,
+        name: "John Doe",
+        email: "john@example.com",
+        created_at: "2024-01-01T00:00:00Z",
+      };
+
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as jest.Mock).mockImplementation(
+        (url: string | Request | URL) => {
+          const urlString =
+            typeof url === "string"
+              ? url
+              : url instanceof Request
+              ? url.url
+              : url.toString();
+
+          if (urlString.includes("/api/auth/me")) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => Promise.resolve(mockUser),
+            });
+          }
+
+          if (
+            urlString.includes("/api/auth/profile") &&
+            urlString.includes("DELETE")
+          ) {
+            return Promise.resolve({
+              ok: true,
+              status: 200,
+              json: async () => Promise.resolve({ message: "User deleted" }),
+            });
+          }
+
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            json: async () => ({}),
+          });
+        }
+      );
+
+      const { result } = renderHook(() => useAuth());
+
+      await waitFor(() => {
+        expect(result.current.isAuthenticated).toBe(true);
+      });
+
+      await act(async () => {
+        await result.current.deleteUser();
+      });
+
+      expect(result.current.user).toBeNull();
+      expect(result.current.token).toBeNull();
+      expect(result.current.isAuthenticated).toBe(false);
+      expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
+    });
+
+    it("should throw error when not authenticated", async () => {
+      (global.fetch as jest.Mock).mockImplementation(
+        (url: string | Request | URL) => {
+          const urlString =
+            typeof url === "string"
+              ? url
+              : url instanceof Request
+              ? url.url
+              : url.toString();
+
+          if (urlString.includes("/api/auth/me")) {
+            return Promise.resolve({
+              ok: false,
+              status: 401,
+              json: async () => ({}),
+            });
+          }
+
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            json: async () => ({}),
+          });
+        }
+      );
+
+      const { result } = renderHook(() => useAuth());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await expect(
+        act(async () => {
+          await result.current.deleteUser();
+        })
+      ).rejects.toThrow("Not authenticated");
+    });
+
+    it("should throw error when deletion fails", async () => {
+      const mockUser = {
+        id: 1,
+        name: "John Doe",
+        email: "john@example.com",
+        created_at: "2024-01-01T00:00:00Z",
+      };
+
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as jest.Mock).mockImplementation(
+        (url: string | Request | URL) => {
+          const urlString =
+            typeof url === "string"
+              ? url
+              : url instanceof Request
+              ? url.url
+              : url.toString();
+
+          if (urlString.includes("/api/auth/me")) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => Promise.resolve(mockUser),
+            });
+          }
+
+          if (
+            urlString.includes("/api/auth/profile") &&
+            urlString.includes("DELETE")
+          ) {
+            return Promise.resolve({
+              ok: false,
+              status: 500,
+              json: async () => Promise.resolve({ error: "Deletion failed" }),
+            });
+          }
+
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            json: async () => ({}),
+          });
+        }
+      );
+
+      const { result } = renderHook(() => useAuth());
+
+      await waitFor(() => {
+        expect(result.current.isAuthenticated).toBe(true);
+      });
+
+      await expect(
+        act(async () => {
+          await result.current.deleteUser();
+        })
+      ).rejects.toThrow("Deletion failed");
+
+      // User should still be authenticated if deletion failed
+      expect(result.current.user).toEqual(mockUser);
+      expect(result.current.token).toBe("valid-token");
     });
   });
 });

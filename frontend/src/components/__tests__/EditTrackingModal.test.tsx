@@ -1,0 +1,469 @@
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { EditTrackingModal } from '../EditTrackingModal';
+import { TrackingData, TrackingType } from '../../models/Tracking';
+
+describe('EditTrackingModal', () => {
+  const mockTracking: TrackingData = {
+    id: 1,
+    question: 'Did I exercise today?',
+    type: TrackingType.TRUE_FALSE,
+    start_tracking_date: '2024-01-15T10:30:00Z',
+    notes: 'Some notes',
+    user_id: 1,
+  };
+
+  const mockOnClose = jest.fn();
+  const mockOnSave = jest.fn().mockResolvedValue(undefined);
+  const mockOnDelete = jest.fn().mockResolvedValue(undefined);
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should render modal with tracking information', () => {
+    render(
+      <EditTrackingModal
+        tracking={mockTracking}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    expect(screen.getByText('Edit Tracking')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Did I exercise today?')).toBeInTheDocument();
+  });
+
+  it('should close modal when close button is clicked', async () => {
+    const user = userEvent.setup();
+    render(
+      <EditTrackingModal
+        tracking={mockTracking}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    const closeButton = screen.getByRole('button', { name: /close/i });
+    await user.click(closeButton);
+
+    expect(mockOnClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('should close modal when overlay is clicked', async () => {
+    const user = userEvent.setup();
+    render(
+      <EditTrackingModal
+        tracking={mockTracking}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    const overlay = screen.getByText('Edit Tracking').closest('.modal-overlay');
+    if (overlay) {
+      await user.click(overlay);
+      expect(mockOnClose).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it('should close modal on Escape key', async () => {
+    render(
+      <EditTrackingModal
+        tracking={mockTracking}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    await userEvent.keyboard('{Escape}');
+
+    expect(mockOnClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('should update question when input changes', async () => {
+    const user = userEvent.setup();
+    render(
+      <EditTrackingModal
+        tracking={mockTracking}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    const questionInput = screen.getByLabelText(/question \*/i);
+    await user.clear(questionInput);
+    await user.type(questionInput, 'New question?');
+
+    expect(questionInput).toHaveValue('New question?');
+  });
+
+  it('should show character count for question', () => {
+    render(
+      <EditTrackingModal
+        tracking={mockTracking}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    expect(screen.getByText(/21\/500/i)).toBeInTheDocument();
+  });
+
+  it('should update type when select changes', async () => {
+    const user = userEvent.setup();
+    render(
+      <EditTrackingModal
+        tracking={mockTracking}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    const typeSelect = screen.getByLabelText(/type \*/i);
+    await user.selectOptions(typeSelect, TrackingType.REGISTER);
+
+    expect(typeSelect).toHaveValue(TrackingType.REGISTER);
+  });
+
+  it('should update notes when input changes', async () => {
+    const user = userEvent.setup();
+    render(
+      <EditTrackingModal
+        tracking={mockTracking}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    const notesInput = screen.getByLabelText(/notes/i);
+    await user.clear(notesInput);
+    await user.type(notesInput, 'New notes');
+
+    expect(notesInput).toHaveValue('New notes');
+  });
+
+  it('should show error for empty question', async () => {
+    const user = userEvent.setup();
+    render(
+      <EditTrackingModal
+        tracking={mockTracking}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    const questionInput = screen.getByLabelText(/question \*/i);
+    await user.clear(questionInput);
+
+    const saveButton = screen.getByRole('button', { name: /save changes/i });
+    await user.click(saveButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/question is required/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should show error for question exceeding 500 characters', async () => {
+    const user = userEvent.setup();
+    render(
+      <EditTrackingModal
+        tracking={mockTracking}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    const questionInput = screen.getByLabelText(/question \*/i);
+    await user.clear(questionInput);
+    await user.type(questionInput, 'x'.repeat(501));
+
+    const saveButton = screen.getByRole('button', { name: /save changes/i });
+    await user.click(saveButton);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/question must not exceed 500 characters/i)
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('should submit form with updated question', async () => {
+    const user = userEvent.setup();
+    render(
+      <EditTrackingModal
+        tracking={mockTracking}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    const questionInput = screen.getByLabelText(/question \*/i);
+    await user.clear(questionInput);
+    await user.type(questionInput, 'New question?');
+
+    const saveButton = screen.getByRole('button', { name: /save changes/i });
+    await user.click(saveButton);
+
+    await waitFor(() => {
+      expect(mockOnSave).toHaveBeenCalledWith(
+        1,
+        'New question?',
+        undefined,
+        undefined,
+        undefined
+      );
+    });
+    expect(mockOnClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('should submit form with updated type', async () => {
+    const user = userEvent.setup();
+    render(
+      <EditTrackingModal
+        tracking={mockTracking}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    const typeSelect = screen.getByLabelText(/type \*/i);
+    await user.selectOptions(typeSelect, TrackingType.REGISTER);
+
+    const saveButton = screen.getByRole('button', { name: /save changes/i });
+    await user.click(saveButton);
+
+    await waitFor(() => {
+      expect(mockOnSave).toHaveBeenCalledWith(
+        1,
+        undefined,
+        TrackingType.REGISTER,
+        undefined,
+        undefined
+      );
+    });
+  });
+
+  it('should show loading state when submitting', async () => {
+    const user = userEvent.setup();
+    const slowSave = jest.fn().mockImplementation(
+      () => new Promise(resolve => setTimeout(resolve, 100))
+    );
+
+    render(
+      <EditTrackingModal
+        tracking={mockTracking}
+        onClose={mockOnClose}
+        onSave={slowSave}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    const saveButton = screen.getByRole('button', { name: /save changes/i });
+    await user.click(saveButton);
+
+    expect(screen.getByText(/saving.../i)).toBeInTheDocument();
+    expect(saveButton).toBeDisabled();
+  });
+
+  it('should show error message on save failure', async () => {
+    const user = userEvent.setup();
+    const errorSave = jest.fn().mockRejectedValue(new Error('Save failed'));
+
+    render(
+      <EditTrackingModal
+        tracking={mockTracking}
+        onClose={mockOnClose}
+        onSave={errorSave}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    const saveButton = screen.getByRole('button', { name: /save changes/i });
+    await user.click(saveButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/save failed/i)).toBeInTheDocument();
+    });
+    expect(mockOnClose).not.toHaveBeenCalled();
+  });
+
+  it('should show delete confirmation when delete button is clicked', async () => {
+    const user = userEvent.setup();
+    render(
+      <EditTrackingModal
+        tracking={mockTracking}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    const deleteButton = screen.getByRole('button', { name: /delete/i });
+    await user.click(deleteButton);
+
+    expect(screen.getByText(/are you sure you want to delete this tracking\?/i)).toBeInTheDocument();
+  });
+
+  it('should call onDelete when delete is confirmed', async () => {
+    const user = userEvent.setup();
+    render(
+      <EditTrackingModal
+        tracking={mockTracking}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    const deleteButton = screen.getByRole('button', { name: /delete/i });
+    await user.click(deleteButton);
+
+    const confirmDeleteButton = screen.getByRole('button', { name: /^delete$/i });
+    await user.click(confirmDeleteButton);
+
+    await waitFor(() => {
+      expect(mockOnDelete).toHaveBeenCalledWith(1);
+    });
+    expect(mockOnClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('should cancel delete confirmation', async () => {
+    const user = userEvent.setup();
+    render(
+      <EditTrackingModal
+        tracking={mockTracking}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    const deleteButton = screen.getByRole('button', { name: /delete/i });
+    await user.click(deleteButton);
+
+    const cancelButton = screen.getAllByRole('button', { name: /cancel/i })[1];
+    await user.click(cancelButton);
+
+    expect(screen.queryByText(/are you sure you want to delete this tracking\?/i)).not.toBeInTheDocument();
+    expect(mockOnDelete).not.toHaveBeenCalled();
+  });
+
+  it('should close delete confirmation on Escape key', async () => {
+    render(
+      <EditTrackingModal
+        tracking={mockTracking}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    const deleteButton = screen.getByRole('button', { name: /delete/i });
+    await userEvent.click(deleteButton);
+
+    await userEvent.keyboard('{Escape}');
+
+    expect(screen.queryByText(/are you sure you want to delete this tracking\?/i)).not.toBeInTheDocument();
+  });
+
+  it('should show loading state when deleting', async () => {
+    const user = userEvent.setup();
+    const slowDelete = jest.fn().mockImplementation(
+      () => new Promise(resolve => setTimeout(resolve, 100))
+    );
+
+    render(
+      <EditTrackingModal
+        tracking={mockTracking}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+        onDelete={slowDelete}
+      />
+    );
+
+    const deleteButton = screen.getByRole('button', { name: /delete/i });
+    await user.click(deleteButton);
+
+    const confirmDeleteButton = screen.getByRole('button', { name: /^delete$/i });
+    await user.click(confirmDeleteButton);
+
+    expect(screen.getByText(/deleting.../i)).toBeInTheDocument();
+  });
+
+  it('should show error message on delete failure', async () => {
+    const user = userEvent.setup();
+    const errorDelete = jest.fn().mockRejectedValue(new Error('Delete failed'));
+
+    render(
+      <EditTrackingModal
+        tracking={mockTracking}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+        onDelete={errorDelete}
+      />
+    );
+
+    const deleteButton = screen.getByRole('button', { name: /delete/i });
+    await user.click(deleteButton);
+
+    const confirmDeleteButton = screen.getByRole('button', { name: /^delete$/i });
+    await user.click(confirmDeleteButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/delete failed/i)).toBeInTheDocument();
+    });
+    expect(mockOnClose).not.toHaveBeenCalled();
+  });
+
+  it('should handle tracking without start_tracking_date', () => {
+    const trackingWithoutDate: TrackingData = {
+      ...mockTracking,
+      start_tracking_date: undefined,
+    };
+
+    render(
+      <EditTrackingModal
+        tracking={trackingWithoutDate}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    const dateInput = screen.getByLabelText(/start tracking date/i);
+    expect(dateInput).toHaveValue('');
+  });
+
+  it('should handle tracking without notes', () => {
+    const trackingWithoutNotes: TrackingData = {
+      ...mockTracking,
+      notes: undefined,
+    };
+
+    render(
+      <EditTrackingModal
+        tracking={trackingWithoutNotes}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    const notesInput = screen.getByLabelText(/notes/i);
+    expect(notesInput).toHaveValue('');
+  });
+});
+
