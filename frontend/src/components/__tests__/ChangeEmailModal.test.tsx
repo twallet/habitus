@@ -27,7 +27,7 @@ describe('ChangeEmailModal', () => {
       />
     );
 
-    expect(screen.getByText('Change Email')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Change Email' })).toBeInTheDocument();
     expect(screen.getByDisplayValue('john@example.com')).toBeInTheDocument();
     expect(screen.getByLabelText(/current email/i)).toBeDisabled();
   });
@@ -58,7 +58,7 @@ describe('ChangeEmailModal', () => {
       />
     );
 
-    const overlay = screen.getByText('Change Email').closest('.modal-overlay');
+    const overlay = screen.getByRole('heading', { name: 'Change Email' }).closest('.modal-overlay');
     if (overlay) {
       await user.click(overlay);
       expect(mockOnClose).toHaveBeenCalledTimes(1);

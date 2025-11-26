@@ -122,7 +122,7 @@ export function ChangeEmailModal({
                         </button>
                     </div>
                 ) : (
-                    <form onSubmit={handleSubmit} className="change-email-form">
+                    <form onSubmit={handleSubmit} className="change-email-form" noValidate>
                         {error && (
                             <div className="message error show">
                                 <span className="message-text">{error}</span>
