@@ -1230,7 +1230,7 @@ describe('App', () => {
     });
 
     const emailInput = screen.getByLabelText(/new email/i);
-    const submitButton = screen.getByRole('button', { name: /send email change link/i });
+    const submitButton = screen.getByRole('button', { name: /change email/i });
     await userEvent.type(emailInput, 'newemail@example.com');
     await userEvent.click(submitButton);
 
