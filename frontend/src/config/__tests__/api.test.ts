@@ -31,26 +31,34 @@ describe("api", () => {
   describe("API configuration", () => {
     it("should use globalThis.import.meta.env.VITE_SERVER_URL and VITE_PORT when available", () => {
       // This test verifies the module loads correctly with mocked globalThis
-      // The actual values are set in setupTests.ts, so we just verify it's used
+      // The actual values are set in setupTests.ts from environment variables
+      const expectedServerUrl =
+        process.env.VITE_SERVER_URL || "http://localhost";
+      const expectedPort = process.env.VITE_PORT || "3005";
       expect(API_BASE_URL).toBeDefined();
       expect(typeof API_BASE_URL).toBe("string");
-      expect(API_BASE_URL).toBe("http://localhost:3005");
+      expect(API_BASE_URL).toBe(`${expectedServerUrl}:${expectedPort}`);
     });
 
     it("should use process.env.VITE_SERVER_URL and VITE_PORT as fallback", () => {
-      // Set process.env values
-      process.env.VITE_SERVER_URL = "http://localhost";
-      process.env.VITE_PORT = "3005";
+      // Set process.env values from environment variables or use test defaults
+      const testServerUrl = process.env.VITE_SERVER_URL || "http://localhost";
+      const testPort = process.env.VITE_PORT || "3005";
+      process.env.VITE_SERVER_URL = testServerUrl;
+      process.env.VITE_PORT = testPort;
       // Reload module to pick up new env vars
       jest.resetModules();
       const { API_BASE_URL: reloadedUrl } = require("../api");
-      expect(reloadedUrl).toBe("http://localhost:3005");
+      expect(reloadedUrl).toBe(`${testServerUrl}:${testPort}`);
     });
 
     it("should construct URL from VITE_SERVER_URL and VITE_PORT", () => {
-      // The values are set in setupTests.ts, so we verify the constructed URL
+      // The values are set in setupTests.ts from environment variables
+      const expectedServerUrl =
+        process.env.VITE_SERVER_URL || "http://localhost";
+      const expectedPort = process.env.VITE_PORT || "3005";
       expect(API_BASE_URL).toBeDefined();
-      expect(API_BASE_URL).toBe("http://localhost:3005");
+      expect(API_BASE_URL).toBe(`${expectedServerUrl}:${expectedPort}`);
     });
 
     it("should construct correct API endpoints", () => {
@@ -125,7 +133,7 @@ describe("api", () => {
         const result = await apiClient.getUsers();
         expect(result).toEqual(mockUsers);
         expect(global.fetch).toHaveBeenCalledWith(
-          `${API_BASE_URL}${API_ENDPOINTS.users}`,
+          API_ENDPOINTS.users,
           expect.objectContaining({
             method: "GET",
           })
@@ -161,7 +169,7 @@ describe("api", () => {
         const result = await apiClient.createUser("John Doe");
         expect(result).toEqual(mockUser);
         expect(global.fetch).toHaveBeenCalledWith(
-          `${API_BASE_URL}${API_ENDPOINTS.users}`,
+          API_ENDPOINTS.users,
           expect.objectContaining({
             method: "POST",
             body: JSON.stringify({ name: "John Doe" }),
@@ -183,7 +191,7 @@ describe("api", () => {
 
         await apiClient.register("John Doe", "john@example.com", mockFile);
         expect(global.fetch).toHaveBeenCalledWith(
-          `${API_BASE_URL}${API_ENDPOINTS.auth.register}`,
+          API_ENDPOINTS.auth.register,
           expect.objectContaining({
             method: "POST",
             body: expect.any(FormData),
@@ -217,7 +225,7 @@ describe("api", () => {
         const result = await apiClient.login("john@example.com");
         expect(result).toEqual(mockResponse);
         expect(global.fetch).toHaveBeenCalledWith(
-          `${API_BASE_URL}${API_ENDPOINTS.auth.login}`,
+          API_ENDPOINTS.auth.login,
           expect.objectContaining({
             method: "POST",
             body: JSON.stringify({ email: "john@example.com" }),
@@ -246,7 +254,7 @@ describe("api", () => {
         const result = await apiClient.verifyMagicLink("magic-token");
         expect(result).toEqual(mockResponse);
         expect(global.fetch).toHaveBeenCalledWith(
-          `${API_BASE_URL}${API_ENDPOINTS.auth.verifyMagicLink}?token=magic-token`,
+          `${API_ENDPOINTS.auth.verifyMagicLink}?token=magic-token`,
           expect.objectContaining({
             method: "GET",
           })
@@ -273,7 +281,7 @@ describe("api", () => {
         const result = await apiClient.getMe();
         expect(result).toEqual(mockUser);
         expect(global.fetch).toHaveBeenCalledWith(
-          `${API_BASE_URL}${API_ENDPOINTS.auth.me}`,
+          API_ENDPOINTS.auth.me,
           expect.objectContaining({
             method: "GET",
             headers: expect.objectContaining({
@@ -305,7 +313,7 @@ describe("api", () => {
         const result = await apiClient.updateProfile("John Updated", mockFile);
         expect(result).toEqual(mockUser);
         expect(global.fetch).toHaveBeenCalledWith(
-          `${API_BASE_URL}${API_ENDPOINTS.profile.update}`,
+          API_ENDPOINTS.profile.update,
           expect.objectContaining({
             method: "PUT",
             body: expect.any(FormData),
@@ -344,7 +352,7 @@ describe("api", () => {
 
         await apiClient.requestEmailChange("newemail@example.com");
         expect(global.fetch).toHaveBeenCalledWith(
-          `${API_BASE_URL}${API_ENDPOINTS.auth.changeEmail}`,
+          API_ENDPOINTS.auth.changeEmail,
           expect.objectContaining({
             method: "POST",
             body: JSON.stringify({ email: "newemail@example.com" }),
@@ -362,7 +370,7 @@ describe("api", () => {
 
         await apiClient.deleteProfile();
         expect(global.fetch).toHaveBeenCalledWith(
-          `${API_BASE_URL}${API_ENDPOINTS.profile.delete}`,
+          API_ENDPOINTS.profile.delete,
           expect.objectContaining({
             method: "DELETE",
           })
@@ -391,7 +399,7 @@ describe("api", () => {
         const result = await apiClient.getTrackings();
         expect(result).toEqual(mockTrackings);
         expect(global.fetch).toHaveBeenCalledWith(
-          `${API_BASE_URL}${API_ENDPOINTS.trackings}`,
+          API_ENDPOINTS.trackings,
           expect.objectContaining({
             method: "GET",
           })
@@ -422,7 +430,7 @@ describe("api", () => {
         );
         expect(result).toEqual(mockTracking);
         expect(global.fetch).toHaveBeenCalledWith(
-          `${API_BASE_URL}${API_ENDPOINTS.trackings}`,
+          API_ENDPOINTS.trackings,
           expect.objectContaining({
             method: "POST",
             body: JSON.stringify({
@@ -455,7 +463,7 @@ describe("api", () => {
         const result = await apiClient.updateTracking(1, "Did you meditate?");
         expect(result).toEqual(mockTracking);
         expect(global.fetch).toHaveBeenCalledWith(
-          `${API_BASE_URL}${API_ENDPOINTS.trackings}/1`,
+          `${API_ENDPOINTS.trackings}/1`,
           expect.objectContaining({
             method: "PUT",
             body: JSON.stringify({
@@ -478,7 +486,7 @@ describe("api", () => {
 
         await apiClient.deleteTracking(1);
         expect(global.fetch).toHaveBeenCalledWith(
-          `${API_BASE_URL}${API_ENDPOINTS.trackings}/1`,
+          `${API_ENDPOINTS.trackings}/1`,
           expect.objectContaining({
             method: "DELETE",
           })

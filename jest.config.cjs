@@ -46,8 +46,8 @@ module.exports = {
       globals: {
         "import.meta": {
           env: {
-            VITE_SERVER_URL: "http://localhost",
-            VITE_PORT: "3005",
+            VITE_SERVER_URL: process.env.VITE_SERVER_URL || "http://localhost",
+            VITE_PORT: process.env.VITE_PORT || "3005",
           },
         },
       },

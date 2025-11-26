@@ -8,6 +8,7 @@ import os from "os";
 
 // Set required environment variables for tests before any modules are imported
 // These are required by constants.ts which is evaluated at module load time
+// Read from environment variables (loaded from .env files), with minimal fallback for tests
 if (!process.env.SERVER_URL) {
   process.env.SERVER_URL = "http://localhost";
 }
