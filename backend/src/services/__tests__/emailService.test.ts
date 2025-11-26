@@ -158,7 +158,7 @@ describe("EmailService", () => {
 
       await expect(
         emailService.sendMagicLink("user@example.com", "test-token", true)
-      ).rejects.toThrow("Failed to send magic link email");
+      ).rejects.toThrow("Failed to send registration link email");
     });
 
     it("should use secure connection for port 465", () => {

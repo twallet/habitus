@@ -171,8 +171,9 @@ export class EmailService {
         );
       }
 
+      const linkType = isRegistration ? "registration link" : "login link";
       throw new Error(
-        `Failed to send magic link email: ${error.message || "Unknown error"}`
+        `Failed to send ${linkType} email: ${error.message || "Unknown error"}`
       );
     }
   }
