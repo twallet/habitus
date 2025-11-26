@@ -52,11 +52,13 @@ export function EditTrackingModal({
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
     const isDeletingRef = useRef(false);
     const hasDeleteErrorRef = useRef(false);
+    const hasCalledOnCloseRef = useRef(false);
 
     // Reset refs on mount to prevent state pollution between tests
     useEffect(() => {
         isDeletingRef.current = false;
         hasDeleteErrorRef.current = false;
+        hasCalledOnCloseRef.current = false;
     }, []);
 
     /**
@@ -131,7 +133,12 @@ export function EditTrackingModal({
         try {
             await onDelete(tracking.id);
             hasDeleteErrorRef.current = false;
-            onClose();
+            isDeletingRef.current = false;
+            setIsDeleting(false);
+            if (!hasCalledOnCloseRef.current) {
+                hasCalledOnCloseRef.current = true;
+                onClose();
+            }
         } catch (err) {
             hasDeleteErrorRef.current = true;
             setError(err instanceof Error ? err.message : "Error deleting tracking");
@@ -162,15 +169,27 @@ export function EditTrackingModal({
         };
     }, [onClose, showDeleteConfirmation, isDeleting, isSubmitting, error]);
 
+    const handleOverlayClick = () => {
+        if (!isDeleting && !isSubmitting && !error && !hasDeleteErrorRef.current && !hasCalledOnCloseRef.current) {
+            hasCalledOnCloseRef.current = true;
+            onClose();
+        }
+    };
+
     return (
-        <div className="modal-overlay" onClick={isDeleting || isSubmitting || error || hasDeleteErrorRef.current ? undefined : onClose}>
+        <div className="modal-overlay" onClick={handleOverlayClick}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
                     <h2>Edit Tracking</h2>
                     <button
                         type="button"
                         className="modal-close"
-                        onClick={onClose}
+                        onClick={() => {
+                            if (!hasCalledOnCloseRef.current) {
+                                hasCalledOnCloseRef.current = true;
+                                onClose();
+                            }
+                        }}
                         aria-label="Close"
                     >
                         ×
@@ -270,7 +289,12 @@ export function EditTrackingModal({
                             <button
                                 type="button"
                                 className="btn-secondary"
-                                onClick={onClose}
+                                onClick={() => {
+                                    if (!hasCalledOnCloseRef.current) {
+                                        hasCalledOnCloseRef.current = true;
+                                        onClose();
+                                    }
+                                }}
                                 disabled={isSubmitting || isDeleting}
                             >
                                 Cancel
