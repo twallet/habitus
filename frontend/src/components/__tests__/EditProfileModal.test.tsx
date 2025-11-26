@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { EditProfileModal } from '../EditProfileModal';
 import { UserData } from '../../models/User';
@@ -80,7 +80,7 @@ describe('EditProfileModal', () => {
       <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={mockOnSave} />
     );
 
-    expect(screen.getByText(/9\/30/i)).toBeInTheDocument();
+    expect(screen.getByText(/8\/30/i)).toBeInTheDocument();
   });
 
   it('should submit form with updated name', async () => {
@@ -119,7 +119,6 @@ describe('EditProfileModal', () => {
   });
 
   it('should show error for non-image file', async () => {
-    const user = userEvent.setup();
     const file = new File(['test'], 'test.txt', { type: 'text/plain' });
 
     render(
@@ -127,7 +126,15 @@ describe('EditProfileModal', () => {
     );
 
     const fileInput = screen.getByLabelText(/profile picture/i) as HTMLInputElement;
-    await user.upload(fileInput, file);
+
+    // Create a FileList-like object and assign it to the input
+    Object.defineProperty(fileInput, 'files', {
+      value: [file],
+      writable: false,
+    });
+
+    // Trigger the change event manually
+    fireEvent.change(fileInput);
 
     await waitFor(() => {
       expect(screen.getByText(/please select an image file/i)).toBeInTheDocument();

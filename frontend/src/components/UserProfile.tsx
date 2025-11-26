@@ -22,6 +22,10 @@ export function UserProfile({ user }: UserProfileProps) {
   const formatDate = (dateString: string): string => {
     try {
       const date = new Date(dateString);
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return dateString;
+      }
       return date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
