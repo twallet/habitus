@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { Database } from "../db/database.js";
 import { User, UserData } from "../models/User.js";
 import { EmailService } from "./emailService.js";
+import { getServerUrl, getPort } from "../config/constants.js";
 
 /**
  * Get JWT secret key from environment variable (lazy loading).
@@ -388,8 +389,8 @@ export class AuthService {
     );
 
     // Send magic link email with special subject for email change
-    const serverUrl = process.env.SERVER_URL;
-    const port = process.env.PORT;
+    const serverUrl = getServerUrl();
+    const port = getPort();
     const magicLink = `${serverUrl}:${port}/api/auth/verify-email-change?token=${token}`;
     const expiryMinutes = getMagicLinkExpiryMinutes();
     const text = `Please click the following link to verify your new email address: ${magicLink}\n\nThis link will expire in ${expiryMinutes} minutes. If you didn't request this, please ignore this email.`;
