@@ -1,4 +1,4 @@
-import { useState, FormEvent, useEffect } from "react";
+import { useState, FormEvent, useEffect, useRef } from "react";
 import { TrackingData, TrackingType } from "../models/Tracking";
 import "./EditTrackingModal.css";
 
@@ -50,6 +50,12 @@ export function EditTrackingModal({
     const [isDeleting, setIsDeleting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+    const isDeletingRef = useRef(false);
+
+    // Reset ref on mount to prevent state pollution between tests
+    useEffect(() => {
+        isDeletingRef.current = false;
+    }, []);
 
     /**
      * Handle form submission.
@@ -58,6 +64,15 @@ export function EditTrackingModal({
      */
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+
+        // Prevent submission if currently deleting or delete confirmation is showing
+        // Also check if the submitter is a delete button
+        const submitter = (e.nativeEvent as SubmitEvent).submitter;
+        if (isDeleting || isDeletingRef.current || showDeleteConfirmation ||
+            (submitter && submitter.classList.contains('btn-delete'))) {
+            return;
+        }
+
         setIsSubmitting(true);
         setError(null);
 
@@ -106,6 +121,7 @@ export function EditTrackingModal({
      * @internal
      */
     const handleDelete = async () => {
+        isDeletingRef.current = true;
         setIsDeleting(true);
         setError(null);
 
@@ -114,6 +130,7 @@ export function EditTrackingModal({
             onClose();
         } catch (err) {
             setError(err instanceof Error ? err.message : "Error deleting tracking");
+            isDeletingRef.current = false;
             setIsDeleting(false);
             setShowDeleteConfirmation(false);
         }

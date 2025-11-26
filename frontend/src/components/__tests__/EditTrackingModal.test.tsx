@@ -448,6 +448,7 @@ describe('EditTrackingModal', () => {
       expect(screen.getByText(/delete failed/i)).toBeInTheDocument();
     });
     expect(mockOnClose).not.toHaveBeenCalled();
+    expect(mockOnSave).not.toHaveBeenCalled();
   });
 
   it('should handle tracking without start_tracking_date', () => {
