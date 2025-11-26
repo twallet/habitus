@@ -259,6 +259,7 @@ export function EditTrackingModal({
                                     type="button"
                                     className="btn-secondary"
                                     onClick={(e) => {
+                                        e.preventDefault();
                                         e.stopPropagation();
                                         setShowDeleteConfirmation(false);
                                     }}
@@ -270,6 +271,7 @@ export function EditTrackingModal({
                                     type="button"
                                     className="btn-delete"
                                     onClick={(e) => {
+                                        e.preventDefault();
                                         e.stopPropagation();
                                         handleDelete();
                                     }}
