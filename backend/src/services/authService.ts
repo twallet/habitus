@@ -388,7 +388,7 @@ export class AuthService {
     );
 
     // Send magic link email with special subject for email change
-    const serverUrl = process.env.SERVER_URL || "http://localhost";
+    const serverUrl = process.env.SERVER_URL;
     const port = process.env.PORT;
     const magicLink = `${serverUrl}:${port}/api/auth/verify-email-change?token=${token}`;
     const expiryMinutes = getMagicLinkExpiryMinutes();
