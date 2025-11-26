@@ -329,7 +329,18 @@ export class ApiClient {
     url: string,
     options: RequestInit = {}
   ): Promise<Response> {
-    const fullUrl = url.startsWith("http") ? url : `${this.baseUrl}${url}`;
+    let fullUrl: string;
+    if (url.startsWith("http")) {
+      // If URL is absolute and a custom baseUrl was provided, replace the default base URL
+      if (this.baseUrl !== API_BASE_URL && url.startsWith(API_BASE_URL)) {
+        fullUrl = url.replace(API_BASE_URL, this.baseUrl);
+      } else {
+        fullUrl = url;
+      }
+    } else {
+      // Relative URL - prepend baseUrl
+      fullUrl = `${this.baseUrl}${url}`;
+    }
     const headers: Record<string, string> = {
       ...(options.headers as Record<string, string>),
     };
