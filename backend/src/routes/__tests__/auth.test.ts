@@ -154,7 +154,9 @@ describe("Auth Routes", () => {
       });
 
       expect(response.status).toBe(200);
-      expect(response.body.message).toContain("magic link");
+      expect(response.body.message.toLowerCase()).toContain(
+        "registration link"
+      );
       expect(emailService.sendMagicLink).toHaveBeenCalled();
     });
 
@@ -254,12 +256,19 @@ describe("Auth Routes", () => {
     });
 
     it("should request login magic link", async () => {
+      // Clear any existing magic link token from registration
+      await testDb.run(
+        "UPDATE users SET magic_link_token = NULL, magic_link_expires = NULL WHERE email = ?",
+        [testEmail]
+      );
+
       const response = await request(app).post("/api/auth/login").send({
         email: testEmail,
       });
 
       expect(response.status).toBe(200);
-      expect(response.body.message).toContain("magic link");
+      expect(response.body.message).toContain("login link");
+      expect(response.body.cooldown).toBeUndefined(); // No cooldown on first request
     });
 
     it("should return 400 for missing email", async () => {
@@ -301,7 +310,8 @@ describe("Auth Routes", () => {
       });
 
       expect(secondResponse.status).toBe(200);
-      expect(secondResponse.body.message).toContain("magic link");
+      expect(secondResponse.body.cooldown).toBe(true); // Cooldown should be set
+      expect(secondResponse.body.message).toContain("wait");
       // Verify that email service was not called again (cooldown prevented it)
       const callsAfterSecond = (emailService.sendMagicLink as jest.Mock).mock
         .calls.length;

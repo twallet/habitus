@@ -1,13 +1,16 @@
 import { useState, FormEvent, useRef } from "react";
 
 interface AuthFormProps {
-  onRequestLoginMagicLink: (email: string) => Promise<void>;
+  onRequestLoginMagicLink: (
+    email: string
+  ) => Promise<{ message: string; cooldown?: boolean }>;
   onRequestRegisterMagicLink: (
     name: string,
     email: string,
     profilePicture?: File
   ) => Promise<void>;
   onError: (message: string) => void;
+  onCooldown?: (message: string) => void;
 }
 
 /**
@@ -23,6 +26,7 @@ export function AuthForm({
   onRequestLoginMagicLink,
   onRequestRegisterMagicLink,
   onError,
+  onCooldown,
 }: AuthFormProps) {
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [name, setName] = useState("");
@@ -54,8 +58,14 @@ export function AuthForm({
 
       if (isLoginMode) {
         // Magic link login
-        await onRequestLoginMagicLink(email.trim());
-        setMagicLinkSent(true);
+        const response = await onRequestLoginMagicLink(email.trim());
+        // Check if there's a cooldown - if so, show cooldown message instead of success
+        if (response.cooldown && onCooldown) {
+          onCooldown(response.message);
+          // Don't set magicLinkSent to true - show the form so user can try again later
+        } else {
+          setMagicLinkSent(true);
+        }
       } else {
         // Register mode validation
         if (!name.trim()) {
@@ -95,8 +105,14 @@ export function AuthForm({
     setIsSubmitting(true);
     try {
       if (isLoginMode) {
-        await onRequestLoginMagicLink(email.trim());
-        setMagicLinkSent(true);
+        const response = await onRequestLoginMagicLink(email.trim());
+        // Check if there's a cooldown - if so, show cooldown message instead of success
+        if (response.cooldown && onCooldown) {
+          onCooldown(response.message);
+          setMagicLinkSent(false); // Don't show "email sent" message
+        } else {
+          setMagicLinkSent(true);
+        }
       } else {
         if (!name.trim()) {
           // If name is missing, show the form
@@ -175,7 +191,7 @@ export function AuthForm({
           {isLoginMode ? (
             <>
               <p>
-                If an account exists for <strong>{email}</strong>, a magic link has been sent. Click the link in the email to log in.</p>
+                If an account exists for <strong>{email}</strong>, a login link has been sent. Click the link in the email to log in.</p>
               <p className="magic-link-help">
                 The link will expire in 15 minutes. If you don't see the email, check your spam folder. If you don't have an account, please register first.
               </p>
@@ -183,7 +199,7 @@ export function AuthForm({
           ) : (
             <>
               <p>
-                We've sent a magic link to <strong>{email}</strong>. Click the link in the email to complete your registration.</p>
+                We've sent a registration link to <strong>{email}</strong>. Click the link in the email to complete your registration.</p>
               <p className="magic-link-help">
                 The link will expire in 15 minutes. If you don't see the email, check your spam folder.
               </p>
@@ -330,7 +346,7 @@ export function AuthForm({
           {isSubmitting
             ? "Processing..."
             : isLoginMode
-              ? "Send Magic Link"
+              ? "Send Login Link"
               : "Send Registration Link"}
         </button>
       </form>

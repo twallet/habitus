@@ -106,7 +106,7 @@ function App() {
         .catch((err) => {
           console.error(`[${new Date().toISOString()}] FRONTEND_APP | Magic link verification failed:`, err);
           setMessage({
-            text: err instanceof Error ? err.message : 'Error verifying magic link',
+            text: err instanceof Error ? err.message : 'Error verifying link',
             type: 'error',
           });
         });
@@ -125,25 +125,48 @@ function App() {
   /**
    * Handle login magic link request.
    * @param email - User's email
+   * @returns Promise resolving to response data (includes message and optional cooldown flag)
    * @internal
    */
-  const handleRequestLoginMagicLink = async (email: string) => {
+  const handleRequestLoginMagicLink = async (email: string): Promise<{ message: string; cooldown?: boolean }> => {
     console.log(`[${new Date().toISOString()}] FRONTEND_APP | Login magic link requested via form for email: ${email}`);
     try {
-      await requestLoginMagicLink(email);
-      console.log(`[${new Date().toISOString()}] FRONTEND_APP | Login magic link request successful, showing success message`);
-      setMessage({
-        text: 'If an account exists for this email, a magic link has been sent. Please check your inbox and spam folder.',
-        type: 'success',
-      });
+      const response = await requestLoginMagicLink(email);
+      // Check if there's a cooldown - if so, show cooldown message instead of success
+      if (response.cooldown) {
+        console.log(`[${new Date().toISOString()}] FRONTEND_APP | Login magic link request on cooldown, showing cooldown message`);
+        setMessage({
+          text: response.message,
+          type: 'error',
+        });
+      } else {
+        console.log(`[${new Date().toISOString()}] FRONTEND_APP | Login magic link request successful, showing success message`);
+        setMessage({
+          text: response.message,
+          type: 'success',
+        });
+      }
+      return response;
     } catch (error) {
       console.error(`[${new Date().toISOString()}] FRONTEND_APP | Login magic link request failed:`, error);
       setMessage({
-        text: error instanceof Error ? error.message : 'Error requesting magic link',
+        text: error instanceof Error ? error.message : 'Error requesting login link',
         type: 'error',
       });
       throw error;
     }
+  };
+
+  /**
+   * Handle cooldown message from resend.
+   * @param message - Cooldown message
+   * @internal
+   */
+  const handleCooldown = (message: string) => {
+    setMessage({
+      text: message,
+      type: 'error',
+    });
   };
 
   /**
@@ -163,13 +186,13 @@ function App() {
       await requestRegisterMagicLink(name, email, profilePicture);
       console.log(`[${new Date().toISOString()}] FRONTEND_APP | Registration magic link request successful, showing success message`);
       setMessage({
-        text: 'Registration magic link sent! Check your email.',
+        text: 'Registration link sent! Check your email.',
         type: 'success',
       });
     } catch (error) {
       console.error(`[${new Date().toISOString()}] FRONTEND_APP | Registration magic link request failed:`, error);
       setMessage({
-        text: error instanceof Error ? error.message : 'Error requesting registration magic link',
+        text: error instanceof Error ? error.message : 'Error requesting registration link',
         type: 'error',
       });
       throw error;
@@ -451,6 +474,7 @@ function App() {
             onRequestLoginMagicLink={handleRequestLoginMagicLink}
             onRequestRegisterMagicLink={handleRequestRegisterMagicLink}
             onError={handleError}
+            onCooldown={handleCooldown}
           />
         </main>
       </div>

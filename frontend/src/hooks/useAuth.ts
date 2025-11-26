@@ -90,18 +90,23 @@ export function useAuth() {
   /**
    * Request login magic link (passwordless).
    * @param email - User's email
-   * @returns Promise resolving when magic link is sent
+   * @returns Promise resolving to response data (includes message and optional cooldown flag)
    * @throws Error if request fails
    * @public
    */
-  const requestLoginMagicLink = async (email: string): Promise<void> => {
+  const requestLoginMagicLink = async (
+    email: string
+  ): Promise<{ message: string; cooldown?: boolean }> => {
     console.log(
       `[${new Date().toISOString()}] FRONTEND_AUTH | Requesting login magic link for email: ${email}`
     );
-    await apiClient.login(email);
+    const response = await apiClient.login(email);
     console.log(
-      `[${new Date().toISOString()}] FRONTEND_AUTH | Login magic link request successful for email: ${email}`
+      `[${new Date().toISOString()}] FRONTEND_AUTH | Login magic link request completed for email: ${email}, cooldown: ${
+        response.cooldown || false
+      }`
     );
+    return response;
   };
 
   /**

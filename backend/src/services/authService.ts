@@ -135,9 +135,7 @@ export class AuthService {
 
     // Calculate when the magic link was created (expires - expiry time)
     const createdAt = new Date(expiresAt);
-    createdAt.setMinutes(
-      createdAt.getMinutes() - getMagicLinkExpiryMinutes()
-    );
+    createdAt.setMinutes(createdAt.getMinutes() - getMagicLinkExpiryMinutes());
 
     // Check if it was created within the cooldown period
     const cooldownExpires = new Date(createdAt);
@@ -147,13 +145,16 @@ export class AuthService {
 
     // Allow resending if the link is close to expiring (within 5 minutes)
     // This helps users who didn't receive the email or need a fresh link
-    const minutesUntilExpiry = (expiresAt.getTime() - now.getTime()) / (1000 * 60);
+    const minutesUntilExpiry =
+      (expiresAt.getTime() - now.getTime()) / (1000 * 60);
     const allowResendIfExpiringSoon = minutesUntilExpiry <= 5;
 
     // If link is expiring soon, allow resend even if within cooldown
     if (allowResendIfExpiringSoon) {
       console.log(
-        `[${new Date().toISOString()}] AUTH | Allowing magic link resend for ${email} - previous link expires in ${Math.round(minutesUntilExpiry)} minutes`
+        `[${new Date().toISOString()}] AUTH | Allowing magic link resend for ${email} - previous link expires in ${Math.round(
+          minutesUntilExpiry
+        )} minutes`
       );
       return false;
     }
@@ -190,7 +191,7 @@ export class AuthService {
         `[${new Date().toISOString()}] AUTH | Registration magic link cooldown active for email: ${validatedEmail}`
       );
       throw new Error(
-        `Please wait ${getMagicLinkCooldownMinutes()} minutes before requesting another magic link.`
+        `Please wait ${getMagicLinkCooldownMinutes()} minutes before requesting another registration link.`
       );
     }
 
@@ -283,7 +284,7 @@ export class AuthService {
         `[${new Date().toISOString()}] AUTH | Login magic link cooldown active for email: ${validatedEmail}`
       );
       throw new Error(
-        `Please wait ${getMagicLinkCooldownMinutes()} minutes before requesting another magic link.`
+        `Please wait ${getMagicLinkCooldownMinutes()} minutes before requesting another login link.`
       );
     }
 
@@ -367,7 +368,7 @@ export class AuthService {
         `[${new Date().toISOString()}] AUTH | Email change cooldown active for email: ${validatedEmail}`
       );
       throw new Error(
-        `Please wait ${getMagicLinkCooldownMinutes()} minutes before requesting another magic link.`
+        `Please wait ${getMagicLinkCooldownMinutes()} minutes before requesting another email update confirmation link.`
       );
     }
 
@@ -453,7 +454,7 @@ export class AuthService {
       console.warn(
         `[${new Date().toISOString()}] AUTH | Invalid magic link token format`
       );
-      throw new Error("Invalid magic link token");
+      throw new Error("Invalid link token");
     }
 
     // Find user with this token
@@ -470,7 +471,7 @@ export class AuthService {
       console.warn(
         `[${new Date().toISOString()}] AUTH | Magic link verification failed: token not found`
       );
-      throw new Error("Invalid or expired magic link");
+      throw new Error("Invalid or expired link");
     }
 
     console.log(
@@ -487,7 +488,7 @@ export class AuthService {
           user.id
         }`
       );
-      throw new Error("Magic link has expired");
+      throw new Error("Link has expired");
     }
 
     console.log(

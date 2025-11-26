@@ -406,18 +406,19 @@ export class ApiClient {
   /**
    * Request login magic link.
    * @param email - User's email
-   * @returns Promise resolving when magic link is sent
+   * @returns Promise resolving to response data (includes message and optional cooldown flag)
    * @throws Error if request fails
    * @public
    */
-  async login(email: string): Promise<void> {
-    await this.request(API_ENDPOINTS.auth.login, {
+  async login(email: string): Promise<{ message: string; cooldown?: boolean }> {
+    const response = await this.request(API_ENDPOINTS.auth.login, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ email }),
     });
+    return response.json();
   }
 
   /**

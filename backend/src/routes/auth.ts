@@ -56,7 +56,7 @@ router.post(
 
       res.json({
         message:
-          "Registration magic link sent to your email. Please check your inbox.",
+          "Registration link sent to your email. Please check your inbox.",
       });
     } catch (error) {
       if (error instanceof TypeError) {
@@ -85,9 +85,7 @@ router.post(
         `[${new Date().toISOString()}] AUTH_ROUTE | Error requesting registration magic link:`,
         error
       );
-      res
-        .status(500)
-        .json({ error: "Error requesting registration magic link" });
+      res.status(500).json({ error: "Error requesting registration link" });
     }
   }
 );
@@ -115,11 +113,11 @@ router.post("/login", authRateLimiter, async (req: Request, res: Response) => {
     // Message doesn't reveal whether email exists or not
     res.json({
       message:
-        "If an account exists for this email, a magic link has been sent. Please check your inbox and spam folder.",
+        "If an account exists for this email, a login link has been sent. Please check your inbox and spam folder.",
     });
   } catch (error) {
-    // Check if it's a cooldown error - log it but still return success
-    // to prevent email enumeration attacks
+    // Check if it's a cooldown error - return a message that doesn't reveal if email exists
+    // but also doesn't falsely claim an email was sent
     if (
       error instanceof Error &&
       error.message.includes("wait") &&
@@ -131,10 +129,12 @@ router.post("/login", authRateLimiter, async (req: Request, res: Response) => {
         }`,
         error.message
       );
-      // Still return success to prevent email enumeration
+      // Return a message that indicates cooldown without revealing if email exists
+      // This prevents email enumeration while being honest about not sending
       res.json({
         message:
-          "If an account exists for this email, a magic link has been sent. Please check your inbox and spam folder.",
+          "Please wait a few minutes before requesting another link. If you recently requested a link, please check your inbox and spam folder.",
+        cooldown: true,
       });
       return;
     }
@@ -147,7 +147,7 @@ router.post("/login", authRateLimiter, async (req: Request, res: Response) => {
     // Message doesn't reveal whether email exists or not
     res.json({
       message:
-        "If an account exists for this email, a magic link has been sent. Please check your inbox and spam folder.",
+        "If an account exists for this email, a login link has been sent. Please check your inbox and spam folder.",
     });
   }
 });
@@ -180,13 +180,13 @@ router.get("/verify-magic-link", async (req: Request, res: Response) => {
       `[${new Date().toISOString()}] AUTH_ROUTE | Error verifying magic link:`,
       error
     );
-    res.status(500).json({ error: "Error verifying magic link" });
+    res.status(500).json({ error: "Error verifying link" });
   }
 });
 
 /**
  * POST /api/auth/change-email
- * Request email change magic link.
+ * Request email update confirmation link.
  * @route POST /api/auth/change-email
  * @header {string} Authorization - Bearer token
  * @body {string} email - New email address
