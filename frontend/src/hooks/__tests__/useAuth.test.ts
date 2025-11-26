@@ -811,7 +811,7 @@ describe("useAuth", () => {
             });
           }
 
-          if (urlString.includes("/api/auth/request-email-change")) {
+          if (urlString.includes("/api/auth/change-email")) {
             return Promise.resolve({
               ok: true,
               status: 200,
@@ -823,6 +823,7 @@ describe("useAuth", () => {
           return Promise.resolve({
             ok: false,
             status: 401,
+            statusText: "Unauthorized",
             json: async () => ({}),
           });
         }
@@ -843,7 +844,7 @@ describe("useAuth", () => {
           const url = call[0];
           const urlString =
             typeof url === "string" ? url : url?.toString() || "";
-          return urlString.includes("/api/auth/request-email-change");
+          return urlString.includes("/api/auth/change-email");
         }
       );
       expect(emailChangeCalls.length).toBeGreaterThanOrEqual(1);
@@ -899,7 +900,7 @@ describe("useAuth", () => {
       localStorage.setItem(TOKEN_KEY, "valid-token");
 
       (global.fetch as jest.Mock).mockImplementation(
-        (url: string | Request | URL) => {
+        (url: string | Request | URL, options?: RequestInit) => {
           const urlString =
             typeof url === "string"
               ? url
@@ -914,7 +915,7 @@ describe("useAuth", () => {
             });
           }
 
-          if (urlString.includes("/api/auth/request-email-change")) {
+          if (urlString.includes("/api/auth/change-email")) {
             return Promise.resolve({
               ok: false,
               status: 400,
@@ -926,6 +927,7 @@ describe("useAuth", () => {
           return Promise.resolve({
             ok: false,
             status: 401,
+            statusText: "Unauthorized",
             json: async () => ({}),
           });
         }
@@ -962,7 +964,7 @@ describe("useAuth", () => {
       localStorage.setItem(TOKEN_KEY, "valid-token");
 
       (global.fetch as jest.Mock).mockImplementation(
-        (url: string | Request | URL) => {
+        (url: string | Request | URL, options?: RequestInit) => {
           const urlString =
             typeof url === "string"
               ? url
@@ -977,7 +979,10 @@ describe("useAuth", () => {
             });
           }
 
-          if (urlString.includes("/api/auth/profile")) {
+          if (
+            urlString.includes("/api/users/profile") &&
+            options?.method !== "DELETE"
+          ) {
             return Promise.resolve({
               ok: true,
               status: 200,
@@ -988,6 +993,7 @@ describe("useAuth", () => {
           return Promise.resolve({
             ok: false,
             status: 401,
+            statusText: "Unauthorized",
             json: async () => ({}),
           });
         }
@@ -1023,7 +1029,7 @@ describe("useAuth", () => {
       localStorage.setItem(TOKEN_KEY, "valid-token");
 
       (global.fetch as jest.Mock).mockImplementation(
-        (url: string | Request | URL) => {
+        (url: string | Request | URL, options?: RequestInit) => {
           const urlString =
             typeof url === "string"
               ? url
@@ -1038,7 +1044,10 @@ describe("useAuth", () => {
             });
           }
 
-          if (urlString.includes("/api/auth/profile")) {
+          if (
+            urlString.includes("/api/users/profile") &&
+            options?.method !== "DELETE"
+          ) {
             return Promise.resolve({
               ok: true,
               status: 200,
@@ -1049,6 +1058,7 @@ describe("useAuth", () => {
           return Promise.resolve({
             ok: false,
             status: 401,
+            statusText: "Unauthorized",
             json: async () => ({}),
           });
         }
@@ -1122,7 +1132,7 @@ describe("useAuth", () => {
       localStorage.setItem(TOKEN_KEY, "valid-token");
 
       (global.fetch as jest.Mock).mockImplementation(
-        (url: string | Request | URL) => {
+        (url: string | Request | URL, options?: RequestInit) => {
           const urlString =
             typeof url === "string"
               ? url
@@ -1137,7 +1147,10 @@ describe("useAuth", () => {
             });
           }
 
-          if (urlString.includes("/api/auth/profile")) {
+          if (
+            urlString.includes("/api/users/profile") &&
+            options?.method !== "DELETE"
+          ) {
             return Promise.resolve({
               ok: false,
               status: 400,
@@ -1148,6 +1161,7 @@ describe("useAuth", () => {
           return Promise.resolve({
             ok: false,
             status: 401,
+            statusText: "Unauthorized",
             json: async () => ({}),
           });
         }
@@ -1179,7 +1193,7 @@ describe("useAuth", () => {
       localStorage.setItem(TOKEN_KEY, "valid-token");
 
       (global.fetch as jest.Mock).mockImplementation(
-        (url: string | Request | URL) => {
+        (url: string | Request | URL, options?: RequestInit) => {
           const urlString =
             typeof url === "string"
               ? url
@@ -1195,8 +1209,8 @@ describe("useAuth", () => {
           }
 
           if (
-            urlString.includes("/api/auth/profile") &&
-            urlString.includes("DELETE")
+            urlString.includes("/api/users/profile") &&
+            options?.method === "DELETE"
           ) {
             return Promise.resolve({
               ok: true,
@@ -1208,6 +1222,7 @@ describe("useAuth", () => {
           return Promise.resolve({
             ok: false,
             status: 401,
+            statusText: "Unauthorized",
             json: async () => ({}),
           });
         }
@@ -1279,7 +1294,7 @@ describe("useAuth", () => {
       localStorage.setItem(TOKEN_KEY, "valid-token");
 
       (global.fetch as jest.Mock).mockImplementation(
-        (url: string | Request | URL) => {
+        (url: string | Request | URL, options?: RequestInit) => {
           const urlString =
             typeof url === "string"
               ? url
@@ -1296,7 +1311,7 @@ describe("useAuth", () => {
 
           if (
             urlString.includes("/api/users/profile") &&
-            urlString.includes("DELETE")
+            options?.method === "DELETE"
           ) {
             return Promise.resolve({
               ok: false,
@@ -1309,6 +1324,7 @@ describe("useAuth", () => {
           return Promise.resolve({
             ok: false,
             status: 401,
+            statusText: "Unauthorized",
             json: async () => ({}),
           });
         }

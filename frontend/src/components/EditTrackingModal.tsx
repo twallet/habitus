@@ -51,10 +51,12 @@ export function EditTrackingModal({
     const [error, setError] = useState<string | null>(null);
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
     const isDeletingRef = useRef(false);
+    const hasDeleteErrorRef = useRef(false);
 
-    // Reset ref on mount to prevent state pollution between tests
+    // Reset refs on mount to prevent state pollution between tests
     useEffect(() => {
         isDeletingRef.current = false;
+        hasDeleteErrorRef.current = false;
     }, []);
 
     /**
@@ -122,6 +124,7 @@ export function EditTrackingModal({
      */
     const handleDelete = async () => {
         isDeletingRef.current = true;
+        hasDeleteErrorRef.current = false;
         setIsDeleting(true);
         setError(null);
 
@@ -129,6 +132,7 @@ export function EditTrackingModal({
             await onDelete(tracking.id);
             onClose();
         } catch (err) {
+            hasDeleteErrorRef.current = true;
             setError(err instanceof Error ? err.message : "Error deleting tracking");
             isDeletingRef.current = false;
             setIsDeleting(false);
@@ -145,7 +149,7 @@ export function EditTrackingModal({
             if (e.key === "Escape") {
                 if (showDeleteConfirmation) {
                     setShowDeleteConfirmation(false);
-                } else {
+                } else if (!isDeleting && !isSubmitting && !error) {
                     onClose();
                 }
             }
@@ -155,10 +159,10 @@ export function EditTrackingModal({
         return () => {
             document.removeEventListener("keydown", handleEscape);
         };
-    }, [onClose, showDeleteConfirmation]);
+    }, [onClose, showDeleteConfirmation, isDeleting, isSubmitting, error]);
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-overlay" onClick={isDeleting || isSubmitting || error || hasDeleteErrorRef.current ? undefined : onClose}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
                     <h2>Edit Tracking</h2>

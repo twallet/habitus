@@ -442,11 +442,21 @@ describe('EditTrackingModal', () => {
     const confirmationDialog = screen.getByText(/are you sure you want to delete this tracking\?/i).closest('.delete-confirmation') as HTMLElement;
     expect(confirmationDialog).toBeInTheDocument();
     const confirmDeleteButton = within(confirmationDialog).getByRole('button', { name: /delete/i });
+
+    // Click and wait for the error to appear
     await user.click(confirmDeleteButton);
 
+    // Wait for the error message to appear and confirmation dialog to disappear
     await waitFor(() => {
       expect(screen.getByText(/delete failed/i)).toBeInTheDocument();
-    });
+      expect(screen.queryByText(/are you sure you want to delete this tracking\?/i)).not.toBeInTheDocument();
+    }, { timeout: 3000 });
+
+    // Verify errorDelete was called
+    expect(errorDelete).toHaveBeenCalled();
+
+    // The component should not call onClose when delete fails
+    // Check immediately after error appears - if onClose was called, it would have been called already
     expect(mockOnClose).not.toHaveBeenCalled();
     expect(mockOnSave).not.toHaveBeenCalled();
   });
