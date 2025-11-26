@@ -58,7 +58,7 @@ export function DeleteUserConfirmationModal({
      */
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
+            if (e.key === 'Escape' && !isDeleting && !error) {
                 onClose();
             }
         };
@@ -67,10 +67,10 @@ export function DeleteUserConfirmationModal({
         return () => {
             document.removeEventListener('keydown', handleEscape);
         };
-    }, [onClose]);
+    }, [onClose, isDeleting, error]);
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-overlay" onClick={isDeleting || error ? undefined : onClose}>
             <div className="modal-content delete-modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
                     <h2>Delete Account</h2>

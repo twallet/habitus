@@ -130,6 +130,7 @@ export function EditTrackingModal({
 
         try {
             await onDelete(tracking.id);
+            hasDeleteErrorRef.current = false;
             onClose();
         } catch (err) {
             hasDeleteErrorRef.current = true;
@@ -183,7 +184,10 @@ export function EditTrackingModal({
                             <button
                                 type="button"
                                 className="message-close"
-                                onClick={() => setError(null)}
+                                onClick={() => {
+                                    setError(null);
+                                    hasDeleteErrorRef.current = false;
+                                }}
                                 aria-label="Close"
                             >
                                 ×
