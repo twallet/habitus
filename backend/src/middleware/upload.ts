@@ -1,11 +1,10 @@
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { fileURLToPath } from "url";
 
 /**
  * Get project root directory (workspace root).
- * Uses import.meta.url to reliably find the workspace root regardless of current working directory.
+ * Walks up from the current working directory to reliably find the workspace root.
  * @returns The project root path
  * @private
  */
@@ -19,51 +18,8 @@ function getProjectRoot(): string {
     return path.resolve();
   }
 
-  try {
-    // Access import.meta.url directly (this works in ESM modules)
-    // The eval workaround is needed for Jest/TypeScript compatibility
-    // eslint-disable-next-line @typescript-eslint/no-implied-eval
-    const importMeta = new Function(
-      'return typeof import !== "undefined" ? import.meta : null'
-    )();
-
-    if (importMeta && importMeta.url) {
-      const currentFile = fileURLToPath(importMeta.url);
-      const currentDir = path.dirname(currentFile);
-
-      // From backend/src/middleware/ go up 3 levels to workspace root: ../../../
-      let projectRoot = path.resolve(currentDir, "../../..");
-      projectRoot = path.normalize(projectRoot);
-
-      // Verify we found the workspace root by checking for package.json and backend/ directory
-      const packageJsonPath = path.join(projectRoot, "package.json");
-      const backendDir = path.join(projectRoot, "backend");
-      if (fs.existsSync(packageJsonPath) && fs.existsSync(backendDir)) {
-        return projectRoot;
-      }
-
-      // If package.json not found, try going up one more level (in case of build output)
-      projectRoot = path.resolve(currentDir, "../../../..");
-      projectRoot = path.normalize(projectRoot);
-      const altPackageJsonPath = path.join(projectRoot, "package.json");
-      const altBackendDir = path.join(projectRoot, "backend");
-      if (fs.existsSync(altPackageJsonPath) && fs.existsSync(altBackendDir)) {
-        return projectRoot;
-      }
-
-      // If still not found, return the original calculation
-      return path.resolve(currentDir, "../../..");
-    }
-  } catch (error) {
-    // Fallback if import.meta is not available
-    console.warn(
-      `[${new Date().toISOString()}] UPLOAD | Could not determine project root from import.meta.url, using fallback:`,
-      error
-    );
-  }
-
-  // Fallback: try to find workspace root by looking for package.json
-  // Verify it's the workspace root by checking for both backend/ and frontend/ directories
+  // Find workspace root by walking up from the current working directory
+  // and looking for a package.json that also contains backend/ and frontend/ directories.
   let currentDir = process.cwd();
   const root = path.parse(currentDir).root; // Get drive root (e.g., "D:\")
 
@@ -82,37 +38,6 @@ function getProjectRoot(): string {
 
   // Last resort: use current working directory
   return path.resolve(process.cwd());
-}
-
-/**
- * Get __dirname in a way that works in both ESM and Jest.
- * @returns The directory path
- * @private
- */
-function getDirname(): string {
-  // Check if we're in a test environment
-  if (
-    typeof process !== "undefined" &&
-    (process.env.NODE_ENV === "test" || process.env.JEST_WORKER_ID)
-  ) {
-    return path.resolve();
-  }
-
-  try {
-    // Use eval to avoid TypeScript/Jest parsing issues with import.meta
-    // eslint-disable-next-line @typescript-eslint/no-implied-eval
-    const importMeta = new Function(
-      'return typeof import !== "undefined" ? import.meta : null'
-    )();
-    if (importMeta && importMeta.url) {
-      const __filename = fileURLToPath(importMeta.url);
-      return path.dirname(__filename);
-    }
-  } catch {
-    // Fallback if import.meta is not available
-  }
-
-  return path.resolve();
 }
 
 /**
