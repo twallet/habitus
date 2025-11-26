@@ -141,9 +141,10 @@ export function EditTrackingModal({
             }
         } catch (err) {
             hasDeleteErrorRef.current = true;
-            setError(err instanceof Error ? err.message : "Error deleting tracking");
+            hasCalledOnCloseRef.current = false; // Reset in case it was set
             isDeletingRef.current = false;
             setIsDeleting(false);
+            setError(err instanceof Error ? err.message : "Error deleting tracking");
             setShowDeleteConfirmation(false);
         }
     };
@@ -157,7 +158,8 @@ export function EditTrackingModal({
             if (e.key === "Escape") {
                 if (showDeleteConfirmation) {
                     setShowDeleteConfirmation(false);
-                } else if (!isDeleting && !isSubmitting && !error) {
+                } else if (!isDeleting && !isSubmitting && !error && !hasCalledOnCloseRef.current) {
+                    hasCalledOnCloseRef.current = true;
                     onClose();
                 }
             }
