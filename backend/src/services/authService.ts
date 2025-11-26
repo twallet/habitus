@@ -111,6 +111,7 @@ export class AuthService {
 
   /**
    * Check if a magic link was recently sent to an email address.
+   * Allows resending if the previous link has expired or is close to expiring.
    * @param email - Email address to check
    * @returns Promise resolving to true if cooldown period hasn't passed, false otherwise
    * @private
@@ -127,24 +128,37 @@ export class AuthService {
     const expiresAt = new Date(user.magic_link_expires);
     const now = new Date();
 
-    // If the magic link hasn't expired yet, check if it was created recently
-    if (expiresAt > now) {
-      // Calculate when the magic link was created (expires - expiry time)
-      const createdAt = new Date(expiresAt);
-      createdAt.setMinutes(
-        createdAt.getMinutes() - getMagicLinkExpiryMinutes()
-      );
-
-      // Check if it was created within the cooldown period
-      const cooldownExpires = new Date(createdAt);
-      cooldownExpires.setMinutes(
-        cooldownExpires.getMinutes() + getMagicLinkCooldownMinutes()
-      );
-
-      return cooldownExpires > now;
+    // If the magic link has expired, allow resending
+    if (expiresAt <= now) {
+      return false; // Magic link expired, cooldown doesn't apply
     }
 
-    return false; // Magic link expired, cooldown doesn't apply
+    // Calculate when the magic link was created (expires - expiry time)
+    const createdAt = new Date(expiresAt);
+    createdAt.setMinutes(
+      createdAt.getMinutes() - getMagicLinkExpiryMinutes()
+    );
+
+    // Check if it was created within the cooldown period
+    const cooldownExpires = new Date(createdAt);
+    cooldownExpires.setMinutes(
+      cooldownExpires.getMinutes() + getMagicLinkCooldownMinutes()
+    );
+
+    // Allow resending if the link is close to expiring (within 5 minutes)
+    // This helps users who didn't receive the email or need a fresh link
+    const minutesUntilExpiry = (expiresAt.getTime() - now.getTime()) / (1000 * 60);
+    const allowResendIfExpiringSoon = minutesUntilExpiry <= 5;
+
+    // If link is expiring soon, allow resend even if within cooldown
+    if (allowResendIfExpiringSoon) {
+      console.log(
+        `[${new Date().toISOString()}] AUTH | Allowing magic link resend for ${email} - previous link expires in ${Math.round(minutesUntilExpiry)} minutes`
+      );
+      return false;
+    }
+
+    return cooldownExpires > now;
   }
 
   /**
