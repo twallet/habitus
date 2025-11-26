@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import App from '../App';
 import { API_ENDPOINTS } from '../config/api';
 import { useAuth } from '../hooks/useAuth';
+import { useTrackings } from '../hooks/useTrackings';
 
 // Mock fetch
 global.fetch = jest.fn();
@@ -12,7 +13,13 @@ jest.mock('../hooks/useAuth', () => ({
   useAuth: jest.fn(),
 }));
 
+// Mock useTrackings hook
+jest.mock('../hooks/useTrackings', () => ({
+  useTrackings: jest.fn(),
+}));
+
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
+const mockUseTrackings = useTrackings as jest.MockedFunction<typeof useTrackings>;
 
 describe('App', () => {
   beforeEach(() => {
@@ -20,6 +27,15 @@ describe('App', () => {
     (global.fetch as jest.Mock).mockClear();
     // Clear localStorage
     localStorage.clear();
+
+    // Default mock for useTrackings
+    mockUseTrackings.mockReturnValue({
+      trackings: [],
+      isLoading: false,
+      createTracking: jest.fn(),
+      updateTracking: jest.fn(),
+      deleteTracking: jest.fn(),
+    });
 
     // Default mock: unauthenticated state
     // Make the auth functions call fetch so existing tests continue to work
@@ -551,6 +567,601 @@ describe('App', () => {
     Object.defineProperty(window, 'location', {
       value: { search: originalSearch },
       writable: true,
+    });
+  });
+
+  it('should handle email change verification success', async () => {
+    const mockUser = {
+      id: 1,
+      name: 'John Doe',
+      email: 'john@example.com',
+      created_at: '2024-01-01T00:00:00Z',
+    };
+
+    mockUseAuth.mockReturnValue({
+      user: mockUser,
+      token: 'mock-token',
+      isLoading: false,
+      isAuthenticated: true,
+      requestLoginMagicLink: jest.fn(),
+      requestRegisterMagicLink: jest.fn(),
+      requestEmailChange: jest.fn(),
+      verifyMagicLink: jest.fn(),
+      logout: jest.fn(),
+      setTokenFromCallback: jest.fn(),
+      updateProfile: jest.fn(),
+      deleteUser: jest.fn(),
+    });
+
+    const originalSearch = window.location.search;
+    Object.defineProperty(window, 'location', {
+      value: { search: '?emailChangeVerified=true' },
+      writable: true,
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/your email has been updated/i)).toBeInTheDocument();
+    });
+
+    Object.defineProperty(window, 'location', {
+      value: { search: originalSearch },
+      writable: true,
+    });
+  });
+
+  it('should handle email change verification failure', async () => {
+    const mockUser = {
+      id: 1,
+      name: 'John Doe',
+      email: 'john@example.com',
+      created_at: '2024-01-01T00:00:00Z',
+    };
+
+    mockUseAuth.mockReturnValue({
+      user: mockUser,
+      token: 'mock-token',
+      isLoading: false,
+      isAuthenticated: true,
+      requestLoginMagicLink: jest.fn(),
+      requestRegisterMagicLink: jest.fn(),
+      requestEmailChange: jest.fn(),
+      verifyMagicLink: jest.fn(),
+      logout: jest.fn(),
+      setTokenFromCallback: jest.fn(),
+      updateProfile: jest.fn(),
+      deleteUser: jest.fn(),
+    });
+
+    const originalSearch = window.location.search;
+    Object.defineProperty(window, 'location', {
+      value: { search: '?emailChangeVerified=false&error=Email%20already%20in%20use' },
+      writable: true,
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/email already in use/i)).toBeInTheDocument();
+    });
+
+    Object.defineProperty(window, 'location', {
+      value: { search: originalSearch },
+      writable: true,
+    });
+  });
+
+  it('should handle login magic link cooldown', async () => {
+    const user = userEvent.setup();
+    const mockRequestLoginMagicLink = jest.fn().mockResolvedValue({
+      message: 'Please wait before requesting another link',
+      cooldown: true,
+    });
+
+    mockUseAuth.mockReturnValue({
+      user: null,
+      token: null,
+      isLoading: false,
+      isAuthenticated: false,
+      requestLoginMagicLink: mockRequestLoginMagicLink,
+      requestRegisterMagicLink: jest.fn(),
+      requestEmailChange: jest.fn(),
+      verifyMagicLink: jest.fn(),
+      logout: jest.fn(),
+      setTokenFromCallback: jest.fn(),
+      updateProfile: jest.fn(),
+      deleteUser: jest.fn(),
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+    });
+
+    const emailInput = screen.getByLabelText(/email/i);
+    await user.type(emailInput, 'test@example.com');
+    await user.click(screen.getByRole('button', { name: /send login link/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/please wait before requesting another link/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should handle edit profile', async () => {
+    const mockUser = {
+      id: 1,
+      name: 'John Doe',
+      email: 'john@example.com',
+      created_at: '2024-01-01T00:00:00Z',
+    };
+
+    mockUseAuth.mockReturnValue({
+      user: mockUser,
+      token: 'mock-token',
+      isLoading: false,
+      isAuthenticated: true,
+      requestLoginMagicLink: jest.fn(),
+      requestRegisterMagicLink: jest.fn(),
+      requestEmailChange: jest.fn(),
+      verifyMagicLink: jest.fn(),
+      logout: jest.fn(),
+      setTokenFromCallback: jest.fn(),
+      updateProfile: jest.fn(),
+      deleteUser: jest.fn(),
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/your trackings/i)).toBeInTheDocument();
+    });
+
+    const userMenuButton = screen.getByRole('button', { name: /user menu/i });
+    await userEvent.click(userMenuButton);
+
+    const editProfileMenuItem = screen.getByRole('button', { name: /edit profile/i });
+    await userEvent.click(editProfileMenuItem);
+
+    await waitFor(() => {
+      expect(screen.getByText(/edit profile/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should handle change email', async () => {
+    const mockUser = {
+      id: 1,
+      name: 'John Doe',
+      email: 'john@example.com',
+      created_at: '2024-01-01T00:00:00Z',
+    };
+
+    mockUseAuth.mockReturnValue({
+      user: mockUser,
+      token: 'mock-token',
+      isLoading: false,
+      isAuthenticated: true,
+      requestLoginMagicLink: jest.fn(),
+      requestRegisterMagicLink: jest.fn(),
+      requestEmailChange: jest.fn(),
+      verifyMagicLink: jest.fn(),
+      logout: jest.fn(),
+      setTokenFromCallback: jest.fn(),
+      updateProfile: jest.fn(),
+      deleteUser: jest.fn(),
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/your trackings/i)).toBeInTheDocument();
+    });
+
+    const userMenuButton = screen.getByRole('button', { name: /user menu/i });
+    await userEvent.click(userMenuButton);
+
+    const changeEmailMenuItem = screen.getByRole('button', { name: /change email/i });
+    await userEvent.click(changeEmailMenuItem);
+
+    await waitFor(() => {
+      expect(screen.getByText(/change email/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should handle save profile', async () => {
+    const mockUser = {
+      id: 1,
+      name: 'John Doe',
+      email: 'john@example.com',
+      created_at: '2024-01-01T00:00:00Z',
+    };
+
+    const mockUpdateProfile = jest.fn().mockResolvedValue({
+      ...mockUser,
+      name: 'Jane Doe',
+    });
+
+    mockUseAuth.mockReturnValue({
+      user: mockUser,
+      token: 'mock-token',
+      isLoading: false,
+      isAuthenticated: true,
+      requestLoginMagicLink: jest.fn(),
+      requestRegisterMagicLink: jest.fn(),
+      requestEmailChange: jest.fn(),
+      verifyMagicLink: jest.fn(),
+      logout: jest.fn(),
+      setTokenFromCallback: jest.fn(),
+      updateProfile: mockUpdateProfile,
+      deleteUser: jest.fn(),
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/your trackings/i)).toBeInTheDocument();
+    });
+
+    const userMenuButton = screen.getByRole('button', { name: /user menu/i });
+    await userEvent.click(userMenuButton);
+
+    const editProfileMenuItem = screen.getByRole('button', { name: /edit profile/i });
+    await userEvent.click(editProfileMenuItem);
+
+    await waitFor(() => {
+      expect(screen.getByText(/edit profile/i)).toBeInTheDocument();
+    });
+
+    const nameInput = screen.getByLabelText(/^name \*$/i);
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, 'Jane Doe');
+
+    const saveButton = screen.getByRole('button', { name: /save/i });
+    await userEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(mockUpdateProfile).toHaveBeenCalled();
+      expect(screen.getByText(/profile updated successfully/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should handle delete user confirmation', async () => {
+    const mockUser = {
+      id: 1,
+      name: 'John Doe',
+      email: 'john@example.com',
+      created_at: '2024-01-01T00:00:00Z',
+    };
+
+    mockUseAuth.mockReturnValue({
+      user: mockUser,
+      token: 'mock-token',
+      isLoading: false,
+      isAuthenticated: true,
+      requestLoginMagicLink: jest.fn(),
+      requestRegisterMagicLink: jest.fn(),
+      requestEmailChange: jest.fn(),
+      verifyMagicLink: jest.fn(),
+      logout: jest.fn(),
+      setTokenFromCallback: jest.fn(),
+      updateProfile: jest.fn(),
+      deleteUser: jest.fn(),
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/your trackings/i)).toBeInTheDocument();
+    });
+
+    const userMenuButton = screen.getByRole('button', { name: /user menu/i });
+    await userEvent.click(userMenuButton);
+
+    const deleteUserMenuItem = screen.getByRole('button', { name: /delete account/i });
+    await userEvent.click(deleteUserMenuItem);
+
+    await waitFor(() => {
+      expect(screen.getByText(/delete account/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should handle create tracking', async () => {
+    const mockUser = {
+      id: 1,
+      name: 'John Doe',
+      email: 'john@example.com',
+      created_at: '2024-01-01T00:00:00Z',
+    };
+
+    const mockCreateTracking = jest.fn().mockResolvedValue({
+      id: 1,
+      question: 'Did you exercise?',
+      type: 'true_false',
+      start_tracking_date: '2024-01-01',
+      notes: null,
+    });
+
+    mockUseTrackings.mockReturnValue({
+      trackings: [],
+      isLoading: false,
+      createTracking: mockCreateTracking,
+      updateTracking: jest.fn(),
+      deleteTracking: jest.fn(),
+    });
+
+    mockUseAuth.mockReturnValue({
+      user: mockUser,
+      token: 'mock-token',
+      isLoading: false,
+      isAuthenticated: true,
+      requestLoginMagicLink: jest.fn(),
+      requestRegisterMagicLink: jest.fn(),
+      requestEmailChange: jest.fn(),
+      verifyMagicLink: jest.fn(),
+      logout: jest.fn(),
+      setTokenFromCallback: jest.fn(),
+      updateProfile: jest.fn(),
+      deleteUser: jest.fn(),
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/your trackings/i)).toBeInTheDocument();
+    });
+
+    const fabButton = screen.getByRole('button', { name: /add new tracking/i });
+    await userEvent.click(fabButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/create new tracking/i)).toBeInTheDocument();
+    });
+
+    const questionInput = screen.getByLabelText(/^question \*$/i);
+    await userEvent.type(questionInput, 'Did you exercise?');
+
+    const submitButton = screen.getByRole('button', { name: /create/i });
+    await userEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(mockCreateTracking).toHaveBeenCalled();
+      expect(screen.getByText(/tracking created successfully/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should handle edit tracking', async () => {
+    const mockUser = {
+      id: 1,
+      name: 'John Doe',
+      email: 'john@example.com',
+      created_at: '2024-01-01T00:00:00Z',
+    };
+
+    const mockTracking = {
+      id: 1,
+      question: 'Did you exercise?',
+      type: 'true_false' as const,
+      start_tracking_date: '2024-01-01',
+      notes: null,
+    };
+
+    mockUseTrackings.mockReturnValue({
+      trackings: [mockTracking],
+      isLoading: false,
+      createTracking: jest.fn(),
+      updateTracking: jest.fn(),
+      deleteTracking: jest.fn(),
+    });
+
+    mockUseAuth.mockReturnValue({
+      user: mockUser,
+      token: 'mock-token',
+      isLoading: false,
+      isAuthenticated: true,
+      requestLoginMagicLink: jest.fn(),
+      requestRegisterMagicLink: jest.fn(),
+      requestEmailChange: jest.fn(),
+      verifyMagicLink: jest.fn(),
+      logout: jest.fn(),
+      setTokenFromCallback: jest.fn(),
+      updateProfile: jest.fn(),
+      deleteUser: jest.fn(),
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/your trackings/i)).toBeInTheDocument();
+    });
+
+    const editButton = screen.getByRole('button', { name: /edit/i });
+    await userEvent.click(editButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/edit tracking/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should handle save tracking', async () => {
+    const mockUser = {
+      id: 1,
+      name: 'John Doe',
+      email: 'john@example.com',
+      created_at: '2024-01-01T00:00:00Z',
+    };
+
+    const mockTracking = {
+      id: 1,
+      question: 'Did you exercise?',
+      type: 'true_false' as const,
+      start_tracking_date: '2024-01-01',
+      notes: null,
+    };
+
+    const mockUpdateTracking = jest.fn().mockResolvedValue({
+      ...mockTracking,
+      question: 'Did you meditate?',
+    });
+
+    mockUseTrackings.mockReturnValue({
+      trackings: [mockTracking],
+      isLoading: false,
+      createTracking: jest.fn(),
+      updateTracking: mockUpdateTracking,
+      deleteTracking: jest.fn(),
+    });
+
+    mockUseAuth.mockReturnValue({
+      user: mockUser,
+      token: 'mock-token',
+      isLoading: false,
+      isAuthenticated: true,
+      requestLoginMagicLink: jest.fn(),
+      requestRegisterMagicLink: jest.fn(),
+      requestEmailChange: jest.fn(),
+      verifyMagicLink: jest.fn(),
+      logout: jest.fn(),
+      setTokenFromCallback: jest.fn(),
+      updateProfile: jest.fn(),
+      deleteUser: jest.fn(),
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/your trackings/i)).toBeInTheDocument();
+    });
+
+    const editButton = screen.getByRole('button', { name: /edit/i });
+    await userEvent.click(editButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/edit tracking/i)).toBeInTheDocument();
+    });
+
+    const questionInput = screen.getByLabelText(/^question \*$/i);
+    await userEvent.clear(questionInput);
+    await userEvent.type(questionInput, 'Did you meditate?');
+
+    const saveButton = screen.getByRole('button', { name: /save/i });
+    await userEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(mockUpdateTracking).toHaveBeenCalled();
+      expect(screen.getByText(/tracking updated successfully/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should handle delete tracking', async () => {
+    const mockUser = {
+      id: 1,
+      name: 'John Doe',
+      email: 'john@example.com',
+      created_at: '2024-01-01T00:00:00Z',
+    };
+
+    const mockTracking = {
+      id: 1,
+      question: 'Did you exercise?',
+      type: 'true_false' as const,
+      start_tracking_date: '2024-01-01',
+      notes: null,
+    };
+
+    const mockDeleteTracking = jest.fn().mockResolvedValue(undefined);
+
+    mockUseTrackings.mockReturnValue({
+      trackings: [mockTracking],
+      isLoading: false,
+      createTracking: jest.fn(),
+      updateTracking: jest.fn(),
+      deleteTracking: mockDeleteTracking,
+    });
+
+    mockUseAuth.mockReturnValue({
+      user: mockUser,
+      token: 'mock-token',
+      isLoading: false,
+      isAuthenticated: true,
+      requestLoginMagicLink: jest.fn(),
+      requestRegisterMagicLink: jest.fn(),
+      requestEmailChange: jest.fn(),
+      verifyMagicLink: jest.fn(),
+      logout: jest.fn(),
+      setTokenFromCallback: jest.fn(),
+      updateProfile: jest.fn(),
+      deleteUser: jest.fn(),
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/your trackings/i)).toBeInTheDocument();
+    });
+
+    const editButton = screen.getByRole('button', { name: /edit/i });
+    await userEvent.click(editButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/edit tracking/i)).toBeInTheDocument();
+    });
+
+    const deleteButton = screen.getByRole('button', { name: /delete/i });
+    await userEvent.click(deleteButton);
+
+    await waitFor(() => {
+      expect(mockDeleteTracking).toHaveBeenCalledWith(1);
+      expect(screen.getByText(/tracking deleted successfully/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should handle profile update error', async () => {
+    const mockUser = {
+      id: 1,
+      name: 'John Doe',
+      email: 'john@example.com',
+      created_at: '2024-01-01T00:00:00Z',
+    };
+
+    const mockUpdateProfile = jest.fn().mockRejectedValue(new Error('Update failed'));
+
+    mockUseAuth.mockReturnValue({
+      user: mockUser,
+      token: 'mock-token',
+      isLoading: false,
+      isAuthenticated: true,
+      requestLoginMagicLink: jest.fn(),
+      requestRegisterMagicLink: jest.fn(),
+      requestEmailChange: jest.fn(),
+      verifyMagicLink: jest.fn(),
+      logout: jest.fn(),
+      setTokenFromCallback: jest.fn(),
+      updateProfile: mockUpdateProfile,
+      deleteUser: jest.fn(),
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/your trackings/i)).toBeInTheDocument();
+    });
+
+    const userMenuButton = screen.getByRole('button', { name: /user menu/i });
+    await userEvent.click(userMenuButton);
+
+    const editProfileMenuItem = screen.getByRole('button', { name: /edit profile/i });
+    await userEvent.click(editProfileMenuItem);
+
+    await waitFor(() => {
+      expect(screen.getByText(/edit profile/i)).toBeInTheDocument();
+    });
+
+    const saveButton = screen.getByRole('button', { name: /save/i });
+    await userEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/update failed/i)).toBeInTheDocument();
     });
   });
 });
