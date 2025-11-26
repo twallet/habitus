@@ -141,7 +141,6 @@ export function EditTrackingModal({
             }
         } catch (err) {
             hasDeleteErrorRef.current = true;
-            hasCalledOnCloseRef.current = false; // Reset in case it was set
             isDeletingRef.current = false;
             setIsDeleting(false);
             setError(err instanceof Error ? err.message : "Error deleting tracking");
