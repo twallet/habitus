@@ -915,11 +915,12 @@ describe('App', () => {
     const fabButton = screen.getByRole('button', { name: /add new tracking/i });
     await userEvent.click(fabButton);
 
+    // Wait for the form input to appear (more reliable than waiting for text)
     await waitFor(() => {
-      expect(screen.getByText(/create new tracking/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/question/i)).toBeInTheDocument();
     });
 
-    const questionInput = screen.getByLabelText(/^question \*$/i);
+    const questionInput = screen.getByLabelText(/question/i);
     await userEvent.type(questionInput, 'Did you exercise?');
 
     const submitButton = screen.getByRole('button', { name: /create/i });
@@ -1043,7 +1044,7 @@ describe('App', () => {
       expect(screen.getByText(/edit tracking/i)).toBeInTheDocument();
     });
 
-    const questionInput = screen.getByLabelText(/^question \*$/i);
+    const questionInput = screen.getByLabelText(/question/i);
     await userEvent.clear(questionInput);
     await userEvent.type(questionInput, 'Did you meditate?');
 
@@ -1113,6 +1114,18 @@ describe('App', () => {
 
     const deleteButton = screen.getByRole('button', { name: /delete/i });
     await userEvent.click(deleteButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/are you sure you want to delete this tracking/i)).toBeInTheDocument();
+    });
+
+    // Find the confirmation delete button (the second Delete button)
+    const allDeleteButtons = screen.getAllByRole('button', { name: /delete/i });
+    expect(allDeleteButtons.length).toBeGreaterThan(1);
+
+    // Click the last delete button (the one in the confirmation dialog)
+    const confirmDeleteButton = allDeleteButtons[allDeleteButtons.length - 1];
+    await userEvent.click(confirmDeleteButton);
 
     await waitFor(() => {
       expect(mockDeleteTracking).toHaveBeenCalledWith(1);
@@ -1362,11 +1375,12 @@ describe('App', () => {
     const fabButton = screen.getByRole('button', { name: /add new tracking/i });
     await userEvent.click(fabButton);
 
+    // Wait for the form input to appear (more reliable than waiting for text)
     await waitFor(() => {
-      expect(screen.getByText(/create new tracking/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/question/i)).toBeInTheDocument();
     });
 
-    const questionInput = screen.getByLabelText(/^question \*$/i);
+    const questionInput = screen.getByLabelText(/question/i);
     const submitButton = screen.getByRole('button', { name: /create/i });
     await userEvent.type(questionInput, 'Did you exercise?');
     await userEvent.click(submitButton);
@@ -1437,7 +1451,11 @@ describe('App', () => {
 
     await waitFor(() => {
       expect(mockUpdateTracking).toHaveBeenCalled();
-      expect(screen.getByText(/failed to update tracking/i)).toBeInTheDocument();
+    });
+
+    // There may be multiple error messages (one in modal, one at top), so check for at least one
+    await waitFor(() => {
+      expect(screen.getAllByText(/failed to update tracking/i).length).toBeGreaterThan(0);
     });
   });
 
@@ -1498,6 +1516,18 @@ describe('App', () => {
 
     const deleteButton = screen.getByRole('button', { name: /delete/i });
     await userEvent.click(deleteButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/are you sure you want to delete this tracking/i)).toBeInTheDocument();
+    });
+
+    // Find the confirmation delete button (the second Delete button)
+    const allDeleteButtons = screen.getAllByRole('button', { name: /delete/i });
+    expect(allDeleteButtons.length).toBeGreaterThan(1);
+
+    // Click the last delete button (the one in the confirmation dialog)
+    const confirmDeleteButton = allDeleteButtons[allDeleteButtons.length - 1];
+    await userEvent.click(confirmDeleteButton);
 
     await waitFor(() => {
       expect(mockDeleteTracking).toHaveBeenCalledWith(1);
