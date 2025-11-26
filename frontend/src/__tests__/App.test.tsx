@@ -861,7 +861,7 @@ describe('App', () => {
     const userMenuButton = screen.getByRole('button', { name: /user menu/i });
     await userEvent.click(userMenuButton);
 
-    const deleteUserMenuItem = screen.getByRole('button', { name: /delete account/i });
+    const deleteUserMenuItem = screen.getByRole('button', { name: /delete user/i });
     await userEvent.click(deleteUserMenuItem);
 
     await waitFor(() => {
@@ -1273,8 +1273,8 @@ describe('App', () => {
     const userMenuButton = screen.getByRole('button', { name: /user menu/i });
     await userEvent.click(userMenuButton);
 
-    const deleteAccountMenuItem = screen.getByRole('button', { name: /delete account/i });
-    await userEvent.click(deleteAccountMenuItem);
+    const deleteUserMenuItem = screen.getByRole('button', { name: /delete user/i });
+    await userEvent.click(deleteUserMenuItem);
 
     await waitFor(() => {
       // "Delete account" appears as both a heading and a button, so use getAllByText
@@ -1282,7 +1282,10 @@ describe('App', () => {
       expect(deleteAccountElements.length).toBeGreaterThan(0);
     });
 
-    const confirmButton = screen.getByRole('button', { name: /confirm delete/i });
+    const confirmationInput = screen.getByLabelText(/type.*delete.*to confirm/i);
+    await userEvent.type(confirmationInput, 'DELETE');
+
+    const confirmButton = screen.getByRole('button', { name: /delete account/i });
     await userEvent.click(confirmButton);
 
     await waitFor(() => {
