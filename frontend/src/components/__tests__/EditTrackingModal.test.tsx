@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { EditTrackingModal } from '../EditTrackingModal';
 import { TrackingData, TrackingType } from '../../models/Tracking';
@@ -331,7 +331,15 @@ describe('EditTrackingModal', () => {
     const deleteButton = screen.getByRole('button', { name: /delete/i });
     await user.click(deleteButton);
 
-    const confirmDeleteButton = screen.getByRole('button', { name: /^delete$/i });
+    // Wait for confirmation dialog to appear
+    await waitFor(() => {
+      expect(screen.getByText(/are you sure you want to delete this tracking\?/i)).toBeInTheDocument();
+    });
+
+    // Find the delete button within the confirmation dialog
+    const confirmationDialog = screen.getByText(/are you sure you want to delete this tracking\?/i).closest('.delete-confirmation') as HTMLElement;
+    expect(confirmationDialog).toBeInTheDocument();
+    const confirmDeleteButton = within(confirmationDialog).getByRole('button', { name: /delete/i });
     await user.click(confirmDeleteButton);
 
     await waitFor(() => {
@@ -397,7 +405,15 @@ describe('EditTrackingModal', () => {
     const deleteButton = screen.getByRole('button', { name: /delete/i });
     await user.click(deleteButton);
 
-    const confirmDeleteButton = screen.getByRole('button', { name: /^delete$/i });
+    // Wait for confirmation dialog to appear
+    await waitFor(() => {
+      expect(screen.getByText(/are you sure you want to delete this tracking\?/i)).toBeInTheDocument();
+    });
+
+    // Find the delete button within the confirmation dialog
+    const confirmationDialog = screen.getByText(/are you sure you want to delete this tracking\?/i).closest('.delete-confirmation') as HTMLElement;
+    expect(confirmationDialog).toBeInTheDocument();
+    const confirmDeleteButton = within(confirmationDialog).getByRole('button', { name: /delete/i });
     await user.click(confirmDeleteButton);
 
     expect(screen.getByText(/deleting.../i)).toBeInTheDocument();
@@ -419,7 +435,15 @@ describe('EditTrackingModal', () => {
     const deleteButton = screen.getByRole('button', { name: /delete/i });
     await user.click(deleteButton);
 
-    const confirmDeleteButton = screen.getByRole('button', { name: /^delete$/i });
+    // Wait for confirmation dialog to appear
+    await waitFor(() => {
+      expect(screen.getByText(/are you sure you want to delete this tracking\?/i)).toBeInTheDocument();
+    });
+
+    // Find the delete button within the confirmation dialog
+    const confirmationDialog = screen.getByText(/are you sure you want to delete this tracking\?/i).closest('.delete-confirmation') as HTMLElement;
+    expect(confirmationDialog).toBeInTheDocument();
+    const confirmDeleteButton = within(confirmationDialog).getByRole('button', { name: /delete/i });
     await user.click(confirmDeleteButton);
 
     await waitFor(() => {
@@ -431,7 +455,7 @@ describe('EditTrackingModal', () => {
   it('should handle tracking without start_tracking_date', () => {
     const trackingWithoutDate: TrackingData = {
       ...mockTracking,
-      start_tracking_date: undefined,
+      start_tracking_date: undefined as unknown as string,
     };
 
     render(

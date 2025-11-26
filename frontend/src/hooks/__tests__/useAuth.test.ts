@@ -1295,12 +1295,13 @@ describe("useAuth", () => {
           }
 
           if (
-            urlString.includes("/api/auth/profile") &&
+            urlString.includes("/api/users/profile") &&
             urlString.includes("DELETE")
           ) {
             return Promise.resolve({
               ok: false,
               status: 500,
+              statusText: "Internal Server Error",
               json: async () => Promise.resolve({ error: "Deletion failed" }),
             });
           }

@@ -766,7 +766,9 @@ describe('App', () => {
     await userEvent.click(changeEmailMenuItem);
 
     await waitFor(() => {
-      expect(screen.getByText(/change email/i)).toBeInTheDocument();
+      // "Change email" appears as both a button and a heading, so use getAllByText
+      const changeEmailElements = screen.getAllByText(/change email/i);
+      expect(changeEmailElements.length).toBeGreaterThan(0);
     });
   });
 
@@ -1220,7 +1222,9 @@ describe('App', () => {
     await userEvent.click(changeEmailMenuItem);
 
     await waitFor(() => {
-      expect(screen.getByText(/change email/i)).toBeInTheDocument();
+      // "Change email" appears as both a button and a heading, so use getAllByText
+      const changeEmailElements = screen.getAllByText(/change email/i);
+      expect(changeEmailElements.length).toBeGreaterThan(0);
     });
 
     const emailInput = screen.getByLabelText(/new email/i);
@@ -1317,14 +1321,18 @@ describe('App', () => {
     const userMenuButton = screen.getByRole('button', { name: /user menu/i });
     await userEvent.click(userMenuButton);
 
-    const deleteAccountMenuItem = screen.getByRole('button', { name: /delete account/i });
-    await userEvent.click(deleteAccountMenuItem);
+    const deleteUserMenuItem = screen.getByRole('button', { name: /delete user/i });
+    await userEvent.click(deleteUserMenuItem);
 
     await waitFor(() => {
       expect(screen.getByText(/delete account/i)).toBeInTheDocument();
     });
 
-    const confirmButton = screen.getByRole('button', { name: /confirm delete/i });
+    // Type DELETE to confirm
+    const confirmationInput = screen.getByLabelText(/type.*delete.*to confirm/i);
+    await userEvent.type(confirmationInput, 'DELETE');
+
+    const confirmButton = screen.getByRole('button', { name: /delete account/i });
     await userEvent.click(confirmButton);
 
     await waitFor(() => {
@@ -1387,7 +1395,9 @@ describe('App', () => {
 
     await waitFor(() => {
       expect(mockCreateTracking).toHaveBeenCalled();
-      expect(screen.getByText(/failed to create tracking/i)).toBeInTheDocument();
+      // Error message can appear in both the main message area and the modal
+      const errorMessages = screen.getAllByText(/failed to create tracking/i);
+      expect(errorMessages.length).toBeGreaterThan(0);
     });
   });
 
@@ -1531,7 +1541,9 @@ describe('App', () => {
 
     await waitFor(() => {
       expect(mockDeleteTracking).toHaveBeenCalledWith(1);
-      expect(screen.getByText(/failed to delete tracking/i)).toBeInTheDocument();
+      // Error message can appear in both the main message area and the modal
+      const errorMessages = screen.getAllByText(/failed to delete tracking/i);
+      expect(errorMessages.length).toBeGreaterThan(0);
     });
   });
 });
