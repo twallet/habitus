@@ -21,9 +21,9 @@ describe('AuthForm', () => {
                 />
             );
 
-            expect(screen.getByText(/login/i)).toBeInTheDocument();
+            expect(screen.getByRole('heading', { name: /login/i })).toBeInTheDocument();
             expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: /send magic link/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /send login link/i })).toBeInTheDocument();
         });
 
         it('should request login magic link', async () => {
@@ -40,7 +40,7 @@ describe('AuthForm', () => {
 
             const emailInput = screen.getByLabelText(/email/i);
             await user.type(emailInput, 'test@example.com');
-            await user.click(screen.getByRole('button', { name: /send magic link/i }));
+            await user.click(screen.getByRole('button', { name: /send login link/i }));
 
             await waitFor(() => {
                 expect(mockRequestLoginMagicLink).toHaveBeenCalledWith('test@example.com');
@@ -49,7 +49,7 @@ describe('AuthForm', () => {
 
         it('should show magic link sent message after successful request', async () => {
             const user = userEvent.setup();
-            mockRequestLoginMagicLink.mockResolvedValue(undefined);
+            mockRequestLoginMagicLink.mockResolvedValue({});
 
             render(
                 <AuthForm
@@ -61,7 +61,7 @@ describe('AuthForm', () => {
 
             const emailInput = screen.getByLabelText(/email/i);
             await user.type(emailInput, 'test@example.com');
-            await user.click(screen.getByRole('button', { name: /send magic link/i }));
+            await user.click(screen.getByRole('button', { name: /send login link/i }));
 
             await waitFor(() => {
                 expect(screen.getByText(/check your email/i)).toBeInTheDocument();
@@ -72,7 +72,7 @@ describe('AuthForm', () => {
 
         it('should allow sending another link in login mode', async () => {
             const user = userEvent.setup();
-            mockRequestLoginMagicLink.mockResolvedValue(undefined);
+            mockRequestLoginMagicLink.mockResolvedValue({});
 
             render(
                 <AuthForm
@@ -84,7 +84,7 @@ describe('AuthForm', () => {
 
             const emailInput = screen.getByLabelText(/email/i);
             await user.type(emailInput, 'test@example.com');
-            await user.click(screen.getByRole('button', { name: /send magic link/i }));
+            await user.click(screen.getByRole('button', { name: /send login link/i }));
 
             await waitFor(() => {
                 expect(screen.getByText(/check your email/i)).toBeInTheDocument();
@@ -116,7 +116,7 @@ describe('AuthForm', () => {
             );
 
             // Find form by finding submit button's parent form
-            const submitButton = screen.getByRole('button', { name: /send magic link/i });
+            const submitButton = screen.getByRole('button', { name: /send login link/i });
             const form = submitButton.closest('form');
             if (form) {
                 fireEvent.submit(form);
@@ -487,8 +487,8 @@ describe('AuthForm', () => {
     describe('Form state', () => {
         it('should disable form during submission', async () => {
             const user = userEvent.setup();
-            let resolvePromise: () => void;
-            const promise = new Promise<void>((resolve) => {
+            let resolvePromise: (value: {}) => void;
+            const promise = new Promise<{}>((resolve) => {
                 resolvePromise = resolve;
             });
             mockRequestLoginMagicLink.mockReturnValue(promise);
@@ -502,7 +502,7 @@ describe('AuthForm', () => {
             );
 
             const emailInput = screen.getByLabelText(/email/i);
-            const submitButton = screen.getByRole('button', { name: /send magic link/i });
+            const submitButton = screen.getByRole('button', { name: /send login link/i });
 
             await user.type(emailInput, 'test@example.com');
             await user.click(submitButton);
@@ -513,7 +513,7 @@ describe('AuthForm', () => {
             });
             expect(emailInput).toBeDisabled();
 
-            resolvePromise!();
+            resolvePromise!({});
             // After promise resolves, magic link sent message should appear
             await waitFor(() => {
                 expect(screen.getByText(/check your email/i)).toBeInTheDocument();

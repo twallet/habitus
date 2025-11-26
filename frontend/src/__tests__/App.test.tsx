@@ -47,6 +47,7 @@ describe('App', () => {
           body: formData,
         });
       }),
+      requestEmailChange: jest.fn(),
       verifyMagicLink: jest.fn(),
       logout: jest.fn(),
       setTokenFromCallback: jest.fn(),
@@ -78,7 +79,7 @@ describe('App', () => {
     await waitFor(() => {
       expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
     });
-    expect(screen.getByRole('button', { name: /send magic link/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /send login link/i })).toBeInTheDocument();
   });
 
   it('should request login magic link', async () => {
@@ -101,7 +102,7 @@ describe('App', () => {
 
     const emailInput = screen.getByLabelText(/email/i);
     await user.type(emailInput, 'test@example.com');
-    await user.click(screen.getByRole('button', { name: /send magic link/i }));
+    await user.click(screen.getByRole('button', { name: /send login link/i }));
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
@@ -173,6 +174,7 @@ describe('App', () => {
       isAuthenticated: true,
       requestLoginMagicLink: jest.fn(),
       requestRegisterMagicLink: jest.fn(),
+      requestEmailChange: jest.fn(),
       verifyMagicLink: jest.fn(),
       logout: mockLogout,
       setTokenFromCallback: jest.fn(),
@@ -207,7 +209,7 @@ describe('App', () => {
 
     const emailInput = screen.getByLabelText(/email/i);
     await user.type(emailInput, 'invalid-email');
-    await user.click(screen.getByRole('button', { name: /send magic link/i }));
+    await user.click(screen.getByRole('button', { name: /send login link/i }));
 
     // Form validation should prevent submission or show error
     // The exact behavior depends on HTML5 validation
@@ -221,6 +223,7 @@ describe('App', () => {
       isAuthenticated: false,
       requestLoginMagicLink: jest.fn(),
       requestRegisterMagicLink: jest.fn(),
+      requestEmailChange: jest.fn(),
       verifyMagicLink: jest.fn(),
       logout: jest.fn(),
       setTokenFromCallback: jest.fn(),
@@ -241,6 +244,7 @@ describe('App', () => {
       isAuthenticated: true,
       requestLoginMagicLink: jest.fn(),
       requestRegisterMagicLink: jest.fn(),
+      requestEmailChange: jest.fn(),
       verifyMagicLink: jest.fn(),
       logout: jest.fn(),
       setTokenFromCallback: jest.fn(),
@@ -263,6 +267,7 @@ describe('App', () => {
       isAuthenticated: false,
       requestLoginMagicLink: jest.fn(),
       requestRegisterMagicLink: jest.fn(),
+      requestEmailChange: jest.fn(),
       verifyMagicLink: mockVerifyMagicLink,
       logout: jest.fn(),
       setTokenFromCallback: jest.fn(),
@@ -304,6 +309,7 @@ describe('App', () => {
       isAuthenticated: false,
       requestLoginMagicLink: jest.fn(),
       requestRegisterMagicLink: jest.fn(),
+      requestEmailChange: jest.fn(),
       verifyMagicLink: mockVerifyMagicLink,
       logout: jest.fn(),
       setTokenFromCallback: jest.fn(),
@@ -367,6 +373,7 @@ describe('App', () => {
       isAuthenticated: false,
       requestLoginMagicLink: mockRequestLoginMagicLink,
       requestRegisterMagicLink: jest.fn(),
+      requestEmailChange: jest.fn(),
       verifyMagicLink: jest.fn(),
       logout: jest.fn(),
       setTokenFromCallback: jest.fn(),
@@ -382,7 +389,7 @@ describe('App', () => {
 
     const emailInput = screen.getByLabelText(/email/i);
     await user.type(emailInput, 'test@example.com');
-    await user.click(screen.getByRole('button', { name: /send magic link/i }));
+    await user.click(screen.getByRole('button', { name: /send login link/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/network error/i)).toBeInTheDocument();
@@ -400,6 +407,7 @@ describe('App', () => {
       isAuthenticated: false,
       requestLoginMagicLink: jest.fn(),
       requestRegisterMagicLink: mockRequestRegisterMagicLink,
+      requestEmailChange: jest.fn(),
       verifyMagicLink: jest.fn(),
       logout: jest.fn(),
       setTokenFromCallback: jest.fn(),
@@ -448,6 +456,7 @@ describe('App', () => {
       isAuthenticated: true,
       requestLoginMagicLink: jest.fn(),
       requestRegisterMagicLink: jest.fn(),
+      requestEmailChange: jest.fn(),
       verifyMagicLink: jest.fn(),
       logout: mockLogout,
       setTokenFromCallback: jest.fn(),
@@ -487,7 +496,7 @@ describe('App', () => {
     // This will trigger form validation error
     const emailInput = screen.getByLabelText(/email/i);
     await user.clear(emailInput);
-    await user.click(screen.getByRole('button', { name: /send magic link/i }));
+    await user.click(screen.getByRole('button', { name: /send login link/i }));
 
     // HTML5 validation should prevent submission
     // The exact behavior depends on browser implementation
@@ -509,6 +518,7 @@ describe('App', () => {
       isAuthenticated: false,
       requestLoginMagicLink: jest.fn(),
       requestRegisterMagicLink: jest.fn(),
+      requestEmailChange: jest.fn(),
       verifyMagicLink: jest.fn().mockResolvedValue(mockUser),
       logout: jest.fn(),
       setTokenFromCallback: jest.fn(),
