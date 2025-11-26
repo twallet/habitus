@@ -19,7 +19,7 @@ describe('DeleteUserConfirmationModal', () => {
       />
     );
 
-    expect(screen.getByText('Delete Account')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Delete Account' })).toBeInTheDocument();
     expect(screen.getByText(/are you sure you want to delete/i)).toBeInTheDocument();
     expect(screen.getByText(/John Doe's/i)).toBeInTheDocument();
   });
@@ -42,7 +42,7 @@ describe('DeleteUserConfirmationModal', () => {
 
   it('should close modal when overlay is clicked', async () => {
     const user = userEvent.setup();
-    render(
+    const { container } = render(
       <DeleteUserConfirmationModal
         userName="John Doe"
         onClose={mockOnClose}
@@ -50,7 +50,7 @@ describe('DeleteUserConfirmationModal', () => {
       />
     );
 
-    const overlay = screen.getByText('Delete Account').closest('.modal-overlay');
+    const overlay = container.querySelector('.modal-overlay');
     if (overlay) {
       await user.click(overlay);
       expect(mockOnClose).toHaveBeenCalledTimes(1);
@@ -199,11 +199,17 @@ describe('DeleteUserConfirmationModal', () => {
     await user.type(confirmationInput, 'DELETE');
 
     const deleteButton = screen.getByRole('button', { name: /delete account/i });
+
+    // Clear any previous calls before clicking
+    mockOnClose.mockClear();
+
     await user.click(deleteButton);
 
     await waitFor(() => {
       expect(screen.getByText(/delete failed/i)).toBeInTheDocument();
     });
+
+    // Ensure onClose was not called after error
     expect(mockOnClose).not.toHaveBeenCalled();
   });
 
