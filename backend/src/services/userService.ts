@@ -138,7 +138,7 @@ export class UserService {
     // profilePictureUrl can be: undefined (no change), null (remove), or string (new file)
     if (profilePictureUrl !== undefined && currentUser.profile_picture_url) {
       try {
-        // Extract filename from URL (e.g., "http://localhost:3005/uploads/filename.jpg" or "${SERVER_URL}:${PORT}/uploads/filename.jpg" -> "filename.jpg")
+        // Extract filename from URL (e.g., "http://localhost:3005/uploads/filename.jpg" or "${VITE_SERVER_URL}:${VITE_PORT}/uploads/filename.jpg" -> "filename.jpg")
         const urlParts = currentUser.profile_picture_url.split("/uploads/");
         if (urlParts.length === 2) {
           // Extract filename and remove query parameters and fragments (e.g., "filename.jpg?v=1#section" -> "filename.jpg")
@@ -343,7 +343,7 @@ export class UserService {
     // Delete profile picture file if it exists
     if (user.profile_picture_url) {
       try {
-        // Extract filename from URL (e.g., "http://localhost:3005/uploads/filename.jpg" or "${SERVER_URL}:${PORT}/uploads/filename.jpg" -> "filename.jpg")
+        // Extract filename from URL (e.g., "http://localhost:3005/uploads/filename.jpg" or "${VITE_SERVER_URL}:${VITE_PORT}/uploads/filename.jpg" -> "filename.jpg")
         const urlParts = user.profile_picture_url.split("/uploads/");
         if (urlParts.length === 2) {
           // Extract filename and remove query parameters and fragments (e.g., "filename.jpg?v=1#section" -> "filename.jpg")

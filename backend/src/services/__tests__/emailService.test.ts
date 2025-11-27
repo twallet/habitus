@@ -24,16 +24,16 @@ describe("EmailService", () => {
     it("should use environment variables when no config provided", () => {
       const originalEnv = process.env;
       // Use environment variables from .env files, with test defaults
-      const testServerUrl = process.env.SERVER_URL || "http://test.com";
-      const testPort = process.env.PORT || "3000";
+      const testServerUrl = process.env.VITE_SERVER_URL || "http://test.com";
+      const testPort = process.env.VITE_PORT || "3000";
       process.env = {
         ...originalEnv,
         SMTP_HOST: "smtp.test.com",
         SMTP_PORT: "465",
         SMTP_USER: "test@test.com",
         SMTP_PASS: "testpass",
-        SERVER_URL: testServerUrl,
-        PORT: testPort,
+        VITE_SERVER_URL: testServerUrl,
+        VITE_PORT: testPort,
       };
 
       emailService = new EmailService();
@@ -61,7 +61,7 @@ describe("EmailService", () => {
       delete process.env.SMTP_PORT;
       delete process.env.SMTP_USER;
       delete process.env.SMTP_PASS;
-      // Keep SERVER_URL and PORT as they are required by getServerUrl() and getPort()
+      // Keep VITE_SERVER_URL and VITE_PORT as they are required by getServerUrl() and getPort()
       // These are set by setupTests.ts, so we don't need to delete them
 
       emailService = new EmailService();
