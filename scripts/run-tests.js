@@ -238,6 +238,8 @@ const jestArgs = [
   "jest",
   "--config",
   "config/jest.config.cjs",
+  "--rootDir",
+  ".",
   ...process.argv.slice(2),
 ];
 if (!jestArgs.includes("--forceExit")) {
