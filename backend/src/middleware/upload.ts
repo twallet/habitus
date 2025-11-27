@@ -1,74 +1,6 @@
 import multer from "multer";
 import path from "path";
-import fs from "fs";
-
-/**
- * Get project root directory (workspace root).
- * Walks up from the current working directory to reliably find the workspace root.
- * @returns The project root path
- * @private
- */
-function getProjectRoot(): string {
-  // Check if we're in a test environment
-  if (
-    typeof process !== "undefined" &&
-    (process.env.NODE_ENV === "test" || process.env.JEST_WORKER_ID)
-  ) {
-    // In test environment, use current working directory
-    return path.resolve();
-  }
-
-  // Find workspace root by walking up from the current working directory
-  // and looking for a package.json that also contains backend/ and frontend/ directories.
-  let currentDir = process.cwd();
-  const root = path.parse(currentDir).root; // Get drive root (e.g., "D:\")
-
-  while (currentDir !== root) {
-    const packageJsonPath = path.join(currentDir, "package.json");
-    if (fs.existsSync(packageJsonPath)) {
-      // Verify this is the workspace root by checking for backend/ and frontend/ directories
-      const backendDir = path.join(currentDir, "backend");
-      const frontendDir = path.join(currentDir, "frontend");
-      if (fs.existsSync(backendDir) && fs.existsSync(frontendDir)) {
-        return currentDir;
-      }
-    }
-    currentDir = path.dirname(currentDir);
-  }
-
-  // Last resort: if we're in the backend directory, go up one level
-  // This prevents creating backend/backend when process.cwd() is already in backend/
-  const fallbackDir = path.resolve(process.cwd());
-  const fallbackParent = path.dirname(fallbackDir);
-  const fallbackBackendDir = path.join(fallbackParent, "backend");
-  const fallbackFrontendDir = path.join(fallbackParent, "frontend");
-
-  // If the parent directory has both backend/ and frontend/, use it
-  if (fs.existsSync(fallbackBackendDir) && fs.existsSync(fallbackFrontendDir)) {
-    return fallbackParent;
-  }
-
-  // Otherwise, return the fallback directory
-  return fallbackDir;
-}
-
-/**
- * Get backend directory path, ensuring we don't create backend/backend.
- * @returns The backend directory path
- * @private
- */
-function getBackendDir(): string {
-  const projectRoot = getProjectRoot();
-  const backendDir = path.join(projectRoot, "backend");
-
-  // Safety check: if projectRoot already ends with "backend", use it directly
-  // This prevents creating backend/backend when getProjectRoot() incorrectly returns backend/
-  if (path.basename(projectRoot) === "backend" && fs.existsSync(projectRoot)) {
-    return projectRoot;
-  }
-
-  return backendDir;
-}
+import { getBackendRoot } from "../config/paths.js";
 
 /**
  * Upload configuration class for managing file uploads.
@@ -108,14 +40,14 @@ export class UploadConfig {
         resolvedDbPath = process.env.DB_PATH;
       } else {
         // For relative paths, resolve relative to backend directory
-        const backendDir = getBackendDir();
-        resolvedDbPath = path.resolve(backendDir, process.env.DB_PATH);
+        const backendRoot = getBackendRoot();
+        resolvedDbPath = path.resolve(backendRoot, process.env.DB_PATH);
       }
       dataDir = path.dirname(resolvedDbPath);
     } else {
       // Default: backend/data (same as database default)
-      const backendDir = getBackendDir();
-      dataDir = path.join(backendDir, "data");
+      const backendRoot = getBackendRoot();
+      dataDir = path.join(backendRoot, "data");
     }
     this.uploadsDir = path.join(dataDir, "uploads");
 

@@ -6,21 +6,11 @@ import { getWorkspaceRoot, PATHS } from "../config/paths.js";
 /**
  * Get project root directory (workspace root).
  * Uses centralized path configuration from config/paths.ts.
- * In test environment, uses current working directory for compatibility.
  * @returns The project root path
  * @private
  */
 function getProjectRoot(): string {
-  // Check if we're in a test environment
-  if (
-    typeof process !== "undefined" &&
-    (process.env.NODE_ENV === "test" || process.env.JEST_WORKER_ID)
-  ) {
-    // In test environment, use current working directory
-    return path.resolve();
-  }
-
-  // Use centralized path configuration
+  // Use centralized path configuration (requires PROJECT_ROOT env var)
   return getWorkspaceRoot();
 }
 
@@ -47,7 +37,7 @@ function getDatabasePath(customPath?: string): string {
   if (customPath) {
     dbPath = path.isAbsolute(customPath)
       ? customPath
-      : path.resolve(process.cwd(), customPath);
+      : path.resolve(PATHS.backendRoot, customPath);
   }
   // Priority 2: DB_PATH environment variable (single source of truth)
   else if (process.env.DB_PATH) {

@@ -2,10 +2,8 @@
  * Centralized path configuration for the entire project.
  * This is the single source of truth for all directory paths.
  *
- * Priority order:
- * 1. Environment variables (PROJECT_ROOT, BACKEND_ROOT, FRONTEND_ROOT)
- * 2. Calculated paths based on config file location
- * 3. Fallback to process.cwd() if all else fails
+ * All paths are constructed as absolute paths from PROJECT_ROOT environment variable.
+ * PROJECT_ROOT must be defined in config/.env file.
  */
 
 const path = require("path");
@@ -15,97 +13,43 @@ const fs = require("fs");
 const configDir = __dirname;
 
 /**
- * Get the workspace root directory.
+ * Get the workspace root directory from PROJECT_ROOT environment variable.
  * @returns {string} Absolute path to workspace root
+ * @throws {Error} If PROJECT_ROOT is not set or points to non-existent path
  */
 function getWorkspaceRoot() {
-  // Priority 1: Use environment variable if set
-  if (process.env.PROJECT_ROOT) {
-    const root = path.resolve(process.env.PROJECT_ROOT);
-    if (fs.existsSync(root)) {
-      return root;
-    }
-    console.warn(
+  if (!process.env.PROJECT_ROOT) {
+    throw new Error(
+      "PROJECT_ROOT environment variable is required. Please set it in config/.env file."
+    );
+  }
+
+  const root = path.resolve(process.env.PROJECT_ROOT);
+
+  if (!fs.existsSync(root)) {
+    throw new Error(
       `PROJECT_ROOT environment variable points to non-existent path: ${root}`
     );
   }
 
-  // Priority 2: Calculate from config file location (config/ is one level below root)
-  const calculatedRoot = path.resolve(configDir, "..");
-
-  // Verify it's the workspace root by checking for package.json and backend/frontend dirs
-  const packageJsonPath = path.join(calculatedRoot, "package.json");
-  const backendDir = path.join(calculatedRoot, "backend");
-  const frontendDir = path.join(calculatedRoot, "frontend");
-
-  if (
-    fs.existsSync(packageJsonPath) &&
-    fs.existsSync(backendDir) &&
-    fs.existsSync(frontendDir)
-  ) {
-    return calculatedRoot;
-  }
-
-  // Priority 3: Fallback to process.cwd() and search upwards
-  let currentDir = process.cwd();
-  const root = path.parse(currentDir).root;
-
-  while (currentDir !== root) {
-    const packageJsonPath = path.join(currentDir, "package.json");
-    const backendDir = path.join(currentDir, "backend");
-    const frontendDir = path.join(currentDir, "frontend");
-
-    if (
-      fs.existsSync(packageJsonPath) &&
-      fs.existsSync(backendDir) &&
-      fs.existsSync(frontendDir)
-    ) {
-      return currentDir;
-    }
-    currentDir = path.dirname(currentDir);
-  }
-
-  // Last resort: use calculated root even if verification failed
-  return calculatedRoot;
+  return root;
 }
 
 /**
  * Get the backend root directory.
+ * Constructed as absolute path from PROJECT_ROOT.
  * @returns {string} Absolute path to backend directory
  */
 function getBackendRoot() {
-  // Priority 1: Use environment variable if set
-  if (process.env.BACKEND_ROOT) {
-    const backendRoot = path.resolve(process.env.BACKEND_ROOT);
-    if (fs.existsSync(backendRoot)) {
-      return backendRoot;
-    }
-    console.warn(
-      `BACKEND_ROOT environment variable points to non-existent path: ${backendRoot}`
-    );
-  }
-
-  // Priority 2: Calculate from workspace root
   return path.join(getWorkspaceRoot(), "backend");
 }
 
 /**
  * Get the frontend root directory.
+ * Constructed as absolute path from PROJECT_ROOT.
  * @returns {string} Absolute path to frontend directory
  */
 function getFrontendRoot() {
-  // Priority 1: Use environment variable if set
-  if (process.env.FRONTEND_ROOT) {
-    const frontendRoot = path.resolve(process.env.FRONTEND_ROOT);
-    if (fs.existsSync(frontendRoot)) {
-      return frontendRoot;
-    }
-    console.warn(
-      `FRONTEND_ROOT environment variable points to non-existent path: ${frontendRoot}`
-    );
-  }
-
-  // Priority 2: Calculate from workspace root
   return path.join(getWorkspaceRoot(), "frontend");
 }
 

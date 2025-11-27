@@ -5,10 +5,32 @@
 
 import path from "path";
 import os from "os";
+import fs from "fs";
 
 // Set required environment variables for tests before any modules are imported
 // These are required by constants.ts which is evaluated at module load time
-// Tests will fail if VITE_SERVER_URL or VITE_PORT are not set in environment
+// Tests will fail if required variables are not set in environment
+
+// PROJECT_ROOT is required for path resolution
+if (!process.env.PROJECT_ROOT) {
+  // In test environment, try to use current working directory as fallback
+  // This allows tests to run without explicit PROJECT_ROOT in some cases
+  // but it's better to set it explicitly
+  const cwd = process.cwd();
+  // Check if cwd looks like a project root (has package.json, backend/, frontend/)
+  const hasPackageJson = fs.existsSync(path.join(cwd, "package.json"));
+  const hasBackend = fs.existsSync(path.join(cwd, "backend"));
+  const hasFrontend = fs.existsSync(path.join(cwd, "frontend"));
+
+  if (hasPackageJson && hasBackend && hasFrontend) {
+    process.env.PROJECT_ROOT = cwd;
+  } else {
+    throw new Error(
+      "PROJECT_ROOT environment variable is required for tests. Please set it in your .env file or test environment."
+    );
+  }
+}
+
 if (!process.env.VITE_SERVER_URL) {
   throw new Error(
     "VITE_SERVER_URL environment variable is required for tests. Please set it in your .env file or test environment."

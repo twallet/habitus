@@ -20,6 +20,7 @@ import authRouter from "./routes/auth.js";
 import trackingsRouter from "./routes/trackings.js";
 import { getUploadsDirectory } from "./middleware/upload.js";
 import { getPort, getServerUrl } from "./setup/constants.js";
+import { getWorkspaceRoot } from "./config/paths.js";
 
 const isDevelopment = process.env.NODE_ENV !== "production";
 
@@ -138,7 +139,8 @@ async function initializeViteDevServer() {
 
   try {
     const { createServer } = await import("vite");
-    const frontendPath = join(__dirname, "../../frontend");
+    const workspaceRoot = getWorkspaceRoot();
+    const frontendPath = join(workspaceRoot, "frontend");
 
     const viteServer = await createServer({
       root: frontendPath,
@@ -183,7 +185,8 @@ db.initialize()
 
     // In production, serve static files from frontend build
     if (!isDevelopment) {
-      const frontendBuildPath = join(__dirname, "../../frontend/dist");
+      const workspaceRoot = getWorkspaceRoot();
+      const frontendBuildPath = join(workspaceRoot, "frontend", "dist");
       app.use(express.static(frontendBuildPath));
 
       // Serve React app for all non-API routes in production
@@ -192,7 +195,8 @@ db.initialize()
       });
     } else if (viteServer) {
       // In development, serve React app for all non-API routes via Vite
-      const frontendPath = join(__dirname, "../../frontend");
+      const workspaceRoot = getWorkspaceRoot();
+      const frontendPath = join(workspaceRoot, "frontend");
       const indexHtmlPath = join(frontendPath, "index.html");
 
       app.get("*", async (req, res, next) => {
