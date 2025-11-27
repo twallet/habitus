@@ -76,6 +76,8 @@ export default defineConfig({
       ["backend/**", "node"],
     ],
     globals: true, // Enable global test functions (describe, it, expect, etc.)
+    // Setup files - conditionally load based on test location
+    setupFiles: [join(__dirname, "vitest.setup.ts")],
   },
   resolve: {
     alias: {
