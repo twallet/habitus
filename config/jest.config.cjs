@@ -11,7 +11,7 @@ module.exports = {
       rootDir: "<rootDir>/backend",
       roots: ["src"],
       testMatch: ["**/__tests__/**/*.ts", "**/?(*.)+(spec|test).ts"],
-      setupFilesAfterEnv: ["<rootDir>/backend/src/setupTests.ts"],
+      setupFilesAfterEnv: ["<rootDir>/backend/src/setup/setupTests.ts"],
       transform: {
         "^.+\\.ts$": [
           "ts-jest",

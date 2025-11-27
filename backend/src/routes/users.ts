@@ -8,7 +8,7 @@ import {
   uploadProfilePicture,
   getUploadsDirectory,
 } from "../middleware/upload.js";
-import { getServerUrl, getPort } from "../config/constants.js";
+import { getServerUrl, getPort } from "../setup/constants.js";
 import fs from "fs";
 import path from "path";
 

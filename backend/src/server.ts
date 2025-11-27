@@ -19,7 +19,7 @@ import usersRouter from "./routes/users.js";
 import authRouter from "./routes/auth.js";
 import trackingsRouter from "./routes/trackings.js";
 import { getUploadsDirectory } from "./middleware/upload.js";
-import { getPort, getServerUrl } from "./config/constants.js";
+import { getPort, getServerUrl } from "./setup/constants.js";
 
 const isDevelopment = process.env.NODE_ENV !== "production";
 

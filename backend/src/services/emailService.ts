@@ -1,5 +1,5 @@
 import nodemailer, { Transporter } from "nodemailer";
-import { getServerUrl, getPort } from "../config/constants.js";
+import { getServerUrl, getPort } from "../setup/constants.js";
 
 /**
  * SMTP configuration interface.

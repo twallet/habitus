@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { Database } from "../db/database.js";
 import { User, UserData } from "../models/User.js";
 import { EmailService } from "./emailService.js";
-import { getServerUrl, getPort } from "../config/constants.js";
+import { getServerUrl, getPort } from "../setup/constants.js";
 
 /**
  * Get JWT secret key from environment variable (lazy loading).

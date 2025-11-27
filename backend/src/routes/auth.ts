@@ -4,7 +4,7 @@ import { uploadProfilePicture } from "../middleware/upload.js";
 import { authRateLimiter } from "../middleware/rateLimiter.js";
 import { authenticateToken } from "../middleware/authMiddleware.js";
 import { AuthRequest } from "../middleware/authMiddleware.js";
-import { getServerUrl, getPort } from "../config/constants.js";
+import { getServerUrl, getPort } from "../setup/constants.js";
 
 const router = Router();
 // Lazy-load service to allow dependency injection in tests
