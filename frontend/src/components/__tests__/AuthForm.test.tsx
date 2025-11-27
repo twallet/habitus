@@ -13,6 +13,10 @@ describe('AuthForm', () => {
         vi.clearAllMocks();
     });
 
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
     describe('Login mode', () => {
         it('should render login form', () => {
             render(
@@ -363,7 +367,9 @@ describe('AuthForm', () => {
                 onloadend: null as ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null,
             };
 
-            vi.spyOn(window, 'FileReader').mockImplementation(() => mockFileReader as any);
+            // Mock FileReader as a constructor
+            const FileReaderMock = vi.fn().mockImplementation(() => mockFileReader);
+            vi.stubGlobal('FileReader', FileReaderMock);
 
             await user.upload(fileInput, file);
 
@@ -400,7 +406,9 @@ describe('AuthForm', () => {
                 onloadend: null as ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null,
             };
 
-            vi.spyOn(window, 'FileReader').mockImplementation(() => mockFileReader as any);
+            // Mock FileReader as a constructor
+            const FileReaderMock = vi.fn().mockImplementation(() => mockFileReader);
+            vi.stubGlobal('FileReader', FileReaderMock);
 
             await user.upload(fileInput, file);
 

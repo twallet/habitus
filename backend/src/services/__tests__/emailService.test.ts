@@ -137,7 +137,7 @@ describe("EmailService", () => {
           "test-token",
           true
         )
-      ).rejects.toThrow("SMTP credentials not configured");
+      ).rejects.toThrow(/SMTP credentials not configured/);
     });
 
     it("should throw error for Gmail app-specific password requirement", async () => {
@@ -148,7 +148,7 @@ describe("EmailService", () => {
 
       await expect(
         emailService.sendMagicLink("user@example.com", "test-token", true)
-      ).rejects.toThrow("Application-specific password required");
+      ).rejects.toThrow(/Application-specific password required/);
     });
 
     it("should throw error for other EAUTH errors", async () => {
@@ -159,7 +159,7 @@ describe("EmailService", () => {
 
       await expect(
         emailService.sendMagicLink("user@example.com", "test-token", true)
-      ).rejects.toThrow("SMTP authentication failed");
+      ).rejects.toThrow(/SMTP authentication failed/);
     });
 
     it("should throw error for generic email sending failures", async () => {
@@ -168,10 +168,10 @@ describe("EmailService", () => {
 
       await expect(
         emailService.sendMagicLink("user@example.com", "test-token", true)
-      ).rejects.toThrow("Failed to send registration link email");
+      ).rejects.toThrow(/Failed to send registration link email/);
     });
 
-    it("should use secure connection for port 465", () => {
+    it("should use secure connection for port 465", async () => {
       emailService = new EmailService({
         host: "smtp.test.com",
         port: 465,
@@ -181,7 +181,7 @@ describe("EmailService", () => {
       });
 
       // Trigger transporter creation
-      emailService.sendMagicLink("user@example.com", "test-token", true);
+      await emailService.sendMagicLink("user@example.com", "test-token", true);
 
       expect(nodemailer.createTransport).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -301,7 +301,7 @@ describe("EmailService", () => {
 
       await expect(
         serviceWithEmptyCreds.sendEmail("user@example.com", "Test", "Body")
-      ).rejects.toThrow("SMTP credentials not configured");
+      ).rejects.toThrow(/SMTP credentials not configured/);
     });
 
     it("should throw error for Gmail app-specific password requirement", async () => {
@@ -312,7 +312,7 @@ describe("EmailService", () => {
 
       await expect(
         emailService.sendEmail("user@example.com", "Test", "Body")
-      ).rejects.toThrow("Application-specific password required");
+      ).rejects.toThrow(/Application-specific password required/);
     });
 
     it("should throw error for other EAUTH errors", async () => {
@@ -323,7 +323,7 @@ describe("EmailService", () => {
 
       await expect(
         emailService.sendEmail("user@example.com", "Test", "Body")
-      ).rejects.toThrow("SMTP authentication failed");
+      ).rejects.toThrow(/SMTP authentication failed/);
     });
 
     it("should throw error for generic email sending failures", async () => {
@@ -332,7 +332,7 @@ describe("EmailService", () => {
 
       await expect(
         emailService.sendEmail("user@example.com", "Test", "Body")
-      ).rejects.toThrow("Failed to send email");
+      ).rejects.toThrow(/Failed to send email/);
     });
   });
 });
