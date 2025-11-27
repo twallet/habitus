@@ -12,11 +12,11 @@
     "build": "npm run build --workspaces",
     "build:frontend": "npm run build --workspace=frontend",
     "build:backend": "npm run build --workspace=backend",
-    "test": "node --no-warnings scripts/run-tests.js --coverage",
+    "test": "node --no-warnings config/jest-runner.js --coverage",
     "test:frontend": "npm run test --workspace=frontend",
     "test:backend": "npm run test --workspace=backend",
     "test:watch": "jest --config config/jest.config.cjs --rootDir . --watch",
-    "test:coverage": "node scripts/run-tests.js --coverage --coverageReporters=text --coverageReporters=html",
+    "test:coverage": "node config/jest-runner.js --coverage --coverageReporters=text --coverageReporters=html",
     "lint": "npm run lint --workspace=frontend"
   },
   "devDependencies": {
