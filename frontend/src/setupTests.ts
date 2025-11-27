@@ -1,5 +1,26 @@
 import "@testing-library/jest-dom";
 
+// Mock localStorage for tests
+const localStorageMock = (() => {
+  let store: Record<string, string> = {};
+  return {
+    getItem: (key: string) => store[key] || null,
+    setItem: (key: string, value: string) => {
+      store[key] = value.toString();
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+    clear: () => {
+      store = {};
+    },
+  };
+})();
+
+Object.defineProperty(window, "localStorage", {
+  value: localStorageMock,
+});
+
 // Mock import.meta.env for Vite environment variables
 // Tests will fail if VITE_SERVER_URL or VITE_PORT are not set in environment
 if (!process.env.VITE_SERVER_URL) {

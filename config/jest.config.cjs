@@ -38,6 +38,8 @@ module.exports = {
       moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
       moduleNameMapper: {
         "^(\\.{1,2}/.*)\\.js$": "$1",
+        // Also handle paths without leading ./ or ../ for absolute resolution
+        "^src/(.*)\\.js$": "<rootDir>/src/$1",
       },
       collectCoverageFrom: [
         "src/**/*.ts",

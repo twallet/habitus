@@ -30,8 +30,10 @@ export class EmailService {
     this.config = {
       host: config?.host || process.env.SMTP_HOST || "smtp.gmail.com",
       port: config?.port || parseInt(process.env.SMTP_PORT || "587", 10),
-      user: config?.user || process.env.SMTP_USER || "",
-      pass: config?.pass || process.env.SMTP_PASS || "",
+      user:
+        config?.user !== undefined ? config.user : process.env.SMTP_USER || "",
+      pass:
+        config?.pass !== undefined ? config.pass : process.env.SMTP_PASS || "",
       frontendUrl: config?.frontendUrl || `${getServerUrl()}:${getPort()}`,
     };
   }

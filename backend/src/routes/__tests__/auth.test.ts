@@ -12,12 +12,15 @@ import * as servicesModule from "../../services/index.js";
 import * as authMiddlewareModule from "../../middleware/authMiddleware.js";
 import authRouter from "../auth.js";
 
-// Mock EmailService
+// Mock EmailService - create mock instance methods
+const mockEmailServiceInstance = {
+  sendMagicLink: jest.fn().mockResolvedValue(undefined),
+  sendEmail: jest.fn().mockResolvedValue(undefined),
+};
+
+// Mock EmailService - path must match the import path exactly
 jest.mock("../../services/emailService.js", () => ({
-  EmailService: jest.fn().mockImplementation(() => ({
-    sendMagicLink: jest.fn().mockResolvedValue(undefined),
-    sendEmail: jest.fn().mockResolvedValue(undefined),
-  })),
+  EmailService: jest.fn().mockImplementation(() => mockEmailServiceInstance),
 }));
 
 // Mock authenticateToken before importing the router
