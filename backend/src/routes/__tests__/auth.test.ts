@@ -1,17 +1,6 @@
 // Set NODE_ENV to test before importing modules that use rate limiting
 process.env.NODE_ENV = process.env.NODE_ENV || "test";
 
-import request from "supertest";
-import express from "express";
-import sqlite3 from "sqlite3";
-import { Database } from "../../db/database.js";
-import { AuthService } from "../../services/authService.js";
-import { EmailService } from "../../services/emailService.js";
-import { UserService } from "../../services/userService.js";
-import * as servicesModule from "../../services/index.js";
-import * as authMiddlewareModule from "../../middleware/authMiddleware.js";
-import authRouter from "../auth.js";
-
 // Mock EmailService - create mock instance methods
 const mockEmailServiceInstance = {
   sendMagicLink: jest.fn().mockResolvedValue(undefined),
@@ -19,6 +8,8 @@ const mockEmailServiceInstance = {
 };
 
 // Mock EmailService - path must match the import path exactly
+// Mocks must be declared before imports in ES modules
+// Note: Using .js extension to match the import, Jest's moduleNameMapper will resolve to .ts
 jest.mock("../../services/emailService.js", () => ({
   EmailService: jest.fn().mockImplementation(() => mockEmailServiceInstance),
 }));
@@ -37,6 +28,17 @@ jest.mock("../../services/index.js", () => ({
   getEmailService: jest.fn(),
   initializeServices: jest.fn(),
 }));
+
+import request from "supertest";
+import express from "express";
+import sqlite3 from "sqlite3";
+import { Database } from "../../db/database.js";
+import { AuthService } from "../../services/authService.js";
+import { EmailService } from "../../services/emailService.js";
+import { UserService } from "../../services/userService.js";
+import * as servicesModule from "../../services/index.js";
+import * as authMiddlewareModule from "../../middleware/authMiddleware.js";
+import authRouter from "../auth.js";
 
 /**
  * Create an in-memory database for testing.

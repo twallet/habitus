@@ -37,7 +37,14 @@ module.exports = {
       extensionsToTreatAsEsm: [".ts"],
       moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
       moduleNameMapper: {
-        "^(\\.{1,2}/.*)\\.js$": "$1",
+        // Match relative paths with any number of ../ or ./
+        // This pattern handles: ./path.js, ../path.js, ../../path.js, ../../../path.js, etc.
+        // Pattern explanation:
+        // - ^ - start of string
+        // - ((?:\\.\\.?/)+.*) - capture group: one or more sequences of ./ or ../, followed by any characters
+        // - \\.js$ - literal .js at end of string
+        // - $1 - replacement: the captured path without .js extension
+        "^((?:\\.\\.?/)+.*)\\.js$": "$1",
         // Also handle paths without leading ./ or ../ for absolute resolution
         "^src/(.*)\\.js$": "<rootDir>/src/$1",
       },
