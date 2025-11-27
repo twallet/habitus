@@ -5,10 +5,19 @@ import { Database } from "../../db/database.js";
 import { EmailService } from "../emailService.js";
 
 // Mock EmailService to avoid sending actual emails during tests
-vi.mock("../emailService.js", () => ({
-  EmailService: vi.fn().mockImplementation(() => ({
+// Create shared mock functions that will be used by all instances
+// Use vi.hoisted() to ensure mocks are available when mock factory runs
+const { mockFunctions } = vi.hoisted(() => ({
+  mockFunctions: {
     sendMagicLink: vi.fn().mockResolvedValue(undefined),
     sendEmail: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+vi.mock("../emailService.js", () => ({
+  EmailService: vi.fn().mockImplementation(() => ({
+    sendMagicLink: mockFunctions.sendMagicLink,
+    sendEmail: mockFunctions.sendEmail,
   })),
 }));
 
@@ -82,6 +91,9 @@ describe("AuthService", () => {
   beforeEach(async () => {
     // Create a fresh in-memory database for each test
     testDb = await createTestDatabase();
+    // Clear mocks before each test
+    mockFunctions.sendMagicLink.mockClear();
+    mockFunctions.sendEmail.mockClear();
     emailService = new EmailService();
     authService = new AuthService(testDb, emailService);
   });
@@ -183,7 +195,7 @@ describe("AuthService", () => {
       expect(user?.email_verification_expires).not.toBeNull();
 
       // Check that email was sent
-      expect(emailService.sendEmail).toHaveBeenCalledWith(
+      expect(mockFunctions.sendEmail).toHaveBeenCalledWith(
         "newemail@example.com",
         "Verify your new email address for 🌱 Habitus",
         expect.stringContaining("verify your new email address"),
