@@ -24,6 +24,25 @@ import { Request, Response } from "express";
  *
  * @public
  */
+/**
+ * Handler function for rate limit exceeded.
+ * Logs the violation and sends a 429 response.
+ *
+ * @param req - Express request object
+ * @param res - Express response object
+ */
+export function handleRateLimitExceeded(req: Request, res: Response): void {
+  const ip = req.ip || req.socket.remoteAddress || "unknown";
+  console.warn(
+    `[${new Date().toISOString()}] RATE_LIMITER | Rate limit exceeded for IP: ${ip} on ${
+      req.path
+    }`
+  );
+  res.status(429).json({
+    error: "Too many requests. Please try again in 15 minutes.",
+  });
+}
+
 export const authRateLimiter: RateLimitRequestHandler = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5, // Limit each IP to 5 requests per windowMs
@@ -34,15 +53,5 @@ export const authRateLimiter: RateLimitRequestHandler = rateLimit({
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   // Skip rate limiting in test environment
   skip: (req) => process.env.NODE_ENV === "test",
-  handler: (req: Request, res: Response) => {
-    const ip = req.ip || req.socket.remoteAddress || "unknown";
-    console.warn(
-      `[${new Date().toISOString()}] RATE_LIMITER | Rate limit exceeded for IP: ${ip} on ${
-        req.path
-      }`
-    );
-    res.status(429).json({
-      error: "Too many requests. Please try again in 15 minutes.",
-    });
-  },
+  handler: handleRateLimitExceeded,
 });
