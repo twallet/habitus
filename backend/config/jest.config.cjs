@@ -1,6 +1,5 @@
 /**
  * Backend Jest configuration
- * Moved from backend/jest.config.cjs to centralize config files
  */
 module.exports = {
   preset: "ts-jest",
