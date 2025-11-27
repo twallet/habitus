@@ -189,8 +189,6 @@ function isCoverageTableLine(line) {
  * Process and output buffered coverage table with "All files" at the end
  */
 function outputCoverageTable() {
-  if (coverageTableBuffer.length === 0) return;
-
   // Separate lines by type
   const header = coverageTableHeader;
   const separator = coverageTableSeparator;
@@ -200,6 +198,9 @@ function outputCoverageTable() {
   const fileRows = coverageTableBuffer.filter(
     (item) => item.type === "file-row"
   );
+
+  // Only output if we have at least a header or some content
+  if (!header && coverageTableBuffer.length === 0) return;
 
   // Output in order: header, separator, file rows, "All files"
   if (header) {
