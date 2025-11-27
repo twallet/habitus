@@ -4,14 +4,29 @@
   box-sizing: border-box;
 }
 
+/**
+ * Brand Colors - Manual de Marca
+ * 
+ * All color values were extracted from ManualMarca.pdf using automated extraction tools.
+ * Colors have been applied consistently across all components.
+ * 
+ * Primary Colors:
+ * - Primary Color (#005A7F - Dark Teal/Blue): Used for primary buttons, links, active states, focus indicators
+ * - Primary Hover (#004A6B): Darker shade for hover states
+ * - Accent Color (#FFCC00 - Yellow/Gold): Used for accent elements and highlights
+ * - Black (#000000): Primary text color
+ * 
+ * Notes:
+ * - Focus states and shadows have been updated to use the new primary color
+ */
 :root {
   /* Brand colors from ManualMarca.pdf */
-  --primary-color: #005a7f;
-  --primary-hover: #004a6b;
-  --accent-color: #ffcc00;
+  --primary-color: #005a7f; /* Dark Teal/Blue - Primary buttons, links, active states, focus indicators */
+  --primary-hover: #004a6b; /* Darker shade for hover states */
+  --accent-color: #ffcc00; /* Yellow/Gold - Accent elements, highlights */
   --success-color: #10b981;
   --error-color: #ef4444;
-  --text-primary: #000000;
+  --text-primary: #000000; /* Black - Primary text color */
   --text-secondary: #6b7280;
   --bg-primary: #ffffff;
   --bg-secondary: #f9fafb;
@@ -23,6 +38,18 @@
   --transition: all 0.2s ease-in-out;
 }
 
+/**
+ * Typography:
+ * - Font Family: Red Hat Display
+ * - Weights: 400 (Regular), 500 (Medium), 600 (Semi-bold), 700 (Bold)
+ * - Imported from Google Fonts
+ * - Applied globally via body element
+ * 
+ * Background Gradient:
+ * The application background uses a gradient based on the primary color:
+ * - Start: #005a7f (primary color)
+ * - End: #003d5a (darker variant)
+ */
 body {
   font-family: "Red Hat Display", -apple-system, BlinkMacSystemFont, "Segoe UI",
     Roboto, "Helvetica Neue", Arial, sans-serif;
