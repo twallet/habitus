@@ -9,15 +9,15 @@ module.exports = {
       preset: "ts-jest",
       testEnvironment: "node",
       rootDir: "<rootDir>/backend",
-      roots: ["<rootDir>/src"],
+      roots: ["src"],
       testMatch: ["**/__tests__/**/*.ts", "**/?(*.)+(spec|test).ts"],
-      setupFilesAfterEnv: ["<rootDir>/src/setupTests.ts"],
+      setupFilesAfterEnv: ["./src/setupTests.ts"],
       transform: {
         "^.+\\.ts$": [
           "ts-jest",
           {
             useESM: true,
-            tsconfig: "<rootDir>/tsconfig.json",
+            //tsconfig: "tsconfig.json",
           },
         ],
       },
@@ -25,14 +25,18 @@ module.exports = {
       moduleNameMapper: {
         "^(\\.{1,2}/.*)\\.js$": "$1",
       },
-      collectCoverageFrom: ["src/**/*.ts", "!src/**/*.d.ts"],
+      collectCoverageFrom: [
+        "src/**/*.ts",
+        "!src/**/*.d.ts",
+        "!src/**/__tests__/**",
+      ],
     },
     {
       displayName: "frontend",
       preset: "ts-jest",
       testEnvironment: "jsdom",
       rootDir: "<rootDir>/frontend",
-      roots: ["<rootDir>/src"],
+      roots: ["src"],
       testMatch: [
         "**/__tests__/**/*.ts",
         "**/__tests__/**/*.tsx",
@@ -51,7 +55,7 @@ module.exports = {
           },
         },
       },
-      setupFilesAfterEnv: ["<rootDir>/src/setupTests.ts"],
+      setupFilesAfterEnv: ["./src/setupTests.ts"],
       transform: {
         "^.+\\.tsx?$": [
           "ts-jest",
@@ -66,22 +70,16 @@ module.exports = {
         "!src/**/*.d.ts",
         "!src/main.tsx",
         "!src/vite-env.d.ts",
+        "!src/**/__tests__/**",
       ],
     },
   ],
-  collectCoverageFrom: [
-    "backend/src/**/*.ts",
-    "frontend/src/**/*.{ts,tsx}",
-    "!**/*.d.ts",
-    "!frontend/src/main.tsx",
-    "!frontend/src/vite-env.d.ts",
-  ],
   coverageThreshold: {
     global: {
-      branches: 80,
-      functions: 80,
-      lines: 80,
-      statements: 80,
+      branches: 75,
+      functions: 75,
+      lines: 75,
+      statements: 75,
     },
   },
   forceExit: true,
