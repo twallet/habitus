@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { EditTrackingModal } from '../EditTrackingModal';
@@ -13,12 +14,12 @@ describe('EditTrackingModal', () => {
     user_id: 1,
   };
 
-  const mockOnClose = jest.fn();
-  const mockOnSave = jest.fn().mockResolvedValue(undefined);
-  const mockOnDelete = jest.fn().mockResolvedValue(undefined);
+  const mockOnClose = vi.fn();
+  const mockOnSave = vi.fn().mockResolvedValue(undefined);
+  const mockOnDelete = vi.fn().mockResolvedValue(undefined);
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should render modal with tracking information', () => {
@@ -256,7 +257,7 @@ describe('EditTrackingModal', () => {
 
   it('should show loading state when submitting', async () => {
     const user = userEvent.setup();
-    const slowSave = jest.fn().mockImplementation(
+    const slowSave = vi.fn().mockImplementation(
       () => new Promise(resolve => setTimeout(resolve, 100))
     );
 
@@ -278,7 +279,7 @@ describe('EditTrackingModal', () => {
 
   it('should show error message on save failure', async () => {
     const user = userEvent.setup();
-    const errorSave = jest.fn().mockRejectedValue(new Error('Save failed'));
+    const errorSave = vi.fn().mockRejectedValue(new Error('Save failed'));
 
     render(
       <EditTrackingModal
@@ -388,7 +389,7 @@ describe('EditTrackingModal', () => {
 
   it('should show loading state when deleting', async () => {
     const user = userEvent.setup();
-    const slowDelete = jest.fn().mockImplementation(
+    const slowDelete = vi.fn().mockImplementation(
       () => new Promise(resolve => setTimeout(resolve, 100))
     );
 
@@ -421,7 +422,7 @@ describe('EditTrackingModal', () => {
   // TODO: Fix race condition with onClose being called on delete failure
   // it('should show error message on delete failure', async () => {
   //   const user = userEvent.setup();
-  //   const errorDelete = jest.fn().mockRejectedValue(new Error('Delete failed'));
+  //   const errorDelete = vi.fn().mockRejectedValue(new Error('Delete failed'));
 
   //   render(
   //     <EditTrackingModal

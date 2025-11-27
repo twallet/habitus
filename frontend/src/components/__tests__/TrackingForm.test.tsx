@@ -1,13 +1,14 @@
+import { vi } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { TrackingForm } from "../TrackingForm";
 import { TrackingType } from "../../models/Tracking";
 
 describe("TrackingForm", () => {
-    const mockOnSubmit = jest.fn().mockResolvedValue(undefined);
+    const mockOnSubmit = vi.fn().mockResolvedValue(undefined);
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     it("should render form elements", () => {
@@ -132,7 +133,7 @@ describe("TrackingForm", () => {
 
     it("should call onCancel when cancel button is clicked", async () => {
         const user = userEvent.setup();
-        const mockOnCancel = jest.fn();
+        const mockOnCancel = vi.fn();
         render(<TrackingForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
         const cancelButton = screen.getByRole("button", { name: /cancel/i });

@@ -1,18 +1,19 @@
+import { vi, type Mock } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { useUsers } from "../useUsers";
 import { API_ENDPOINTS } from "../../config/api";
 
 // Mock fetch
-global.fetch = jest.fn();
+global.fetch = vi.fn();
 
 describe("useUsers", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    (global.fetch as jest.Mock).mockClear();
+    vi.clearAllMocks();
+    (global.fetch as Mock).mockClear();
   });
 
   it("should initialize with empty users array", async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     });
@@ -36,7 +37,7 @@ describe("useUsers", () => {
       { id: 2, name: "User 2" },
     ];
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => storedUsers,
     });
@@ -55,7 +56,7 @@ describe("useUsers", () => {
   });
 
   it("should create a new user", async () => {
-    (global.fetch as jest.Mock)
+    (global.fetch as Mock)
       .mockResolvedValueOnce({
         ok: true,
         json: async () => [],
@@ -84,7 +85,7 @@ describe("useUsers", () => {
   });
 
   it("should save users to API when creating", async () => {
-    (global.fetch as jest.Mock)
+    (global.fetch as Mock)
       .mockResolvedValueOnce({
         ok: true,
         json: async () => [],
@@ -116,7 +117,7 @@ describe("useUsers", () => {
   });
 
   it("should handle multiple users", async () => {
-    (global.fetch as jest.Mock)
+    (global.fetch as Mock)
       .mockResolvedValueOnce({
         ok: true,
         json: async () => [],
@@ -160,13 +161,11 @@ describe("useUsers", () => {
 
   it("should handle API errors gracefully", async () => {
     // Suppress console.error for this test since we're testing error handling
-    const consoleErrorSpy = jest
+    const consoleErrorSpy = vi
       .spyOn(console, "error")
       .mockImplementation(() => {});
 
-    (global.fetch as jest.Mock).mockRejectedValueOnce(
-      new Error("Network error")
-    );
+    (global.fetch as Mock).mockRejectedValueOnce(new Error("Network error"));
 
     const { result } = renderHook(() => useUsers());
 
@@ -182,7 +181,7 @@ describe("useUsers", () => {
   });
 
   it("should throw error when API request fails", async () => {
-    (global.fetch as jest.Mock)
+    (global.fetch as Mock)
       .mockResolvedValueOnce({
         ok: true,
         json: async () => [],
@@ -206,7 +205,7 @@ describe("useUsers", () => {
   });
 
   it("should handle API error responses", async () => {
-    (global.fetch as jest.Mock)
+    (global.fetch as Mock)
       .mockResolvedValueOnce({
         ok: true,
         json: async () => [],

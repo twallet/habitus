@@ -1,12 +1,13 @@
+import { vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { TrackingsList } from "../TrackingsList";
 import { TrackingData, TrackingType } from "../../models/Tracking";
 
 describe("TrackingsList", () => {
-    const mockOnEdit = jest.fn();
+    const mockOnEdit = vi.fn();
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     it("should render empty state when no trackings", () => {

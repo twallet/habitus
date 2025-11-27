@@ -1,3 +1,4 @@
+import { vi, type Mock, type MockedFunction } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../App';
@@ -7,28 +8,28 @@ import { useTrackings } from '../hooks/useTrackings';
 import { TrackingType } from '../models/Tracking';
 
 // Mock fetch
-global.fetch = jest.fn();
+global.fetch = vi.fn();
 
 // Type declaration for localStorage in test environment
 declare const localStorage: Storage;
 
 // Mock useAuth hook
-jest.mock('../hooks/useAuth', () => ({
-  useAuth: jest.fn(),
+vi.mock('../hooks/useAuth', () => ({
+  useAuth: vi.fn(),
 }));
 
 // Mock useTrackings hook
-jest.mock('../hooks/useTrackings', () => ({
-  useTrackings: jest.fn(),
+vi.mock('../hooks/useTrackings', () => ({
+  useTrackings: vi.fn(),
 }));
 
-const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
-const mockUseTrackings = useTrackings as jest.MockedFunction<typeof useTrackings>;
+const mockUseAuth = useAuth as MockedFunction<typeof useAuth>;
+const mockUseTrackings = useTrackings as MockedFunction<typeof useTrackings>;
 
 describe('App', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    (global.fetch as jest.Mock).mockClear();
+    vi.clearAllMocks();
+    (global.fetch as Mock).mockClear();
     // Clear localStorage
     localStorage.clear();
 
@@ -36,9 +37,9 @@ describe('App', () => {
     mockUseTrackings.mockReturnValue({
       trackings: [],
       isLoading: false,
-      createTracking: jest.fn(),
-      updateTracking: jest.fn(),
-      deleteTracking: jest.fn(),
+      createTracking: vi.fn(),
+      updateTracking: vi.fn(),
+      deleteTracking: vi.fn(),
     });
 
     // Default mock: unauthenticated state
@@ -48,7 +49,7 @@ describe('App', () => {
       token: null,
       isLoading: false,
       isAuthenticated: false,
-      requestLoginMagicLink: jest.fn().mockImplementation(async (email: string) => {
+      requestLoginMagicLink: vi.fn().mockImplementation(async (email: string) => {
         return fetch(API_ENDPOINTS.auth.login, {
           method: 'POST',
           headers: {
@@ -57,7 +58,7 @@ describe('App', () => {
           body: JSON.stringify({ email }),
         });
       }),
-      requestRegisterMagicLink: jest.fn().mockImplementation(async (name: string, email: string, profilePicture?: File) => {
+      requestRegisterMagicLink: vi.fn().mockImplementation(async (name: string, email: string, profilePicture?: File) => {
         const formData = new FormData();
         formData.append('name', name);
         formData.append('email', email);
@@ -67,12 +68,12 @@ describe('App', () => {
           body: formData,
         });
       }),
-      requestEmailChange: jest.fn(),
-      verifyMagicLink: jest.fn(),
-      logout: jest.fn(),
-      setTokenFromCallback: jest.fn(),
-      updateProfile: jest.fn(),
-      deleteUser: jest.fn(),
+      requestEmailChange: vi.fn(),
+      verifyMagicLink: vi.fn(),
+      logout: vi.fn(),
+      setTokenFromCallback: vi.fn(),
+      updateProfile: vi.fn(),
+      deleteUser: vi.fn(),
     });
   });
 
@@ -104,7 +105,7 @@ describe('App', () => {
 
   it('should request login magic link', async () => {
     const user = userEvent.setup();
-    (global.fetch as jest.Mock)
+    (global.fetch as Mock)
       .mockResolvedValueOnce({
         ok: false,
         status: 401,
@@ -137,7 +138,7 @@ describe('App', () => {
 
   it('should request registration magic link', async () => {
     const user = userEvent.setup();
-    (global.fetch as jest.Mock)
+    (global.fetch as Mock)
       .mockResolvedValueOnce({
         ok: false,
         status: 401,
@@ -184,7 +185,7 @@ describe('App', () => {
       created_at: '2024-01-01T00:00:00Z',
     };
 
-    const mockLogout = jest.fn();
+    const mockLogout = vi.fn();
 
     // Mock authenticated state
     mockUseAuth.mockReturnValue({
@@ -192,14 +193,14 @@ describe('App', () => {
       token: 'mock-token',
       isLoading: false,
       isAuthenticated: true,
-      requestLoginMagicLink: jest.fn(),
-      requestRegisterMagicLink: jest.fn(),
-      requestEmailChange: jest.fn(),
-      verifyMagicLink: jest.fn(),
+      requestLoginMagicLink: vi.fn(),
+      requestRegisterMagicLink: vi.fn(),
+      requestEmailChange: vi.fn(),
+      verifyMagicLink: vi.fn(),
       logout: mockLogout,
-      setTokenFromCallback: jest.fn(),
-      updateProfile: jest.fn(),
-      deleteUser: jest.fn(),
+      setTokenFromCallback: vi.fn(),
+      updateProfile: vi.fn(),
+      deleteUser: vi.fn(),
     });
 
     render(<App />);
@@ -241,14 +242,14 @@ describe('App', () => {
       token: null,
       isLoading: true,
       isAuthenticated: false,
-      requestLoginMagicLink: jest.fn(),
-      requestRegisterMagicLink: jest.fn(),
-      requestEmailChange: jest.fn(),
-      verifyMagicLink: jest.fn(),
-      logout: jest.fn(),
-      setTokenFromCallback: jest.fn(),
-      updateProfile: jest.fn(),
-      deleteUser: jest.fn(),
+      requestLoginMagicLink: vi.fn(),
+      requestRegisterMagicLink: vi.fn(),
+      requestEmailChange: vi.fn(),
+      verifyMagicLink: vi.fn(),
+      logout: vi.fn(),
+      setTokenFromCallback: vi.fn(),
+      updateProfile: vi.fn(),
+      deleteUser: vi.fn(),
     });
 
     render(<App />);
@@ -262,14 +263,14 @@ describe('App', () => {
       token: 'token',
       isLoading: false,
       isAuthenticated: true,
-      requestLoginMagicLink: jest.fn(),
-      requestRegisterMagicLink: jest.fn(),
-      requestEmailChange: jest.fn(),
-      verifyMagicLink: jest.fn(),
-      logout: jest.fn(),
-      setTokenFromCallback: jest.fn(),
-      updateProfile: jest.fn(),
-      deleteUser: jest.fn(),
+      requestLoginMagicLink: vi.fn(),
+      requestRegisterMagicLink: vi.fn(),
+      requestEmailChange: vi.fn(),
+      verifyMagicLink: vi.fn(),
+      logout: vi.fn(),
+      setTokenFromCallback: vi.fn(),
+      updateProfile: vi.fn(),
+      deleteUser: vi.fn(),
     });
 
     render(<App />);
@@ -278,21 +279,21 @@ describe('App', () => {
   });
 
   it('should handle magic link verification from URL', async () => {
-    const mockVerifyMagicLink = jest.fn().mockResolvedValue(undefined);
+    const mockVerifyMagicLink = vi.fn().mockResolvedValue(undefined);
 
     mockUseAuth.mockReturnValue({
       user: null,
       token: null,
       isLoading: false,
       isAuthenticated: false,
-      requestLoginMagicLink: jest.fn(),
-      requestRegisterMagicLink: jest.fn(),
-      requestEmailChange: jest.fn(),
+      requestLoginMagicLink: vi.fn(),
+      requestRegisterMagicLink: vi.fn(),
+      requestEmailChange: vi.fn(),
       verifyMagicLink: mockVerifyMagicLink,
-      logout: jest.fn(),
-      setTokenFromCallback: jest.fn(),
-      updateProfile: jest.fn(),
-      deleteUser: jest.fn(),
+      logout: vi.fn(),
+      setTokenFromCallback: vi.fn(),
+      updateProfile: vi.fn(),
+      deleteUser: vi.fn(),
     });
 
     // Mock URL with token
@@ -320,21 +321,21 @@ describe('App', () => {
   });
 
   it('should handle magic link verification error', async () => {
-    const mockVerifyMagicLink = jest.fn().mockRejectedValue(new Error('Invalid token'));
+    const mockVerifyMagicLink = vi.fn().mockRejectedValue(new Error('Invalid token'));
 
     mockUseAuth.mockReturnValue({
       user: null,
       token: null,
       isLoading: false,
       isAuthenticated: false,
-      requestLoginMagicLink: jest.fn(),
-      requestRegisterMagicLink: jest.fn(),
-      requestEmailChange: jest.fn(),
+      requestLoginMagicLink: vi.fn(),
+      requestRegisterMagicLink: vi.fn(),
+      requestEmailChange: vi.fn(),
       verifyMagicLink: mockVerifyMagicLink,
-      logout: jest.fn(),
-      setTokenFromCallback: jest.fn(),
-      updateProfile: jest.fn(),
-      deleteUser: jest.fn(),
+      logout: vi.fn(),
+      setTokenFromCallback: vi.fn(),
+      updateProfile: vi.fn(),
+      deleteUser: vi.fn(),
     });
 
     // Mock URL with token
@@ -384,7 +385,7 @@ describe('App', () => {
 
   it('should handle login magic link request error', async () => {
     const user = userEvent.setup();
-    const mockRequestLoginMagicLink = jest.fn().mockRejectedValue(new Error('Network error'));
+    const mockRequestLoginMagicLink = vi.fn().mockRejectedValue(new Error('Network error'));
 
     mockUseAuth.mockReturnValue({
       user: null,
@@ -392,13 +393,13 @@ describe('App', () => {
       isLoading: false,
       isAuthenticated: false,
       requestLoginMagicLink: mockRequestLoginMagicLink,
-      requestRegisterMagicLink: jest.fn(),
-      requestEmailChange: jest.fn(),
-      verifyMagicLink: jest.fn(),
-      logout: jest.fn(),
-      setTokenFromCallback: jest.fn(),
-      updateProfile: jest.fn(),
-      deleteUser: jest.fn(),
+      requestRegisterMagicLink: vi.fn(),
+      requestEmailChange: vi.fn(),
+      verifyMagicLink: vi.fn(),
+      logout: vi.fn(),
+      setTokenFromCallback: vi.fn(),
+      updateProfile: vi.fn(),
+      deleteUser: vi.fn(),
     });
 
     render(<App />);
@@ -418,21 +419,21 @@ describe('App', () => {
 
   it('should handle registration magic link request error', async () => {
     const user = userEvent.setup();
-    const mockRequestRegisterMagicLink = jest.fn().mockRejectedValue(new Error('Email already exists'));
+    const mockRequestRegisterMagicLink = vi.fn().mockRejectedValue(new Error('Email already exists'));
 
     mockUseAuth.mockReturnValue({
       user: null,
       token: null,
       isLoading: false,
       isAuthenticated: false,
-      requestLoginMagicLink: jest.fn(),
+      requestLoginMagicLink: vi.fn(),
       requestRegisterMagicLink: mockRequestRegisterMagicLink,
-      requestEmailChange: jest.fn(),
-      verifyMagicLink: jest.fn(),
-      logout: jest.fn(),
-      setTokenFromCallback: jest.fn(),
-      updateProfile: jest.fn(),
-      deleteUser: jest.fn(),
+      requestEmailChange: vi.fn(),
+      verifyMagicLink: vi.fn(),
+      logout: vi.fn(),
+      setTokenFromCallback: vi.fn(),
+      updateProfile: vi.fn(),
+      deleteUser: vi.fn(),
     });
 
     render(<App />);
@@ -467,21 +468,21 @@ describe('App', () => {
       created_at: '2024-01-01T00:00:00Z',
     };
 
-    const mockLogout = jest.fn();
+    const mockLogout = vi.fn();
 
     mockUseAuth.mockReturnValue({
       user: mockUser,
       token: 'mock-token',
       isLoading: false,
       isAuthenticated: true,
-      requestLoginMagicLink: jest.fn(),
-      requestRegisterMagicLink: jest.fn(),
-      requestEmailChange: jest.fn(),
-      verifyMagicLink: jest.fn(),
+      requestLoginMagicLink: vi.fn(),
+      requestRegisterMagicLink: vi.fn(),
+      requestEmailChange: vi.fn(),
+      verifyMagicLink: vi.fn(),
       logout: mockLogout,
-      setTokenFromCallback: jest.fn(),
-      updateProfile: jest.fn(),
-      deleteUser: jest.fn(),
+      setTokenFromCallback: vi.fn(),
+      updateProfile: vi.fn(),
+      deleteUser: vi.fn(),
     });
 
     render(<App />);
@@ -536,14 +537,14 @@ describe('App', () => {
       token: null,
       isLoading: false,
       isAuthenticated: false,
-      requestLoginMagicLink: jest.fn(),
-      requestRegisterMagicLink: jest.fn(),
-      requestEmailChange: jest.fn(),
-      verifyMagicLink: jest.fn().mockResolvedValue(mockUser),
-      logout: jest.fn(),
-      setTokenFromCallback: jest.fn(),
-      updateProfile: jest.fn(),
-      deleteUser: jest.fn(),
+      requestLoginMagicLink: vi.fn(),
+      requestRegisterMagicLink: vi.fn(),
+      requestEmailChange: vi.fn(),
+      verifyMagicLink: vi.fn().mockResolvedValue(mockUser),
+      logout: vi.fn(),
+      setTokenFromCallback: vi.fn(),
+      updateProfile: vi.fn(),
+      deleteUser: vi.fn(),
     });
 
     // Mock URL with token to trigger message
@@ -587,14 +588,14 @@ describe('App', () => {
       token: 'mock-token',
       isLoading: false,
       isAuthenticated: true,
-      requestLoginMagicLink: jest.fn(),
-      requestRegisterMagicLink: jest.fn(),
-      requestEmailChange: jest.fn(),
-      verifyMagicLink: jest.fn(),
-      logout: jest.fn(),
-      setTokenFromCallback: jest.fn(),
-      updateProfile: jest.fn(),
-      deleteUser: jest.fn(),
+      requestLoginMagicLink: vi.fn(),
+      requestRegisterMagicLink: vi.fn(),
+      requestEmailChange: vi.fn(),
+      verifyMagicLink: vi.fn(),
+      logout: vi.fn(),
+      setTokenFromCallback: vi.fn(),
+      updateProfile: vi.fn(),
+      deleteUser: vi.fn(),
     });
 
     const originalSearch = window.location.search;
@@ -628,14 +629,14 @@ describe('App', () => {
       token: 'mock-token',
       isLoading: false,
       isAuthenticated: true,
-      requestLoginMagicLink: jest.fn(),
-      requestRegisterMagicLink: jest.fn(),
-      requestEmailChange: jest.fn(),
-      verifyMagicLink: jest.fn(),
-      logout: jest.fn(),
-      setTokenFromCallback: jest.fn(),
-      updateProfile: jest.fn(),
-      deleteUser: jest.fn(),
+      requestLoginMagicLink: vi.fn(),
+      requestRegisterMagicLink: vi.fn(),
+      requestEmailChange: vi.fn(),
+      verifyMagicLink: vi.fn(),
+      logout: vi.fn(),
+      setTokenFromCallback: vi.fn(),
+      updateProfile: vi.fn(),
+      deleteUser: vi.fn(),
     });
 
     const originalSearch = window.location.search;
@@ -658,7 +659,7 @@ describe('App', () => {
 
   it('should handle login magic link cooldown', async () => {
     const user = userEvent.setup();
-    const mockRequestLoginMagicLink = jest.fn().mockResolvedValue({
+    const mockRequestLoginMagicLink = vi.fn().mockResolvedValue({
       message: 'Please wait before requesting another link',
       cooldown: true,
     });
@@ -669,13 +670,13 @@ describe('App', () => {
       isLoading: false,
       isAuthenticated: false,
       requestLoginMagicLink: mockRequestLoginMagicLink,
-      requestRegisterMagicLink: jest.fn(),
-      requestEmailChange: jest.fn(),
-      verifyMagicLink: jest.fn(),
-      logout: jest.fn(),
-      setTokenFromCallback: jest.fn(),
-      updateProfile: jest.fn(),
-      deleteUser: jest.fn(),
+      requestRegisterMagicLink: vi.fn(),
+      requestEmailChange: vi.fn(),
+      verifyMagicLink: vi.fn(),
+      logout: vi.fn(),
+      setTokenFromCallback: vi.fn(),
+      updateProfile: vi.fn(),
+      deleteUser: vi.fn(),
     });
 
     render(<App />);
@@ -706,14 +707,14 @@ describe('App', () => {
       token: 'mock-token',
       isLoading: false,
       isAuthenticated: true,
-      requestLoginMagicLink: jest.fn(),
-      requestRegisterMagicLink: jest.fn(),
-      requestEmailChange: jest.fn(),
-      verifyMagicLink: jest.fn(),
-      logout: jest.fn(),
-      setTokenFromCallback: jest.fn(),
-      updateProfile: jest.fn(),
-      deleteUser: jest.fn(),
+      requestLoginMagicLink: vi.fn(),
+      requestRegisterMagicLink: vi.fn(),
+      requestEmailChange: vi.fn(),
+      verifyMagicLink: vi.fn(),
+      logout: vi.fn(),
+      setTokenFromCallback: vi.fn(),
+      updateProfile: vi.fn(),
+      deleteUser: vi.fn(),
     });
 
     render(<App />);
@@ -746,14 +747,14 @@ describe('App', () => {
       token: 'mock-token',
       isLoading: false,
       isAuthenticated: true,
-      requestLoginMagicLink: jest.fn(),
-      requestRegisterMagicLink: jest.fn(),
-      requestEmailChange: jest.fn(),
-      verifyMagicLink: jest.fn(),
-      logout: jest.fn(),
-      setTokenFromCallback: jest.fn(),
-      updateProfile: jest.fn(),
-      deleteUser: jest.fn(),
+      requestLoginMagicLink: vi.fn(),
+      requestRegisterMagicLink: vi.fn(),
+      requestEmailChange: vi.fn(),
+      verifyMagicLink: vi.fn(),
+      logout: vi.fn(),
+      setTokenFromCallback: vi.fn(),
+      updateProfile: vi.fn(),
+      deleteUser: vi.fn(),
     });
 
     render(<App />);
@@ -783,7 +784,7 @@ describe('App', () => {
       created_at: '2024-01-01T00:00:00Z',
     };
 
-    const mockUpdateProfile = jest.fn().mockResolvedValue({
+    const mockUpdateProfile = vi.fn().mockResolvedValue({
       ...mockUser,
       name: 'Jane Doe',
     });
@@ -793,14 +794,14 @@ describe('App', () => {
       token: 'mock-token',
       isLoading: false,
       isAuthenticated: true,
-      requestLoginMagicLink: jest.fn(),
-      requestRegisterMagicLink: jest.fn(),
-      requestEmailChange: jest.fn(),
-      verifyMagicLink: jest.fn(),
-      logout: jest.fn(),
-      setTokenFromCallback: jest.fn(),
+      requestLoginMagicLink: vi.fn(),
+      requestRegisterMagicLink: vi.fn(),
+      requestEmailChange: vi.fn(),
+      verifyMagicLink: vi.fn(),
+      logout: vi.fn(),
+      setTokenFromCallback: vi.fn(),
       updateProfile: mockUpdateProfile,
-      deleteUser: jest.fn(),
+      deleteUser: vi.fn(),
     });
 
     render(<App />);
@@ -845,14 +846,14 @@ describe('App', () => {
       token: 'mock-token',
       isLoading: false,
       isAuthenticated: true,
-      requestLoginMagicLink: jest.fn(),
-      requestRegisterMagicLink: jest.fn(),
-      requestEmailChange: jest.fn(),
-      verifyMagicLink: jest.fn(),
-      logout: jest.fn(),
-      setTokenFromCallback: jest.fn(),
-      updateProfile: jest.fn(),
-      deleteUser: jest.fn(),
+      requestLoginMagicLink: vi.fn(),
+      requestRegisterMagicLink: vi.fn(),
+      requestEmailChange: vi.fn(),
+      verifyMagicLink: vi.fn(),
+      logout: vi.fn(),
+      setTokenFromCallback: vi.fn(),
+      updateProfile: vi.fn(),
+      deleteUser: vi.fn(),
     });
 
     render(<App />);
@@ -882,7 +883,7 @@ describe('App', () => {
       created_at: '2024-01-01T00:00:00Z',
     };
 
-    const mockCreateTracking = jest.fn().mockResolvedValue({
+    const mockCreateTracking = vi.fn().mockResolvedValue({
       id: 1,
       question: 'Did you exercise?',
       type: 'true_false',
@@ -894,8 +895,8 @@ describe('App', () => {
       trackings: [],
       isLoading: false,
       createTracking: mockCreateTracking,
-      updateTracking: jest.fn(),
-      deleteTracking: jest.fn(),
+      updateTracking: vi.fn(),
+      deleteTracking: vi.fn(),
     });
 
     mockUseAuth.mockReturnValue({
@@ -903,14 +904,14 @@ describe('App', () => {
       token: 'mock-token',
       isLoading: false,
       isAuthenticated: true,
-      requestLoginMagicLink: jest.fn(),
-      requestRegisterMagicLink: jest.fn(),
-      requestEmailChange: jest.fn(),
-      verifyMagicLink: jest.fn(),
-      logout: jest.fn(),
-      setTokenFromCallback: jest.fn(),
-      updateProfile: jest.fn(),
-      deleteUser: jest.fn(),
+      requestLoginMagicLink: vi.fn(),
+      requestRegisterMagicLink: vi.fn(),
+      requestEmailChange: vi.fn(),
+      verifyMagicLink: vi.fn(),
+      logout: vi.fn(),
+      setTokenFromCallback: vi.fn(),
+      updateProfile: vi.fn(),
+      deleteUser: vi.fn(),
     });
 
     render(<App />);
@@ -959,9 +960,9 @@ describe('App', () => {
     mockUseTrackings.mockReturnValue({
       trackings: [mockTracking],
       isLoading: false,
-      createTracking: jest.fn(),
-      updateTracking: jest.fn(),
-      deleteTracking: jest.fn(),
+      createTracking: vi.fn(),
+      updateTracking: vi.fn(),
+      deleteTracking: vi.fn(),
     });
 
     mockUseAuth.mockReturnValue({
@@ -969,14 +970,14 @@ describe('App', () => {
       token: 'mock-token',
       isLoading: false,
       isAuthenticated: true,
-      requestLoginMagicLink: jest.fn(),
-      requestRegisterMagicLink: jest.fn(),
-      requestEmailChange: jest.fn(),
-      verifyMagicLink: jest.fn(),
-      logout: jest.fn(),
-      setTokenFromCallback: jest.fn(),
-      updateProfile: jest.fn(),
-      deleteUser: jest.fn(),
+      requestLoginMagicLink: vi.fn(),
+      requestRegisterMagicLink: vi.fn(),
+      requestEmailChange: vi.fn(),
+      verifyMagicLink: vi.fn(),
+      logout: vi.fn(),
+      setTokenFromCallback: vi.fn(),
+      updateProfile: vi.fn(),
+      deleteUser: vi.fn(),
     });
 
     render(<App />);
@@ -1010,7 +1011,7 @@ describe('App', () => {
       notes: undefined,
     };
 
-    const mockUpdateTracking = jest.fn().mockResolvedValue({
+    const mockUpdateTracking = vi.fn().mockResolvedValue({
       ...mockTracking,
       question: 'Did you meditate?',
     });
@@ -1018,9 +1019,9 @@ describe('App', () => {
     mockUseTrackings.mockReturnValue({
       trackings: [mockTracking],
       isLoading: false,
-      createTracking: jest.fn(),
+      createTracking: vi.fn(),
       updateTracking: mockUpdateTracking,
-      deleteTracking: jest.fn(),
+      deleteTracking: vi.fn(),
     });
 
     mockUseAuth.mockReturnValue({
@@ -1028,14 +1029,14 @@ describe('App', () => {
       token: 'mock-token',
       isLoading: false,
       isAuthenticated: true,
-      requestLoginMagicLink: jest.fn(),
-      requestRegisterMagicLink: jest.fn(),
-      requestEmailChange: jest.fn(),
-      verifyMagicLink: jest.fn(),
-      logout: jest.fn(),
-      setTokenFromCallback: jest.fn(),
-      updateProfile: jest.fn(),
-      deleteUser: jest.fn(),
+      requestLoginMagicLink: vi.fn(),
+      requestRegisterMagicLink: vi.fn(),
+      requestEmailChange: vi.fn(),
+      verifyMagicLink: vi.fn(),
+      logout: vi.fn(),
+      setTokenFromCallback: vi.fn(),
+      updateProfile: vi.fn(),
+      deleteUser: vi.fn(),
     });
 
     render(<App />);
@@ -1081,13 +1082,13 @@ describe('App', () => {
       notes: undefined,
     };
 
-    const mockDeleteTracking = jest.fn().mockResolvedValue(undefined);
+    const mockDeleteTracking = vi.fn().mockResolvedValue(undefined);
 
     mockUseTrackings.mockReturnValue({
       trackings: [mockTracking],
       isLoading: false,
-      createTracking: jest.fn(),
-      updateTracking: jest.fn(),
+      createTracking: vi.fn(),
+      updateTracking: vi.fn(),
       deleteTracking: mockDeleteTracking,
     });
 
@@ -1096,14 +1097,14 @@ describe('App', () => {
       token: 'mock-token',
       isLoading: false,
       isAuthenticated: true,
-      requestLoginMagicLink: jest.fn(),
-      requestRegisterMagicLink: jest.fn(),
-      requestEmailChange: jest.fn(),
-      verifyMagicLink: jest.fn(),
-      logout: jest.fn(),
-      setTokenFromCallback: jest.fn(),
-      updateProfile: jest.fn(),
-      deleteUser: jest.fn(),
+      requestLoginMagicLink: vi.fn(),
+      requestRegisterMagicLink: vi.fn(),
+      requestEmailChange: vi.fn(),
+      verifyMagicLink: vi.fn(),
+      logout: vi.fn(),
+      setTokenFromCallback: vi.fn(),
+      updateProfile: vi.fn(),
+      deleteUser: vi.fn(),
     });
 
     render(<App />);
@@ -1148,21 +1149,21 @@ describe('App', () => {
       created_at: '2024-01-01T00:00:00Z',
     };
 
-    const mockUpdateProfile = jest.fn().mockRejectedValue(new Error('Update failed'));
+    const mockUpdateProfile = vi.fn().mockRejectedValue(new Error('Update failed'));
 
     mockUseAuth.mockReturnValue({
       user: mockUser,
       token: 'mock-token',
       isLoading: false,
       isAuthenticated: true,
-      requestLoginMagicLink: jest.fn(),
-      requestRegisterMagicLink: jest.fn(),
-      requestEmailChange: jest.fn(),
-      verifyMagicLink: jest.fn(),
-      logout: jest.fn(),
-      setTokenFromCallback: jest.fn(),
+      requestLoginMagicLink: vi.fn(),
+      requestRegisterMagicLink: vi.fn(),
+      requestEmailChange: vi.fn(),
+      verifyMagicLink: vi.fn(),
+      logout: vi.fn(),
+      setTokenFromCallback: vi.fn(),
       updateProfile: mockUpdateProfile,
-      deleteUser: jest.fn(),
+      deleteUser: vi.fn(),
     });
 
     render(<App />);
@@ -1204,21 +1205,21 @@ describe('App', () => {
       created_at: '2024-01-01T00:00:00Z',
     };
 
-    const mockRequestEmailChange = jest.fn().mockRejectedValue(new Error('Email already in use'));
+    const mockRequestEmailChange = vi.fn().mockRejectedValue(new Error('Email already in use'));
 
     mockUseAuth.mockReturnValue({
       user: mockUser,
       token: 'mock-token',
       isLoading: false,
       isAuthenticated: true,
-      requestLoginMagicLink: jest.fn(),
-      requestRegisterMagicLink: jest.fn(),
+      requestLoginMagicLink: vi.fn(),
+      requestRegisterMagicLink: vi.fn(),
       requestEmailChange: mockRequestEmailChange,
-      verifyMagicLink: jest.fn(),
-      logout: jest.fn(),
-      setTokenFromCallback: jest.fn(),
-      updateProfile: jest.fn(),
-      deleteUser: jest.fn(),
+      verifyMagicLink: vi.fn(),
+      logout: vi.fn(),
+      setTokenFromCallback: vi.fn(),
+      updateProfile: vi.fn(),
+      deleteUser: vi.fn(),
     });
 
     render(<App />);
@@ -1257,20 +1258,20 @@ describe('App', () => {
       created_at: '2024-01-01T00:00:00Z',
     };
 
-    const mockDeleteUser = jest.fn().mockResolvedValue(undefined);
+    const mockDeleteUser = vi.fn().mockResolvedValue(undefined);
 
     mockUseAuth.mockReturnValue({
       user: mockUser,
       token: 'mock-token',
       isLoading: false,
       isAuthenticated: true,
-      requestLoginMagicLink: jest.fn(),
-      requestRegisterMagicLink: jest.fn(),
-      requestEmailChange: jest.fn(),
-      verifyMagicLink: jest.fn(),
-      logout: jest.fn(),
-      setTokenFromCallback: jest.fn(),
-      updateProfile: jest.fn(),
+      requestLoginMagicLink: vi.fn(),
+      requestRegisterMagicLink: vi.fn(),
+      requestEmailChange: vi.fn(),
+      verifyMagicLink: vi.fn(),
+      logout: vi.fn(),
+      setTokenFromCallback: vi.fn(),
+      updateProfile: vi.fn(),
       deleteUser: mockDeleteUser,
     });
 
@@ -1312,20 +1313,20 @@ describe('App', () => {
       created_at: '2024-01-01T00:00:00Z',
     };
 
-    const mockDeleteUser = jest.fn().mockRejectedValue(new Error('Deletion failed'));
+    const mockDeleteUser = vi.fn().mockRejectedValue(new Error('Deletion failed'));
 
     mockUseAuth.mockReturnValue({
       user: mockUser,
       token: 'mock-token',
       isLoading: false,
       isAuthenticated: true,
-      requestLoginMagicLink: jest.fn(),
-      requestRegisterMagicLink: jest.fn(),
-      requestEmailChange: jest.fn(),
-      verifyMagicLink: jest.fn(),
-      logout: jest.fn(),
-      setTokenFromCallback: jest.fn(),
-      updateProfile: jest.fn(),
+      requestLoginMagicLink: vi.fn(),
+      requestRegisterMagicLink: vi.fn(),
+      requestEmailChange: vi.fn(),
+      verifyMagicLink: vi.fn(),
+      logout: vi.fn(),
+      setTokenFromCallback: vi.fn(),
+      updateProfile: vi.fn(),
       deleteUser: mockDeleteUser,
     });
 
@@ -1370,14 +1371,14 @@ describe('App', () => {
       created_at: '2024-01-01T00:00:00Z',
     };
 
-    const mockCreateTracking = jest.fn().mockRejectedValue(new Error('Failed to create tracking'));
+    const mockCreateTracking = vi.fn().mockRejectedValue(new Error('Failed to create tracking'));
 
     mockUseTrackings.mockReturnValue({
       trackings: [],
       isLoading: false,
       createTracking: mockCreateTracking,
-      updateTracking: jest.fn(),
-      deleteTracking: jest.fn(),
+      updateTracking: vi.fn(),
+      deleteTracking: vi.fn(),
     });
 
     mockUseAuth.mockReturnValue({
@@ -1385,14 +1386,14 @@ describe('App', () => {
       token: 'mock-token',
       isLoading: false,
       isAuthenticated: true,
-      requestLoginMagicLink: jest.fn(),
-      requestRegisterMagicLink: jest.fn(),
-      requestEmailChange: jest.fn(),
-      verifyMagicLink: jest.fn(),
-      logout: jest.fn(),
-      setTokenFromCallback: jest.fn(),
-      updateProfile: jest.fn(),
-      deleteUser: jest.fn(),
+      requestLoginMagicLink: vi.fn(),
+      requestRegisterMagicLink: vi.fn(),
+      requestEmailChange: vi.fn(),
+      verifyMagicLink: vi.fn(),
+      logout: vi.fn(),
+      setTokenFromCallback: vi.fn(),
+      updateProfile: vi.fn(),
+      deleteUser: vi.fn(),
     });
 
     render(<App />);
@@ -1439,14 +1440,14 @@ describe('App', () => {
       notes: undefined,
     };
 
-    const mockUpdateTracking = jest.fn().mockRejectedValue(new Error('Failed to update tracking'));
+    const mockUpdateTracking = vi.fn().mockRejectedValue(new Error('Failed to update tracking'));
 
     mockUseTrackings.mockReturnValue({
       trackings: [mockTracking],
       isLoading: false,
-      createTracking: jest.fn(),
+      createTracking: vi.fn(),
       updateTracking: mockUpdateTracking,
-      deleteTracking: jest.fn(),
+      deleteTracking: vi.fn(),
     });
 
     mockUseAuth.mockReturnValue({
@@ -1454,14 +1455,14 @@ describe('App', () => {
       token: 'mock-token',
       isLoading: false,
       isAuthenticated: true,
-      requestLoginMagicLink: jest.fn(),
-      requestRegisterMagicLink: jest.fn(),
-      requestEmailChange: jest.fn(),
-      verifyMagicLink: jest.fn(),
-      logout: jest.fn(),
-      setTokenFromCallback: jest.fn(),
-      updateProfile: jest.fn(),
-      deleteUser: jest.fn(),
+      requestLoginMagicLink: vi.fn(),
+      requestRegisterMagicLink: vi.fn(),
+      requestEmailChange: vi.fn(),
+      verifyMagicLink: vi.fn(),
+      logout: vi.fn(),
+      setTokenFromCallback: vi.fn(),
+      updateProfile: vi.fn(),
+      deleteUser: vi.fn(),
     });
 
     render(<App />);
@@ -1507,13 +1508,13 @@ describe('App', () => {
       notes: undefined,
     };
 
-    const mockDeleteTracking = jest.fn().mockRejectedValue(new Error('Failed to delete tracking'));
+    const mockDeleteTracking = vi.fn().mockRejectedValue(new Error('Failed to delete tracking'));
 
     mockUseTrackings.mockReturnValue({
       trackings: [mockTracking],
       isLoading: false,
-      createTracking: jest.fn(),
-      updateTracking: jest.fn(),
+      createTracking: vi.fn(),
+      updateTracking: vi.fn(),
       deleteTracking: mockDeleteTracking,
     });
 
@@ -1522,14 +1523,14 @@ describe('App', () => {
       token: 'mock-token',
       isLoading: false,
       isAuthenticated: true,
-      requestLoginMagicLink: jest.fn(),
-      requestRegisterMagicLink: jest.fn(),
-      requestEmailChange: jest.fn(),
-      verifyMagicLink: jest.fn(),
-      logout: jest.fn(),
-      setTokenFromCallback: jest.fn(),
-      updateProfile: jest.fn(),
-      deleteUser: jest.fn(),
+      requestLoginMagicLink: vi.fn(),
+      requestRegisterMagicLink: vi.fn(),
+      requestEmailChange: vi.fn(),
+      verifyMagicLink: vi.fn(),
+      logout: vi.fn(),
+      setTokenFromCallback: vi.fn(),
+      updateProfile: vi.fn(),
+      deleteUser: vi.fn(),
     });
 
     render(<App />);

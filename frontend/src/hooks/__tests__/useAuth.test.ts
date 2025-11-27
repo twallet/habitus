@@ -1,9 +1,10 @@
+import { vi, type Mock } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
 import { useAuth } from "../useAuth";
 import { API_ENDPOINTS } from "../../config/api";
 
 // Mock fetch
-global.fetch = jest.fn();
+global.fetch = vi.fn();
 
 // Type declaration for localStorage in test environment
 // Storage interface is available in jsdom test environment
@@ -20,22 +21,22 @@ const TOKEN_KEY = "habitus_token";
 
 describe("useAuth", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    (global.fetch as jest.Mock).mockReset();
-    (global.fetch as jest.Mock).mockClear();
+    vi.clearAllMocks();
+    (global.fetch as Mock).mockReset();
+    (global.fetch as Mock).mockClear();
     localStorage.clear();
   });
 
   afterEach(() => {
-    jest.clearAllTimers();
-    jest.useRealTimers();
+    vi.clearAllTimers();
+    vi.useRealTimers();
   });
 
   describe("initialization", () => {
     it("should initialize with loading state and no user", async () => {
       // No token in localStorage, so no fetch call
       // But we still need to mock fetch in case it's called
-      (global.fetch as jest.Mock).mockResolvedValue({
+      (global.fetch as Mock).mockResolvedValue({
         ok: false,
         status: 401,
         json: async () => ({}),
@@ -64,7 +65,7 @@ describe("useAuth", () => {
 
       localStorage.setItem(TOKEN_KEY, "valid-token");
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      (global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => mockUser,
       });
@@ -91,7 +92,7 @@ describe("useAuth", () => {
     it("should remove invalid token from localStorage", async () => {
       localStorage.setItem(TOKEN_KEY, "invalid-token");
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      (global.fetch as Mock).mockResolvedValueOnce({
         ok: false,
         status: 401,
         json: async () => ({}),
@@ -112,11 +113,9 @@ describe("useAuth", () => {
     it("should handle fetch error during token verification", async () => {
       localStorage.setItem(TOKEN_KEY, "token");
 
-      const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation();
 
-      (global.fetch as jest.Mock).mockRejectedValueOnce(
-        new Error("Network error")
-      );
+      (global.fetch as Mock).mockRejectedValueOnce(new Error("Network error"));
 
       const { result } = renderHook(() => useAuth());
 
@@ -137,7 +136,7 @@ describe("useAuth", () => {
   describe("requestLoginMagicLink", () => {
     it("should request login magic link successfully", async () => {
       let callCount = 0;
-      (global.fetch as jest.Mock).mockImplementation(
+      (global.fetch as Mock).mockImplementation(
         (url: string | Request | URL) => {
           const urlString =
             typeof url === "string"
@@ -198,7 +197,7 @@ describe("useAuth", () => {
     });
 
     it("should throw error when request fails", async () => {
-      (global.fetch as jest.Mock).mockImplementation(
+      (global.fetch as Mock).mockImplementation(
         (url: string | Request | URL) => {
           const urlString =
             typeof url === "string"
@@ -245,7 +244,7 @@ describe("useAuth", () => {
     });
 
     it("should handle non-JSON error response", async () => {
-      (global.fetch as jest.Mock).mockImplementation(
+      (global.fetch as Mock).mockImplementation(
         (url: string | Request | URL) => {
           const urlString =
             typeof url === "string"
@@ -297,7 +296,7 @@ describe("useAuth", () => {
 
   describe("requestRegisterMagicLink", () => {
     it("should request registration magic link with all fields", async () => {
-      (global.fetch as jest.Mock).mockImplementation(
+      (global.fetch as Mock).mockImplementation(
         (url: string | Request | URL) => {
           const urlString =
             typeof url === "string"
@@ -350,7 +349,7 @@ describe("useAuth", () => {
       });
 
       // Check that fetch was called with register endpoint
-      const registerCalls = (global.fetch as jest.Mock).mock.calls.filter(
+      const registerCalls = (global.fetch as Mock).mock.calls.filter(
         (call: any[]) => {
           const url = call[0];
           const urlString =
@@ -365,7 +364,7 @@ describe("useAuth", () => {
     });
 
     it("should request registration magic link with minimal fields", async () => {
-      (global.fetch as jest.Mock).mockImplementation(
+      (global.fetch as Mock).mockImplementation(
         (url: string | Request | URL) => {
           const urlString =
             typeof url === "string"
@@ -421,7 +420,7 @@ describe("useAuth", () => {
     });
 
     it("should throw error when registration fails", async () => {
-      (global.fetch as jest.Mock).mockImplementation(
+      (global.fetch as Mock).mockImplementation(
         (url: string | Request | URL) => {
           const urlString =
             typeof url === "string"
@@ -480,7 +479,7 @@ describe("useAuth", () => {
         created_at: "2024-01-01T00:00:00Z",
       };
 
-      (global.fetch as jest.Mock).mockImplementation(
+      (global.fetch as Mock).mockImplementation(
         (url: string | Request | URL) => {
           const urlString =
             typeof url === "string"
@@ -541,7 +540,7 @@ describe("useAuth", () => {
     });
 
     it("should throw error when magic link is invalid", async () => {
-      (global.fetch as jest.Mock).mockImplementation(
+      (global.fetch as Mock).mockImplementation(
         (url: string | Request | URL) => {
           const urlString =
             typeof url === "string"
@@ -599,7 +598,7 @@ describe("useAuth", () => {
 
       localStorage.setItem(TOKEN_KEY, "token");
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      (global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => mockUser,
       });
@@ -630,10 +629,10 @@ describe("useAuth", () => {
         created_at: "2024-01-01T00:00:00Z",
       };
 
-      const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation();
 
       let callCount = 0;
-      (global.fetch as jest.Mock).mockImplementation(
+      (global.fetch as Mock).mockImplementation(
         (url: string | Request | URL, options?: RequestInit) => {
           const urlString =
             typeof url === "string"
@@ -710,10 +709,10 @@ describe("useAuth", () => {
     });
 
     it("should throw error when callback token is invalid", async () => {
-      const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation();
 
       let callCount = 0;
-      (global.fetch as jest.Mock).mockImplementation(
+      (global.fetch as Mock).mockImplementation(
         (url: string | Request | URL, options?: RequestInit) => {
           const urlString =
             typeof url === "string"
@@ -805,7 +804,7 @@ describe("useAuth", () => {
 
       localStorage.setItem(TOKEN_KEY, "valid-token");
 
-      (global.fetch as jest.Mock).mockImplementation(
+      (global.fetch as Mock).mockImplementation(
         (url: string | Request | URL) => {
           const urlString =
             typeof url === "string"
@@ -849,7 +848,7 @@ describe("useAuth", () => {
         await result.current.requestEmailChange("newemail@example.com");
       });
 
-      const emailChangeCalls = (global.fetch as jest.Mock).mock.calls.filter(
+      const emailChangeCalls = (global.fetch as Mock).mock.calls.filter(
         (call: any[]) => {
           const url = call[0];
           const urlString =
@@ -861,7 +860,7 @@ describe("useAuth", () => {
     });
 
     it("should throw error when not authenticated", async () => {
-      (global.fetch as jest.Mock).mockImplementation(
+      (global.fetch as Mock).mockImplementation(
         (url: string | Request | URL) => {
           const urlString =
             typeof url === "string"
@@ -909,7 +908,7 @@ describe("useAuth", () => {
 
       localStorage.setItem(TOKEN_KEY, "valid-token");
 
-      (global.fetch as jest.Mock).mockImplementation(
+      (global.fetch as Mock).mockImplementation(
         (url: string | Request | URL, _options?: RequestInit) => {
           const urlString =
             typeof url === "string"
@@ -973,7 +972,7 @@ describe("useAuth", () => {
 
       localStorage.setItem(TOKEN_KEY, "valid-token");
 
-      (global.fetch as jest.Mock).mockImplementation(
+      (global.fetch as Mock).mockImplementation(
         (url: string | Request | URL, options?: RequestInit) => {
           const urlString =
             typeof url === "string"
@@ -1038,7 +1037,7 @@ describe("useAuth", () => {
 
       localStorage.setItem(TOKEN_KEY, "valid-token");
 
-      (global.fetch as jest.Mock).mockImplementation(
+      (global.fetch as Mock).mockImplementation(
         (url: string | Request | URL, options?: RequestInit) => {
           const urlString =
             typeof url === "string"
@@ -1093,7 +1092,7 @@ describe("useAuth", () => {
     });
 
     it("should throw error when not authenticated", async () => {
-      (global.fetch as jest.Mock).mockImplementation(
+      (global.fetch as Mock).mockImplementation(
         (url: string | Request | URL) => {
           const urlString =
             typeof url === "string"
@@ -1141,7 +1140,7 @@ describe("useAuth", () => {
 
       localStorage.setItem(TOKEN_KEY, "valid-token");
 
-      (global.fetch as jest.Mock).mockImplementation(
+      (global.fetch as Mock).mockImplementation(
         (url: string | Request | URL, options?: RequestInit) => {
           const urlString =
             typeof url === "string"
@@ -1202,7 +1201,7 @@ describe("useAuth", () => {
 
       localStorage.setItem(TOKEN_KEY, "valid-token");
 
-      (global.fetch as jest.Mock).mockImplementation(
+      (global.fetch as Mock).mockImplementation(
         (url: string | Request | URL, options?: RequestInit) => {
           const urlString =
             typeof url === "string"
@@ -1255,7 +1254,7 @@ describe("useAuth", () => {
     });
 
     it("should throw error when not authenticated", async () => {
-      (global.fetch as jest.Mock).mockImplementation(
+      (global.fetch as Mock).mockImplementation(
         (url: string | Request | URL) => {
           const urlString =
             typeof url === "string"
@@ -1303,7 +1302,7 @@ describe("useAuth", () => {
 
       localStorage.setItem(TOKEN_KEY, "valid-token");
 
-      (global.fetch as jest.Mock).mockImplementation(
+      (global.fetch as Mock).mockImplementation(
         (url: string | Request | URL, options?: RequestInit) => {
           const urlString =
             typeof url === "string"

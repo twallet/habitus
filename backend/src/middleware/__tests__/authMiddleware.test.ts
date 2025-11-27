@@ -1,6 +1,11 @@
+import { vi, type Mock, type Mocked } from "vitest";
 import { Request, Response, NextFunction } from "express";
 import { authenticateToken, AuthRequest } from "../authMiddleware.js";
-import { getAuthService, getUserService, initializeServices } from "../../services/index.js";
+import {
+  getAuthService,
+  getUserService,
+  initializeServices,
+} from "../../services/index.js";
 import { Database } from "../../db/database.js";
 import { AuthService } from "../../services/authService.js";
 import { UserService } from "../../services/userService.js";
@@ -8,10 +13,10 @@ import { EmailService } from "../../services/emailService.js";
 import sqlite3 from "sqlite3";
 
 // Mock services
-jest.mock("../../services/index.js", () => ({
-  getAuthService: jest.fn(),
-  getUserService: jest.fn(),
-  initializeServices: jest.fn(),
+vi.mock("../../services/index.js", () => ({
+  getAuthService: vi.fn(),
+  getUserService: vi.fn(),
+  initializeServices: vi.fn(),
 }));
 
 /**
@@ -63,38 +68,38 @@ async function createTestDatabase(): Promise<Database> {
 
 describe("authMiddleware", () => {
   let db: Database;
-  let mockAuthService: jest.Mocked<AuthService>;
-  let mockUserService: jest.Mocked<UserService>;
+  let mockAuthService: Mocked<AuthService>;
+  let mockUserService: Mocked<UserService>;
   let mockReq: Partial<AuthRequest>;
   let mockRes: Partial<Response>;
-  let mockNext: jest.Mock<NextFunction>;
+  let mockNext: Mock<NextFunction>;
 
   beforeEach(async () => {
     db = await createTestDatabase();
     mockAuthService = {
-      verifyToken: jest.fn(),
+      verifyToken: vi.fn(),
     } as any;
     mockUserService = {
-      updateLastAccess: jest.fn().mockResolvedValue(undefined),
+      updateLastAccess: vi.fn().mockResolvedValue(undefined),
     } as any;
 
-    (getAuthService as jest.Mock).mockReturnValue(mockAuthService);
-    (getUserService as jest.Mock).mockReturnValue(mockUserService);
+    (getAuthService as Mock).mockReturnValue(mockAuthService);
+    (getUserService as Mock).mockReturnValue(mockUserService);
 
     mockReq = {
       headers: {},
       path: "/test",
     };
     mockRes = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn().mockReturnThis(),
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn().mockReturnThis(),
     };
-    mockNext = jest.fn();
+    mockNext = vi.fn();
   });
 
   afterEach(async () => {
     await db.close();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe("authenticateToken", () => {
@@ -230,4 +235,3 @@ describe("authMiddleware", () => {
     });
   });
 });
-

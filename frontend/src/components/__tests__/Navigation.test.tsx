@@ -1,12 +1,13 @@
+import { vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Navigation, View } from '../Navigation';
 
 describe('Navigation', () => {
-    const mockOnViewChange = jest.fn();
+    const mockOnViewChange = vi.fn();
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     it('should render both navigation buttons', () => {

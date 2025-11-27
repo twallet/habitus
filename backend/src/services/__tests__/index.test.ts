@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import { Database } from "../../db/database.js";
 import {
   initializeServices,
@@ -68,7 +69,7 @@ describe("Services Index", () => {
 
     it("should throw error if services not initialized", async () => {
       // Reset modules to get fresh state
-      jest.resetModules();
+      vi.resetModules();
       const freshModule = await import("../index.js");
       expect(() => freshModule.getAuthService()).toThrow(
         "Services not initialized. Call initializeServices() first."
@@ -86,7 +87,7 @@ describe("Services Index", () => {
 
     it("should throw error if services not initialized", async () => {
       // Reset modules to get fresh state
-      jest.resetModules();
+      vi.resetModules();
       const freshModule = await import("../index.js");
       expect(() => freshModule.getUserService()).toThrow(
         "Services not initialized. Call initializeServices() first."
@@ -104,7 +105,7 @@ describe("Services Index", () => {
 
     it("should throw error if services not initialized", async () => {
       // Reset modules to get fresh state
-      jest.resetModules();
+      vi.resetModules();
       const freshModule = await import("../index.js");
       expect(() => freshModule.getTrackingService()).toThrow(
         "Services not initialized. Call initializeServices() first."
@@ -122,7 +123,7 @@ describe("Services Index", () => {
 
     it("should throw error if services not initialized", async () => {
       // Reset modules to get fresh state
-      jest.resetModules();
+      vi.resetModules();
       const freshModule = await import("../index.js");
       expect(() => freshModule.getEmailService()).toThrow(
         "Services not initialized. Call initializeServices() first."
@@ -130,4 +131,3 @@ describe("Services Index", () => {
     });
   });
 });
-

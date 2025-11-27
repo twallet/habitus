@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ChangeEmailModal } from '../ChangeEmailModal';
@@ -11,11 +12,11 @@ describe('ChangeEmailModal', () => {
     created_at: '2024-01-15T10:30:00Z',
   };
 
-  const mockOnClose = jest.fn();
-  const mockOnRequestEmailChange = jest.fn().mockResolvedValue(undefined);
+  const mockOnClose = vi.fn();
+  const mockOnRequestEmailChange = vi.fn().mockResolvedValue(undefined);
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should render modal with current email', () => {
@@ -204,7 +205,7 @@ describe('ChangeEmailModal', () => {
 
   it('should show loading state when submitting', async () => {
     const user = userEvent.setup();
-    const slowRequest = jest.fn().mockImplementation(
+    const slowRequest = vi.fn().mockImplementation(
       () => new Promise(resolve => setTimeout(resolve, 100))
     );
 
@@ -228,7 +229,7 @@ describe('ChangeEmailModal', () => {
 
   it('should show error message on request failure', async () => {
     const user = userEvent.setup();
-    const errorRequest = jest.fn().mockRejectedValue(new Error('Request failed'));
+    const errorRequest = vi.fn().mockRejectedValue(new Error('Request failed'));
 
     render(
       <ChangeEmailModal
@@ -251,7 +252,7 @@ describe('ChangeEmailModal', () => {
 
   it('should close error message when close button is clicked', async () => {
     const user = userEvent.setup();
-    const errorRequest = jest.fn().mockRejectedValue(new Error('Request failed'));
+    const errorRequest = vi.fn().mockRejectedValue(new Error('Request failed'));
 
     render(
       <ChangeEmailModal

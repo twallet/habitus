@@ -1,13 +1,14 @@
+import { vi } from "vitest";
 import sqlite3 from "sqlite3";
 import { AuthService } from "../authService.js";
 import { Database } from "../../db/database.js";
 import { EmailService } from "../emailService.js";
 
 // Mock EmailService to avoid sending actual emails during tests
-jest.mock("../emailService.js", () => ({
-  EmailService: jest.fn().mockImplementation(() => ({
-    sendMagicLink: jest.fn().mockResolvedValue(undefined),
-    sendEmail: jest.fn().mockResolvedValue(undefined),
+vi.mock("../emailService.js", () => ({
+  EmailService: vi.fn().mockImplementation(() => ({
+    sendMagicLink: vi.fn().mockResolvedValue(undefined),
+    sendEmail: vi.fn().mockResolvedValue(undefined),
   })),
 }));
 
@@ -87,7 +88,7 @@ describe("AuthService", () => {
 
   afterEach(async () => {
     await testDb.close();
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe("verifyToken", () => {

@@ -1,14 +1,15 @@
+import { vi } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AuthForm } from '../AuthForm';
 
 describe('AuthForm', () => {
-    const mockRequestLoginMagicLink = jest.fn();
-    const mockRequestRegisterMagicLink = jest.fn();
-    const mockOnError = jest.fn();
+    const mockRequestLoginMagicLink = vi.fn();
+    const mockRequestRegisterMagicLink = vi.fn();
+    const mockOnError = vi.fn();
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     describe('Login mode', () => {
@@ -356,12 +357,12 @@ describe('AuthForm', () => {
 
             // Mock FileReader
             const mockFileReader = {
-                readAsDataURL: jest.fn(),
+                readAsDataURL: vi.fn(),
                 result: 'data:image/jpeg;base64,content',
                 onloadend: null as ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null,
             };
 
-            jest.spyOn(window, 'FileReader').mockImplementation(() => mockFileReader as any);
+            vi.spyOn(window, 'FileReader').mockImplementation(() => mockFileReader as any);
 
             await user.upload(fileInput, file);
 
@@ -393,12 +394,12 @@ describe('AuthForm', () => {
             const fileInput = screen.getByLabelText(/profile picture/i) as HTMLInputElement;
 
             const mockFileReader = {
-                readAsDataURL: jest.fn(),
+                readAsDataURL: vi.fn(),
                 result: 'data:image/jpeg;base64,content',
                 onloadend: null as ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null,
             };
 
-            jest.spyOn(window, 'FileReader').mockImplementation(() => mockFileReader as any);
+            vi.spyOn(window, 'FileReader').mockImplementation(() => mockFileReader as any);
 
             await user.upload(fileInput, file);
 

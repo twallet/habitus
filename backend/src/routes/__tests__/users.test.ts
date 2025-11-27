@@ -1,3 +1,4 @@
+import { vi, type Mock } from "vitest";
 import request from "supertest";
 import express from "express";
 import sqlite3 from "sqlite3";
@@ -8,28 +9,28 @@ import usersRouter from "../users.js";
 import * as authMiddleware from "../../middleware/authMiddleware.js";
 
 // Mock services module before importing router
-jest.mock("../../services/index.js", () => ({
-  getTrackingService: jest.fn(),
-  getAuthService: jest.fn(),
-  getUserService: jest.fn(),
-  getEmailService: jest.fn(),
-  initializeServices: jest.fn(),
+vi.mock("../../services/index.js", () => ({
+  getTrackingService: vi.fn(),
+  getAuthService: vi.fn(),
+  getUserService: vi.fn(),
+  getEmailService: vi.fn(),
+  initializeServices: vi.fn(),
 }));
 
 // Mock authMiddleware
-jest.mock("../../middleware/authMiddleware.js", () => ({
-  authenticateToken: jest.fn((req: any, _res: any, next: any) => {
+vi.mock("../../middleware/authMiddleware.js", () => ({
+  authenticateToken: vi.fn((req: any, _res: any, next: any) => {
     next();
   }),
   AuthRequest: {},
 }));
 
 // Mock upload middleware
-jest.mock("../../middleware/upload.js", () => ({
-  uploadProfilePicture: jest.fn((req: any, _res: any, next: any) => {
+vi.mock("../../middleware/upload.js", () => ({
+  uploadProfilePicture: vi.fn((req: any, _res: any, next: any) => {
     next();
   }),
-  getUploadsDirectory: jest.fn(() => "/test/uploads"),
+  getUploadsDirectory: vi.fn(() => "/test/uploads"),
 }));
 
 /**
@@ -101,10 +102,10 @@ describe("Users Routes", () => {
     userService = new UserService(testDb);
 
     // Reset all mocks first to ensure clean state
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
 
     // Mock getUserService to return our test service
-    jest.spyOn(servicesModule, "getUserService").mockReturnValue(userService);
+    vi.spyOn(servicesModule, "getUserService").mockReturnValue(userService);
 
     // Create Express app with routes
     app = express();
@@ -148,11 +149,11 @@ describe("Users Routes", () => {
     it("should handle errors when fetching users fails", async () => {
       // Mock service to throw error
       const errorService = {
-        getAllUsers: jest.fn().mockRejectedValue(new Error("Database error")),
+        getAllUsers: vi.fn().mockRejectedValue(new Error("Database error")),
       };
-      jest
-        .spyOn(servicesModule, "getUserService")
-        .mockReturnValue(errorService as any);
+      vi.spyOn(servicesModule, "getUserService").mockReturnValue(
+        errorService as any
+      );
 
       const response = await request(app).get("/api/users");
 
@@ -193,11 +194,11 @@ describe("Users Routes", () => {
 
     it("should handle errors when fetching user fails", async () => {
       const errorService = {
-        getUserById: jest.fn().mockRejectedValue(new Error("Database error")),
+        getUserById: vi.fn().mockRejectedValue(new Error("Database error")),
       };
-      jest
-        .spyOn(servicesModule, "getUserService")
-        .mockReturnValue(errorService as any);
+      vi.spyOn(servicesModule, "getUserService").mockReturnValue(
+        errorService as any
+      );
 
       const response = await request(app).get("/api/users/1");
 
@@ -217,8 +218,8 @@ describe("Users Routes", () => {
       userId = result.lastID;
 
       // Reset and update mock to set userId
-      jest.clearAllMocks();
-      (authMiddleware.authenticateToken as jest.Mock).mockImplementation(
+      vi.clearAllMocks();
+      (authMiddleware.authenticateToken as Mock).mockImplementation(
         (req: any, _res: any, next: any) => {
           req.userId = userId;
           next();
@@ -227,7 +228,7 @@ describe("Users Routes", () => {
 
       // Mock upload middleware to set req.file
       const uploadMiddleware = require("../../middleware/upload.js");
-      (uploadMiddleware.uploadProfilePicture as jest.Mock).mockImplementation(
+      (uploadMiddleware.uploadProfilePicture as Mock).mockImplementation(
         (req: any, _res: any, next: any) => {
           req.file = undefined;
           next();
@@ -256,11 +257,11 @@ describe("Users Routes", () => {
 
     it("should handle errors when update fails", async () => {
       const errorService = {
-        updateProfile: jest.fn().mockRejectedValue(new Error("Database error")),
+        updateProfile: vi.fn().mockRejectedValue(new Error("Database error")),
       };
-      jest
-        .spyOn(servicesModule, "getUserService")
-        .mockReturnValue(errorService as any);
+      vi.spyOn(servicesModule, "getUserService").mockReturnValue(
+        errorService as any
+      );
 
       const response = await request(app).put("/api/users/profile").send({
         name: "Updated Name",
@@ -282,8 +283,8 @@ describe("Users Routes", () => {
       userId = result.lastID;
 
       // Reset and update mock to set userId
-      jest.clearAllMocks();
-      (authMiddleware.authenticateToken as jest.Mock).mockImplementation(
+      vi.clearAllMocks();
+      (authMiddleware.authenticateToken as Mock).mockImplementation(
         (req: any, _res: any, next: any) => {
           req.userId = userId;
           next();
@@ -304,7 +305,7 @@ describe("Users Routes", () => {
 
     it("should return 404 if user not found", async () => {
       // Update mock to use non-existent userId
-      (authMiddleware.authenticateToken as jest.Mock).mockImplementation(
+      (authMiddleware.authenticateToken as Mock).mockImplementation(
         (req: any, _res: any, next: any) => {
           req.userId = 999; // Non-existent user
           next();
@@ -319,11 +320,11 @@ describe("Users Routes", () => {
 
     it("should handle errors when deletion fails", async () => {
       const errorService = {
-        deleteUser: jest.fn().mockRejectedValue(new Error("Database error")),
+        deleteUser: vi.fn().mockRejectedValue(new Error("Database error")),
       };
-      jest
-        .spyOn(servicesModule, "getUserService")
-        .mockReturnValue(errorService as any);
+      vi.spyOn(servicesModule, "getUserService").mockReturnValue(
+        errorService as any
+      );
 
       const response = await request(app).delete("/api/users/profile");
 

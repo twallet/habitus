@@ -1,3 +1,4 @@
+import { vi, type Mock } from "vitest";
 import request from "supertest";
 import express from "express";
 import sqlite3 from "sqlite3";
@@ -8,18 +9,18 @@ import * as authMiddlewareModule from "../../middleware/authMiddleware.js";
 import * as servicesModule from "../../services/index.js";
 
 // Mock authenticateToken before importing the router
-jest.mock("../../middleware/authMiddleware.js", () => ({
-  authenticateToken: jest.fn(),
+vi.mock("../../middleware/authMiddleware.js", () => ({
+  authenticateToken: vi.fn(),
   AuthRequest: {},
 }));
 
 // Mock services module before importing router
-jest.mock("../../services/index.js", () => ({
-  getTrackingService: jest.fn(),
-  getAuthService: jest.fn(),
-  getUserService: jest.fn(),
-  getEmailService: jest.fn(),
-  initializeServices: jest.fn(),
+vi.mock("../../services/index.js", () => ({
+  getTrackingService: vi.fn(),
+  getAuthService: vi.fn(),
+  getUserService: vi.fn(),
+  getEmailService: vi.fn(),
+  initializeServices: vi.fn(),
 }));
 
 // Import router after mocking
@@ -113,20 +114,20 @@ describe("Trackings Routes", () => {
     testUserId = userResult.lastID;
 
     // Reset all mocks first to ensure clean state
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
 
     // Mock authenticateToken middleware - must be set up before routes
-    jest
-      .spyOn(authMiddlewareModule, "authenticateToken")
-      .mockImplementation(async (req: any, res: any, next: any) => {
+    vi.spyOn(authMiddlewareModule, "authenticateToken").mockImplementation(
+      async (req: any, res: any, next: any) => {
         req.userId = testUserId;
         next();
-      });
+      }
+    );
 
     // Mock getTrackingService to return our test service
-    jest
-      .spyOn(servicesModule, "getTrackingService")
-      .mockReturnValue(trackingService);
+    vi.spyOn(servicesModule, "getTrackingService").mockReturnValue(
+      trackingService
+    );
 
     // Create Express app with routes
     app = express();

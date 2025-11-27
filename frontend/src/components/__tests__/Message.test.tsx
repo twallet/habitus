@@ -1,27 +1,28 @@
+import { vi } from 'vitest';
 import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import { Message } from '../Message';
 
 describe('Message', () => {
-  const mockOnHide = jest.fn();
+  const mockOnHide = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    jest.useFakeTimers();
+    vi.clearAllMocks();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
     // Run all pending timers to completion
-    jest.runAllTimers();
+    vi.runAllTimers();
     // Clear all timers
-    jest.clearAllTimers();
+    vi.clearAllTimers();
     // Cleanup React components (this will trigger cleanup functions)
     cleanup();
     // Run timers one more time after cleanup to catch any cleanup timers
-    jest.runAllTimers();
+    vi.runAllTimers();
     // Clear again
-    jest.clearAllTimers();
+    vi.clearAllTimers();
     // Switch back to real timers
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('should not render when text is empty', () => {
@@ -43,7 +44,7 @@ describe('Message', () => {
 
     // Cleanup
     unmount();
-    jest.runOnlyPendingTimers();
+    vi.runOnlyPendingTimers();
   });
 
   it('should render error message', () => {
@@ -58,7 +59,7 @@ describe('Message', () => {
 
     // Cleanup
     unmount();
-    jest.runOnlyPendingTimers();
+    vi.runOnlyPendingTimers();
   });
 
   it('should auto-hide success message after 5 seconds', async () => {
@@ -68,7 +69,7 @@ describe('Message', () => {
 
     expect(mockOnHide).not.toHaveBeenCalled();
 
-    jest.advanceTimersByTime(5000);
+    vi.advanceTimersByTime(5000);
 
     await waitFor(() => {
       expect(mockOnHide).toHaveBeenCalledTimes(1);
@@ -76,7 +77,7 @@ describe('Message', () => {
 
     // Cleanup
     unmount();
-    jest.runOnlyPendingTimers();
+    vi.runOnlyPendingTimers();
   });
 
   it('should not auto-hide error messages', () => {
@@ -84,13 +85,13 @@ describe('Message', () => {
       <Message text="Error message" type="error" onHide={mockOnHide} />
     );
 
-    jest.advanceTimersByTime(10000);
+    vi.advanceTimersByTime(10000);
 
     expect(mockOnHide).not.toHaveBeenCalled();
 
     // Cleanup
     unmount();
-    jest.runOnlyPendingTimers();
+    vi.runOnlyPendingTimers();
   });
 
   it('should cleanup timer on unmount', () => {
@@ -103,7 +104,7 @@ describe('Message', () => {
     unmount();
 
     // Advance timers after unmount - callback should not be called
-    jest.advanceTimersByTime(5000);
+    vi.advanceTimersByTime(5000);
 
     expect(mockOnHide).not.toHaveBeenCalled();
   });

@@ -1,13 +1,14 @@
+import { vi } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { UserForm } from '../UserForm';
 
 describe('UserForm', () => {
-  const mockOnSubmit = jest.fn();
-  const mockOnError = jest.fn();
+  const mockOnSubmit = vi.fn();
+  const mockOnError = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should render form elements', () => {

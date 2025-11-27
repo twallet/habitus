@@ -1,13 +1,14 @@
+import { vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DeleteUserConfirmationModal } from '../DeleteUserConfirmationModal';
 
 describe('DeleteUserConfirmationModal', () => {
-  const mockOnClose = jest.fn();
-  const mockOnConfirm = jest.fn().mockResolvedValue(undefined);
+  const mockOnClose = vi.fn();
+  const mockOnConfirm = vi.fn().mockResolvedValue(undefined);
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should render modal with user name', () => {
@@ -161,7 +162,7 @@ describe('DeleteUserConfirmationModal', () => {
 
   it('should show loading state when deleting', async () => {
     const user = userEvent.setup();
-    const slowConfirm = jest.fn().mockImplementation(
+    const slowConfirm = vi.fn().mockImplementation(
       () => new Promise(resolve => setTimeout(resolve, 100))
     );
 
@@ -186,7 +187,7 @@ describe('DeleteUserConfirmationModal', () => {
   // TODO: Fix race condition with onClose being called on delete failure
   // it('should show error message on delete failure', async () => {
   //   const user = userEvent.setup();
-  //   const errorConfirm = jest.fn().mockRejectedValue(new Error('Delete failed'));
+  //   const errorConfirm = vi.fn().mockRejectedValue(new Error('Delete failed'));
 
   //   render(
   //     <DeleteUserConfirmationModal
@@ -216,7 +217,7 @@ describe('DeleteUserConfirmationModal', () => {
 
   it('should close error message when close button is clicked', async () => {
     const user = userEvent.setup();
-    const errorConfirm = jest.fn().mockRejectedValue(new Error('Delete failed'));
+    const errorConfirm = vi.fn().mockRejectedValue(new Error('Delete failed'));
 
     render(
       <DeleteUserConfirmationModal
@@ -259,7 +260,7 @@ describe('DeleteUserConfirmationModal', () => {
 
   it('should disable confirmation input when deleting', async () => {
     const user = userEvent.setup();
-    const slowConfirm = jest.fn().mockImplementation(
+    const slowConfirm = vi.fn().mockImplementation(
       () => new Promise(resolve => setTimeout(resolve, 100))
     );
 

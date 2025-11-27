@@ -1,32 +1,34 @@
+import { vi, type Mock } from "vitest";
+
 // Set NODE_ENV to test before importing modules that use rate limiting
 process.env.NODE_ENV = process.env.NODE_ENV || "test";
 
 // Mock EmailService - create mock instance methods
 const mockEmailServiceInstance = {
-  sendMagicLink: jest.fn().mockResolvedValue(undefined),
-  sendEmail: jest.fn().mockResolvedValue(undefined),
+  sendMagicLink: vi.fn().mockResolvedValue(undefined),
+  sendEmail: vi.fn().mockResolvedValue(undefined),
 };
 
 // Mock EmailService - path must match the import path exactly
 // Mocks must be declared before imports in ES modules
-// Note: Using .js extension to match the import, Jest's moduleNameMapper will resolve to .ts
-jest.mock("../../services/emailService.js", () => ({
-  EmailService: jest.fn().mockImplementation(() => mockEmailServiceInstance),
+// Note: Using .js extension to match the import, Vitest will resolve to .ts
+vi.mock("../../services/emailService.js", () => ({
+  EmailService: vi.fn().mockImplementation(() => mockEmailServiceInstance),
 }));
 
 // Mock authenticateToken before importing the router
-jest.mock("../../middleware/authMiddleware.js", () => ({
-  authenticateToken: jest.fn(),
+vi.mock("../../middleware/authMiddleware.js", () => ({
+  authenticateToken: vi.fn(),
   AuthRequest: {},
 }));
 
 // Mock services module before importing router
-jest.mock("../../services/index.js", () => ({
-  getTrackingService: jest.fn(),
-  getAuthService: jest.fn(),
-  getUserService: jest.fn(),
-  getEmailService: jest.fn(),
-  initializeServices: jest.fn(),
+vi.mock("../../services/index.js", () => ({
+  getTrackingService: vi.fn(),
+  getAuthService: vi.fn(),
+  getUserService: vi.fn(),
+  getEmailService: vi.fn(),
+  initializeServices: vi.fn(),
 }));
 
 import request from "supertest";
@@ -118,15 +120,14 @@ describe("Auth Routes", () => {
 
     // Mock getAuthService to return our test service
     // The route calls getAuthService() at module load time, so we need to ensure
-    // the mock returns our test service. Since jest.mock() is called before import,
+    // the mock returns our test service. Since vi.mock() is called before import,
     // we just need to update the mock implementation here.
-    (servicesModule.getAuthService as jest.Mock).mockReturnValue(authService);
-    (servicesModule.getUserService as jest.Mock).mockReturnValue(userService);
+    (servicesModule.getAuthService as Mock).mockReturnValue(authService);
+    (servicesModule.getUserService as Mock).mockReturnValue(userService);
 
     // Mock authenticateToken middleware - must be set up before routes
-    jest
-      .spyOn(authMiddlewareModule, "authenticateToken")
-      .mockImplementation(async (req: any, res: any, next: any) => {
+    vi.spyOn(authMiddlewareModule, "authenticateToken").mockImplementation(
+      async (req: any, res: any, next: any) => {
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
           return res.status(401).json({ error: "Token required" });
@@ -139,7 +140,8 @@ describe("Auth Routes", () => {
         } catch (error) {
           return res.status(401).json({ error: "Invalid or expired token" });
         }
-      });
+      }
+    );
 
     // Create Express app with routes
     app = express();
@@ -292,8 +294,8 @@ describe("Auth Routes", () => {
       expect(firstResponse.status).toBe(200);
 
       // Get the call count after first request
-      const callsAfterFirst = (emailService.sendMagicLink as jest.Mock).mock
-        .calls.length;
+      const callsAfterFirst = (emailService.sendMagicLink as Mock).mock.calls
+        .length;
       expect(callsAfterFirst).toBeGreaterThanOrEqual(1);
 
       // Simulate cooldown by setting recent magic_link_expires
@@ -306,7 +308,7 @@ describe("Auth Routes", () => {
       );
 
       // Clear mock to track only second call
-      (emailService.sendMagicLink as jest.Mock).mockClear();
+      (emailService.sendMagicLink as Mock).mockClear();
 
       // Second login request should still return success (to prevent email enumeration)
       // but the cooldown is enforced internally
@@ -318,8 +320,8 @@ describe("Auth Routes", () => {
       expect(secondResponse.body.cooldown).toBe(true); // Cooldown should be set
       expect(secondResponse.body.message).toContain("wait");
       // Verify that email service was not called again (cooldown prevented it)
-      const callsAfterSecond = (emailService.sendMagicLink as jest.Mock).mock
-        .calls.length;
+      const callsAfterSecond = (emailService.sendMagicLink as Mock).mock.calls
+        .length;
       expect(callsAfterSecond).toBe(0); // No additional calls due to cooldown
     });
   });

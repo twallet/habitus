@@ -1,3 +1,4 @@
+import { vi, type Mock } from "vitest";
 import sqlite3 from "sqlite3";
 import { UserService } from "../userService.js";
 import { Database } from "../../db/database.js";
@@ -5,8 +6,8 @@ import fs from "fs";
 import path from "path";
 
 // Mock the upload module
-jest.mock("../../middleware/upload.js", () => ({
-  getUploadsDirectory: jest.fn(),
+vi.mock("../../middleware/upload.js", () => ({
+  getUploadsDirectory: vi.fn(),
 }));
 
 /**
@@ -84,7 +85,7 @@ describe("UserService", () => {
 
   afterEach(async () => {
     await testDb.close();
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe("getAllUsers", () => {
@@ -269,10 +270,10 @@ describe("UserService", () => {
       const userId = result.lastID;
 
       // Mock fs and getUploadsDirectory
-      const mockUnlinkSync = jest.spyOn(fs, "unlinkSync").mockImplementation();
-      const mockExistsSync = jest.spyOn(fs, "existsSync").mockReturnValue(true);
-      (getUploadsDirectory as jest.Mock).mockReturnValue("/test/uploads");
-      const mockPathJoin = jest
+      const mockUnlinkSync = vi.spyOn(fs, "unlinkSync").mockImplementation();
+      const mockExistsSync = vi.spyOn(fs, "existsSync").mockReturnValue(true);
+      (getUploadsDirectory as Mock).mockReturnValue("/test/uploads");
+      const mockPathJoin = vi
         .spyOn(path, "join")
         .mockReturnValue("/test/uploads/test-image-123.jpg");
 
@@ -298,7 +299,7 @@ describe("UserService", () => {
       // Cleanup mocks
       mockUnlinkSync.mockRestore();
       mockExistsSync.mockRestore();
-      (getUploadsDirectory as jest.Mock).mockClear();
+      (getUploadsDirectory as Mock).mockClear();
       mockPathJoin.mockRestore();
     });
 
@@ -315,11 +316,9 @@ describe("UserService", () => {
       const userId = result.lastID;
 
       // Mock fs and getUploadsDirectory - file doesn't exist
-      const mockUnlinkSync = jest.spyOn(fs, "unlinkSync");
-      const mockExistsSync = jest
-        .spyOn(fs, "existsSync")
-        .mockReturnValue(false);
-      (getUploadsDirectory as jest.Mock).mockReturnValue("/test/uploads");
+      const mockUnlinkSync = vi.spyOn(fs, "unlinkSync");
+      const mockExistsSync = vi.spyOn(fs, "existsSync").mockReturnValue(false);
+      (getUploadsDirectory as Mock).mockReturnValue("/test/uploads");
 
       await userService.deleteUser(userId);
 
@@ -334,7 +333,7 @@ describe("UserService", () => {
       // Cleanup mocks
       mockUnlinkSync.mockRestore();
       mockExistsSync.mockRestore();
-      (getUploadsDirectory as jest.Mock).mockClear();
+      (getUploadsDirectory as Mock).mockClear();
     });
 
     it("should handle invalid profile picture URL format gracefully", async () => {
@@ -346,7 +345,7 @@ describe("UserService", () => {
       const userId = result.lastID;
 
       // Mock getUploadsDirectory (should not be called for invalid URL)
-      (getUploadsDirectory as jest.Mock).mockReturnValue("/test/uploads");
+      (getUploadsDirectory as Mock).mockReturnValue("/test/uploads");
 
       await userService.deleteUser(userId);
 
@@ -358,7 +357,7 @@ describe("UserService", () => {
       expect(user).toBeNull();
 
       // Cleanup mocks
-      (getUploadsDirectory as jest.Mock).mockClear();
+      (getUploadsDirectory as Mock).mockClear();
     });
 
     it("should handle file deletion errors gracefully and still delete user", async () => {
@@ -374,13 +373,13 @@ describe("UserService", () => {
       const userId = result.lastID;
 
       // Mock fs to throw error on unlinkSync
-      const mockUnlinkSync = jest
+      const mockUnlinkSync = vi
         .spyOn(fs, "unlinkSync")
         .mockImplementation(() => {
           throw new Error("File system error");
         });
-      const mockExistsSync = jest.spyOn(fs, "existsSync").mockReturnValue(true);
-      (getUploadsDirectory as jest.Mock).mockReturnValue("/test/uploads");
+      const mockExistsSync = vi.spyOn(fs, "existsSync").mockReturnValue(true);
+      (getUploadsDirectory as Mock).mockReturnValue("/test/uploads");
 
       // Should not throw error, user deletion should succeed
       await expect(userService.deleteUser(userId)).resolves.not.toThrow();
@@ -392,7 +391,7 @@ describe("UserService", () => {
       // Cleanup mocks
       mockUnlinkSync.mockRestore();
       mockExistsSync.mockRestore();
-      (getUploadsDirectory as jest.Mock).mockClear();
+      (getUploadsDirectory as Mock).mockClear();
     });
 
     it("should delete user without profile picture URL", async () => {
@@ -404,7 +403,7 @@ describe("UserService", () => {
       const userId = result.lastID;
 
       // Mock getUploadsDirectory (should not be called when no profile picture)
-      (getUploadsDirectory as jest.Mock).mockReturnValue("/test/uploads");
+      (getUploadsDirectory as Mock).mockReturnValue("/test/uploads");
 
       await userService.deleteUser(userId);
 
@@ -416,7 +415,7 @@ describe("UserService", () => {
       expect(user).toBeNull();
 
       // Cleanup mocks
-      (getUploadsDirectory as jest.Mock).mockClear();
+      (getUploadsDirectory as Mock).mockClear();
     });
   });
 

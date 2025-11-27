@@ -176,7 +176,7 @@ describe("Upload Middleware", () => {
         expect(multer1).toBe(multer2);
       });
 
-      it("should generate unique filenames through storage", (done) => {
+      it("should generate unique filenames through storage", async () => {
         const config = new UploadConfig();
         const multerInstance = config.getMulterInstance();
         const storage = (multerInstance as any).storage;
@@ -203,37 +203,34 @@ describe("Upload Middleware", () => {
         const file1 = createFile("test-image.jpg");
         const file2 = createFile("test-image.jpg");
 
-        let filename1 = "";
-        let filename2 = "";
-
-        // Test filename generation
-        storage._handleFile(
-          {} as Express.Request,
-          file1,
-          (err: Error | null, info: any) => {
-            expect(err).toBeNull();
-            filename1 = info.filename;
-            expect(filename1).toContain("test-image");
-            expect(filename1).toContain(".jpg");
-
+        // Test filename generation - promisify the callback
+        const handleFilePromise = (file: Express.Multer.File): Promise<any> => {
+          return new Promise((resolve, reject) => {
             storage._handleFile(
               {} as Express.Request,
-              file2,
-              (err2: Error | null, info2: any) => {
-                expect(err2).toBeNull();
-                filename2 = info2.filename;
-                // Filenames should be different even with same original name
-                expect(filename1).not.toBe(filename2);
-                expect(filename2).toContain("test-image");
-                expect(filename2).toContain(".jpg");
-                done();
+              file,
+              (err: Error | null, info: any) => {
+                if (err) reject(err);
+                else resolve(info);
               }
             );
-          }
-        );
+          });
+        };
+
+        const info1 = await handleFilePromise(file1);
+        const filename1 = info1.filename;
+        expect(filename1).toContain("test-image");
+        expect(filename1).toContain(".jpg");
+
+        const info2 = await handleFilePromise(file2);
+        const filename2 = info2.filename;
+        // Filenames should be different even with same original name
+        expect(filename1).not.toBe(filename2);
+        expect(filename2).toContain("test-image");
+        expect(filename2).toContain(".jpg");
       });
 
-      it("should sanitize special characters in filenames", (done) => {
+      it("should sanitize special characters in filenames", async () => {
         const config = new UploadConfig();
         const multerInstance = config.getMulterInstance();
         const storage = (multerInstance as any).storage;
@@ -255,24 +252,28 @@ describe("Upload Middleware", () => {
           buffer: Buffer.from(""),
         } as Express.Multer.File;
 
-        storage._handleFile(
-          {} as Express.Request,
-          file,
-          (err: Error | null, info: any) => {
-            expect(err).toBeNull();
-            const generatedFilename = info.filename;
-            // Filename should not contain special characters like spaces, parentheses
-            expect(generatedFilename).not.toContain(" ");
-            expect(generatedFilename).not.toContain("(");
-            expect(generatedFilename).not.toContain(")");
-            expect(generatedFilename).toContain("test");
-            expect(generatedFilename).toContain(".jpg");
-            done();
-          }
-        );
+        // Promisify the callback
+        const info = await new Promise<any>((resolve, reject) => {
+          storage._handleFile(
+            {} as Express.Request,
+            file,
+            (err: Error | null, info: any) => {
+              if (err) reject(err);
+              else resolve(info);
+            }
+          );
+        });
+
+        const generatedFilename = info.filename;
+        // Filename should not contain special characters like spaces, parentheses
+        expect(generatedFilename).not.toContain(" ");
+        expect(generatedFilename).not.toContain("(");
+        expect(generatedFilename).not.toContain(")");
+        expect(generatedFilename).toContain("test");
+        expect(generatedFilename).toContain(".jpg");
       });
 
-      it("should use correct destination directory in storage", (done) => {
+      it("should use correct destination directory in storage", async () => {
         const config = new UploadConfig();
         const uploadsDir = config.getUploadsDirectory();
         const multerInstance = config.getMulterInstance();
@@ -295,16 +296,20 @@ describe("Upload Middleware", () => {
           buffer: Buffer.from(""),
         } as Express.Multer.File;
 
-        storage._handleFile(
-          {} as Express.Request,
-          file,
-          (err: Error | null, info: any) => {
-            expect(err).toBeNull();
-            expect(info.destination).toBe(uploadsDir);
-            expect(info.filename).toBeDefined();
-            done();
-          }
-        );
+        // Promisify the callback
+        const info = await new Promise<any>((resolve, reject) => {
+          storage._handleFile(
+            {} as Express.Request,
+            file,
+            (err: Error | null, info: any) => {
+              if (err) reject(err);
+              else resolve(info);
+            }
+          );
+        });
+
+        expect(info.destination).toBe(uploadsDir);
+        expect(info.filename).toBeDefined();
       });
     });
   });

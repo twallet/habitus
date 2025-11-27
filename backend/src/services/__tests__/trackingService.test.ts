@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import sqlite3 from "sqlite3";
 import { TrackingService } from "../trackingService.js";
 import { TrackingType } from "../../models/Tracking.js";
@@ -92,7 +93,7 @@ describe("TrackingService", () => {
 
   afterEach(async () => {
     await testDb.close();
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe("getTrackingsByUserId", () => {

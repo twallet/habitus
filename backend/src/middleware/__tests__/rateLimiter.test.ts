@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import { authRateLimiter, handleRateLimitExceeded } from "../rateLimiter.js";
 
 describe("Rate Limiter", () => {
@@ -56,11 +57,11 @@ describe("Rate Limiter", () => {
         },
       };
       const mockRes: Partial<any> = {
-        status: jest.fn().mockReturnThis(),
-        json: jest.fn().mockReturnThis(),
+        status: vi.fn().mockReturnThis(),
+        json: vi.fn().mockReturnThis(),
       };
 
-      const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
+      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation();
 
       handleRateLimitExceeded(mockReq as any, mockRes as any);
 
@@ -86,11 +87,11 @@ describe("Rate Limiter", () => {
         },
       };
       const mockRes: Partial<any> = {
-        status: jest.fn().mockReturnThis(),
-        json: jest.fn().mockReturnThis(),
+        status: vi.fn().mockReturnThis(),
+        json: vi.fn().mockReturnThis(),
       };
 
-      const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
+      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation();
 
       handleRateLimitExceeded(mockReq as any, mockRes as any);
 
@@ -113,11 +114,11 @@ describe("Rate Limiter", () => {
         },
       };
       const mockRes: Partial<any> = {
-        status: jest.fn().mockReturnThis(),
-        json: jest.fn().mockReturnThis(),
+        status: vi.fn().mockReturnThis(),
+        json: vi.fn().mockReturnThis(),
       };
 
-      const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
+      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation();
 
       handleRateLimitExceeded(mockReq as any, mockRes as any);
 
@@ -140,11 +141,11 @@ describe("Rate Limiter", () => {
         },
       };
       const mockRes: Partial<any> = {
-        status: jest.fn().mockReturnThis(),
-        json: jest.fn().mockReturnThis(),
+        status: vi.fn().mockReturnThis(),
+        json: vi.fn().mockReturnThis(),
       };
 
-      const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
+      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation();
 
       handleRateLimitExceeded(mockReq as any, mockRes as any);
 

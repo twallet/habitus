@@ -1,17 +1,18 @@
+import { vi, type Mock } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { useTrackings } from "../useTrackings";
 import { API_ENDPOINTS } from "../../config/api";
 import { TrackingType } from "../../models/Tracking";
 
 // Mock fetch
-global.fetch = jest.fn();
+global.fetch = vi.fn();
 
 // Mock localStorage
 const localStorageMock = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-  clear: jest.fn(),
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
 };
 Object.defineProperty(window, "localStorage", {
   value: localStorageMock,
@@ -19,13 +20,13 @@ Object.defineProperty(window, "localStorage", {
 
 describe("useTrackings", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    (global.fetch as jest.Mock).mockClear();
+    vi.clearAllMocks();
+    (global.fetch as Mock).mockClear();
     localStorageMock.getItem.mockReturnValue("test-token");
   });
 
   it("should initialize with empty trackings array", async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     });
@@ -66,7 +67,7 @@ describe("useTrackings", () => {
       },
     ];
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => storedTrackings,
     });
@@ -90,7 +91,7 @@ describe("useTrackings", () => {
   });
 
   it("should create a new tracking", async () => {
-    (global.fetch as jest.Mock)
+    (global.fetch as Mock)
       .mockResolvedValueOnce({
         ok: true,
         json: async () => [],
@@ -135,7 +136,7 @@ describe("useTrackings", () => {
       start_tracking_date: "2024-01-01T10:00:00Z",
     };
 
-    (global.fetch as jest.Mock)
+    (global.fetch as Mock)
       .mockResolvedValueOnce({
         ok: true,
         json: async () => [existingTracking],
@@ -180,7 +181,7 @@ describe("useTrackings", () => {
       start_tracking_date: "2024-01-01T10:00:00Z",
     };
 
-    (global.fetch as jest.Mock)
+    (global.fetch as Mock)
       .mockResolvedValueOnce({
         ok: true,
         json: async () => [existingTracking],
@@ -210,13 +211,11 @@ describe("useTrackings", () => {
   });
 
   it("should handle API errors gracefully", async () => {
-    const consoleErrorSpy = jest
+    const consoleErrorSpy = vi
       .spyOn(console, "error")
       .mockImplementation(() => {});
 
-    (global.fetch as jest.Mock).mockRejectedValueOnce(
-      new Error("Network error")
-    );
+    (global.fetch as Mock).mockRejectedValueOnce(new Error("Network error"));
 
     const { result } = renderHook(() => useTrackings());
 
@@ -230,7 +229,7 @@ describe("useTrackings", () => {
   });
 
   it("should throw error when API request fails", async () => {
-    (global.fetch as jest.Mock)
+    (global.fetch as Mock)
       .mockResolvedValueOnce({
         ok: true,
         json: async () => [],
@@ -259,7 +258,7 @@ describe("useTrackings", () => {
   it("should throw error when not authenticated", async () => {
     localStorageMock.getItem.mockReturnValue(null);
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => [],
     });

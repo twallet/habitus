@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { EditProfileModal } from '../EditProfileModal';
@@ -11,11 +12,11 @@ describe('EditProfileModal', () => {
     created_at: '2024-01-15T10:30:00Z',
   };
 
-  const mockOnClose = jest.fn();
-  const mockOnSave = jest.fn().mockResolvedValue(undefined);
+  const mockOnClose = vi.fn();
+  const mockOnSave = vi.fn().mockResolvedValue(undefined);
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should render modal with user information', () => {
@@ -187,7 +188,7 @@ describe('EditProfileModal', () => {
 
   it('should show loading state when submitting', async () => {
     const user = userEvent.setup();
-    const slowSave = jest.fn().mockImplementation(
+    const slowSave = vi.fn().mockImplementation(
       () => new Promise(resolve => setTimeout(resolve, 100))
     );
 
@@ -204,7 +205,7 @@ describe('EditProfileModal', () => {
 
   it('should show error message on save failure', async () => {
     const user = userEvent.setup();
-    const errorSave = jest.fn().mockRejectedValue(new Error('Save failed'));
+    const errorSave = vi.fn().mockRejectedValue(new Error('Save failed'));
 
     render(
       <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={errorSave} />
@@ -221,7 +222,7 @@ describe('EditProfileModal', () => {
 
   it('should close error message when close button is clicked', async () => {
     const user = userEvent.setup();
-    const errorSave = jest.fn().mockRejectedValue(new Error('Save failed'));
+    const errorSave = vi.fn().mockRejectedValue(new Error('Save failed'));
 
     render(
       <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={errorSave} />
@@ -244,7 +245,7 @@ describe('EditProfileModal', () => {
 
   it('should prevent double submission', async () => {
     const user = userEvent.setup();
-    const slowSave = jest.fn().mockImplementation(
+    const slowSave = vi.fn().mockImplementation(
       () => new Promise(resolve => setTimeout(resolve, 100))
     );
 

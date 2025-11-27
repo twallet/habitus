@@ -1,23 +1,24 @@
+import { vi, type Mock } from "vitest";
 import { EmailService, SmtpConfig } from "../emailService.js";
 import nodemailer from "nodemailer";
 
 // Mock nodemailer
-jest.mock("nodemailer");
+vi.mock("nodemailer");
 
 describe("EmailService", () => {
   let emailService: EmailService;
   let mockTransporter: any;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockTransporter = {
-      sendMail: jest.fn().mockResolvedValue({ messageId: "test-message-id" }),
+      sendMail: vi.fn().mockResolvedValue({ messageId: "test-message-id" }),
     };
-    (nodemailer.createTransport as jest.Mock).mockReturnValue(mockTransporter);
+    (nodemailer.createTransport as Mock).mockReturnValue(mockTransporter);
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe("constructor", () => {
