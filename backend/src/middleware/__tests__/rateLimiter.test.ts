@@ -17,7 +17,8 @@ describe("Rate Limiter", () => {
       process.env.NODE_ENV = "test";
 
       // Access the internal skip function if available
-      const rateLimiterConfig = (authRateLimiter as any).options || authRateLimiter;
+      const rateLimiterConfig =
+        (authRateLimiter as any).options || authRateLimiter;
       const skipFn = rateLimiterConfig.skip;
 
       if (skipFn) {
@@ -33,7 +34,8 @@ describe("Rate Limiter", () => {
       const originalEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "production";
 
-      const rateLimiterConfig = (authRateLimiter as any).options || authRateLimiter;
+      const rateLimiterConfig =
+        (authRateLimiter as any).options || authRateLimiter;
       const skipFn = rateLimiterConfig.skip;
 
       if (skipFn) {
@@ -46,7 +48,8 @@ describe("Rate Limiter", () => {
     });
 
     it("should have handler function for rate limit exceeded", () => {
-      const rateLimiterConfig = (authRateLimiter as any).options || authRateLimiter;
+      const rateLimiterConfig =
+        (authRateLimiter as any).options || authRateLimiter;
       const handler = rateLimiterConfig.handler;
 
       if (handler) {
@@ -64,14 +67,118 @@ describe("Rate Limiter", () => {
           json: jest.fn().mockReturnThis(),
         };
 
+        const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
+
         handler(mockReq, mockRes);
 
         expect(mockRes.status).toHaveBeenCalledWith(429);
         expect(mockRes.json).toHaveBeenCalledWith({
           error: "Too many requests. Please try again in 15 minutes.",
         });
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+          expect.stringContaining(
+            "RATE_LIMITER | Rate limit exceeded for IP: 127.0.0.1"
+          )
+        );
+
+        consoleWarnSpy.mockRestore();
+      }
+    });
+
+    it("should use req.socket.remoteAddress when req.ip is not available", () => {
+      const rateLimiterConfig =
+        (authRateLimiter as any).options || authRateLimiter;
+      const handler = rateLimiterConfig.handler;
+
+      if (handler) {
+        const mockReq: Partial<any> = {
+          ip: undefined,
+          path: "/api/auth/register",
+          socket: {
+            remoteAddress: "192.168.1.1",
+          },
+        };
+        const mockRes: Partial<any> = {
+          status: jest.fn().mockReturnThis(),
+          json: jest.fn().mockReturnThis(),
+        };
+
+        const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
+
+        handler(mockReq, mockRes);
+
+        expect(mockRes.status).toHaveBeenCalledWith(429);
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+          expect.stringContaining(
+            "RATE_LIMITER | Rate limit exceeded for IP: 192.168.1.1"
+          )
+        );
+
+        consoleWarnSpy.mockRestore();
+      }
+    });
+
+    it("should use 'unknown' when both req.ip and req.socket.remoteAddress are not available", () => {
+      const rateLimiterConfig =
+        (authRateLimiter as any).options || authRateLimiter;
+      const handler = rateLimiterConfig.handler;
+
+      if (handler) {
+        const mockReq: Partial<any> = {
+          ip: undefined,
+          path: "/api/auth/login",
+          socket: {
+            remoteAddress: undefined,
+          },
+        };
+        const mockRes: Partial<any> = {
+          status: jest.fn().mockReturnThis(),
+          json: jest.fn().mockReturnThis(),
+        };
+
+        const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
+
+        handler(mockReq, mockRes);
+
+        expect(mockRes.status).toHaveBeenCalledWith(429);
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+          expect.stringContaining(
+            "RATE_LIMITER | Rate limit exceeded for IP: unknown"
+          )
+        );
+
+        consoleWarnSpy.mockRestore();
+      }
+    });
+
+    it("should log the correct path in the warning message", () => {
+      const rateLimiterConfig =
+        (authRateLimiter as any).options || authRateLimiter;
+      const handler = rateLimiterConfig.handler;
+
+      if (handler) {
+        const mockReq: Partial<any> = {
+          ip: "10.0.0.1",
+          path: "/api/auth/register",
+          socket: {
+            remoteAddress: "10.0.0.1",
+          },
+        };
+        const mockRes: Partial<any> = {
+          status: jest.fn().mockReturnThis(),
+          json: jest.fn().mockReturnThis(),
+        };
+
+        const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
+
+        handler(mockReq, mockRes);
+
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+          expect.stringContaining("on /api/auth/register")
+        );
+
+        consoleWarnSpy.mockRestore();
       }
     });
   });
 });
-
