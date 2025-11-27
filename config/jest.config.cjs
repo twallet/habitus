@@ -36,14 +36,14 @@ module.exports = {
       },
       extensionsToTreatAsEsm: [".ts"],
       moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
+      // Configure module name mapping to resolve .js imports to .ts files
+      // This is critical for ES modules where imports use .js but files are .ts
+      // The moduleNameMapper is applied before Jest tries to resolve the actual file
       moduleNameMapper: {
-        // Match relative paths with any number of ../ or ./
-        // This pattern handles: ./path.js, ../path.js, ../../path.js, ../../../path.js, etc.
-        // Pattern explanation:
-        // - ^ - start of string
-        // - ((?:\\.\\.?/)+.*) - capture group: one or more sequences of ./ or ../, followed by any characters
-        // - \\.js$ - literal .js at end of string
-        // - $1 - replacement: the captured path without .js extension
+        // Match relative paths with .js extension and map to .ts files
+        // This handles all relative imports: ./path.js, ../path.js, ../../path.js, ../../../path.js, etc.
+        // Pattern: matches one or more sequences of ./ or ../, followed by any path, ending with .js
+        // Replaces with the same path without .js extension (Jest will then resolve to .ts via moduleFileExtensions)
         "^((?:\\.\\.?/)+.*)\\.js$": "$1",
         // Also handle paths without leading ./ or ../ for absolute resolution
         "^src/(.*)\\.js$": "<rootDir>/src/$1",

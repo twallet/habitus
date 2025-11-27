@@ -6,7 +6,15 @@ import { API_ENDPOINTS } from "../../config/api";
 global.fetch = jest.fn();
 
 // Type declaration for localStorage in test environment
-declare const localStorage: Storage;
+// Storage interface is available in jsdom test environment
+declare const localStorage: {
+  getItem: (key: string) => string | null;
+  setItem: (key: string, value: string) => void;
+  removeItem: (key: string) => void;
+  clear: () => void;
+  length: number;
+  key: (index: number) => string | null;
+};
 
 const TOKEN_KEY = "habitus_token";
 
