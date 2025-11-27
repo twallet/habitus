@@ -7,9 +7,9 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint . --config ../config/eslint.config.js --max-warnings 0",
-    "test": "vitest run --config ../config/vitest.workspace.ts --workspace frontend --coverage",
-    "test:watch": "vitest --config ../config/vitest.workspace.ts --workspace frontend",
-    "test:coverage": "vitest run --config ../config/vitest.workspace.ts --workspace frontend --coverage"
+    "test": "vitest run --workspace ../config/vitest.workspace.ts --project frontend --coverage",
+    "test:watch": "vitest --workspace ../config/vitest.workspace.ts --project frontend",
+    "test:coverage": "vitest run --workspace ../config/vitest.workspace.ts --project frontend --coverage"
   },
   "dependencies": {
     "react": "^18.2.0",

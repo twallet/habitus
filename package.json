@@ -13,8 +13,8 @@
     "build:frontend": "npm run build --workspace=frontend",
     "build:backend": "npm run build --workspace=backend",
     "test": "vitest run --workspace config/vitest.workspace.ts --coverage",
-    "test:frontend": "vitest run --workspace config/vitest.workspace.ts --workspace frontend --coverage",
-    "test:backend": "vitest run --workspace config/vitest.workspace.ts --workspace backend --coverage",
+    "test:frontend": "vitest run --workspace config/vitest.workspace.ts --project frontend --coverage",
+    "test:backend": "vitest run --workspace config/vitest.workspace.ts --project backend --coverage",
     "test:watch": "vitest --workspace config/vitest.workspace.ts",
     "test:coverage": "vitest run --workspace config/vitest.workspace.ts --coverage",
     "lint": "npm run lint --workspace=frontend"

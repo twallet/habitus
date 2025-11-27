@@ -6,9 +6,9 @@
     "dev": "nodemon",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "vitest run --config ../config/vitest.workspace.ts --workspace backend --coverage",
-    "test:watch": "vitest --config ../config/vitest.workspace.ts --workspace backend",
-    "test:coverage": "vitest run --config ../config/vitest.workspace.ts --workspace backend --coverage"
+    "test": "vitest run --workspace ../config/vitest.workspace.ts --project backend --coverage",
+    "test:watch": "vitest --workspace ../config/vitest.workspace.ts --project backend",
+    "test:coverage": "vitest run --workspace ../config/vitest.workspace.ts --project backend --coverage"
   },
   "dependencies": {
     "cors": "^2.8.5",
