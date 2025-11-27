@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import path from "path";
 
 /**
  * Vite configuration for frontend.
@@ -10,4 +11,6 @@ export default defineConfig({
   plugins: [react()],
   logLevel: "warn",
   clearScreen: false,
+  // Load .env from project root (parent directory) to unify environment variables
+  envDir: path.resolve(__dirname, ".."),
 });
