@@ -12,11 +12,11 @@
     "build": "npm run build --workspaces",
     "build:frontend": "npm run build --workspace=frontend",
     "build:backend": "npm run build --workspace=backend",
-    "test": "vitest run --config config/vitest.workspace.ts --coverage",
-    "test:frontend": "vitest run --config config/vitest.workspace.ts --workspace frontend --coverage",
-    "test:backend": "vitest run --config config/vitest.workspace.ts --workspace backend --coverage",
-    "test:watch": "vitest --config config/vitest.workspace.ts",
-    "test:coverage": "vitest run --config config/vitest.workspace.ts --coverage",
+    "test": "vitest run --workspace config/vitest.workspace.ts --coverage",
+    "test:frontend": "vitest run --workspace config/vitest.workspace.ts --workspace frontend --coverage",
+    "test:backend": "vitest run --workspace config/vitest.workspace.ts --workspace backend --coverage",
+    "test:watch": "vitest --workspace config/vitest.workspace.ts",
+    "test:coverage": "vitest run --workspace config/vitest.workspace.ts --coverage",
     "lint": "npm run lint --workspace=frontend"
   },
   "devDependencies": {
