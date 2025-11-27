@@ -120,7 +120,9 @@ describe("EmailService", () => {
     });
 
     it("should throw error when SMTP credentials are missing", async () => {
-      emailService = new EmailService({
+      // Create a new EmailService with empty credentials
+      // This should cause getTransporter() to throw before creating the transporter
+      const serviceWithEmptyCreds = new EmailService({
         host: "smtp.test.com",
         port: 587,
         user: "",
@@ -129,7 +131,11 @@ describe("EmailService", () => {
       });
 
       await expect(
-        emailService.sendMagicLink("user@example.com", "test-token", true)
+        serviceWithEmptyCreds.sendMagicLink(
+          "user@example.com",
+          "test-token",
+          true
+        )
       ).rejects.toThrow("SMTP credentials not configured");
     });
 
@@ -282,7 +288,9 @@ describe("EmailService", () => {
     });
 
     it("should throw error when SMTP credentials are missing", async () => {
-      emailService = new EmailService({
+      // Create a new EmailService with empty credentials
+      // This should cause getTransporter() to throw before creating the transporter
+      const serviceWithEmptyCreds = new EmailService({
         host: "smtp.test.com",
         port: 587,
         user: "",
@@ -291,7 +299,7 @@ describe("EmailService", () => {
       });
 
       await expect(
-        emailService.sendEmail("user@example.com", "Test", "Body")
+        serviceWithEmptyCreds.sendEmail("user@example.com", "Test", "Body")
       ).rejects.toThrow("SMTP credentials not configured");
     });
 
