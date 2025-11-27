@@ -9,7 +9,7 @@ require("dotenv").config({ path: require("path").join(__dirname, ".env") });
 
 // Import centralized path configuration
 // This is the single source of truth for all directory paths
-const paths = require("./paths.js");
+const paths = require("./paths.cjs");
 
 module.exports = {
   projects: [
@@ -39,10 +39,13 @@ module.exports = {
         // This handles all relative imports: ./path.js, ../path.js, ../../path.js, ../../../path.js, etc.
         // Pattern: matches one or more sequences of ./ or ../, followed by any path, ending with .js
         // Replaces with the same path without .js extension (Jest will then resolve to .ts via moduleFileExtensions)
+        // The key is to preserve the relative path structure so Jest can resolve it correctly
         "^((?:\\.\\.?/)+.*)\\.js$": "$1",
         // Also handle paths without leading ./ or ../ for absolute resolution
         "^src/(.*)\\.js$": "<rootDir>/src/$1",
       },
+      // Ensure Jest can resolve modules from the src directory
+      moduleDirectories: ["node_modules", "<rootDir>/src"],
       collectCoverageFrom: [
         "src/**/*.ts",
         "!src/**/*.d.ts",
