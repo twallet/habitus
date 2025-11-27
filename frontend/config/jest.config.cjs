@@ -12,14 +12,26 @@ module.exports = {
     "^@/(.*)$": "<rootDir>/src/$1",
     "\\.(css|less|scss|sass)$": "<rootDir>/src/__mocks__/styleMock.js",
   },
-  globals: {
-    "import.meta": {
-      env: {
-        VITE_SERVER_URL: process.env.VITE_SERVER_URL || "http://localhost",
-        VITE_PORT: process.env.VITE_PORT || "3005",
+  globals: (() => {
+    if (!process.env.VITE_SERVER_URL) {
+      throw new Error(
+        "VITE_SERVER_URL environment variable is required for tests. Please set it in your .env file or test environment."
+      );
+    }
+    if (!process.env.VITE_PORT) {
+      throw new Error(
+        "VITE_PORT environment variable is required for tests. Please set it in your .env file or test environment."
+      );
+    }
+    return {
+      "import.meta": {
+        env: {
+          VITE_SERVER_URL: process.env.VITE_SERVER_URL,
+          VITE_PORT: process.env.VITE_PORT,
+        },
       },
-    },
-  },
+    };
+  })(),
   setupFilesAfterEnv: ["<rootDir>/src/setupTests.ts"],
   transform: {
     "^.+\\.tsx?$": [

@@ -1,13 +1,23 @@
 import "@testing-library/jest-dom";
 
 // Mock import.meta.env for Vite environment variables
-// Read from environment variables (loaded from .env files), with minimal fallback for tests
+// Tests will fail if VITE_SERVER_URL or VITE_PORT are not set in environment
+if (!process.env.VITE_SERVER_URL) {
+  throw new Error(
+    "VITE_SERVER_URL environment variable is required for tests. Please set it in your .env file or test environment."
+  );
+}
+if (!process.env.VITE_PORT) {
+  throw new Error(
+    "VITE_PORT environment variable is required for tests. Please set it in your .env file or test environment."
+  );
+}
 Object.defineProperty(globalThis, "import", {
   value: {
     meta: {
       env: {
-        VITE_SERVER_URL: process.env.VITE_SERVER_URL || "http://localhost",
-        VITE_PORT: process.env.VITE_PORT || "3005",
+        VITE_SERVER_URL: process.env.VITE_SERVER_URL,
+        VITE_PORT: process.env.VITE_PORT,
       },
     },
   },

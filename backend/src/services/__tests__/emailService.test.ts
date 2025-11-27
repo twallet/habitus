@@ -23,9 +23,9 @@ describe("EmailService", () => {
   describe("constructor", () => {
     it("should use environment variables when no config provided", () => {
       const originalEnv = process.env;
-      // Use environment variables from .env files, with test defaults
+      // Use environment variables from .env files
       const testServerUrl = process.env.VITE_SERVER_URL || "http://test.com";
-      const testPort = process.env.VITE_PORT || "3000";
+      const testPort = process.env.VITE_PORT || "3005";
       process.env = {
         ...originalEnv,
         SMTP_HOST: "smtp.test.com",
