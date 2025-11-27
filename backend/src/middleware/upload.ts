@@ -83,11 +83,10 @@ export class UploadConfig {
 
   /**
    * Create a new UploadConfig instance.
-   * @param customDataDir - Optional custom data directory path (defaults to database data directory)
    * @param maxFileSize - Maximum file size in bytes (default: 5MB)
    * @public
    */
-  constructor(customDataDir?: string, maxFileSize: number = 5 * 1024 * 1024) {
+  constructor(maxFileSize: number = 5 * 1024 * 1024) {
     this.maxFileSize = maxFileSize;
     this.allowedMimeTypes = [
       "image/jpeg",
@@ -101,9 +100,7 @@ export class UploadConfig {
     // This ensures uploads are stored in the same location as the database
     // Use the same path resolution logic as the database to ensure consistency
     let dataDir: string;
-    if (customDataDir) {
-      dataDir = customDataDir;
-    } else if (process.env.DB_PATH) {
+    if (process.env.DB_PATH) {
       // Resolve DB_PATH the same way as getDatabasePath does
       let resolvedDbPath: string;
 

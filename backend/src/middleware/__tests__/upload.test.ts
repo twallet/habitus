@@ -39,22 +39,8 @@ describe("Upload Middleware", () => {
         expect(config.getUploadsDirectory()).toContain("uploads");
       });
 
-      it("should create instance with custom data directory", () => {
-        const customDir = path.join(__dirname, "../../../test-data");
-        const config = new UploadConfig(customDir);
-
-        const uploadsDir = config.getUploadsDirectory();
-        expect(uploadsDir).toContain("test-data");
-        expect(uploadsDir).toContain("uploads");
-
-        // Cleanup
-        if (fs.existsSync(customDir)) {
-          fs.rmSync(customDir, { recursive: true, force: true });
-        }
-      });
-
       it("should create instance with custom max file size", () => {
-        const config = new UploadConfig(undefined, 10 * 1024 * 1024);
+        const config = new UploadConfig(10 * 1024 * 1024);
 
         expect(config).toBeInstanceOf(UploadConfig);
       });
