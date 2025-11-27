@@ -7,9 +7,9 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint . --config ../config/eslint.config.js --max-warnings 0",
-    "test": "jest --config jest.config.cjs --forceExit",
-    "test:watch": "jest --config jest.config.cjs --watch",
-    "test:coverage": "jest --config jest.config.cjs --coverage --forceExit --coverageDirectory=../coverage"
+    "test": "jest --config config/jest.config.cjs --forceExit",
+    "test:watch": "jest --config config/jest.config.cjs --watch",
+    "test:coverage": "jest --config config/jest.config.cjs --coverage --forceExit --coverageDirectory=../coverage"
   },
   "dependencies": {
     "react": "^18.2.0",
