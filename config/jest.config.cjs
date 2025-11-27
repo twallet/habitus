@@ -11,7 +11,7 @@ module.exports = {
       rootDir: "<rootDir>/backend",
       roots: ["src"],
       testMatch: ["**/__tests__/**/*.ts", "**/?(*.)+(spec|test).ts"],
-      setupFilesAfterEnv: ["./src/setupTests.ts"],
+      setupFilesAfterEnv: ["<rootDir>/backend/src/setupTests.ts"],
       transform: {
         "^.+\\.ts$": [
           "ts-jest",
@@ -44,8 +44,9 @@ module.exports = {
         "**/?(*.)+(spec|test).tsx",
       ],
       moduleNameMapper: {
-        "^@/(.*)$": "<rootDir>/src/$1",
-        "\\.(css|less|scss|sass)$": "<rootDir>/src/__mocks__/styleMock.js",
+        "^@/(.*)$": "<rootDir>/frontend/src/$1",
+        "\\.(css|less|scss|sass)$":
+          "<rootDir>/frontend/src/__mocks__/styleMock.js",
       },
       globals: {
         "import.meta": {
@@ -55,7 +56,7 @@ module.exports = {
           },
         },
       },
-      setupFilesAfterEnv: ["./src/setupTests.ts"],
+      setupFilesAfterEnv: ["<rootDir>/frontend/src/setupTests.ts"],
       transform: {
         "^.+\\.tsx?$": [
           "ts-jest",
