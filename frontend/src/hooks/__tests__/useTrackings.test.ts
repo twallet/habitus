@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { vi, type Mock } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { useTrackings } from "../useTrackings";

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { render, screen } from '@testing-library/react';
 import { UsersList } from '../UsersList';
 import { UserData } from '../../models/User';
@@ -43,14 +44,14 @@ describe('UsersList', () => {
     // which will contain the escaped HTML entities
     const firstItem = listItems[0];
     expect(firstItem.textContent).toContain('&lt;script&gt;alert("xss")&lt;/script&gt;');
-    
+
     const secondItem = listItems[1];
     expect(secondItem.textContent).toContain('&lt;img src="x" onerror="alert(1)"&gt;');
-    
+
     // Verify that no actual script tags exist in the DOM (they should be escaped)
     const scriptElements = document.querySelectorAll('script');
     expect(scriptElements.length).toBe(0);
-    
+
     // Verify that no img tags with onerror exist
     const imgElements = document.querySelectorAll('img[onerror]');
     expect(imgElements.length).toBe(0);

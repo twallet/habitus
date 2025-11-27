@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { vi, type Mock } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
 import { useAuth } from "../useAuth";

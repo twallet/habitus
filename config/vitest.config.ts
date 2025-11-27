@@ -63,6 +63,7 @@ export default defineConfig({
     },
     // Pool options for parallel execution
     pool: "threads",
+    // @ts-expect-error - poolOptions is valid in Vitest 4.x but types may not be updated
     poolOptions: {
       threads: {
         singleThread: false,
@@ -72,8 +73,8 @@ export default defineConfig({
     // Use jsdom for frontend tests, node for backend
     // Vitest will automatically detect based on file location
     environmentMatchGlobs: [
-      ["frontend/**", "jsdom"],
-      ["backend/**", "node"],
+      ["**/frontend/**", "jsdom"],
+      ["**/backend/**", "node"],
     ],
     globals: true, // Enable global test functions (describe, it, expect, etc.)
     // Setup files - conditionally load based on test location
