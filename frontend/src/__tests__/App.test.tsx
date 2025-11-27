@@ -9,6 +9,9 @@ import { TrackingType } from '../models/Tracking';
 // Mock fetch
 global.fetch = jest.fn();
 
+// Type declaration for localStorage in test environment
+declare const localStorage: Storage;
+
 // Mock useAuth hook
 jest.mock('../hooks/useAuth', () => ({
   useAuth: jest.fn(),

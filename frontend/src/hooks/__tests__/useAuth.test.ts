@@ -5,6 +5,9 @@ import { API_ENDPOINTS } from "../../config/api";
 // Mock fetch
 global.fetch = jest.fn();
 
+// Type declaration for localStorage in test environment
+declare const localStorage: Storage;
+
 const TOKEN_KEY = "habitus_token";
 
 describe("useAuth", () => {
@@ -334,7 +337,6 @@ describe("useAuth", () => {
         await result.current.requestRegisterMagicLink(
           "John Doe",
           "john@example.com",
-          "johndoe",
           mockFile
         );
       });
