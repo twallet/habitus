@@ -5,7 +5,7 @@ import {
 } from "../upload.js";
 import path from "path";
 import fs from "fs";
-import multer from "multer";
+import { Readable } from "stream";
 
 describe("Upload Middleware", () => {
   describe("getUploadsDirectory", () => {
@@ -45,7 +45,7 @@ describe("Upload Middleware", () => {
         expect(config).toBeInstanceOf(UploadConfig);
       });
 
-      it("should use DB_PATH environment variable if set", () => {
+      it("should use DB_PATH environment variable if set (relative path)", () => {
         const originalDbPath = process.env.DB_PATH;
         // Use a temporary directory within the project for testing
         const testDataDir = path.join(__dirname, "../../../test-db-path");
@@ -56,6 +56,32 @@ describe("Upload Middleware", () => {
         const uploadsDir = config.getUploadsDirectory();
 
         expect(uploadsDir).toContain("test-db-path");
+        expect(uploadsDir).toContain("uploads");
+
+        // Cleanup: remove the created directory
+        if (fs.existsSync(testDataDir)) {
+          fs.rmSync(testDataDir, { recursive: true, force: true });
+        }
+
+        // Restore
+        if (originalDbPath) {
+          process.env.DB_PATH = originalDbPath;
+        } else {
+          delete process.env.DB_PATH;
+        }
+      });
+
+      it("should use DB_PATH environment variable if set (absolute path)", () => {
+        const originalDbPath = process.env.DB_PATH;
+        // Use a temporary directory with absolute path for testing
+        const testDataDir = path.join(__dirname, "../../../test-db-path-abs");
+        const testDbPath = path.resolve(testDataDir, "database.db");
+        process.env.DB_PATH = testDbPath;
+
+        const config = new UploadConfig();
+        const uploadsDir = config.getUploadsDirectory();
+
+        expect(uploadsDir).toContain("test-db-path-abs");
         expect(uploadsDir).toContain("uploads");
 
         // Cleanup: remove the created directory
@@ -148,6 +174,137 @@ describe("Upload Middleware", () => {
         const multer2 = config.getMulterInstance();
 
         expect(multer1).toBe(multer2);
+      });
+
+      it("should generate unique filenames through storage", (done) => {
+        const config = new UploadConfig();
+        const multerInstance = config.getMulterInstance();
+        const storage = (multerInstance as any).storage;
+
+        const createFile = (originalname: string): Express.Multer.File => {
+          const stream = new Readable();
+          stream.push(Buffer.from("fake image data"));
+          stream.push(null); // End of stream
+
+          return {
+            fieldname: "profilePicture",
+            originalname,
+            encoding: "7bit",
+            mimetype: "image/jpeg",
+            size: 1024,
+            stream,
+            destination: "",
+            filename: "",
+            path: "",
+            buffer: Buffer.from(""),
+          } as Express.Multer.File;
+        };
+
+        const file1 = createFile("test-image.jpg");
+        const file2 = createFile("test-image.jpg");
+
+        let filename1 = "";
+        let filename2 = "";
+
+        // Test filename generation
+        storage._handleFile(
+          {} as Express.Request,
+          file1,
+          (err: Error | null, info: any) => {
+            expect(err).toBeNull();
+            filename1 = info.filename;
+            expect(filename1).toContain("test-image");
+            expect(filename1).toContain(".jpg");
+
+            storage._handleFile(
+              {} as Express.Request,
+              file2,
+              (err2: Error | null, info2: any) => {
+                expect(err2).toBeNull();
+                filename2 = info2.filename;
+                // Filenames should be different even with same original name
+                expect(filename1).not.toBe(filename2);
+                expect(filename2).toContain("test-image");
+                expect(filename2).toContain(".jpg");
+                done();
+              }
+            );
+          }
+        );
+      });
+
+      it("should sanitize special characters in filenames", (done) => {
+        const config = new UploadConfig();
+        const multerInstance = config.getMulterInstance();
+        const storage = (multerInstance as any).storage;
+
+        const stream = new Readable();
+        stream.push(Buffer.from("fake image data"));
+        stream.push(null); // End of stream
+
+        const file = {
+          fieldname: "profilePicture",
+          originalname: "test file (1).jpg",
+          encoding: "7bit",
+          mimetype: "image/jpeg",
+          size: 1024,
+          stream,
+          destination: "",
+          filename: "",
+          path: "",
+          buffer: Buffer.from(""),
+        } as Express.Multer.File;
+
+        storage._handleFile(
+          {} as Express.Request,
+          file,
+          (err: Error | null, info: any) => {
+            expect(err).toBeNull();
+            const generatedFilename = info.filename;
+            // Filename should not contain special characters like spaces, parentheses
+            expect(generatedFilename).not.toContain(" ");
+            expect(generatedFilename).not.toContain("(");
+            expect(generatedFilename).not.toContain(")");
+            expect(generatedFilename).toContain("test");
+            expect(generatedFilename).toContain(".jpg");
+            done();
+          }
+        );
+      });
+
+      it("should use correct destination directory in storage", (done) => {
+        const config = new UploadConfig();
+        const uploadsDir = config.getUploadsDirectory();
+        const multerInstance = config.getMulterInstance();
+        const storage = (multerInstance as any).storage;
+
+        const stream = new Readable();
+        stream.push(Buffer.from("fake image data"));
+        stream.push(null); // End of stream
+
+        const file = {
+          fieldname: "profilePicture",
+          originalname: "test.jpg",
+          encoding: "7bit",
+          mimetype: "image/jpeg",
+          size: 1024,
+          stream,
+          destination: "",
+          filename: "",
+          path: "",
+          buffer: Buffer.from(""),
+        } as Express.Multer.File;
+
+        storage._handleFile(
+          {} as Express.Request,
+          file,
+          (err: Error | null, info: any) => {
+            expect(err).toBeNull();
+            expect(info.destination).toBe(uploadsDir);
+            expect(info.filename).toBeDefined();
+            done();
+          }
+        );
       });
     });
   });

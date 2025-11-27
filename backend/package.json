@@ -6,7 +6,9 @@
     "dev": "nodemon",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "jest --forceExit --passWithNoTests"
+    "test": "jest --forceExit --passWithNoTests --coverage",
+    "test:watch": "jest --forceExit --passWithNoTests --watch",
+    "test:coverage": "jest --forceExit --passWithNoTests --coverage --coverageReporters=text --coverageReporters=html"
   },
   "dependencies": {
     "@types/nodemailer": "^7.0.4",
