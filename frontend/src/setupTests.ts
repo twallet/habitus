@@ -18,9 +18,12 @@ const localStorageMock = (() => {
   };
 })();
 
-Object.defineProperty(window, "localStorage", {
-  value: localStorageMock,
-});
+// Only set up window.localStorage if window exists (jsdom environment)
+if (typeof window !== "undefined") {
+  Object.defineProperty(window, "localStorage", {
+    value: localStorageMock,
+  });
+}
 
 // Also define on globalThis for global access (TypeScript expects this)
 Object.defineProperty(globalThis, "localStorage", {
