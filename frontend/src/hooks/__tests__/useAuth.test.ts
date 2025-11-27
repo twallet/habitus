@@ -910,7 +910,7 @@ describe("useAuth", () => {
       localStorage.setItem(TOKEN_KEY, "valid-token");
 
       (global.fetch as jest.Mock).mockImplementation(
-        (url: string | Request | URL, options?: RequestInit) => {
+        (url: string | Request | URL, _options?: RequestInit) => {
           const urlString =
             typeof url === "string"
               ? url

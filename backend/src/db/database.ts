@@ -1,12 +1,12 @@
 import sqlite3 from "sqlite3";
 import path from "path";
-import { fileURLToPath } from "url";
 import fs from "fs";
+import { getWorkspaceRoot, PATHS } from "../config/paths.js";
 
 /**
  * Get project root directory (workspace root).
- * Uses import.meta.url to reliably find the workspace root regardless of current working directory.
- * From backend/src/db/ we need to go up 3 levels to reach the workspace root.
+ * Uses centralized path configuration from config/paths.ts.
+ * In test environment, uses current working directory for compatibility.
  * @returns The project root path
  * @private
  */
@@ -20,70 +20,8 @@ function getProjectRoot(): string {
     return path.resolve();
   }
 
-  try {
-    // Access import.meta.url directly (this works in ESM modules)
-    // The eval workaround is needed for Jest/TypeScript compatibility
-    // eslint-disable-next-line @typescript-eslint/no-implied-eval
-    const importMeta = new Function(
-      'return typeof import !== "undefined" ? import.meta : null'
-    )();
-
-    if (importMeta && importMeta.url) {
-      const currentFile = fileURLToPath(importMeta.url);
-      const currentDir = path.dirname(currentFile);
-
-      // From backend/src/db/ go up 3 levels to workspace root: ../../../
-      // Use path.resolve to get absolute path, then normalize
-      let projectRoot = path.resolve(currentDir, "../../..");
-      projectRoot = path.normalize(projectRoot);
-
-      // Verify we found the workspace root by checking for package.json and backend/ directory
-      const packageJsonPath = path.join(projectRoot, "package.json");
-      const backendDir = path.join(projectRoot, "backend");
-      if (fs.existsSync(packageJsonPath) && fs.existsSync(backendDir)) {
-        return projectRoot;
-      }
-
-      // If package.json not found, try going up one more level (in case of build output)
-      projectRoot = path.resolve(currentDir, "../../../..");
-      projectRoot = path.normalize(projectRoot);
-      const altPackageJsonPath = path.join(projectRoot, "package.json");
-      const altBackendDir = path.join(projectRoot, "backend");
-      if (fs.existsSync(altPackageJsonPath) && fs.existsSync(altBackendDir)) {
-        return projectRoot;
-      }
-
-      // If still not found, return the original calculation
-      return path.resolve(currentDir, "../../..");
-    }
-  } catch (error) {
-    // Fallback if import.meta is not available
-    console.warn(
-      `[${new Date().toISOString()}] DATABASE | Could not determine project root from import.meta.url, using fallback:`,
-      error
-    );
-  }
-
-  // Fallback: try to find workspace root by looking for package.json
-  // Verify it's the workspace root by checking for both backend/ and frontend/ directories
-  let currentDir = process.cwd();
-  const root = path.parse(currentDir).root; // Get drive root (e.g., "D:\")
-
-  while (currentDir !== root) {
-    const packageJsonPath = path.join(currentDir, "package.json");
-    if (fs.existsSync(packageJsonPath)) {
-      // Verify this is the workspace root by checking for backend/ directory
-      const backendDir = path.join(currentDir, "backend");
-      const frontendDir = path.join(currentDir, "frontend");
-      if (fs.existsSync(backendDir) && fs.existsSync(frontendDir)) {
-        return currentDir;
-      }
-    }
-    currentDir = path.dirname(currentDir);
-  }
-
-  // Last resort: use current working directory
-  return path.resolve(process.cwd());
+  // Use centralized path configuration
+  return getWorkspaceRoot();
 }
 
 /**
@@ -118,16 +56,12 @@ function getDatabasePath(customPath?: string): string {
     } else {
       // For relative paths, resolve relative to backend directory
       // This ensures consistent behavior regardless of where the code runs from
-      const projectRoot = getProjectRoot();
-      const backendDir = path.join(projectRoot, "backend");
-      dbPath = path.resolve(backendDir, process.env.DB_PATH);
+      dbPath = path.resolve(PATHS.backendRoot, process.env.DB_PATH);
     }
   }
   // Priority 3: Default path (backend/data/habitus.db relative to workspace root)
   else {
-    const projectRoot = getProjectRoot();
-    const backendDir = path.join(projectRoot, "backend");
-    dbPath = path.join(backendDir, "data/habitus.db");
+    dbPath = path.join(PATHS.backendData, "habitus.db");
   }
 
   // Only create directory for file-based databases (not :memory: or file: URIs)

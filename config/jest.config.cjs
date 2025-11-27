@@ -3,16 +3,13 @@
  * This consolidates test results from both projects into a single output
  */
 
-// Load environment variables from .env file before config evaluation
+// Load environment variables from .env file before importing paths
 // This ensures VITE_SERVER_URL and VITE_PORT are available when the config is evaluated
-const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, ".env") });
+require("dotenv").config({ path: require("path").join(__dirname, ".env") });
 
-// Compute absolute paths relative to this config file
-// This config is in config/, so we go up one level to get the workspace root
-const rootDir = path.join(__dirname, "..");
-const backendDir = path.join(rootDir, "backend");
-const frontendDir = path.join(rootDir, "frontend");
+// Import centralized path configuration
+// This is the single source of truth for all directory paths
+const paths = require("./paths.js");
 
 module.exports = {
   projects: [
@@ -20,17 +17,15 @@ module.exports = {
       displayName: "backend",
       preset: "ts-jest",
       testEnvironment: "node",
-      rootDir: backendDir,
+      rootDir: paths.backendRoot,
       testMatch: ["**/__tests__/**/*.ts", "**/?(*.)+(spec|test).ts"],
-      setupFilesAfterEnv: [
-        path.join(backendDir, "src", "setup", "setupTests.ts"),
-      ],
+      setupFilesAfterEnv: [paths.backendSetupTests],
       transform: {
         "^.+\\.ts$": [
           "ts-jest",
           {
             useESM: true,
-            tsconfig: path.join(backendDir, "tsconfig.json"),
+            tsconfig: paths.backendTsconfig,
           },
         ],
       },
@@ -58,7 +53,7 @@ module.exports = {
       displayName: "frontend",
       preset: "ts-jest",
       testEnvironment: "jsdom",
-      rootDir: frontendDir,
+      rootDir: paths.frontendRoot,
       testMatch: [
         "**/__tests__/**/*.ts",
         "**/__tests__/**/*.tsx",
@@ -66,10 +61,9 @@ module.exports = {
         "**/?(*.)+(spec|test).tsx",
       ],
       moduleNameMapper: {
-        "^@/(.*)$": path.join(frontendDir, "src", "$1"),
-        "\\.(css|less|scss|sass)$": path.join(
-          frontendDir,
-          "src",
+        "^@/(.*)$": require("path").join(paths.frontendSrc, "$1"),
+        "\\.(css|less|scss|sass)$": require("path").join(
+          paths.frontendSrc,
           "__mocks__",
           "styleMock.js"
         ),
@@ -94,13 +88,13 @@ module.exports = {
           },
         };
       })(),
-      setupFilesAfterEnv: [path.join(frontendDir, "src", "setupTests.ts")],
+      setupFilesAfterEnv: [paths.frontendSetupTests],
       transform: {
         "^.+\\.tsx?$": [
           "ts-jest",
           {
             useESM: false,
-            tsconfig: path.join(frontendDir, "tsconfig.json"),
+            tsconfig: paths.frontendTsconfig,
           },
         ],
       },
@@ -114,7 +108,7 @@ module.exports = {
       ],
     },
   ],
-  coverageDirectory: path.join(rootDir, "coverage"),
+  coverageDirectory: paths.coverageDir,
   coverageThreshold: {
     global: {
       branches: 75,
