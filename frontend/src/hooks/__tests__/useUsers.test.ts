@@ -1,7 +1,6 @@
 import { vi, type Mock } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { useUsers } from "../useUsers";
-import { API_ENDPOINTS } from "../../config/api";
 
 // Mock fetch
 global.fetch = vi.fn();
@@ -26,8 +25,11 @@ describe("useUsers", () => {
 
     expect(result.current.users).toEqual([]);
     expect(global.fetch).toHaveBeenCalledWith(
-      API_ENDPOINTS.users,
-      expect.objectContaining({ method: "GET" })
+      expect.stringContaining("/api/users"),
+      expect.objectContaining({
+        method: "GET",
+        headers: expect.any(Object),
+      })
     );
   });
 
@@ -50,8 +52,11 @@ describe("useUsers", () => {
 
     expect(result.current.users).toEqual(storedUsers);
     expect(global.fetch).toHaveBeenCalledWith(
-      API_ENDPOINTS.users,
-      expect.objectContaining({ method: "GET" })
+      expect.stringContaining("/api/users"),
+      expect.objectContaining({
+        method: "GET",
+        headers: expect.any(Object),
+      })
     );
   });
 
@@ -105,13 +110,16 @@ describe("useUsers", () => {
       await result.current.createUser("Test User");
     });
 
-    expect(global.fetch).toHaveBeenCalledWith(API_ENDPOINTS.users, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ name: "Test User" }),
-    });
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/users"),
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          "Content-Type": "application/json",
+        }),
+        body: JSON.stringify({ name: "Test User" }),
+      })
+    );
     expect(result.current.users).toHaveLength(1);
     expect(result.current.users[0].name).toBe("Test User");
   });

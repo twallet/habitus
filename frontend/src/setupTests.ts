@@ -1,3 +1,4 @@
+/// <reference types="vitest/globals" />
 import "@testing-library/jest-dom";
 import { beforeAll, afterAll, vi } from "vitest";
 
