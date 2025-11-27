@@ -291,12 +291,19 @@ describe('EditTrackingModal', () => {
       />
     );
 
+    // Clear any previous calls to mockOnClose
+    mockOnClose.mockClear();
+
     const saveButton = screen.getByRole('button', { name: /save changes/i });
     await user.click(saveButton);
 
     await waitFor(() => {
       expect(screen.getByText(/save failed/i)).toBeInTheDocument();
     });
+
+    // Verify modal is still open (title should still be visible)
+    expect(screen.getByText('Edit Tracking')).toBeInTheDocument();
+    // Verify onClose was not called after the error
     expect(mockOnClose).not.toHaveBeenCalled();
   });
 
