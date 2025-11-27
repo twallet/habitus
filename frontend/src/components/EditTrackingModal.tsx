@@ -53,12 +53,14 @@ export function EditTrackingModal({
     const isDeletingRef = useRef(false);
     const hasDeleteErrorRef = useRef(false);
     const hasCalledOnCloseRef = useRef(false);
+    const isSubmittingRef = useRef(false);
 
     // Reset refs on mount to prevent state pollution between tests
     useEffect(() => {
         isDeletingRef.current = false;
         hasDeleteErrorRef.current = false;
         hasCalledOnCloseRef.current = false;
+        isSubmittingRef.current = false;
     }, []);
 
     /**
@@ -78,6 +80,7 @@ export function EditTrackingModal({
         }
 
         setIsSubmitting(true);
+        isSubmittingRef.current = true;
         setError(null);
 
         if (!question.trim()) {
@@ -117,6 +120,7 @@ export function EditTrackingModal({
             setError(err instanceof Error ? err.message : "Error updating tracking");
         } finally {
             setIsSubmitting(false);
+            isSubmittingRef.current = false;
         }
     };
 
@@ -157,7 +161,7 @@ export function EditTrackingModal({
             if (e.key === "Escape") {
                 if (showDeleteConfirmation) {
                     setShowDeleteConfirmation(false);
-                } else if (!isDeleting && !isSubmitting && !error && !hasCalledOnCloseRef.current) {
+                } else if (!isDeleting && !isSubmitting && !isSubmittingRef.current && !error && !hasCalledOnCloseRef.current) {
                     hasCalledOnCloseRef.current = true;
                     onClose();
                 }
@@ -171,7 +175,7 @@ export function EditTrackingModal({
     }, [onClose, showDeleteConfirmation, isDeleting, isSubmitting, error]);
 
     const handleOverlayClick = () => {
-        if (!isDeleting && !isSubmitting && !error && !hasDeleteErrorRef.current && !hasCalledOnCloseRef.current) {
+        if (!isDeleting && !isSubmitting && !isSubmittingRef.current && !error && !hasDeleteErrorRef.current && !hasCalledOnCloseRef.current) {
             hasCalledOnCloseRef.current = true;
             onClose();
         }
