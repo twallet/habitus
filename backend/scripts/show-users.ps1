@@ -5,10 +5,10 @@ param(
     [string]$DbPath = ""
 )
 
-# Get the script directory and project root
-# Script is in scripts/ directory, so project root is one level up
+# Get the script directory and backend root
+# Script is in backend/scripts/ directory, so backend root is one level up
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$projectRoot = Split-Path -Parent $scriptDir
+$backendRoot = Split-Path -Parent $scriptDir
 
 # Determine database path
 if ([string]::IsNullOrEmpty($DbPath)) {
@@ -18,19 +18,17 @@ if ([string]::IsNullOrEmpty($DbPath)) {
         if ([System.IO.Path]::IsPathRooted($envDbPath)) {
             $dbPath = $envDbPath
         } else {
-            $backendDir = Join-Path $projectRoot "backend"
-            $dbPath = Join-Path $backendDir $envDbPath
+            $dbPath = Join-Path $backendRoot $envDbPath
         }
     } else {
         # Default path: backend/data/habitus.db
-        $backendDir = Join-Path $projectRoot "backend"
-        $dataDir = Join-Path $backendDir "data"
+        $dataDir = Join-Path $backendRoot "data"
         $dbPath = Join-Path $dataDir "habitus.db"
     }
 } else {
     # If custom path provided, make it absolute if it's relative
     if (-not [System.IO.Path]::IsPathRooted($DbPath)) {
-        $dbPath = Join-Path $projectRoot $DbPath
+        $dbPath = Join-Path $backendRoot $DbPath
     } else {
         $dbPath = $DbPath
     }
@@ -56,8 +54,7 @@ Write-Host ""
 # Create a temporary Node.js script to query the database
 $tempScript = Join-Path $env:TEMP "habitus-query-users-$(Get-Date -Format 'yyyyMMddHHmmss').js"
 
-$backendDir = Join-Path $projectRoot "backend"
-$backendNodeModules = Join-Path $backendDir "node_modules"
+$backendNodeModules = Join-Path $backendRoot "node_modules"
 $nodeScript = @"
 const path = require('path');
 
@@ -123,8 +120,7 @@ try {
     # Execute the Node.js script from backend directory to ensure sqlite3 module is found
     # Set NODE_PATH to include backend node_modules
     $env:NODE_PATH = $backendNodeModules
-    $backendDir = Join-Path $projectRoot "backend"
-    Push-Location $backendDir
+    Push-Location $backendRoot
     try {
         $output = node $tempScript 2>&1
     } finally {

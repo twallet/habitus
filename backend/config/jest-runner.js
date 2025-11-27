@@ -9,7 +9,8 @@ import { writeFileSync } from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const rootDir = join(__dirname, "..");
+const backendDir = join(__dirname, "..");
+const rootDir = join(backendDir, "..");
 
 let fullOutput = "";
 
@@ -247,6 +248,7 @@ if (!jestArgs.includes("--forceExit")) {
 }
 
 // Use npx to run jest (works cross-platform)
+// Run from root directory to execute both backend and frontend tests
 const jestProcess = spawn("npx", jestArgs, {
   stdio: ["inherit", "pipe", "pipe"],
   shell: true,
