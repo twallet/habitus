@@ -360,23 +360,37 @@ describe('AuthForm', () => {
             const file = new File(['content'], 'profile.jpg', { type: 'image/jpeg' });
             const fileInput = screen.getByLabelText(/profile picture/i) as HTMLInputElement;
 
-            // Mock FileReader
-            const mockFileReader = {
+            // Mock FileReader as a class constructor
+            const mockFileReaderInstance = {
                 readAsDataURL: vi.fn(),
                 result: 'data:image/jpeg;base64,content',
                 onloadend: null as ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null,
             };
 
-            // Mock FileReader as a constructor
-            const FileReaderMock = vi.fn().mockImplementation(() => mockFileReader);
+            // Create a class that shares the same instance object using getters/setters
+            class FileReaderMock {
+                get readAsDataURL() {
+                    return mockFileReaderInstance.readAsDataURL;
+                }
+                get result() {
+                    return mockFileReaderInstance.result;
+                }
+                get onloadend() {
+                    return mockFileReaderInstance.onloadend;
+                }
+                set onloadend(value) {
+                    mockFileReaderInstance.onloadend = value;
+                }
+            }
+
             vi.stubGlobal('FileReader', FileReaderMock);
 
             await user.upload(fileInput, file);
 
             // Trigger onloadend manually
-            if (mockFileReader.onloadend) {
+            if (mockFileReaderInstance.onloadend) {
                 const event = new ProgressEvent('loadend') as ProgressEvent<FileReader>;
-                mockFileReader.onloadend.call(mockFileReader as any, event);
+                mockFileReaderInstance.onloadend.call(mockFileReaderInstance as any, event);
             }
 
             await waitFor(() => {
@@ -400,21 +414,32 @@ describe('AuthForm', () => {
             const file = new File(['content'], 'profile.jpg', { type: 'image/jpeg' });
             const fileInput = screen.getByLabelText(/profile picture/i) as HTMLInputElement;
 
-            const mockFileReader = {
+            // Mock FileReader as a class constructor
+            const mockFileReaderInstance = {
                 readAsDataURL: vi.fn(),
                 result: 'data:image/jpeg;base64,content',
                 onloadend: null as ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null,
             };
 
-            // Mock FileReader as a constructor
-            const FileReaderMock = vi.fn().mockImplementation(() => mockFileReader);
+            // Create a class that returns the same instance object
+            class FileReaderMock {
+                readAsDataURL = mockFileReaderInstance.readAsDataURL;
+                result = mockFileReaderInstance.result;
+                onloadend = mockFileReaderInstance.onloadend;
+
+                constructor() {
+                    // Return the shared instance object
+                    Object.assign(this, mockFileReaderInstance);
+                }
+            }
+
             vi.stubGlobal('FileReader', FileReaderMock);
 
             await user.upload(fileInput, file);
 
-            if (mockFileReader.onloadend) {
+            if (mockFileReaderInstance.onloadend) {
                 const event = new ProgressEvent('loadend') as ProgressEvent<FileReader>;
-                mockFileReader.onloadend.call(mockFileReader as any, event);
+                mockFileReaderInstance.onloadend.call(mockFileReaderInstance as any, event);
             }
 
             await waitFor(() => {
