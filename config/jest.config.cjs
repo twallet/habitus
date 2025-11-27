@@ -2,16 +2,29 @@
  * Root Jest configuration for running all tests (backend + frontend) together
  * This consolidates test results from both projects into a single output
  */
+
+// Load environment variables from .env file before config evaluation
+// This ensures VITE_SERVER_URL and VITE_PORT are available when the config is evaluated
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, ".env") });
+
+// Compute absolute paths relative to this config file
+// This config is in config/, so we go up one level to get the workspace root
+const rootDir = path.join(__dirname, "..");
+const backendDir = path.join(rootDir, "backend");
+const frontendDir = path.join(rootDir, "frontend");
+
 module.exports = {
   projects: [
     {
       displayName: "backend",
       preset: "ts-jest",
       testEnvironment: "node",
-      rootDir: "<rootDir>/backend",
-      roots: ["src"],
+      rootDir: backendDir,
       testMatch: ["**/__tests__/**/*.ts", "**/?(*.)+(spec|test).ts"],
-      setupFilesAfterEnv: ["<rootDir>/backend/src/setup/setupTests.ts"],
+      setupFilesAfterEnv: [
+        path.join(backendDir, "src", "setup", "setupTests.ts"),
+      ],
       transform: {
         "^.+\\.ts$": [
           "ts-jest",
@@ -35,8 +48,7 @@ module.exports = {
       displayName: "frontend",
       preset: "ts-jest",
       testEnvironment: "jsdom",
-      rootDir: "<rootDir>/frontend",
-      roots: ["src"],
+      rootDir: frontendDir,
       testMatch: [
         "**/__tests__/**/*.ts",
         "**/__tests__/**/*.tsx",
@@ -44,9 +56,13 @@ module.exports = {
         "**/?(*.)+(spec|test).tsx",
       ],
       moduleNameMapper: {
-        "^@/(.*)$": "<rootDir>/frontend/src/$1",
-        "\\.(css|less|scss|sass)$":
-          "<rootDir>/frontend/src/__mocks__/styleMock.js",
+        "^@/(.*)$": path.join(frontendDir, "src", "$1"),
+        "\\.(css|less|scss|sass)$": path.join(
+          frontendDir,
+          "src",
+          "__mocks__",
+          "styleMock.js"
+        ),
       },
       globals: (() => {
         if (!process.env.VITE_SERVER_URL) {
@@ -68,7 +84,7 @@ module.exports = {
           },
         };
       })(),
-      setupFilesAfterEnv: ["<rootDir>/frontend/src/setupTests.ts"],
+      setupFilesAfterEnv: [path.join(frontendDir, "src", "setupTests.ts")],
       transform: {
         "^.+\\.tsx?$": [
           "ts-jest",
@@ -87,7 +103,7 @@ module.exports = {
       ],
     },
   ],
-  coverageDirectory: "<rootDir>/coverage",
+  coverageDirectory: path.join(rootDir, "coverage"),
   coverageThreshold: {
     global: {
       branches: 75,
