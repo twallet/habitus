@@ -21,6 +21,11 @@ Object.defineProperty(window, "localStorage", {
   value: localStorageMock,
 });
 
+// Also define on globalThis for global access (TypeScript expects this)
+Object.defineProperty(globalThis, "localStorage", {
+  value: localStorageMock,
+});
+
 // Mock import.meta.env for Vite environment variables
 // Tests will fail if VITE_SERVER_URL or VITE_PORT are not set in environment
 if (!process.env.VITE_SERVER_URL) {
