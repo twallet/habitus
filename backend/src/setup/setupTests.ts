@@ -1,8 +1,9 @@
 /**
- * Jest setup file for backend tests.
+ * Vitest setup file for backend tests.
  * Suppresses console output during tests to keep test output clean.
  */
 
+import { beforeAll, afterAll, vi } from "vitest";
 import path from "path";
 import os from "os";
 import fs from "fs";
@@ -65,8 +66,8 @@ const originalError = console.error;
 
 beforeAll(() => {
   // Suppress console.log and console.warn during tests
-  console.log = jest.fn();
-  console.warn = jest.fn();
+  console.log = vi.fn();
+  console.warn = vi.fn();
 
   // Keep console.error but filter out our custom logging messages
   console.error = (...args: unknown[]) => {

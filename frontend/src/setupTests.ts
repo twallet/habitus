@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import { beforeAll, afterAll, vi } from "vitest";
 
 // Mock localStorage for tests
 const localStorageMock = (() => {
@@ -56,8 +57,8 @@ const originalError = console.error;
 
 beforeAll(() => {
   // Suppress console.log and console.warn during tests
-  console.log = jest.fn();
-  console.warn = jest.fn();
+  console.log = vi.fn();
+  console.warn = vi.fn();
 
   // Keep console.error but filter out React act warnings
   console.error = (...args: unknown[]) => {

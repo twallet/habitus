@@ -8,7 +8,7 @@
         "moduleResolution": "node",
         "types": [
             "node",
-            "jest"
+            "vitest/globals"
         ],
         "rootDir": "./src",
         "outDir": "./dist",

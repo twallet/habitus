@@ -12,20 +12,24 @@
     "build": "npm run build --workspaces",
     "build:frontend": "npm run build --workspace=frontend",
     "build:backend": "npm run build --workspace=backend",
-    "test": "node --no-warnings backend/config/jest-runner.js --coverage",
-    "test:frontend": "npm run test --workspace=frontend",
-    "test:backend": "npm run test --workspace=backend",
-    "test:watch": "jest --config config/jest.config.cjs --rootDir . --watch",
-    "test:coverage": "node backend/config/jest-runner.js --coverage --coverageReporters=text --coverageReporters=html",
+    "test": "vitest run --config config/vitest.workspace.ts --coverage",
+    "test:frontend": "vitest run --config config/vitest.workspace.ts --workspace frontend --coverage",
+    "test:backend": "vitest run --config config/vitest.workspace.ts --workspace backend --coverage",
+    "test:watch": "vitest --config config/vitest.workspace.ts",
+    "test:coverage": "vitest run --config config/vitest.workspace.ts --coverage",
     "lint": "npm run lint --workspace=frontend"
   },
   "devDependencies": {
     "@types/jest": "^29.5.11",
     "@types/node": "^20.10.6",
+    "@vitest/coverage-v8": "^4.0.14",
+    "@vitest/ui": "^4.0.14",
     "dotenv": "^17.2.3",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
+    "jsdom": "^25.0.1",
     "ts-jest": "^29.1.1",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "vitest": "^4.0.14"
   }
 }

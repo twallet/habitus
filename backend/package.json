@@ -6,9 +6,9 @@
     "dev": "nodemon",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "jest --config config/jest.config.cjs --rootDir . --forceExit --passWithNoTests --coverage --coverageDirectory=../coverage",
-    "test:watch": "jest --config config/jest.config.cjs --rootDir . --forceExit --passWithNoTests --watch",
-    "test:coverage": "jest --config config/jest.config.cjs --rootDir . --forceExit --passWithNoTests --coverage --coverageDirectory=../coverage --coverageReporters=text --coverageReporters=html"
+    "test": "vitest run --config ../config/vitest.workspace.ts --workspace backend --coverage",
+    "test:watch": "vitest --config ../config/vitest.workspace.ts --workspace backend",
+    "test:coverage": "vitest run --config ../config/vitest.workspace.ts --workspace backend --coverage"
   },
   "dependencies": {
     "cors": "^2.8.5",

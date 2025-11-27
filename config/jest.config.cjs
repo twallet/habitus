@@ -20,25 +20,8 @@ module.exports = {
       rootDir: paths.backendRoot,
       testMatch: ["**/__tests__/**/*.ts", "**/?(*.)+(spec|test).ts"],
       setupFilesAfterEnv: [paths.backendSetupTests],
-      transform: {
-        "^.+\\.ts$": [
-          "ts-jest",
-          {
-            useESM: true,
-            tsconfig: paths.backendTsconfig,
-            // Ensure moduleNameMapper is applied correctly
-            diagnostics: {
-              ignoreCodes: [151001],
-            },
-          },
-        ],
-      },
-      extensionsToTreatAsEsm: [".ts"],
-      moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
-      // Configure module name mapping to resolve .js imports to .ts files
-      // This is critical for ES modules where imports use .js but files are .ts
-      // IMPORTANT: moduleNameMapper must be defined BEFORE other resolution configs
-      // to ensure it's applied during mock hoisting
+      // Configure module name mapping FIRST - this is critical for jest.mock() calls
+      // The moduleNameMapper must be applied before Jest tries to resolve modules
       moduleNameMapper: {
         // Match relative paths with .js extension and map to .ts files
         // This handles all relative imports: ./path.js, ../path.js, ../../path.js, ../../../path.js, etc.
@@ -52,6 +35,17 @@ module.exports = {
         // Also handle paths without leading ./ or ../ for absolute resolution
         "^src/(.*)\\.js$": "<rootDir>/src/$1",
       },
+      transform: {
+        "^.+\\.ts$": [
+          "ts-jest",
+          {
+            useESM: true,
+            tsconfig: paths.backendTsconfig,
+          },
+        ],
+      },
+      extensionsToTreatAsEsm: [".ts"],
+      moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
       // Ensure Jest can resolve modules from the src directory
       moduleDirectories: ["node_modules", "<rootDir>/src"],
       collectCoverageFrom: [
