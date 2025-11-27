@@ -11,7 +11,7 @@
     "test": "node --no-warnings scripts/run-tests.js --coverage",
     "test:frontend": "cd frontend && npm test",
     "test:backend": "cd backend && npm test",
-    "test:watch": "jest --watch",
+    "test:watch": "jest --config config/jest.config.cjs --watch",
     "test:coverage": "node scripts/run-tests.js --coverage --coverageReporters=text --coverageReporters=html",
     "test:coverage:frontend": "cd frontend && npm run test:coverage",
     "test:coverage:backend": "cd backend && npm test",

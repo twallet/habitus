@@ -11,6 +11,6 @@ export default defineConfig({
   plugins: [react()],
   logLevel: "warn",
   clearScreen: false,
-  // Load .env from project root (parent directory) to unify environment variables
-  envDir: path.resolve(__dirname, ".."),
+  // Load .env from config folder to unify environment variables
+  envDir: path.resolve(__dirname, "../config"),
 });

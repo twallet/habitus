@@ -234,7 +234,12 @@ function outputCoverageTable() {
 }
 
 // Get all arguments passed to this script (skip node and script path)
-const jestArgs = ["jest", ...process.argv.slice(2)];
+const jestArgs = [
+  "jest",
+  "--config",
+  "config/jest.config.cjs",
+  ...process.argv.slice(2),
+];
 if (!jestArgs.includes("--forceExit")) {
   jestArgs.push("--forceExit");
 }
