@@ -9,3 +9,6 @@ await import("../backend/src/setup/setupTests.ts");
 
 // Frontend setup (for jsdom environment)
 await import("../frontend/src/setupTests.ts");
+
+// Make this file a module to allow top-level await
+export {};
