@@ -30,11 +30,12 @@ module.exports = {
           "ts-jest",
           {
             useESM: true,
-            //tsconfig: "tsconfig.json",
+            tsconfig: path.join(backendDir, "tsconfig.json"),
           },
         ],
       },
       extensionsToTreatAsEsm: [".ts"],
+      moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
       moduleNameMapper: {
         "^(\\.{1,2}/.*)\\.js$": "$1",
       },
@@ -90,6 +91,7 @@ module.exports = {
           "ts-jest",
           {
             useESM: false,
+            tsconfig: path.join(frontendDir, "tsconfig.json"),
           },
         ],
       },

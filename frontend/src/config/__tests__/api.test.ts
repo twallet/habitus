@@ -32,8 +32,9 @@ describe("api", () => {
     it("should use globalThis.import.meta.env.VITE_SERVER_URL and VITE_PORT when available", () => {
       // This test verifies the module loads correctly with mocked globalThis
       // The actual values are set in setupTests.ts from environment variables
-      const expectedServerUrl = process.env.VITE_SERVER_URL;
-      const expectedPort = process.env.VITE_PORT;
+      const expectedServerUrl = (globalThis as any).import?.meta?.env
+        ?.VITE_SERVER_URL;
+      const expectedPort = (globalThis as any).import?.meta?.env?.VITE_PORT;
       expect(expectedServerUrl).toBeDefined();
       expect(expectedPort).toBeDefined();
       expect(API_BASE_URL).toBeDefined();
@@ -42,11 +43,13 @@ describe("api", () => {
     });
 
     it("should use process.env.VITE_SERVER_URL and VITE_PORT as fallback", () => {
-      // Set process.env values from environment variables
-      const testServerUrl = process.env.VITE_SERVER_URL;
-      const testPort = process.env.VITE_PORT;
+      // Get values from globalThis.import.meta.env (set in setupTests.ts)
+      const testServerUrl = (globalThis as any).import?.meta?.env
+        ?.VITE_SERVER_URL;
+      const testPort = (globalThis as any).import?.meta?.env?.VITE_PORT;
       expect(testServerUrl).toBeDefined();
       expect(testPort).toBeDefined();
+      // Set process.env values for fallback test
       process.env.VITE_SERVER_URL = testServerUrl;
       process.env.VITE_PORT = testPort;
       // Reload module to pick up new env vars
@@ -57,8 +60,9 @@ describe("api", () => {
 
     it("should construct URL from VITE_SERVER_URL and VITE_PORT", () => {
       // The values are set in setupTests.ts from environment variables
-      const expectedServerUrl = process.env.VITE_SERVER_URL;
-      const expectedPort = process.env.VITE_PORT;
+      const expectedServerUrl = (globalThis as any).import?.meta?.env
+        ?.VITE_SERVER_URL;
+      const expectedPort = (globalThis as any).import?.meta?.env?.VITE_PORT;
       expect(expectedServerUrl).toBeDefined();
       expect(expectedPort).toBeDefined();
       expect(API_BASE_URL).toBeDefined();
