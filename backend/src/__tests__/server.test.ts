@@ -2,7 +2,6 @@ import { vi, beforeEach, afterEach } from "vitest";
 import request from "supertest";
 import express from "express";
 import cors from "cors";
-import * as fs from "fs";
 import { join } from "path";
 
 describe("Server Configuration", () => {
@@ -48,7 +47,8 @@ describe("Server Configuration", () => {
         testApp.set("trust proxy", true);
       }
 
-      expect(testApp.get("trust proxy")).toBeUndefined();
+      // Express returns false by default, not undefined
+      expect(testApp.get("trust proxy")).toBe(false);
     });
   });
 
@@ -144,6 +144,9 @@ describe("Server Configuration", () => {
       const verboseLogging = false;
       const isDevelopment = process.env.NODE_ENV !== "production";
 
+      // Clear any previous console.log calls
+      vi.clearAllMocks();
+
       app.use(
         (
           req: express.Request,
@@ -188,7 +191,9 @@ describe("Server Configuration", () => {
         res.json({});
       });
 
-      const consoleLogSpy = vi.spyOn(console, "log");
+      const consoleLogSpy = vi
+        .spyOn(console, "log")
+        .mockImplementation(() => {});
       await request(app).get("/@vite/client");
 
       // Should not log Vite routes
@@ -335,8 +340,9 @@ describe("Server Configuration", () => {
         const frontendBuildPath = join(workspaceRoot, "frontend", "dist");
         testApp.use(express.static(frontendBuildPath));
 
-        // Verify the path is constructed correctly
-        expect(frontendBuildPath).toBe("/test/workspace/frontend/dist");
+        // Verify the path is constructed correctly (normalize for cross-platform)
+        const normalizedPath = frontendBuildPath.replace(/\\/g, "/");
+        expect(normalizedPath).toBe("/test/workspace/frontend/dist");
       }
 
       expect(isDevelopment).toBe(false);
@@ -357,8 +363,9 @@ describe("Server Configuration", () => {
           res.sendFile(join(frontendBuildPath, "index.html"));
         });
 
-        // Verify the route is configured
-        expect(frontendBuildPath).toBe("/test/workspace/frontend/dist");
+        // Verify the route is configured (normalize for cross-platform)
+        const normalizedPath = frontendBuildPath.replace(/\\/g, "/");
+        expect(normalizedPath).toBe("/test/workspace/frontend/dist");
       }
 
       expect(isDevelopment).toBe(false);
@@ -375,8 +382,6 @@ describe("Server Configuration", () => {
         transformIndexHtml: vi.fn().mockResolvedValue("<html></html>"),
         close: vi.fn().mockResolvedValue(undefined),
       };
-
-      vi.spyOn(fs, "readFileSync").mockReturnValue("<html></html>");
 
       const testApp = express();
 
@@ -396,7 +401,8 @@ describe("Server Configuration", () => {
           }
 
           try {
-            const html = fs.readFileSync(indexHtmlPath, "utf-8");
+            // Mock readFileSync by using a mock implementation
+            const html = "<html></html>";
             const template = await mockViteServer.transformIndexHtml(
               req.originalUrl,
               html
@@ -425,8 +431,6 @@ describe("Server Configuration", () => {
         close: vi.fn().mockResolvedValue(undefined),
       };
 
-      vi.spyOn(fs, "readFileSync").mockReturnValue("<html></html>");
-
       const testApp = express();
 
       if (isDevelopment && mockViteServer) {
@@ -440,10 +444,8 @@ describe("Server Configuration", () => {
           }
 
           try {
-            const html = fs.readFileSync(
-              join("/test/workspace", "frontend", "index.html"),
-              "utf-8"
-            );
+            // Mock readFileSync by using a mock implementation
+            const html = "<html></html>";
             const template = await mockViteServer.transformIndexHtml(
               req.originalUrl,
               html
@@ -472,8 +474,6 @@ describe("Server Configuration", () => {
         close: vi.fn().mockResolvedValue(undefined),
       };
 
-      vi.spyOn(fs, "readFileSync").mockReturnValue("<html></html>");
-
       const testApp = express();
       testApp.get("/health", (_req, res) => {
         res.json({ status: "ok" });
@@ -490,10 +490,8 @@ describe("Server Configuration", () => {
           }
 
           try {
-            const html = fs.readFileSync(
-              join("/test/workspace", "frontend", "index.html"),
-              "utf-8"
-            );
+            // Mock readFileSync by using a mock implementation
+            const html = "<html></html>";
             const template = await mockViteServer.transformIndexHtml(
               req.originalUrl,
               html
@@ -524,8 +522,6 @@ describe("Server Configuration", () => {
         close: vi.fn().mockResolvedValue(undefined),
       };
 
-      vi.spyOn(fs, "readFileSync").mockReturnValue("<html></html>");
-
       const testApp = express();
       let errorHandled = false;
 
@@ -540,10 +536,8 @@ describe("Server Configuration", () => {
           }
 
           try {
-            const html = fs.readFileSync(
-              join("/test/workspace", "frontend", "index.html"),
-              "utf-8"
-            );
+            // Mock readFileSync by using a mock implementation
+            const html = "<html></html>";
             const template = await mockViteServer.transformIndexHtml(
               req.originalUrl,
               html

@@ -212,7 +212,12 @@ describe('EditProfileModal', () => {
       <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={errorSave} />
     );
 
-    // Clear any previous calls to mockOnClose
+    // Wait for modal to be fully rendered
+    await waitFor(() => {
+      expect(screen.getByText('Edit Profile')).toBeInTheDocument();
+    });
+
+    // Clear any previous calls to mockOnClose after render
     mockOnClose.mockClear();
 
     const saveButton = screen.getByRole('button', { name: /save changes/i });
