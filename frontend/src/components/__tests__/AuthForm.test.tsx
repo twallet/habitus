@@ -421,15 +421,19 @@ describe('AuthForm', () => {
                 onloadend: null as ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null,
             };
 
-            // Create a class that returns the same instance object
+            // Create a class that shares the same instance object using getters/setters
             class FileReaderMock {
-                readAsDataURL = mockFileReaderInstance.readAsDataURL;
-                result = mockFileReaderInstance.result;
-                onloadend = mockFileReaderInstance.onloadend;
-
-                constructor() {
-                    // Return the shared instance object
-                    Object.assign(this, mockFileReaderInstance);
+                get readAsDataURL() {
+                    return mockFileReaderInstance.readAsDataURL;
+                }
+                get result() {
+                    return mockFileReaderInstance.result;
+                }
+                get onloadend() {
+                    return mockFileReaderInstance.onloadend;
+                }
+                set onloadend(value) {
+                    mockFileReaderInstance.onloadend = value;
                 }
             }
 

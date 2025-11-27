@@ -4,17 +4,25 @@ import { vi, type Mock } from "vitest";
 process.env.NODE_ENV = process.env.NODE_ENV || "test";
 
 // Mock EmailService - create mock instance methods
-const mockEmailServiceInstance = {
-  sendMagicLink: vi.fn().mockResolvedValue(undefined),
-  sendEmail: vi.fn().mockResolvedValue(undefined),
-};
+const { mockEmailServiceInstance } = vi.hoisted(() => ({
+  mockEmailServiceInstance: {
+    sendMagicLink: vi.fn().mockResolvedValue(undefined),
+    sendEmail: vi.fn().mockResolvedValue(undefined),
+  },
+}));
 
 // Mock EmailService - path must match the import path exactly
 // Mocks must be declared before imports in ES modules
 // Note: Using .js extension to match the import, Vitest will resolve to .ts
-vi.mock("../../services/emailService.js", () => ({
-  EmailService: vi.fn().mockImplementation(() => mockEmailServiceInstance),
-}));
+vi.mock("../../services/emailService.js", () => {
+  class EmailServiceMock {
+    sendMagicLink = mockEmailServiceInstance.sendMagicLink;
+    sendEmail = mockEmailServiceInstance.sendEmail;
+  }
+  return {
+    EmailService: EmailServiceMock,
+  };
+});
 
 // Mock authenticateToken before importing the router
 vi.mock("../../middleware/authMiddleware.js", () => ({

@@ -70,11 +70,11 @@ describe('Message', () => {
 
     expect(mockOnHide).not.toHaveBeenCalled();
 
+    // Advance timers by 5 seconds
     vi.advanceTimersByTime(5000);
 
-    await waitFor(() => {
-      expect(mockOnHide).toHaveBeenCalledTimes(1);
-    }, { timeout: 100 });
+    // With fake timers, the callback should be called immediately after advancing
+    expect(mockOnHide).toHaveBeenCalledTimes(1);
 
     // Cleanup
     unmount();

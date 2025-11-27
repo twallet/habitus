@@ -4,6 +4,7 @@ import { UserService } from "../userService.js";
 import { Database } from "../../db/database.js";
 import fs from "fs";
 import path from "path";
+import * as uploadModule from "../../middleware/upload.js";
 
 // Mock the upload module
 vi.mock("../../middleware/upload.js", () => ({
@@ -258,7 +259,7 @@ describe("UserService", () => {
     });
 
     it("should delete profile picture file when user has profile picture URL", async () => {
-      const { getUploadsDirectory } = require("../../middleware/upload.js");
+      const { getUploadsDirectory } = uploadModule;
       const result = await testDb.run(
         "INSERT INTO users (name, email, profile_picture_url) VALUES (?, ?, ?)",
         [
@@ -270,7 +271,9 @@ describe("UserService", () => {
       const userId = result.lastID;
 
       // Mock fs and getUploadsDirectory
-      const mockUnlinkSync = vi.spyOn(fs, "unlinkSync").mockImplementation();
+      const mockUnlinkSync = vi
+        .spyOn(fs, "unlinkSync")
+        .mockImplementation(() => {});
       const mockExistsSync = vi.spyOn(fs, "existsSync").mockReturnValue(true);
       (getUploadsDirectory as Mock).mockReturnValue("/test/uploads");
       const mockPathJoin = vi
@@ -304,7 +307,7 @@ describe("UserService", () => {
     });
 
     it("should handle missing profile picture file gracefully", async () => {
-      const { getUploadsDirectory } = require("../../middleware/upload.js");
+      const { getUploadsDirectory } = uploadModule;
       const result = await testDb.run(
         "INSERT INTO users (name, email, profile_picture_url) VALUES (?, ?, ?)",
         [
@@ -337,7 +340,7 @@ describe("UserService", () => {
     });
 
     it("should handle invalid profile picture URL format gracefully", async () => {
-      const { getUploadsDirectory } = require("../../middleware/upload.js");
+      const { getUploadsDirectory } = uploadModule;
       const result = await testDb.run(
         "INSERT INTO users (name, email, profile_picture_url) VALUES (?, ?, ?)",
         ["Test User", "test@example.com", "invalid-url-format"]
@@ -361,7 +364,7 @@ describe("UserService", () => {
     });
 
     it("should handle file deletion errors gracefully and still delete user", async () => {
-      const { getUploadsDirectory } = require("../../middleware/upload.js");
+      const { getUploadsDirectory } = uploadModule;
       const result = await testDb.run(
         "INSERT INTO users (name, email, profile_picture_url) VALUES (?, ?, ?)",
         [
@@ -395,7 +398,7 @@ describe("UserService", () => {
     });
 
     it("should delete user without profile picture URL", async () => {
-      const { getUploadsDirectory } = require("../../middleware/upload.js");
+      const { getUploadsDirectory } = uploadModule;
       const result = await testDb.run(
         "INSERT INTO users (name, email) VALUES (?, ?)",
         ["Test User", "test@example.com"]

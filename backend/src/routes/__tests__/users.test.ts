@@ -7,6 +7,7 @@ import { UserService } from "../../services/userService.js";
 import * as servicesModule from "../../services/index.js";
 import usersRouter from "../users.js";
 import * as authMiddleware from "../../middleware/authMiddleware.js";
+import * as uploadModule from "../../middleware/upload.js";
 
 // Mock services module before importing router
 vi.mock("../../services/index.js", () => ({
@@ -227,8 +228,7 @@ describe("Users Routes", () => {
       );
 
       // Mock upload middleware to set req.file
-      const uploadMiddleware = require("../../middleware/upload.js");
-      (uploadMiddleware.uploadProfilePicture as Mock).mockImplementation(
+      (uploadModule.uploadProfilePicture as Mock).mockImplementation(
         (req: any, _res: any, next: any) => {
           req.file = undefined;
           next();

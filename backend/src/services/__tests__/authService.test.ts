@@ -14,12 +14,15 @@ const { mockFunctions } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("../emailService.js", () => ({
-  EmailService: vi.fn().mockImplementation(() => ({
-    sendMagicLink: mockFunctions.sendMagicLink,
-    sendEmail: mockFunctions.sendEmail,
-  })),
-}));
+vi.mock("../emailService.js", () => {
+  class EmailServiceMock {
+    sendMagicLink = mockFunctions.sendMagicLink;
+    sendEmail = mockFunctions.sendEmail;
+  }
+  return {
+    EmailService: EmailServiceMock,
+  };
+});
 
 /**
  * Create an in-memory database for testing.
