@@ -13,6 +13,12 @@ const rootDir = join(__dirname, "..");
 
 let fullOutput = "";
 
+// Coverage table buffer
+let coverageTableBuffer = [];
+let inCoverageTable = false;
+let coverageTableHeader = null;
+let coverageTableSeparator = null;
+
 // ANSI color codes
 const colors = {
   reset: "\x1b[0m",
@@ -152,6 +158,80 @@ function colorizeLine(line) {
   return line;
 }
 
+/**
+ * Check if a line is part of the coverage table
+ */
+function isCoverageTableLine(line) {
+  // Header line
+  if (line.includes("File") && line.includes("% Stmts")) {
+    return "header";
+  }
+  // Separator line
+  if (line.match(/^-+\|/)) {
+    return "separator";
+  }
+  // "All files" summary line
+  if (line.match(/All files\s+\|/)) {
+    return "all-files";
+  }
+  // Regular file row (has percentages)
+  if (
+    line.match(
+      /\|\s+(\d+\.?\d*)\s+\|\s+(\d+\.?\d*)\s+\|\s+(\d+\.?\d*)\s+\|\s+(\d+\.?\d*)\s+\|/
+    )
+  ) {
+    return "file-row";
+  }
+  return false;
+}
+
+/**
+ * Process and output buffered coverage table with "All files" at the end
+ */
+function outputCoverageTable() {
+  if (coverageTableBuffer.length === 0) return;
+
+  // Separate lines by type
+  const header = coverageTableHeader;
+  const separator = coverageTableSeparator;
+  const allFilesLine = coverageTableBuffer.find(
+    (item) => item.type === "all-files"
+  );
+  const fileRows = coverageTableBuffer.filter(
+    (item) => item.type === "file-row"
+  );
+
+  // Output in order: header, separator, file rows, "All files"
+  if (header) {
+    const coloredLine = colorizeLine(header.line);
+    process.stdout.write(coloredLine + "\n");
+    fullOutput += header.line + "\n";
+  }
+  if (separator) {
+    const coloredLine = colorizeLine(separator.line);
+    process.stdout.write(coloredLine + "\n");
+    fullOutput += separator.line + "\n";
+  }
+  // Output file rows
+  fileRows.forEach((item) => {
+    const coloredLine = colorizeLine(item.line);
+    process.stdout.write(coloredLine + "\n");
+    fullOutput += item.line + "\n";
+  });
+  // Output "All files" at the end
+  if (allFilesLine) {
+    const coloredLine = colorizeLine(allFilesLine.line);
+    process.stdout.write(coloredLine + "\n");
+    fullOutput += allFilesLine.line + "\n";
+  }
+
+  // Reset buffer
+  coverageTableBuffer = [];
+  coverageTableHeader = null;
+  coverageTableSeparator = null;
+  inCoverageTable = false;
+}
+
 // Get all arguments passed to this script (skip node and script path)
 const jestArgs = ["jest", ...process.argv.slice(2)];
 if (!jestArgs.includes("--forceExit")) {
@@ -179,10 +259,38 @@ jestProcess.stdout.on("data", (data) => {
       !line.includes("Force exiting Jest") &&
       !line.includes("DEP0190")
     ) {
-      const coloredLine = colorizeLine(line);
-      const outputLine = coloredLine + "\n";
-      process.stdout.write(outputLine);
-      fullOutput += line + "\n"; // Store original without colors
+      const tableLineType = isCoverageTableLine(line);
+
+      if (tableLineType) {
+        // We're in a coverage table
+        if (tableLineType === "header") {
+          // Start of new table - output previous table if any
+          if (inCoverageTable) {
+            outputCoverageTable();
+          }
+          inCoverageTable = true;
+          coverageTableHeader = { line, type: "header" };
+        } else if (tableLineType === "separator") {
+          coverageTableSeparator = { line, type: "separator" };
+        } else {
+          // "All files" or file row
+          coverageTableBuffer.push({ line, type: tableLineType });
+        }
+      } else {
+        // Not a table line
+        if (inCoverageTable) {
+          // End of table - output buffered table
+          outputCoverageTable();
+        }
+        // Output regular line
+        const coloredLine = colorizeLine(line);
+        const outputLine = coloredLine + "\n";
+        process.stdout.write(outputLine);
+        fullOutput += line + "\n"; // Store original without colors
+      }
+    } else if (!line.trim() && inCoverageTable) {
+      // Empty line might indicate end of table
+      // But wait for next non-empty line to confirm
     }
   });
 });
@@ -198,33 +306,98 @@ jestProcess.stderr.on("data", (data) => {
       !line.includes("Force exiting Jest") &&
       !line.includes("DEP0190")
     ) {
-      const coloredLine = colorizeLine(line);
-      const outputLine = coloredLine + "\n";
-      process.stderr.write(outputLine);
-      fullOutput += line + "\n"; // Store original without colors
+      const tableLineType = isCoverageTableLine(line);
+
+      if (tableLineType) {
+        // We're in a coverage table
+        if (tableLineType === "header") {
+          // Start of new table - output previous table if any
+          if (inCoverageTable) {
+            outputCoverageTable();
+          }
+          inCoverageTable = true;
+          coverageTableHeader = { line, type: "header" };
+        } else if (tableLineType === "separator") {
+          coverageTableSeparator = { line, type: "separator" };
+        } else {
+          // "All files" or file row
+          coverageTableBuffer.push({ line, type: tableLineType });
+        }
+      } else {
+        // Not a table line
+        if (inCoverageTable) {
+          // End of table - output buffered table
+          outputCoverageTable();
+        }
+        // Output regular line
+        const coloredLine = colorizeLine(line);
+        const outputLine = coloredLine + "\n";
+        process.stderr.write(outputLine);
+        fullOutput += line + "\n"; // Store original without colors
+      }
+    } else if (!line.trim() && inCoverageTable) {
+      // Empty line might indicate end of table
+      // But wait for next non-empty line to confirm
     }
   });
 });
 
 jestProcess.on("close", (code) => {
+  // Flush any remaining coverage table
+  if (inCoverageTable) {
+    outputCoverageTable();
+  }
+
   // Flush remaining buffers
   if (
     stdoutBuffer.trim() &&
     !stdoutBuffer.includes("Force exiting Jest") &&
     !stdoutBuffer.includes("DEP0190")
   ) {
-    const coloredBuffer = colorizeLine(stdoutBuffer);
-    process.stdout.write(coloredBuffer);
-    fullOutput += stdoutBuffer;
+    const tableLineType = isCoverageTableLine(stdoutBuffer);
+    if (tableLineType) {
+      // Handle as table line
+      if (tableLineType === "header") {
+        coverageTableHeader = { line: stdoutBuffer, type: "header" };
+        inCoverageTable = true;
+      } else if (tableLineType === "separator") {
+        coverageTableSeparator = { line: stdoutBuffer, type: "separator" };
+      } else {
+        coverageTableBuffer.push({ line: stdoutBuffer, type: tableLineType });
+      }
+      if (inCoverageTable) {
+        outputCoverageTable();
+      }
+    } else {
+      const coloredBuffer = colorizeLine(stdoutBuffer);
+      process.stdout.write(coloredBuffer);
+      fullOutput += stdoutBuffer;
+    }
   }
   if (
     stderrBuffer.trim() &&
     !stderrBuffer.includes("Force exiting Jest") &&
     !stderrBuffer.includes("DEP0190")
   ) {
-    const coloredBuffer = colorizeLine(stderrBuffer);
-    process.stderr.write(coloredBuffer);
-    fullOutput += stderrBuffer;
+    const tableLineType = isCoverageTableLine(stderrBuffer);
+    if (tableLineType) {
+      // Handle as table line
+      if (tableLineType === "header") {
+        coverageTableHeader = { line: stderrBuffer, type: "header" };
+        inCoverageTable = true;
+      } else if (tableLineType === "separator") {
+        coverageTableSeparator = { line: stderrBuffer, type: "separator" };
+      } else {
+        coverageTableBuffer.push({ line: stderrBuffer, type: tableLineType });
+      }
+      if (inCoverageTable) {
+        outputCoverageTable();
+      }
+    } else {
+      const coloredBuffer = colorizeLine(stderrBuffer);
+      process.stderr.write(coloredBuffer);
+      fullOutput += stderrBuffer;
+    }
   }
   // Write full output to file for debugging
   try {
