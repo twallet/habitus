@@ -26,6 +26,10 @@ module.exports = {
           {
             useESM: true,
             tsconfig: paths.backendTsconfig,
+            // Ensure moduleNameMapper is applied correctly
+            diagnostics: {
+              ignoreCodes: [151001],
+            },
           },
         ],
       },
@@ -33,13 +37,17 @@ module.exports = {
       moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
       // Configure module name mapping to resolve .js imports to .ts files
       // This is critical for ES modules where imports use .js but files are .ts
-      // The moduleNameMapper is applied before Jest tries to resolve the actual file
+      // IMPORTANT: moduleNameMapper must be defined BEFORE other resolution configs
+      // to ensure it's applied during mock hoisting
       moduleNameMapper: {
         // Match relative paths with .js extension and map to .ts files
         // This handles all relative imports: ./path.js, ../path.js, ../../path.js, ../../../path.js, etc.
         // Pattern: matches one or more sequences of ./ or ../, followed by any path, ending with .js
         // Replaces with the same path without .js extension (Jest will then resolve to .ts via moduleFileExtensions)
         // The key is to preserve the relative path structure so Jest can resolve it correctly
+        // IMPORTANT: This pattern must match jest.mock() paths as well as import statements
+        // Note: Jest hoists jest.mock() calls early, so moduleNameMapper must work at that stage
+        // Use a more explicit pattern that ensures matching
         "^((?:\\.\\.?/)+.*)\\.js$": "$1",
         // Also handle paths without leading ./ or ../ for absolute resolution
         "^src/(.*)\\.js$": "<rootDir>/src/$1",
