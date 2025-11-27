@@ -5,16 +5,15 @@
 module.exports = {
   preset: "ts-jest",
   testEnvironment: "node",
-  rootDir: "<rootDir>/backend",
   roots: ["src"],
   testMatch: ["**/__tests__/**/*.ts", "**/?(*.)+(spec|test).ts"],
-  setupFilesAfterEnv: ["<rootDir>/backend/src/setupTests.ts"],
+  setupFilesAfterEnv: ["<rootDir>/src/setupTests.ts"],
   transform: {
     "^.+\\.ts$": [
       "ts-jest",
       {
         useESM: true,
-        tsconfig: "<rootDir>/backend/tsconfig.json",
+        tsconfig: "<rootDir>/tsconfig.json",
       },
     ],
   },
@@ -32,4 +31,3 @@ module.exports = {
     },
   },
 };
-
