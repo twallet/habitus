@@ -6,9 +6,9 @@
     "dev": "nodemon",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "jest --config jest.config.cjs --forceExit --passWithNoTests --coverage --coverageDirectory=../coverage",
-    "test:watch": "jest --config jest.config.cjs --forceExit --passWithNoTests --watch",
-    "test:coverage": "jest --config jest.config.cjs --forceExit --passWithNoTests --coverage --coverageDirectory=../coverage --coverageReporters=text --coverageReporters=html"
+    "test": "jest --config ../config/jest.backend.config.cjs --rootDir . --forceExit --passWithNoTests --coverage --coverageDirectory=../coverage",
+    "test:watch": "jest --config ../config/jest.backend.config.cjs --rootDir . --forceExit --passWithNoTests --watch",
+    "test:coverage": "jest --config ../config/jest.backend.config.cjs --rootDir . --forceExit --passWithNoTests --coverage --coverageDirectory=../coverage --coverageReporters=text --coverageReporters=html"
   },
   "dependencies": {
     "cors": "^2.8.5",

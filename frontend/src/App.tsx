@@ -448,7 +448,7 @@ function App() {
       <div className="container">
         <header>
           <h1>
-            <img src="/te-verde.png" alt="🌱" style={{ height: '1em', width: 'auto', verticalAlign: 'baseline', marginRight: '0.4em', display: 'inline-block' }} />
+            <img src="/assets/images/te-verde.png" alt="🌱" style={{ height: '1em', width: 'auto', verticalAlign: 'baseline', marginRight: '0.4em', display: 'inline-block' }} />
             Habitus
           </h1>
         </header>
@@ -498,7 +498,7 @@ function App() {
       <header className="app-header">
         <div>
           <h1>
-            <img src="/te-verde.png" alt="🌱" style={{ height: '1em', width: 'auto', verticalAlign: 'baseline', marginRight: '0.4em', display: 'inline-block' }} />
+            <img src="/assets/images/te-verde.png" alt="🌱" style={{ height: '1em', width: 'auto', verticalAlign: 'baseline', marginRight: '0.4em', display: 'inline-block' }} />
             Habitus
           </h1>
           {message && message.type === 'success' && (

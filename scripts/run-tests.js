@@ -409,7 +409,11 @@ jestProcess.on("close", (code) => {
   }
   // Write full output to file for debugging
   try {
-    writeFileSync(join(__dirname, "test-output.log"), fullOutput, "utf8");
+    writeFileSync(
+      join(rootDir, "coverage", "test-output.log"),
+      fullOutput,
+      "utf8"
+    );
   } catch (err) {
     // Ignore file write errors
   }

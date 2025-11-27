@@ -1,15 +1,20 @@
+/**
+ * Backend Jest configuration
+ * Moved from backend/jest.config.cjs to centralize config files
+ */
 module.exports = {
   preset: "ts-jest",
   testEnvironment: "node",
-  roots: ["<rootDir>/src"],
+  rootDir: "<rootDir>/backend",
+  roots: ["src"],
   testMatch: ["**/__tests__/**/*.ts", "**/?(*.)+(spec|test).ts"],
-  setupFilesAfterEnv: ["<rootDir>/src/setupTests.ts"],
+  setupFilesAfterEnv: ["<rootDir>/backend/src/setupTests.ts"],
   transform: {
     "^.+\\.ts$": [
       "ts-jest",
       {
         useESM: true,
-        tsconfig: "./tsconfig.json",
+        tsconfig: "<rootDir>/backend/tsconfig.json",
       },
     ],
   },
@@ -27,3 +32,4 @@ module.exports = {
     },
   },
 };
+
