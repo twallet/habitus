@@ -117,8 +117,8 @@ describe("TrackingForm", () => {
     });
 
     it("should clear form after successful submission", async () => {
-        const user = userEvent.setup();
         render(<TrackingForm onSubmit={mockOnSubmit} />);
+        const user = userEvent.setup();
 
         const questionInput = screen.getByLabelText(/question/i) as HTMLTextAreaElement;
         await user.type(questionInput, "Did I exercise?");
