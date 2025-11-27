@@ -32,6 +32,8 @@ vite.config.ts.timestamp-*.mjs
 .env.local
 .env.production.local
 .env.development.local
+# Allow .env.example to be tracked (it's a template file)
+!.env.example
 
 # Testing
 coverage
