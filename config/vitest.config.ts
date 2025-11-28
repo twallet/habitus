@@ -31,6 +31,8 @@ export default defineConfig({
     ],
     // Exclude node_modules and dist
     exclude: ["**/node_modules/**", "**/dist/**"],
+    // Force reporter to always output (even when not in TTY)
+    reporter: ["verbose"],
     // Coverage configuration
     coverage: {
       provider: "v8",
