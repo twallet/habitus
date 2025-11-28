@@ -206,9 +206,11 @@ describe('EditProfileModal', () => {
 
   it('should show error message on save failure', async () => {
     const errorSave = vi.fn().mockRejectedValue(new Error('Save failed'));
+    // Create a separate spy to track onClose calls more accurately
+    const onCloseSpy = vi.fn();
 
     render(
-      <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={errorSave} />
+      <EditProfileModal user={mockUser} onClose={onCloseSpy} onSave={errorSave} />
     );
 
     // Wait for modal to be fully rendered
@@ -216,52 +218,34 @@ describe('EditProfileModal', () => {
       expect(screen.getByText('Edit Profile')).toBeInTheDocument();
     });
 
-    // Clear any previous calls to mockOnClose after render
-    mockOnClose.mockClear();
-
     // Get the form element
     const form = screen.getByRole('button', { name: /save changes/i }).closest('form') as HTMLFormElement;
     expect(form).toBeTruthy();
 
     // Verify onClose hasn't been called before submitting
-    expect(mockOnClose).not.toHaveBeenCalled();
+    expect(onCloseSpy).not.toHaveBeenCalled();
 
-    // Get the modal content to ensure we understand the DOM structure
-    const modalContent = form.closest('.modal-content');
-    expect(modalContent).toBeTruthy();
-
-    // The modal-content has onClick with stopPropagation, but we need to ensure
-    // the submit event doesn't trigger any click events on the overlay
-    // We'll use fireEvent.submit with bubbles: false and also ensure the form
-    // submission happens without triggering overlay clicks
-
-    // Create a submit event that won't bubble
-    const submitEvent = new Event('submit', { bubbles: false, cancelable: true });
-    Object.defineProperty(submitEvent, 'target', { value: form, enumerable: true });
-    Object.defineProperty(submitEvent, 'currentTarget', { value: form, enumerable: true });
-
-    // Prevent the event from bubbling
-    submitEvent.stopPropagation = vi.fn(() => {
-      (submitEvent as any).cancelBubble = true;
-    });
-    submitEvent.preventDefault = vi.fn();
-
-    // Dispatch the event directly on the form
-    form.dispatchEvent(submitEvent);
+    // Submit the form directly using fireEvent.submit with bubbles: false
+    // This bypasses any click event propagation issues with the overlay
+    // The form's onSubmit handler will be called, which should handle the error correctly
+    fireEvent.submit(form, { bubbles: false, cancelable: true });
 
     // Wait for error message to appear
     await waitFor(() => {
       expect(screen.getByText(/save failed/i)).toBeInTheDocument();
     }, { timeout: 3000 });
 
-    // Wait a bit more to ensure all async operations and state updates complete
+    // Wait for the async operation to complete (onSave is async and will reject)
+    // After the error, the modal should still be open
     await waitFor(() => {
+      // Verify error message is visible
+      expect(screen.getByText(/save failed/i)).toBeInTheDocument();
       // Verify modal is still open (title should still be visible)
       expect(screen.getByText('Edit Profile')).toBeInTheDocument();
     });
 
-    // Give a small delay to ensure all async operations complete
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Give a small delay to ensure all async operations and state updates complete
+    await new Promise(resolve => setTimeout(resolve, 200));
 
     // Verify modal is still open (title should still be visible)
     expect(screen.getByText('Edit Profile')).toBeInTheDocument();
@@ -269,14 +253,11 @@ describe('EditProfileModal', () => {
     expect(screen.getByText(/save failed/i)).toBeInTheDocument();
 
     // Verify onClose was not called after the error
-    // Note: onClose should only be called on successful save, not on error
-    // The modal-content div has onClick with stopPropagation, so clicks inside shouldn't trigger overlay's onClick
-    // However, if onClose was called, it means either:
-    // 1. The event propagated to the overlay (which shouldn't happen due to stopPropagation)
-    // 2. onClose was called from somewhere else in the code
-    // Since the component only calls onClose() on line 113 (after successful save), 
-    // and we're testing an error case, onClose should not be called
-    expect(mockOnClose).not.toHaveBeenCalled();
+    // Note: onClose should only be called on successful save (line 113 in EditProfileModal.tsx), not on error
+    // The component's handleSubmit only calls onClose() after await onSave() succeeds (line 113)
+    // When onSave rejects, it goes to the catch block (line 114-115) which sets the error and does NOT call onClose
+    // The modal-content div has onClick with stopPropagation (line 140), so clicks inside shouldn't trigger overlay's onClick (line 139)
+    expect(onCloseSpy).not.toHaveBeenCalled();
   });
 
   it('should close error message when close button is clicked', async () => {
