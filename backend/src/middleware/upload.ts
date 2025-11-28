@@ -170,8 +170,22 @@ export class UploadConfig {
   }
 }
 
-// Create singleton instance
-const uploadConfig = new UploadConfig();
+// Lazy singleton instance - only created when first accessed
+// This ensures environment variables are loaded before UploadConfig is instantiated
+let uploadConfig: UploadConfig | null = null;
+
+/**
+ * Get the upload config singleton instance.
+ * Creates the instance lazily on first access.
+ * @returns The upload config instance
+ * @private
+ */
+function getUploadConfig(): UploadConfig {
+  if (!uploadConfig) {
+    uploadConfig = new UploadConfig();
+  }
+  return uploadConfig;
+}
 
 /**
  * Multer middleware for profile picture uploads.
@@ -179,7 +193,9 @@ const uploadConfig = new UploadConfig();
  * Max file size: 5MB
  * @public
  */
-export const uploadProfilePicture = uploadConfig.getProfilePictureMiddleware();
+export function uploadProfilePicture() {
+  return getUploadConfig().getProfilePictureMiddleware();
+}
 
 /**
  * Get the uploads directory path.
@@ -187,5 +203,5 @@ export const uploadProfilePicture = uploadConfig.getProfilePictureMiddleware();
  * @public
  */
 export function getUploadsDirectory(): string {
-  return uploadConfig.getUploadsDirectory();
+  return getUploadConfig().getUploadsDirectory();
 }
