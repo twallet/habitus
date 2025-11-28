@@ -191,11 +191,18 @@ function getUploadConfig(): UploadConfig {
  * Multer middleware for profile picture uploads.
  * Single file upload with field name "profilePicture".
  * Max file size: 5MB
+ * This is a lazy getter that creates the middleware on first access.
  * @public
  */
-export function uploadProfilePicture() {
-  return getUploadConfig().getProfilePictureMiddleware();
-}
+export const uploadProfilePicture = (() => {
+  let middleware: ReturnType<multer.Multer["single"]> | null = null;
+  return (req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
+    if (!middleware) {
+      middleware = getUploadConfig().getProfilePictureMiddleware();
+    }
+    return middleware(req, res, next);
+  };
+})();
 
 /**
  * Get the uploads directory path.
