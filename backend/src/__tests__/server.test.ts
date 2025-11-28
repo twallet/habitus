@@ -780,6 +780,13 @@ describe("Server Configuration - Integration Tests", () => {
       servers.push(server);
       let isShuttingDown = false;
 
+      // Start the server before trying to close it
+      await new Promise<void>((resolve) => {
+        server.listen(0, () => {
+          resolve();
+        });
+      });
+
       const shutdown = async (signal: string) => {
         if (isShuttingDown) {
           return;
@@ -818,24 +825,31 @@ describe("Server Configuration - Integration Tests", () => {
       mockDbClose.mockResolvedValue(undefined);
       mockInitializeServices.mockReturnValue(undefined);
 
-      // Mock app.listen to prevent actual server from starting
-      const mockListen = vi.fn((port: number, callback?: () => void) => {
-        if (callback) callback();
-        return {
-          close: vi.fn((cb?: (err?: Error) => void) => {
-            if (cb) cb();
-          }),
-        } as unknown as Server;
-      });
+      // Mock express module using vi.doMock
+      // Note: vi.doMock factory must be synchronous, but we can use the already-imported express
+      // Since express is imported at the top of this file, we can reference it in the factory
+      vi.doMock("express", () => {
+        // Use the express that's already imported at the top of this test file
+        // This creates a closure over the imported express
+        const realExpress = express;
 
-      // Get express module and mock it
-      const expressModule = await import("express");
-      const originalExpress = expressModule.default;
-      const expressSpy = vi.spyOn(expressModule, "default");
-      expressSpy.mockImplementation(() => {
-        const app = originalExpress();
-        app.listen = mockListen as unknown as typeof app.listen;
-        return app;
+        return {
+          default: () => {
+            const app = realExpress();
+            // Mock listen to prevent actual server from starting
+            const mockServer = {
+              close: vi.fn((cb?: (err?: Error) => void) => {
+                if (cb) cb();
+              }),
+            } as unknown as Server;
+
+            app.listen = vi.fn((port: number, callback?: () => void) => {
+              if (callback) callback();
+              return mockServer;
+            }) as unknown as typeof app.listen;
+            return app;
+          },
+        };
       });
 
       // Clear module cache to ensure fresh import
@@ -859,7 +873,6 @@ describe("Server Configuration - Integration Tests", () => {
       }
 
       // Restore
-      expressSpy.mockRestore();
       vi.restoreAllMocks();
     });
 
@@ -869,22 +882,31 @@ describe("Server Configuration - Integration Tests", () => {
       mockDbInitialize.mockResolvedValue(undefined);
       mockInitializeServices.mockReturnValue(undefined);
 
-      const expressModule = await import("express");
-      const originalExpress = expressModule.default;
-      const mockListen = vi.fn((port: number, callback?: () => void) => {
-        if (callback) callback();
-        return {
-          close: vi.fn((cb?: (err?: Error) => void) => {
-            if (cb) cb();
-          }),
-        } as unknown as Server;
-      });
+      // Mock express module using vi.doMock
+      // Note: vi.doMock factory must be synchronous, but we can use the already-imported express
+      // Since express is imported at the top of this file, we can reference it in the factory
+      vi.doMock("express", () => {
+        // Use the express that's already imported at the top of this test file
+        // This creates a closure over the imported express
+        const realExpress = express;
 
-      const expressSpy = vi.spyOn(expressModule, "default");
-      expressSpy.mockImplementation(() => {
-        const app = originalExpress();
-        app.listen = mockListen as unknown as typeof app.listen;
-        return app;
+        return {
+          default: () => {
+            const app = realExpress();
+            // Mock listen to prevent actual server from starting
+            const mockServer = {
+              close: vi.fn((cb?: (err?: Error) => void) => {
+                if (cb) cb();
+              }),
+            } as unknown as Server;
+
+            app.listen = vi.fn((port: number, callback?: () => void) => {
+              if (callback) callback();
+              return mockServer;
+            }) as unknown as typeof app.listen;
+            return app;
+          },
+        };
       });
 
       vi.resetModules();
@@ -897,7 +919,6 @@ describe("Server Configuration - Integration Tests", () => {
         expect(error).toBeDefined();
       }
 
-      expressSpy.mockRestore();
       vi.restoreAllMocks();
     });
 
@@ -907,22 +928,31 @@ describe("Server Configuration - Integration Tests", () => {
       mockDbInitialize.mockResolvedValue(undefined);
       mockInitializeServices.mockReturnValue(undefined);
 
-      const expressModule = await import("express");
-      const originalExpress = expressModule.default;
-      const mockListen = vi.fn((port: number, callback?: () => void) => {
-        if (callback) callback();
-        return {
-          close: vi.fn((cb?: (err?: Error) => void) => {
-            if (cb) cb();
-          }),
-        } as unknown as Server;
-      });
+      // Mock express module using vi.doMock
+      // Note: vi.doMock factory must be synchronous, but we can use the already-imported express
+      // Since express is imported at the top of this file, we can reference it in the factory
+      vi.doMock("express", () => {
+        // Use the express that's already imported at the top of this test file
+        // This creates a closure over the imported express
+        const realExpress = express;
 
-      const expressSpy = vi.spyOn(expressModule, "default");
-      expressSpy.mockImplementation(() => {
-        const app = originalExpress();
-        app.listen = mockListen as unknown as typeof app.listen;
-        return app;
+        return {
+          default: () => {
+            const app = realExpress();
+            // Mock listen to prevent actual server from starting
+            const mockServer = {
+              close: vi.fn((cb?: (err?: Error) => void) => {
+                if (cb) cb();
+              }),
+            } as unknown as Server;
+
+            app.listen = vi.fn((port: number, callback?: () => void) => {
+              if (callback) callback();
+              return mockServer;
+            }) as unknown as typeof app.listen;
+            return app;
+          },
+        };
       });
 
       vi.resetModules();
@@ -935,7 +965,6 @@ describe("Server Configuration - Integration Tests", () => {
         expect(error).toBeDefined();
       }
 
-      expressSpy.mockRestore();
       vi.restoreAllMocks();
     });
   });
