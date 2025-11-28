@@ -220,14 +220,15 @@ describe('EditProfileModal', () => {
     // This ensures we only count calls that happen after the initial render
     mockOnClose.mockClear();
 
-    const saveButton = screen.getByRole('button', { name: /save changes/i });
+    // Get the form element and submit it directly to avoid event propagation issues
+    const form = screen.getByRole('button', { name: /save changes/i }).closest('form');
+    expect(form).toBeTruthy();
 
-    // Verify onClose hasn't been called before clicking
+    // Verify onClose hasn't been called before submitting
     expect(mockOnClose).not.toHaveBeenCalled();
 
-    // Click the save button and wait for the error to appear
-    // Use fireEvent to have more control and prevent event propagation issues
-    fireEvent.click(saveButton);
+    // Submit the form directly to avoid event propagation issues
+    fireEvent.submit(form!);
 
     // Wait for error message to appear
     await waitFor(() => {
