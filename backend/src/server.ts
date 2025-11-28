@@ -12,7 +12,7 @@ dotenv.config({ path: join(__dirname, "../../config/.env") });
 // Now import everything else (constants will read from process.env)
 import express from "express";
 import cors from "cors";
-import { readFileSync } from "fs";
+import { readFileSync, existsSync } from "fs";
 import { Database } from "./db/database.js";
 import { initializeServices } from "./services/index.js";
 import usersRouter from "./routes/users.js";
@@ -189,9 +189,33 @@ db.initialize()
       const frontendBuildPath = join(workspaceRoot, "frontend", "dist");
       app.use(express.static(frontendBuildPath));
 
+      // 404 handler for API routes that don't exist
+      app.use("/api", (req, res) => {
+        res.status(404).json({ error: "Not found" });
+      });
+
       // Serve React app for all non-API routes in production
-      app.get("*", (_req, res) => {
-        res.sendFile(join(frontendBuildPath, "index.html"));
+      app.get("*", (req, res, next) => {
+        // Skip API routes - they should have been handled above
+        if (req.path.startsWith("/api")) {
+          return next();
+        }
+
+        const indexPath = join(frontendBuildPath, "index.html");
+        // Check if index.html exists before trying to serve it
+        if (existsSync(indexPath)) {
+          try {
+            const html = readFileSync(indexPath, "utf-8");
+            res.setHeader("Content-Type", "text/html");
+            res.send(html);
+          } catch (err) {
+            // If reading file fails, return 404
+            res.status(404).json({ error: "Not found" });
+          }
+        } else {
+          // If index.html doesn't exist, return 404
+          res.status(404).json({ error: "Not found" });
+        }
       });
     } else if (viteServer) {
       // In development, serve React app for all non-API routes via Vite
@@ -222,6 +246,30 @@ db.initialize()
         }
       });
     }
+
+    // Error handler middleware (must be after all routes)
+    app.use(
+      (
+        err: Error,
+        req: express.Request,
+        res: express.Response,
+        next: express.NextFunction
+      ) => {
+        // If response was already sent, delegate to default error handler
+        if (res.headersSent) {
+          return next(err);
+        }
+
+        // Log the error
+        console.error(`Error handling ${req.method} ${req.path}:`, err);
+
+        // Return appropriate error response
+        res.status(500).json({
+          error: "Internal server error",
+          message: isDevelopment ? err.message : undefined,
+        });
+      }
+    );
 
     const server = app.listen(getPort(), () => {
       console.log(

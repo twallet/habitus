@@ -52,6 +52,7 @@ export function EditTrackingModal({
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
     const isDeletingRef = useRef(false);
     const hasDeleteErrorRef = useRef(false);
+    const hasSaveErrorRef = useRef(false);
     const hasCalledOnCloseRef = useRef(false);
     const isSubmittingRef = useRef(false);
 
@@ -59,6 +60,7 @@ export function EditTrackingModal({
     useEffect(() => {
         isDeletingRef.current = false;
         hasDeleteErrorRef.current = false;
+        hasSaveErrorRef.current = false;
         hasCalledOnCloseRef.current = false;
         isSubmittingRef.current = false;
     }, []);
@@ -81,6 +83,7 @@ export function EditTrackingModal({
 
         setIsSubmitting(true);
         isSubmittingRef.current = true;
+        hasSaveErrorRef.current = false;
         setError(null);
 
         if (!question.trim()) {
@@ -117,6 +120,7 @@ export function EditTrackingModal({
             );
             onClose();
         } catch (err) {
+            hasSaveErrorRef.current = true;
             setError(err instanceof Error ? err.message : "Error updating tracking");
         } finally {
             setIsSubmitting(false);
@@ -161,7 +165,7 @@ export function EditTrackingModal({
             if (e.key === "Escape") {
                 if (showDeleteConfirmation) {
                     setShowDeleteConfirmation(false);
-                } else if (!isDeleting && !isSubmitting && !isSubmittingRef.current && !error && !hasCalledOnCloseRef.current) {
+                } else if (!isDeleting && !isSubmitting && !isSubmittingRef.current && !error && !hasSaveErrorRef.current && !hasCalledOnCloseRef.current) {
                     hasCalledOnCloseRef.current = true;
                     onClose();
                 }
@@ -175,7 +179,7 @@ export function EditTrackingModal({
     }, [onClose, showDeleteConfirmation, isDeleting, isSubmitting, error]);
 
     const handleOverlayClick = () => {
-        if (!isDeleting && !isSubmitting && !isSubmittingRef.current && !error && !hasDeleteErrorRef.current && !hasCalledOnCloseRef.current) {
+        if (!isDeleting && !isSubmitting && !isSubmittingRef.current && !error && !hasDeleteErrorRef.current && !hasSaveErrorRef.current && !hasCalledOnCloseRef.current) {
             hasCalledOnCloseRef.current = true;
             onClose();
         }
@@ -211,6 +215,7 @@ export function EditTrackingModal({
                                 onClick={() => {
                                     setError(null);
                                     hasDeleteErrorRef.current = false;
+                                    hasSaveErrorRef.current = false;
                                 }}
                                 aria-label="Close"
                             >

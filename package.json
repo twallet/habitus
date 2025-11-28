@@ -12,12 +12,11 @@
     "build": "npm run build --workspaces",
     "build:frontend": "npm run build --workspace=frontend",
     "build:backend": "npm run build --workspace=backend",
-    "test": "vitest run --config config/vitest.config.ts --coverage --reporter=verbose --reporter=json --outputFile=test-results.json",
+    "test": "vitest run --config config/vitest.config.ts --coverage",
     "test:frontend": "vitest run --config config/vitest.config.ts --include frontend/** --coverage",
     "test:backend": "vitest run --config config/vitest.config.ts --include backend/** --coverage",
     "test:watch": "vitest --config config/vitest.config.ts",
     "test:coverage": "vitest run --config config/vitest.config.ts --coverage",
-    "test:output": "vitest run --config config/vitest.config.ts --coverage --reporter=verbose --reporter=json --outputFile=test-results.json",
     "lint": "npm run lint --workspace=frontend"
   },
   "devDependencies": {

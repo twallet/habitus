@@ -1465,8 +1465,10 @@ describe("Server Configuration - Integration Tests", () => {
         return;
       }
 
-      // Make a request to a non-existent route to trigger 404
-      const response = await request(capturedApp).get("/nonexistent");
+      // Make a request to a non-existent API route to trigger 404
+      // API routes should return 404 if they don't exist, unlike frontend routes
+      // which serve index.html in production
+      const response = await request(capturedApp).get("/api/nonexistent");
 
       expect(response.status).toBe(404);
 
