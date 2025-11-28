@@ -1182,8 +1182,31 @@ describe("Server Configuration - Integration Tests", () => {
         mockServerCloseFn?: typeof mockServerClose;
       } = {}
     ) {
+      // Store references to mock functions and modules before resetModules
+      // These will be used in the mocks after resetModules
+      const dbInitMock = mockDbInitialize;
+      const dbCloseMock = mockDbClose;
+      const initServicesMock = mockInitializeServices;
+      const getPortMock = mockGetPort;
+      const getServerUrlMock = mockGetServerUrl;
+      const getWorkspaceRootMock = mockGetWorkspaceRoot;
+      const getUploadsDirMock = mockGetUploadsDirectory;
+      const usersRouterMock = mockUsersRouter;
+      const authRouterMock = mockAuthRouter;
+      const trackingsRouterMock = mockTrackingsRouter;
+
+      // Capture real express before resetModules so we can use it in mocks
+      const realExpressModule = express;
+
       // Reset modules first
       vi.resetModules();
+
+      // Mock dotenv (must be first)
+      vi.doMock("dotenv", () => ({
+        default: {
+          config: vi.fn(),
+        },
+      }));
 
       // Use provided mock server close function or create default one
       if (options.mockServerCloseFn) {
@@ -1194,12 +1217,74 @@ describe("Server Configuration - Integration Tests", () => {
         });
       }
 
+      // Reconfigure all mocks after resetModules using stored references
+      // Mock Database - must be a proper constructor class
+      const DatabaseConstructor = vi.fn(function Database() {
+        return {
+          initialize: dbInitMock,
+          close: dbCloseMock,
+        };
+      });
+      vi.doMock("../db/database.js", () => ({
+        Database: DatabaseConstructor,
+      }));
+
+      // Mock services
+      vi.doMock("../services/index.js", () => ({
+        initializeServices: initServicesMock,
+      }));
+
+      // Mock routes
+      vi.doMock("../routes/users.js", () => ({
+        default: usersRouterMock,
+      }));
+
+      vi.doMock("../routes/auth.js", () => ({
+        default: authRouterMock,
+      }));
+
+      vi.doMock("../routes/trackings.js", () => ({
+        default: trackingsRouterMock,
+      }));
+
+      // Mock upload middleware
+      vi.doMock("../middleware/upload.js", () => ({
+        getUploadsDirectory: getUploadsDirMock,
+      }));
+
+      // Mock constants
+      vi.doMock("../setup/constants.js", () => ({
+        getPort: getPortMock,
+        getServerUrl: getServerUrlMock,
+      }));
+
+      // Mock paths
+      vi.doMock("../config/paths.js", () => ({
+        getWorkspaceRoot: getWorkspaceRootMock,
+      }));
+
+      // Mock fs - create a minimal mock with readFileSync
+      // readFileSync is used in server.ts for reading index.html
+      const mockReadFileSyncFn = vi.fn().mockReturnValue("<html>test</html>");
+      vi.doMock("fs", () => ({
+        readFileSync: mockReadFileSyncFn,
+        // Add other common fs methods as no-ops or basic implementations
+        existsSync: vi.fn().mockReturnValue(true),
+        mkdirSync: vi.fn(),
+        writeFileSync: vi.fn(),
+        unlinkSync: vi.fn(),
+        statSync: vi
+          .fn()
+          .mockReturnValue({ isFile: () => true, isDirectory: () => false }),
+      }));
+
       // Setup express mock to capture app
       vi.doMock(
         "express",
         options.expressMock ||
           (() => {
-            const realExpress = express;
+            // Use captured express module
+            const realExpress = realExpressModule;
             return {
               default: Object.assign(
                 () => {
@@ -1219,22 +1304,39 @@ describe("Server Configuration - Integration Tests", () => {
                   return app;
                 },
                 {
-                  // Include express static methods
-                  json: express.json,
-                  static: express.static,
-                  urlencoded: express.urlencoded,
-                  raw: express.raw,
-                  text: express.text,
-                  Router: express.Router,
+                  // Include express static methods from captured module
+                  json: realExpress.json,
+                  static: realExpress.static,
+                  urlencoded: realExpress.urlencoded,
+                  raw: realExpress.raw,
+                  text: realExpress.text,
+                  Router: realExpress.Router,
                 }
               ),
             };
           })
       );
 
-      // Setup vite mock if provided
+      // Setup vite mock if provided, otherwise use default
       if (options.viteMock) {
         vi.doMock("vite", options.viteMock);
+      } else {
+        // Recreate vite mock server after resetModules
+        // Use captured express for middlewares
+        const defaultViteServer = {
+          middlewares: realExpressModule(),
+          transformIndexHtml: vi
+            .fn()
+            .mockResolvedValue("<html>transformed</html>"),
+          close: vi.fn().mockResolvedValue(undefined),
+        };
+        const defaultCreateServer = vi
+          .fn()
+          .mockResolvedValue(defaultViteServer);
+
+        vi.doMock("vite", () => ({
+          createServer: defaultCreateServer,
+        }));
       }
 
       // Import server.ts - it will run immediately
