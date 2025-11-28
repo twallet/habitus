@@ -1163,4 +1163,585 @@ describe("Server Configuration - Integration Tests", () => {
       vi.restoreAllMocks();
     });
   });
+
+  describe("Server.ts Complete Integration - Real Execution Tests", () => {
+    let capturedApp: express.Application | null = null;
+    let capturedServer: Server | null = null;
+    let mockServerClose: any;
+    let originalOnce: typeof process.once;
+    let shutdownHandlers: Map<string, () => void>;
+    let originalEnv: NodeJS.ProcessEnv;
+
+    /**
+     * Helper function to setup mocks and import server.ts
+     */
+    async function setupAndImportServer(
+      options: {
+        viteMock?: any;
+        expressMock?: () => any;
+        mockServerCloseFn?: typeof mockServerClose;
+      } = {}
+    ) {
+      // Reset modules first
+      vi.resetModules();
+
+      // Use provided mock server close function or create default one
+      if (options.mockServerCloseFn) {
+        mockServerClose = options.mockServerCloseFn;
+      } else if (!mockServerClose) {
+        mockServerClose = vi.fn((cb?: (err?: Error) => void) => {
+          if (cb) cb();
+        });
+      }
+
+      // Setup express mock to capture app
+      vi.doMock(
+        "express",
+        options.expressMock ||
+          (() => {
+            const realExpress = express;
+            return {
+              default: () => {
+                const app = realExpress();
+                capturedApp = app;
+
+                const mockServer = {
+                  close: mockServerClose,
+                } as unknown as Server;
+
+                capturedServer = mockServer;
+
+                app.listen = vi.fn((port: number, callback?: () => void) => {
+                  if (callback) callback();
+                  return mockServer;
+                }) as unknown as typeof app.listen;
+                return app;
+              },
+            };
+          })
+      );
+
+      // Setup vite mock if provided
+      if (options.viteMock) {
+        vi.doMock("vite", options.viteMock);
+      }
+
+      // Import server.ts - it will run immediately
+      await import("../server.js");
+
+      // Wait for async initialization
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    }
+
+    beforeEach(() => {
+      // Save original environment
+      originalEnv = { ...process.env };
+
+      // Reset captured app and server
+      capturedApp = null;
+      capturedServer = null;
+      shutdownHandlers = new Map();
+
+      // Save original process.once
+      originalOnce = process.once;
+
+      // Mock process.once to capture shutdown handlers
+      process.once = vi.fn((event: string, handler: () => void) => {
+        if (event === "SIGTERM" || event === "SIGINT") {
+          shutdownHandlers.set(event, handler);
+        }
+        return process as any;
+      }) as typeof process.once;
+
+      // Mock console to reduce noise
+      vi.spyOn(console, "log").mockImplementation(() => {});
+      vi.spyOn(console, "error").mockImplementation(() => {});
+
+      // Mock process.exit to prevent actual exit
+      process.exit = vi.fn() as unknown as typeof process.exit;
+
+      // Set default environment
+      process.env.NODE_ENV = "test";
+      process.env.VITE_PORT = "3000";
+      process.env.VITE_SERVER_URL = "http://localhost";
+      process.env.PROJECT_ROOT = "/test/workspace";
+      process.env.TRUST_PROXY = "false";
+      process.env.VERBOSE_LOGGING = "false";
+
+      // Reset mocks
+      vi.clearAllMocks();
+      mockDbInitialize.mockResolvedValue(undefined);
+      mockDbClose.mockResolvedValue(undefined);
+      mockInitializeServices.mockReturnValue(undefined);
+      mockGetPort.mockReturnValue(3000);
+      mockGetServerUrl.mockReturnValue("http://localhost");
+      mockGetWorkspaceRoot.mockReturnValue("/test/workspace");
+      mockGetUploadsDirectory.mockReturnValue("/test/uploads");
+
+      // Initialize default mock server close function
+      mockServerClose = vi.fn((cb?: (err?: Error) => void) => {
+        if (cb) cb();
+      });
+    });
+
+    afterEach(async () => {
+      // Restore original process.once
+      process.once = originalOnce;
+
+      // Close any captured servers
+      if (capturedServer && mockServerClose) {
+        try {
+          await new Promise<void>((resolve) => {
+            mockServerClose(() => resolve());
+          });
+        } catch {
+          // Ignore errors
+        }
+      }
+
+      // Restore environment
+      process.env = originalEnv;
+
+      // Clear captured references
+      capturedApp = null;
+      capturedServer = null;
+      shutdownHandlers.clear();
+
+      vi.restoreAllMocks();
+      vi.resetModules();
+    });
+
+    it("should execute middleware with real HTTP requests", async () => {
+      process.env.NODE_ENV = "production";
+      process.env.VERBOSE_LOGGING = "false";
+
+      const consoleLogSpy = vi
+        .spyOn(console, "log")
+        .mockImplementation(() => {});
+
+      await setupAndImportServer();
+
+      // Verify app was captured
+      expect(capturedApp).toBeTruthy();
+      if (!capturedApp) return;
+
+      // Make a real HTTP request to execute the middleware
+      const response = await request(capturedApp).get("/health");
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ status: "ok" });
+
+      // Wait a bit for the response "finish" event to fire
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      // The middleware should have logged (in production mode)
+      expect(consoleLogSpy).toHaveBeenCalled();
+    });
+
+    it("should execute middleware for error responses", async () => {
+      process.env.NODE_ENV = "production";
+
+      const consoleLogSpy = vi
+        .spyOn(console, "log")
+        .mockImplementation(() => {});
+
+      await setupAndImportServer();
+
+      if (!capturedApp) {
+        expect(capturedApp).toBeTruthy();
+        return;
+      }
+
+      // Make a request to a non-existent route to trigger 404
+      const response = await request(capturedApp).get("/nonexistent");
+
+      expect(response.status).toBe(404);
+
+      // Wait for response finish event
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      // Should log error
+      expect(consoleLogSpy).toHaveBeenCalled();
+    });
+
+    it("should execute shutdown handler for SIGTERM", async () => {
+      process.env.NODE_ENV = "test";
+
+      await setupAndImportServer();
+
+      // Verify shutdown handler was registered
+      expect(shutdownHandlers.has("SIGTERM")).toBe(true);
+
+      const shutdownHandler = shutdownHandlers.get("SIGTERM");
+      expect(shutdownHandler).toBeTruthy();
+
+      if (shutdownHandler) {
+        const consoleLogSpy = vi
+          .spyOn(console, "log")
+          .mockImplementation(() => {});
+
+        // Execute shutdown handler
+        await shutdownHandler();
+
+        // Verify shutdown was called
+        expect(mockServerClose).toHaveBeenCalled();
+        expect(consoleLogSpy).toHaveBeenCalled();
+      }
+    });
+
+    it("should execute shutdown handler for SIGINT", async () => {
+      process.env.NODE_ENV = "test";
+
+      await setupAndImportServer();
+
+      // Verify shutdown handler was registered
+      expect(shutdownHandlers.has("SIGINT")).toBe(true);
+
+      const shutdownHandler = shutdownHandlers.get("SIGINT");
+      expect(shutdownHandler).toBeTruthy();
+
+      if (shutdownHandler) {
+        const consoleLogSpy = vi
+          .spyOn(console, "log")
+          .mockImplementation(() => {});
+
+        // Execute shutdown handler
+        await shutdownHandler();
+
+        // Verify shutdown was called
+        expect(mockServerClose).toHaveBeenCalled();
+        expect(consoleLogSpy).toHaveBeenCalled();
+      }
+    });
+
+    it("should handle shutdown with Vite server", async () => {
+      process.env.NODE_ENV = "development";
+
+      const mockViteClose = vi.fn().mockResolvedValue(undefined);
+      const mockViteTransform = vi
+        .fn()
+        .mockResolvedValue("<html>transformed</html>");
+
+      await setupAndImportServer({
+        viteMock: () => ({
+          createServer: vi.fn().mockResolvedValue({
+            middlewares: express(),
+            transformIndexHtml: mockViteTransform,
+            close: mockViteClose,
+          }),
+        }),
+      });
+
+      const shutdownHandler = shutdownHandlers.get("SIGTERM");
+      if (shutdownHandler) {
+        await shutdownHandler();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Verify Vite server was closed
+        expect(mockViteClose).toHaveBeenCalled();
+        expect(mockDbClose).toHaveBeenCalled();
+      }
+    });
+
+    it("should handle shutdown when server.close fails", async () => {
+      process.env.NODE_ENV = "test";
+
+      const error = new Error("Close failed");
+
+      // Create a mock that fails
+      const failingMockClose = vi.fn((cb?: (err?: Error) => void) => {
+        if (cb) cb(error);
+      });
+
+      await setupAndImportServer({
+        mockServerCloseFn: failingMockClose,
+      });
+
+      const shutdownHandler = shutdownHandlers.get("SIGTERM");
+      if (shutdownHandler) {
+        const consoleErrorSpy = vi
+          .spyOn(console, "error")
+          .mockImplementation(() => {});
+
+        await shutdownHandler();
+
+        // Should log error and exit with code 1
+        expect(consoleErrorSpy).toHaveBeenCalled();
+        expect(process.exit).toHaveBeenCalledWith(1);
+      }
+    });
+
+    it("should handle database close error during shutdown", async () => {
+      process.env.NODE_ENV = "test";
+      mockDbClose.mockRejectedValue(new Error("DB close failed"));
+
+      await setupAndImportServer();
+
+      const shutdownHandler = shutdownHandlers.get("SIGTERM");
+      if (shutdownHandler) {
+        const consoleErrorSpy = vi
+          .spyOn(console, "error")
+          .mockImplementation(() => {});
+
+        await shutdownHandler();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Should log error
+        expect(consoleErrorSpy).toHaveBeenCalled();
+      }
+    });
+
+    it("should handle Vite close error during shutdown", async () => {
+      process.env.NODE_ENV = "development";
+
+      const mockViteClose = vi
+        .fn()
+        .mockRejectedValue(new Error("Vite close failed"));
+
+      await setupAndImportServer({
+        viteMock: () => ({
+          createServer: vi.fn().mockResolvedValue({
+            middlewares: express(),
+            transformIndexHtml: vi
+              .fn()
+              .mockResolvedValue("<html>transformed</html>"),
+            close: mockViteClose,
+          }),
+        }),
+      });
+
+      const shutdownHandler = shutdownHandlers.get("SIGTERM");
+      if (shutdownHandler) {
+        const consoleErrorSpy = vi
+          .spyOn(console, "error")
+          .mockImplementation(() => {});
+
+        await shutdownHandler();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Should log error
+        expect(consoleErrorSpy).toHaveBeenCalled();
+      }
+    });
+
+    it("should handle database initialization failure", async () => {
+      process.env.NODE_ENV = "test";
+      const initError = new Error("Database init failed");
+      mockDbInitialize.mockRejectedValue(initError);
+
+      const consoleErrorSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+
+      await setupAndImportServer();
+
+      // Wait for promise to reject
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // Should log error and exit
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      expect(process.exit).toHaveBeenCalledWith(1);
+    });
+
+    it("should execute production static file serving branch", async () => {
+      process.env.NODE_ENV = "production";
+
+      await setupAndImportServer();
+
+      // Verify that production branch code would execute
+      // (we can't easily test static file serving without actual files)
+      expect(capturedApp).toBeTruthy();
+      expect(mockGetWorkspaceRoot).toHaveBeenCalled();
+    });
+
+    it("should execute development Vite route handling", async () => {
+      process.env.NODE_ENV = "development";
+
+      const mockTransform = vi
+        .fn()
+        .mockResolvedValue("<html>transformed</html>");
+      const mockViteMiddlewares = express();
+
+      await setupAndImportServer({
+        viteMock: () => ({
+          createServer: vi.fn().mockResolvedValue({
+            middlewares: mockViteMiddlewares,
+            transformIndexHtml: mockTransform,
+            close: vi.fn().mockResolvedValue(undefined),
+          }),
+        }),
+      });
+
+      if (!capturedApp) {
+        expect(capturedApp).toBeTruthy();
+        return;
+      }
+
+      // Make a request that should be handled by Vite
+      try {
+        await request(capturedApp).get("/some-route").timeout(100);
+      } catch {
+        // Timeout is expected as Vite transform is mocked
+      }
+
+      // Verify Vite was initialized
+      expect(mockGetWorkspaceRoot).toHaveBeenCalled();
+    });
+
+    it("should skip Vite routes in logging middleware", async () => {
+      process.env.NODE_ENV = "development";
+      process.env.VERBOSE_LOGGING = "false";
+
+      const consoleLogSpy = vi
+        .spyOn(console, "log")
+        .mockImplementation(() => {});
+
+      await setupAndImportServer();
+
+      if (!capturedApp) {
+        expect(capturedApp).toBeTruthy();
+        return;
+      }
+
+      // Make request to a Vite route
+      try {
+        await request(capturedApp).get("/@vite/client").timeout(100);
+      } catch {
+        // Timeout expected
+      }
+
+      // Wait for response
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      // In development without verbose, Vite routes shouldn't log
+      // The middleware should skip logging for Vite routes
+      const logCalls = consoleLogSpy.mock.calls.filter((call) =>
+        call[0]?.toString().includes("GET")
+      );
+      // Should not log Vite routes in development without verbose
+      expect(logCalls.length).toBe(0);
+    });
+
+    it("should handle error in Vite transformIndexHtml", async () => {
+      process.env.NODE_ENV = "development";
+
+      const transformError = new Error("Transform failed");
+      const mockTransform = vi.fn().mockRejectedValue(transformError);
+
+      await setupAndImportServer({
+        viteMock: () => ({
+          createServer: vi.fn().mockResolvedValue({
+            middlewares: express(),
+            transformIndexHtml: mockTransform,
+            close: vi.fn().mockResolvedValue(undefined),
+          }),
+        }),
+      });
+
+      if (!capturedApp) {
+        expect(capturedApp).toBeTruthy();
+        return;
+      }
+
+      // Add error handler
+      capturedApp.use(
+        (
+          err: Error,
+          _req: express.Request,
+          res: express.Response,
+          _next: express.NextFunction
+        ) => {
+          res.status(500).json({ error: err.message });
+        }
+      );
+
+      // Make request that triggers transform
+      const response = await request(capturedApp).get("/some-route");
+
+      // Should handle error
+      expect(response.status).toBe(500);
+    });
+
+    it("should prevent multiple shutdown calls", async () => {
+      process.env.NODE_ENV = "test";
+
+      await setupAndImportServer();
+
+      const shutdownHandler = shutdownHandlers.get("SIGTERM");
+      if (shutdownHandler) {
+        mockServerClose.mockClear();
+
+        // Call shutdown twice
+        await shutdownHandler();
+        await shutdownHandler();
+
+        // Should only close once
+        expect(mockServerClose).toHaveBeenCalledTimes(1);
+      }
+    });
+
+    it("should execute verbose logging in development mode", async () => {
+      process.env.NODE_ENV = "development";
+      process.env.VERBOSE_LOGGING = "true";
+
+      const consoleLogSpy = vi
+        .spyOn(console, "log")
+        .mockImplementation(() => {});
+
+      await setupAndImportServer();
+
+      if (!capturedApp) {
+        expect(capturedApp).toBeTruthy();
+        return;
+      }
+
+      // Make a request
+      await request(capturedApp).get("/health");
+
+      // Wait for logging
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      // Should log in verbose mode
+      expect(consoleLogSpy).toHaveBeenCalled();
+    });
+
+    it("should handle TRUST_PROXY configuration", async () => {
+      process.env.TRUST_PROXY = "true";
+
+      let trustProxySet = false;
+      await setupAndImportServer({
+        expressMock: () => {
+          const realExpress = express;
+          return {
+            default: () => {
+              const app = realExpress();
+              // Override set to capture trust proxy
+              const originalSet = app.set;
+              app.set = vi.fn((key: string, value: any) => {
+                if (key === "trust proxy") {
+                  trustProxySet = true;
+                }
+                return originalSet.call(app, key, value);
+              }) as typeof app.set;
+              capturedApp = app;
+
+              const mockServer = {
+                close: mockServerClose,
+              } as unknown as Server;
+
+              capturedServer = mockServer;
+              app.listen = vi.fn((port: number, callback?: () => void) => {
+                if (callback) callback();
+                return mockServer;
+              }) as unknown as typeof app.listen;
+              return app;
+            },
+          };
+        },
+      });
+
+      // Trust proxy should be set
+      expect(trustProxySet).toBe(true);
+    });
+  });
 });
