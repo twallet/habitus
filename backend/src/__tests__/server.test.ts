@@ -1201,22 +1201,33 @@ describe("Server Configuration - Integration Tests", () => {
           (() => {
             const realExpress = express;
             return {
-              default: () => {
-                const app = realExpress();
-                capturedApp = app;
+              default: Object.assign(
+                () => {
+                  const app = realExpress();
+                  capturedApp = app;
 
-                const mockServer = {
-                  close: mockServerClose,
-                } as unknown as Server;
+                  const mockServer = {
+                    close: mockServerClose,
+                  } as unknown as Server;
 
-                capturedServer = mockServer;
+                  capturedServer = mockServer;
 
-                app.listen = vi.fn((port: number, callback?: () => void) => {
-                  if (callback) callback();
-                  return mockServer;
-                }) as unknown as typeof app.listen;
-                return app;
-              },
+                  app.listen = vi.fn((port: number, callback?: () => void) => {
+                    if (callback) callback();
+                    return mockServer;
+                  }) as unknown as typeof app.listen;
+                  return app;
+                },
+                {
+                  // Include express static methods
+                  json: express.json,
+                  static: express.static,
+                  urlencoded: express.urlencoded,
+                  raw: express.raw,
+                  text: express.text,
+                  Router: express.Router,
+                }
+              ),
             };
           })
       );
@@ -1713,29 +1724,40 @@ describe("Server Configuration - Integration Tests", () => {
         expressMock: () => {
           const realExpress = express;
           return {
-            default: () => {
-              const app = realExpress();
-              // Override set to capture trust proxy
-              const originalSet = app.set;
-              app.set = vi.fn((key: string, value: any) => {
-                if (key === "trust proxy") {
-                  trustProxySet = true;
-                }
-                return originalSet.call(app, key, value);
-              }) as typeof app.set;
-              capturedApp = app;
+            default: Object.assign(
+              () => {
+                const app = realExpress();
+                // Override set to capture trust proxy
+                const originalSet = app.set;
+                app.set = vi.fn((key: string, value: any) => {
+                  if (key === "trust proxy") {
+                    trustProxySet = true;
+                  }
+                  return originalSet.call(app, key, value);
+                }) as typeof app.set;
+                capturedApp = app;
 
-              const mockServer = {
-                close: mockServerClose,
-              } as unknown as Server;
+                const mockServer = {
+                  close: mockServerClose,
+                } as unknown as Server;
 
-              capturedServer = mockServer;
-              app.listen = vi.fn((port: number, callback?: () => void) => {
-                if (callback) callback();
-                return mockServer;
-              }) as unknown as typeof app.listen;
-              return app;
-            },
+                capturedServer = mockServer;
+                app.listen = vi.fn((port: number, callback?: () => void) => {
+                  if (callback) callback();
+                  return mockServer;
+                }) as unknown as typeof app.listen;
+                return app;
+              },
+              {
+                // Include express static methods
+                json: express.json,
+                static: express.static,
+                urlencoded: express.urlencoded,
+                raw: express.raw,
+                text: express.text,
+                Router: express.Router,
+              }
+            ),
           };
         },
       });
