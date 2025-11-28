@@ -226,9 +226,28 @@ describe('EditProfileModal', () => {
     // Verify onClose hasn't been called before submitting
     expect(mockOnClose).not.toHaveBeenCalled();
 
-    // Submit the form using fireEvent with bubbles: false to prevent event propagation to overlay
-    // The modal-content has stopPropagation, but we'll also prevent bubbling at the event level
-    fireEvent.submit(form, { bubbles: false, cancelable: true });
+    // Get the modal content to ensure we understand the DOM structure
+    const modalContent = form.closest('.modal-content');
+    expect(modalContent).toBeTruthy();
+
+    // The modal-content has onClick with stopPropagation, but we need to ensure
+    // the submit event doesn't trigger any click events on the overlay
+    // We'll use fireEvent.submit with bubbles: false and also ensure the form
+    // submission happens without triggering overlay clicks
+
+    // Create a submit event that won't bubble
+    const submitEvent = new Event('submit', { bubbles: false, cancelable: true });
+    Object.defineProperty(submitEvent, 'target', { value: form, enumerable: true });
+    Object.defineProperty(submitEvent, 'currentTarget', { value: form, enumerable: true });
+
+    // Prevent the event from bubbling
+    submitEvent.stopPropagation = vi.fn(() => {
+      (submitEvent as any).cancelBubble = true;
+    });
+    submitEvent.preventDefault = vi.fn();
+
+    // Dispatch the event directly on the form
+    form.dispatchEvent(submitEvent);
 
     // Wait for error message to appear
     await waitFor(() => {
