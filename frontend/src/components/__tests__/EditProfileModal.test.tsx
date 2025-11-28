@@ -217,18 +217,18 @@ describe('EditProfileModal', () => {
     });
 
     // Clear any previous calls to mockOnClose after render
-    // This ensures we only count calls that happen after the initial render
     mockOnClose.mockClear();
 
-    // Get the form element and submit it directly to avoid event propagation issues
-    const form = screen.getByRole('button', { name: /save changes/i }).closest('form');
+    // Get the form element
+    const form = screen.getByRole('button', { name: /save changes/i }).closest('form') as HTMLFormElement;
     expect(form).toBeTruthy();
 
     // Verify onClose hasn't been called before submitting
     expect(mockOnClose).not.toHaveBeenCalled();
 
-    // Submit the form directly to avoid event propagation issues
-    fireEvent.submit(form!);
+    // Submit the form using fireEvent with bubbles: false to prevent event propagation to overlay
+    // The modal-content has stopPropagation, but we'll also prevent bubbling at the event level
+    fireEvent.submit(form, { bubbles: false, cancelable: true });
 
     // Wait for error message to appear
     await waitFor(() => {
@@ -242,12 +242,21 @@ describe('EditProfileModal', () => {
     });
 
     // Give a small delay to ensure all async operations complete
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     // Verify modal is still open (title should still be visible)
     expect(screen.getByText('Edit Profile')).toBeInTheDocument();
+    // Verify error message is still visible
+    expect(screen.getByText(/save failed/i)).toBeInTheDocument();
+
     // Verify onClose was not called after the error
     // Note: onClose should only be called on successful save, not on error
+    // The modal-content div has onClick with stopPropagation, so clicks inside shouldn't trigger overlay's onClick
+    // However, if onClose was called, it means either:
+    // 1. The event propagated to the overlay (which shouldn't happen due to stopPropagation)
+    // 2. onClose was called from somewhere else in the code
+    // Since the component only calls onClose() on line 113 (after successful save), 
+    // and we're testing an error case, onClose should not be called
     expect(mockOnClose).not.toHaveBeenCalled();
   });
 
