@@ -41,11 +41,28 @@ export function getBackendRoot(): string {
   return path.join(getWorkspaceRoot(), "backend");
 }
 
-// Export commonly used paths as constants
-export const PATHS = {
-  workspaceRoot: getWorkspaceRoot(),
-  backendRoot: getBackendRoot(),
-  backendSrc: path.join(getBackendRoot(), "src"),
-  backendDist: path.join(getBackendRoot(), "dist"),
-  backendData: path.join(getBackendRoot(), "data"),
-} as const;
+/**
+ * Get commonly used paths.
+ * This is a function to ensure lazy evaluation after environment variables are loaded.
+ * @returns Object with commonly used paths
+ */
+export function getPaths() {
+  return {
+    workspaceRoot: getWorkspaceRoot(),
+    backendRoot: getBackendRoot(),
+    backendSrc: path.join(getBackendRoot(), "src"),
+    backendDist: path.join(getBackendRoot(), "dist"),
+    backendData: path.join(getBackendRoot(), "data"),
+  } as const;
+}
+
+/**
+ * Export commonly used paths as a constant.
+ * Note: This is evaluated lazily via getter to ensure environment variables are loaded first.
+ * @deprecated Use getPaths() function instead for better control over when paths are evaluated.
+ */
+export const PATHS = new Proxy({} as ReturnType<typeof getPaths>, {
+  get(_target, prop) {
+    return getPaths()[prop as keyof ReturnType<typeof getPaths>];
+  },
+});
