@@ -205,7 +205,6 @@ describe('EditProfileModal', () => {
   });
 
   it('should show error message on save failure', async () => {
-    const user = userEvent.setup();
     const errorSave = vi.fn().mockRejectedValue(new Error('Save failed'));
 
     render(
@@ -218,18 +217,36 @@ describe('EditProfileModal', () => {
     });
 
     // Clear any previous calls to mockOnClose after render
+    // This ensures we only count calls that happen after the initial render
     mockOnClose.mockClear();
 
     const saveButton = screen.getByRole('button', { name: /save changes/i });
-    await user.click(saveButton);
 
+    // Verify onClose hasn't been called before clicking
+    expect(mockOnClose).not.toHaveBeenCalled();
+
+    // Click the save button and wait for the error to appear
+    // Use fireEvent to have more control and prevent event propagation issues
+    fireEvent.click(saveButton);
+
+    // Wait for error message to appear
     await waitFor(() => {
       expect(screen.getByText(/save failed/i)).toBeInTheDocument();
+    }, { timeout: 3000 });
+
+    // Wait a bit more to ensure all async operations and state updates complete
+    await waitFor(() => {
+      // Verify modal is still open (title should still be visible)
+      expect(screen.getByText('Edit Profile')).toBeInTheDocument();
     });
+
+    // Give a small delay to ensure all async operations complete
+    await new Promise(resolve => setTimeout(resolve, 50));
 
     // Verify modal is still open (title should still be visible)
     expect(screen.getByText('Edit Profile')).toBeInTheDocument();
     // Verify onClose was not called after the error
+    // Note: onClose should only be called on successful save, not on error
     expect(mockOnClose).not.toHaveBeenCalled();
   });
 

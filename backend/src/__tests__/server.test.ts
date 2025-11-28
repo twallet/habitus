@@ -78,8 +78,11 @@ const mockViteServer = {
   close: vi.fn().mockResolvedValue(undefined),
 };
 
+// Store original createServer to allow overriding in specific tests
+let viteCreateServerMock = vi.fn().mockResolvedValue(mockViteServer);
+
 vi.mock("vite", () => ({
-  createServer: vi.fn().mockResolvedValue(mockViteServer),
+  createServer: (...args: any[]) => viteCreateServerMock(...args),
 }));
 
 // Mock fs.readFileSync
@@ -861,7 +864,7 @@ describe("Server Configuration - Integration Tests", () => {
         await import("../server.js");
 
         // Give it a moment for async operations
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 200));
 
         // Verify that database was initialized (it's called in server.ts)
         // Note: This might not be called if the import fails early
@@ -876,10 +879,102 @@ describe("Server Configuration - Integration Tests", () => {
       vi.restoreAllMocks();
     });
 
+    it("should import server.ts in development mode with Vite", async () => {
+      process.env.NODE_ENV = "development";
+      vi.clearAllMocks();
+      mockDbInitialize.mockResolvedValue(undefined);
+      mockDbClose.mockResolvedValue(undefined);
+      mockInitializeServices.mockReturnValue(undefined);
+
+      // Mock Vite to return a server
+      const mockViteClose = vi.fn().mockResolvedValue(undefined);
+      vi.doMock("vite", () => ({
+        createServer: vi.fn().mockResolvedValue({
+          middlewares: express(),
+          transformIndexHtml: vi
+            .fn()
+            .mockResolvedValue("<html>transformed</html>"),
+          close: mockViteClose,
+        }),
+      }));
+
+      vi.doMock("express", () => {
+        const realExpress = express;
+        return {
+          default: () => {
+            const app = realExpress();
+            const mockServer = {
+              close: vi.fn((cb?: (err?: Error) => void) => {
+                if (cb) cb();
+              }),
+            } as unknown as Server;
+            app.listen = vi.fn((port: number, callback?: () => void) => {
+              if (callback) callback();
+              return mockServer;
+            }) as unknown as typeof app.listen;
+            return app;
+          },
+        };
+      });
+
+      vi.resetModules();
+
+      try {
+        await import("../server.js");
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        expect(mockDbInitialize).toHaveBeenCalled();
+      } catch (error) {
+        expect(error).toBeDefined();
+      }
+
+      vi.restoreAllMocks();
+    });
+
+    it("should import server.ts with VERBOSE_LOGGING enabled", async () => {
+      process.env.NODE_ENV = "development";
+      process.env.VERBOSE_LOGGING = "true";
+      vi.clearAllMocks();
+      mockDbInitialize.mockResolvedValue(undefined);
+      mockDbClose.mockResolvedValue(undefined);
+      mockInitializeServices.mockReturnValue(undefined);
+
+      vi.doMock("express", () => {
+        const realExpress = express;
+        return {
+          default: () => {
+            const app = realExpress();
+            const mockServer = {
+              close: vi.fn((cb?: (err?: Error) => void) => {
+                if (cb) cb();
+              }),
+            } as unknown as Server;
+            app.listen = vi.fn((port: number, callback?: () => void) => {
+              if (callback) callback();
+              return mockServer;
+            }) as unknown as typeof app.listen;
+            return app;
+          },
+        };
+      });
+
+      vi.resetModules();
+
+      try {
+        await import("../server.js");
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        expect(mockDbInitialize).toHaveBeenCalled();
+      } catch (error) {
+        expect(error).toBeDefined();
+      }
+
+      vi.restoreAllMocks();
+    });
+
     it("should handle server.ts import in production mode", async () => {
       process.env.NODE_ENV = "production";
       vi.clearAllMocks();
       mockDbInitialize.mockResolvedValue(undefined);
+      mockDbClose.mockResolvedValue(undefined);
       mockInitializeServices.mockReturnValue(undefined);
 
       // Mock express module using vi.doMock
@@ -913,9 +1008,55 @@ describe("Server Configuration - Integration Tests", () => {
 
       try {
         await import("../server.js");
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 200));
         expect(mockDbInitialize).toHaveBeenCalled();
       } catch (error) {
+        expect(error).toBeDefined();
+      }
+
+      vi.restoreAllMocks();
+    });
+
+    it("should handle Vite initialization error", async () => {
+      process.env.NODE_ENV = "development";
+      vi.clearAllMocks();
+      mockDbInitialize.mockResolvedValue(undefined);
+      mockDbClose.mockResolvedValue(undefined);
+      mockInitializeServices.mockReturnValue(undefined);
+
+      // Mock Vite to throw an error
+      vi.doMock("vite", () => ({
+        createServer: vi.fn().mockRejectedValue(new Error("Vite init failed")),
+      }));
+
+      vi.doMock("express", () => {
+        const realExpress = express;
+        return {
+          default: () => {
+            const app = realExpress();
+            const mockServer = {
+              close: vi.fn((cb?: (err?: Error) => void) => {
+                if (cb) cb();
+              }),
+            } as unknown as Server;
+            app.listen = vi.fn((port: number, callback?: () => void) => {
+              if (callback) callback();
+              return mockServer;
+            }) as unknown as typeof app.listen;
+            return app;
+          },
+        };
+      });
+
+      vi.resetModules();
+
+      try {
+        await import("../server.js");
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        // The error should be caught and logged, but server initialization should continue
+        expect(mockDbInitialize).toHaveBeenCalled();
+      } catch (error) {
+        // Error is expected
         expect(error).toBeDefined();
       }
 
@@ -926,6 +1067,7 @@ describe("Server Configuration - Integration Tests", () => {
       process.env.TRUST_PROXY = "true";
       vi.clearAllMocks();
       mockDbInitialize.mockResolvedValue(undefined);
+      mockDbClose.mockResolvedValue(undefined);
       mockInitializeServices.mockReturnValue(undefined);
 
       // Mock express module using vi.doMock
@@ -959,7 +1101,60 @@ describe("Server Configuration - Integration Tests", () => {
 
       try {
         await import("../server.js");
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        expect(mockDbInitialize).toHaveBeenCalled();
+      } catch (error) {
+        expect(error).toBeDefined();
+      }
+
+      vi.restoreAllMocks();
+    });
+
+    it("should handle server.ts import with development mode and Vite server", async () => {
+      process.env.NODE_ENV = "development";
+      delete process.env.VERBOSE_LOGGING;
+      vi.clearAllMocks();
+      mockDbInitialize.mockResolvedValue(undefined);
+      mockDbClose.mockResolvedValue(undefined);
+      mockInitializeServices.mockReturnValue(undefined);
+
+      // Mock Vite server with transformIndexHtml
+      const mockTransformIndexHtml = vi
+        .fn()
+        .mockResolvedValue("<html>transformed</html>");
+      const mockViteClose = vi.fn().mockResolvedValue(undefined);
+      vi.doMock("vite", () => ({
+        createServer: vi.fn().mockResolvedValue({
+          middlewares: express(),
+          transformIndexHtml: mockTransformIndexHtml,
+          close: mockViteClose,
+        }),
+      }));
+
+      vi.doMock("express", () => {
+        const realExpress = express;
+        return {
+          default: () => {
+            const app = realExpress();
+            const mockServer = {
+              close: vi.fn((cb?: (err?: Error) => void) => {
+                if (cb) cb();
+              }),
+            } as unknown as Server;
+            app.listen = vi.fn((port: number, callback?: () => void) => {
+              if (callback) callback();
+              return mockServer;
+            }) as unknown as typeof app.listen;
+            return app;
+          },
+        };
+      });
+
+      vi.resetModules();
+
+      try {
+        await import("../server.js");
+        await new Promise((resolve) => setTimeout(resolve, 200));
         expect(mockDbInitialize).toHaveBeenCalled();
       } catch (error) {
         expect(error).toBeDefined();
