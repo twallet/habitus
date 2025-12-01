@@ -234,8 +234,14 @@ router.post(
         error
       );
       if (error instanceof Error) {
-        if (error.message.includes("API key")) {
-          return res.status(500).json({ error: "AI service not configured" });
+        if (
+          error.message.includes("API key") ||
+          error.message.includes("not configured")
+        ) {
+          return res.status(503).json({
+            error:
+              "AI emoji suggestion is not available. Please configure PERPLEXITY_API_KEY in your environment variables.",
+          });
         }
         return res.status(500).json({ error: error.message });
       }
