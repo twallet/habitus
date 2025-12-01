@@ -60,20 +60,27 @@ export class AiService {
               content: prompt,
             },
           ],
-          max_tokens: 10,
+          max_tokens: 20,
           temperature: 0.7,
         }),
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
+        let errorText: string;
+        try {
+          const errorJson = await response.json();
+          errorText = JSON.stringify(errorJson, null, 2);
+        } catch {
+          errorText = await response.text();
+        }
         console.error(
           `[${new Date().toISOString()}] AI_SERVICE | Perplexity API error:`,
           response.status,
+          response.statusText,
           errorText
         );
         throw new Error(
-          `Perplexity API error: ${response.status} ${response.statusText}`
+          `Perplexity API error: ${response.status} ${response.statusText}. ${errorText}`
         );
       }
 
