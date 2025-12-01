@@ -283,6 +283,7 @@ describe('EditTrackingModal', () => {
     const saveButton = screen.getByRole('button', { name: /save changes/i });
     await user.click(saveButton);
 
+    // Wait for error to appear
     await waitFor(() => {
       expect(screen.getByText(/save failed/i)).toBeInTheDocument();
     }, { timeout: 2000 });
@@ -291,11 +292,11 @@ describe('EditTrackingModal', () => {
     expect(screen.getByText('Edit Tracking')).toBeInTheDocument();
     expect(screen.getByText(/save failed/i)).toBeInTheDocument();
 
-    // Wait a bit to ensure onClose is not called after error is shown
-    await waitFor(() => {
-      // Verify onClose was not called after the error
-      expect(mockOnClose).not.toHaveBeenCalled();
-    }, { timeout: 500 });
+    // Wait a bit more to ensure onClose is not called after error is shown
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Verify onClose was not called after the error
+    expect(mockOnClose).not.toHaveBeenCalled();
   });
 
 
