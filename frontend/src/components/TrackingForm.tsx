@@ -122,11 +122,9 @@ export function TrackingForm({
             )}
 
             <div className="form-group">
-                <div className="question-icon-labels-row">
-                    <div className="form-label-row">
-                        <label htmlFor="tracking-question">
-                            Question <span className="required-asterisk">*</span>
-                        </label>
+                <div className="form-label-row">
+                    <label htmlFor="tracking-question">
+                        Question <span className="required-asterisk">*</span>
                         <button
                             type="button"
                             className="field-help"
@@ -135,11 +133,28 @@ export function TrackingForm({
                         >
                             ?
                         </button>
-                    </div>
-                    <div className="form-label-row">
-                        <label htmlFor="tracking-icon">
-                            Icon
-                        </label>
+                    </label>
+                </div>
+                <div className="question-field-wrapper">
+                    <input
+                        type="text"
+                        id="tracking-question"
+                        name="question"
+                        placeholder="e.g., Did I drink 8 glasses of water today?"
+                        value={question}
+                        onChange={(e) => setQuestion(e.target.value)}
+                        required
+                        disabled={isSubmitting}
+                        maxLength={500}
+                    />
+                    <span className="char-count">
+                        {question.length}/500
+                    </span>
+                </div>
+
+                <div className="form-label-row">
+                    <label htmlFor="tracking-icon">
+                        Icon
                         <button
                             type="button"
                             className="field-help"
@@ -148,50 +163,30 @@ export function TrackingForm({
                         >
                             ?
                         </button>
-                    </div>
+                    </label>
                 </div>
-                <div className="question-icon-row">
-                    <div className="question-field-wrapper">
-                        <input
-                            type="text"
-                            id="tracking-question"
-                            name="question"
-                            placeholder="e.g., Did I drink 8 glasses of water today?"
-                            value={question}
-                            onChange={(e) => setQuestion(e.target.value)}
-                            required
-                            disabled={isSubmitting}
-                            maxLength={500}
-                        />
-                        <span className="char-count">
-                            {question.length}/500
-                        </span>
-                    </div>
-                    <div className="icon-field-wrapper">
-                        <div className="icon-input-row">
-                            <input
-                                type="text"
-                                id="tracking-icon"
-                                name="icon"
-                                placeholder="e.g., 💉"
-                                value={icon}
-                                onChange={(e) => setIcon(e.target.value)}
-                                disabled={isSubmitting}
-                                maxLength={20}
-                            />
-                            <button
-                                type="button"
-                                className="btn-primary icon-suggest-button"
-                                onClick={handleSuggestEmoji}
-                                disabled={isSubmitting || isSuggestingEmoji || !question.trim()}
-                                aria-label="Suggest emoji based on question"
-                                title="Suggest an emoji based on the question text"
-                            >
-                                {isSuggestingEmoji ? "..." : "✨"}
-                                <span className="sr-only">Suggest emoji</span>
-                            </button>
-                        </div>
-                    </div>
+                <div className="icon-input-row">
+                    <input
+                        type="text"
+                        id="tracking-icon"
+                        name="icon"
+                        placeholder="e.g., 💪🏼"
+                        value={icon}
+                        onChange={(e) => setIcon(e.target.value)}
+                        disabled={isSubmitting}
+                        maxLength={30}
+                    />
+                    <button
+                        type="button"
+                        className="btn-primary icon-suggest-button"
+                        onClick={handleSuggestEmoji}
+                        disabled={isSubmitting || isSuggestingEmoji || !question.trim()}
+                        aria-label="Suggest emoji based on question"
+                        title="Suggest an emoji based on the question text"
+                    >
+                        <span className="icon-suggest-text">{isSuggestingEmoji ? "..." : "✨"}</span>
+                        <span className="sr-only">Suggest emoji</span>
+                    </button>
                 </div>
             </div>
 
@@ -199,15 +194,15 @@ export function TrackingForm({
                 <div className="form-label-row">
                     <label htmlFor="tracking-type">
                         Type <span className="required-asterisk">*</span>
+                        <button
+                            type="button"
+                            className="field-help"
+                            aria-label="Type help"
+                            title="Choose whether you want a simple Yes/No tracking or a free text register."
+                        >
+                            ?
+                        </button>
                     </label>
-                    <button
-                        type="button"
-                        className="field-help"
-                        aria-label="Type help"
-                        title="Choose whether you want a simple Yes/No tracking or a free text register."
-                    >
-                        ?
-                    </button>
                 </div>
                 <select
                     id="tracking-type"
@@ -224,15 +219,17 @@ export function TrackingForm({
 
             <div className="form-group">
                 <div className="form-label-row">
-                    <label htmlFor="tracking-start-date">Start tracking date</label>
-                    <button
-                        type="button"
-                        className="field-help"
-                        aria-label="Start tracking date help"
-                        title="Define when this tracking should start. Leave empty to start right now."
-                    >
-                        ?
-                    </button>
+                    <label htmlFor="tracking-start-date">
+                        Start tracking date
+                        <button
+                            type="button"
+                            className="field-help"
+                            aria-label="Start tracking date help"
+                            title="Define when this tracking should start. Leave empty to start right now."
+                        >
+                            ?
+                        </button>
+                    </label>
                 </div>
                 <input
                     type="datetime-local"
@@ -246,15 +243,17 @@ export function TrackingForm({
 
             <div className="form-group">
                 <div className="form-label-row">
-                    <label htmlFor="tracking-notes">Notes</label>
-                    <button
-                        type="button"
-                        className="field-help"
-                        aria-label="Notes help"
-                        title="Add any extra context or details you want to remember about this tracking."
-                    >
-                        ?
-                    </button>
+                    <label htmlFor="tracking-notes">
+                        Notes
+                        <button
+                            type="button"
+                            className="field-help"
+                            aria-label="Notes help"
+                            title="Add any extra context or details you want to remember about this tracking."
+                        >
+                            ?
+                        </button>
+                    </label>
                 </div>
                 <textarea
                     id="tracking-notes"

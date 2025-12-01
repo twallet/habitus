@@ -18,7 +18,7 @@ describe("TrackingForm", () => {
         expect(
             screen.getByRole("textbox", { name: /^question \*/i })
         ).toBeInTheDocument();
-        expect(screen.getByLabelText(/^type \*/i)).toBeInTheDocument();
+        expect(screen.getByRole("combobox", { name: /^type \*/i })).toBeInTheDocument();
         expect(
             screen.getByRole("button", { name: /create tracking/i })
         ).toBeInTheDocument();
@@ -45,7 +45,9 @@ describe("TrackingForm", () => {
         const questionInput = screen.getByRole("textbox", {
             name: /^question \*/i,
         });
-        const typeSelect = screen.getByLabelText(/^type \*/i);
+        const typeSelect = screen.getByRole("combobox", {
+            name: /^type \*/i,
+        });
         const submitButton = screen.getByRole("button", {
             name: /create tracking/i,
         });
@@ -72,7 +74,9 @@ describe("TrackingForm", () => {
         const questionInput = screen.getByRole("textbox", {
             name: /^question \*/i,
         });
-        const notesInput = screen.getByLabelText(/^notes$/i);
+        const notesInput = screen.getByRole("textbox", {
+            name: /^notes$/i,
+        });
         const submitButton = screen.getByRole("button", {
             name: /create tracking/i,
         });
