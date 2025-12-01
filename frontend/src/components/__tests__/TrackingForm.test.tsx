@@ -28,7 +28,7 @@ describe("TrackingForm", () => {
             throw new Error("Time input not found");
         }
         const buttons = screen.getAllByRole("button", { name: /^schedule$/i });
-        const addButton = buttons.find(btn => btn.getAttribute("type") === "button") as HTMLButtonElement;
+        const addButton = buttons.find(btn => btn.getAttribute("type") === "button" && btn.textContent === "Schedule") as HTMLButtonElement;
 
         const timeValue = `${String(hour).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
         await user.clear(timeInput);
@@ -43,8 +43,7 @@ describe("TrackingForm", () => {
             screen.getByRole("textbox", { name: /^question \*/i })
         ).toBeInTheDocument();
         expect(screen.getByRole("combobox", { name: /^type \*/i })).toBeInTheDocument();
-        const addButtons = screen.getAllByRole("button", { name: /^add$/i });
-        expect(addButtons.length).toBeGreaterThan(0);
+        expect(screen.getByRole("button", { name: /^create$/i })).toBeInTheDocument();
     });
 
 
@@ -62,8 +61,7 @@ describe("TrackingForm", () => {
         await user.type(questionInput, "Did I exercise today?");
         await user.selectOptions(typeSelect, TrackingType.TRUE_FALSE);
         await addSchedule(user);
-        const buttons = screen.getAllByRole("button", { name: /^add$/i });
-        const submitButton = buttons.find(btn => btn.getAttribute("type") === "submit") as HTMLButtonElement;
+        const submitButton = screen.getByRole("button", { name: /^create$/i });
         await user.click(submitButton);
 
         await waitFor(() => {
@@ -72,7 +70,8 @@ describe("TrackingForm", () => {
                 TrackingType.TRUE_FALSE,
                 undefined,
                 undefined,
-                [{ hour: 9, minutes: 0 }]
+                [{ hour: 9, minutes: 0 }],
+                undefined
             );
         });
     });
@@ -90,8 +89,7 @@ describe("TrackingForm", () => {
         await user.type(questionInput, "Did I exercise?");
         await user.type(notesInput, "Exercise notes");
         await addSchedule(user);
-        const buttons = screen.getAllByRole("button", { name: /^add$/i });
-        const submitButton = buttons.find(btn => btn.getAttribute("type") === "submit") as HTMLButtonElement;
+        const submitButton = screen.getByRole("button", { name: /^create$/i });
         await user.click(submitButton);
 
         await waitFor(() => {
@@ -100,7 +98,8 @@ describe("TrackingForm", () => {
                 TrackingType.TRUE_FALSE,
                 "Exercise notes",
                 undefined,
-                [{ hour: 9, minutes: 0 }]
+                [{ hour: 9, minutes: 0 }],
+                undefined
             );
         });
     });
@@ -149,8 +148,7 @@ describe("TrackingForm", () => {
         }) as HTMLInputElement;
         await user.type(questionInput, "Did I exercise?");
         await addSchedule(user);
-        const buttons = screen.getAllByRole("button", { name: /^add$/i });
-        const submitBtn = buttons.find(btn => btn.getAttribute("type") === "submit") as HTMLButtonElement;
+        const submitBtn = screen.getByRole("button", { name: /^create$/i });
         await user.click(submitBtn);
 
         await waitFor(() => {
@@ -173,7 +171,7 @@ describe("TrackingForm", () => {
         render(<TrackingForm onSubmit={mockOnSubmit} isSubmitting={true} />);
 
         const submitButton = screen.getByRole("button", {
-            name: /adding/i,
+            name: /creating/i,
         }) as HTMLButtonElement;
         expect(submitButton.disabled).toBe(true);
     });
@@ -181,9 +179,7 @@ describe("TrackingForm", () => {
     it("should disable submit button when question is empty", () => {
         render(<TrackingForm onSubmit={mockOnSubmit} />);
 
-        // Get the submit button (type="submit"), not the schedule add button
-        const buttons = screen.getAllByRole("button", { name: /^add$/i });
-        const submitBtn = buttons.find(btn => btn.getAttribute("type") === "submit") as HTMLButtonElement;
+        const submitBtn = screen.getByRole("button", { name: /^create$/i }) as HTMLButtonElement;
         expect(submitBtn.disabled).toBe(true);
     });
 
@@ -195,8 +191,7 @@ describe("TrackingForm", () => {
         }) as HTMLInputElement;
         fireEvent.change(questionInput, { target: { value: "Test question" } });
 
-        const buttons = screen.getAllByRole("button", { name: /^add$/i });
-        const submitBtn = buttons.find(btn => btn.getAttribute("type") === "submit") as HTMLButtonElement;
+        const submitBtn = screen.getByRole("button", { name: /^create$/i }) as HTMLButtonElement;
         expect(submitBtn.disabled).toBe(true);
     });
 
@@ -210,8 +205,7 @@ describe("TrackingForm", () => {
         await user.type(questionInput, "Did I exercise?");
 
         // Submit button should be disabled when no schedules
-        const buttons = screen.getAllByRole("button", { name: /^add$/i });
-        const submitBtn = buttons.find(btn => btn.getAttribute("type") === "submit") as HTMLButtonElement;
+        const submitBtn = screen.getByRole("button", { name: /^create$/i }) as HTMLButtonElement;
         expect(submitBtn.disabled).toBe(true);
 
         // Try to submit form directly
