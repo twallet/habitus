@@ -15,7 +15,9 @@ describe("TrackingForm", () => {
     it("should render form elements", () => {
         render(<TrackingForm onSubmit={mockOnSubmit} />);
 
-        expect(screen.getByLabelText(/question/i)).toBeInTheDocument();
+        expect(
+            screen.getByRole("textbox", { name: /^question \*/i })
+        ).toBeInTheDocument();
         expect(screen.getByLabelText(/^type \*/i)).toBeInTheDocument();
         expect(
             screen.getByRole("button", { name: /create tracking/i })
@@ -26,8 +28,10 @@ describe("TrackingForm", () => {
         const user = userEvent.setup();
         render(<TrackingForm onSubmit={mockOnSubmit} />);
 
-        const textarea = screen.getByLabelText(/question/i);
-        await user.type(textarea, "Did I exercise?");
+        const questionInput = screen.getByRole("textbox", {
+            name: /^question \*/i,
+        });
+        await user.type(questionInput, "Did I exercise?");
 
         // Character count should be visible after typing
         // "Did I exercise?" has 15 characters
@@ -38,7 +42,9 @@ describe("TrackingForm", () => {
         const user = userEvent.setup();
         render(<TrackingForm onSubmit={mockOnSubmit} />);
 
-        const questionInput = screen.getByLabelText(/question/i);
+        const questionInput = screen.getByRole("textbox", {
+            name: /^question \*/i,
+        });
         const typeSelect = screen.getByLabelText(/^type \*/i);
         const submitButton = screen.getByRole("button", {
             name: /create tracking/i,
@@ -63,7 +69,9 @@ describe("TrackingForm", () => {
         const user = userEvent.setup();
         render(<TrackingForm onSubmit={mockOnSubmit} />);
 
-        const questionInput = screen.getByLabelText(/question/i);
+        const questionInput = screen.getByRole("textbox", {
+            name: /^question \*/i,
+        });
         const notesInput = screen.getByLabelText(/notes/i);
         const submitButton = screen.getByRole("button", {
             name: /create tracking/i,
@@ -87,7 +95,9 @@ describe("TrackingForm", () => {
     it("should show error when question is empty", async () => {
         render(<TrackingForm onSubmit={mockOnSubmit} />);
 
-        const questionInput = screen.getByLabelText(/question/i);
+        const questionInput = screen.getByRole("textbox", {
+            name: /^question \*/i,
+        });
         const form = questionInput.closest("form")!;
 
         // Submit form with empty question
@@ -105,9 +115,11 @@ describe("TrackingForm", () => {
         const user = userEvent.setup();
         render(<TrackingForm onSubmit={mockOnSubmit} />);
 
-        const textarea = screen.getByLabelText(/question/i) as HTMLTextAreaElement;
+        const questionInput = screen.getByRole("textbox", {
+            name: /^question \*/i,
+        }) as HTMLInputElement;
         const longQuestion = "a".repeat(501);
-        fireEvent.change(textarea, { target: { value: longQuestion } });
+        fireEvent.change(questionInput, { target: { value: longQuestion } });
         await user.click(
             screen.getByRole("button", { name: /create tracking/i })
         );
@@ -122,7 +134,9 @@ describe("TrackingForm", () => {
         render(<TrackingForm onSubmit={mockOnSubmit} />);
         const user = userEvent.setup();
 
-        const questionInput = screen.getByLabelText(/question/i) as HTMLTextAreaElement;
+        const questionInput = screen.getByRole("textbox", {
+            name: /^question \*/i,
+        }) as HTMLInputElement;
         await user.type(questionInput, "Did I exercise?");
         await user.click(
             screen.getByRole("button", { name: /create tracking/i })
