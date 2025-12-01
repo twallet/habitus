@@ -146,6 +146,7 @@ export function TrackingForm({
                         required
                         disabled={isSubmitting}
                         maxLength={500}
+                        size={45}
                     />
                     <span className="char-count">
                         {question.length}/500
@@ -175,10 +176,11 @@ export function TrackingForm({
                         onChange={(e) => setIcon(e.target.value)}
                         disabled={isSubmitting}
                         maxLength={30}
+                        size={10}
                     />
                     <button
                         type="button"
-                        className="btn-primary icon-suggest-button"
+                        className="icon-suggest-button"
                         onClick={handleSuggestEmoji}
                         disabled={isSubmitting || isSuggestingEmoji || !question.trim()}
                         aria-label="Suggest emoji based on question"

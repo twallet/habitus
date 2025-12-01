@@ -61,20 +61,21 @@
 .form-group input[type="text"],
 .form-group input[type="datetime-local"],
 .form-group select {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  font-size: 0.95rem;
-  font-family: inherit;
-  transition: var(--transition);
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  box-sizing: border-box;
+  width: fit-content;
+}
+
+.form-group input[type="datetime-local"] {
+  width: fit-content;
+}
+
+.form-group textarea {
+  width: fit-content;
+  min-width: 40ch;
 }
 
 .question-field-wrapper input[type="text"] {
   height: 42px;
+  width: fit-content;
 }
 
 .icon-input-row input[type="text"],
@@ -173,8 +174,9 @@
 }
 
 .icon-input-row input[type="text"] {
-  flex: 1;
-  min-width: 120px;
+  width: auto;
+  min-width: 10ch;
+  flex: 0 1 auto;
 }
 
 .icon-suggest-button {
@@ -185,6 +187,21 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--primary-color);
+  color: #ffffff;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.icon-suggest-button:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.icon-suggest-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .icon-suggest-text {
