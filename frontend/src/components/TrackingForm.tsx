@@ -175,7 +175,6 @@ export function TrackingForm({
                         onChange={(e) => setIcon(e.target.value)}
                         disabled={isSubmitting}
                         maxLength={30}
-                        size={9}
                     />
                     <button
                         type="button"

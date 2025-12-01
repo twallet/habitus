@@ -174,13 +174,12 @@
 }
 
 .icon-input-row input[type="text"] {
-  width: auto;
-  min-width: 10ch;
-  flex: 0 1 auto;
+  width: 11ch;
+  flex: 0 0 auto;
 }
 
 .icon-suggest-button {
-  padding-inline: 2px;
+  padding-inline: 10px;
   min-width: auto;
   width: auto;
   flex-shrink: 0;
