@@ -126,7 +126,7 @@ describe("TrackingForm", () => {
         const questionInput = screen.getByRole("textbox", {
             name: /^question \*/i,
         }) as HTMLInputElement;
-        const longQuestion = "a".repeat(501);
+        const longQuestion = "a".repeat(101);
         fireEvent.change(questionInput, { target: { value: longQuestion } });
         await addSchedule(user);
         const form = questionInput.closest("form")!;
@@ -134,7 +134,7 @@ describe("TrackingForm", () => {
 
         await waitFor(() => {
             expect(
-                screen.getByText(/must not exceed 500 characters/i)
+                screen.getByText(/must not exceed 100 characters/i)
             ).toBeInTheDocument();
         });
         expect(mockOnSubmit).not.toHaveBeenCalled();

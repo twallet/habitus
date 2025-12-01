@@ -267,8 +267,8 @@ describe("Tracking", () => {
   });
 
   describe("MAX_QUESTION_LENGTH", () => {
-    it("should be 500", () => {
-      expect(Tracking.MAX_QUESTION_LENGTH).toBe(500);
+    it("should be 100", () => {
+      expect(Tracking.MAX_QUESTION_LENGTH).toBe(100);
     });
   });
 });

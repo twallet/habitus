@@ -187,8 +187,8 @@ export function EditTrackingModal({
             return;
         }
 
-        if (question.trim().length > 500) {
-            setError("Question must not exceed 500 characters");
+        if (question.trim().length > 100) {
+            setError("Question must not exceed 100 characters");
             setIsSubmitting(false);
             return;
         }
@@ -330,7 +330,7 @@ export function EditTrackingModal({
                                 onChange={(e) => setQuestion(e.target.value)}
                                 required
                                 disabled={isSubmitting}
-                                maxLength={500}
+                                maxLength={100}
                                 rows={2}
                             />
                         </div>

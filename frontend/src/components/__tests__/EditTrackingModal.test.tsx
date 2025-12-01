@@ -153,7 +153,7 @@ describe('EditTrackingModal', () => {
     });
   });
 
-  it('should show error for question exceeding 500 characters', async () => {
+  it('should show error for question exceeding 100 characters', async () => {
     const user = userEvent.setup();
     render(
       <EditTrackingModal
@@ -164,14 +164,14 @@ describe('EditTrackingModal', () => {
     );
 
     const questionInput = screen.getByRole('textbox', { name: /^question \*/i });
-    fireEvent.change(questionInput, { target: { value: 'x'.repeat(501) } });
+    fireEvent.change(questionInput, { target: { value: 'x'.repeat(101) } });
 
     const saveButton = screen.getByRole('button', { name: /save changes/i });
     await user.click(saveButton);
 
     await waitFor(() => {
       expect(
-        screen.getByText(/question must not exceed 500 characters/i)
+        screen.getByText(/question must not exceed 100 characters/i)
       ).toBeInTheDocument();
     });
   });

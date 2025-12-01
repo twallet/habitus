@@ -35,7 +35,7 @@ export class Tracking {
    * Maximum allowed length for tracking questions.
    * @public
    */
-  static readonly MAX_QUESTION_LENGTH: number = 500;
+  static readonly MAX_QUESTION_LENGTH: number = 100;
 
   /**
    * Tracking ID.

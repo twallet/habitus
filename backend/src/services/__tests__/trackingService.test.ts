@@ -44,7 +44,7 @@ async function createTestDatabase(): Promise<Database> {
             CREATE TABLE IF NOT EXISTS trackings (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               user_id INTEGER NOT NULL,
-              question TEXT NOT NULL CHECK(length(question) <= 500),
+              question TEXT NOT NULL CHECK(length(question) <= 100),
               type TEXT NOT NULL CHECK(type IN ('true_false', 'register')),
               notes TEXT,
               icon TEXT,
