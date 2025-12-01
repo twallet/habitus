@@ -177,7 +177,15 @@ describe("Upload Middleware", () => {
       });
 
       it("should generate unique filenames through storage", async () => {
+        const originalDbPath = process.env.DB_PATH;
+
+        // Use a temporary directory within the project for testing file creation
+        const testDataDir = path.join(__dirname, "../../../test-upload-storage");
+        const testDbPath = path.join(testDataDir, "database.db");
+        process.env.DB_PATH = testDbPath;
+
         const config = new UploadConfig();
+        const uploadsDir = config.getUploadsDirectory();
         const multerInstance = config.getMulterInstance();
         const storage = (multerInstance as any).storage;
 
@@ -217,21 +225,50 @@ describe("Upload Middleware", () => {
           });
         };
 
-        const info1 = await handleFilePromise(file1);
-        const filename1 = info1.filename;
-        expect(filename1).toContain("test-image");
-        expect(filename1).toContain(".jpg");
+        try {
+          const info1 = await handleFilePromise(file1);
+          const filename1 = info1.filename;
+          expect(filename1).toContain("test-image");
+          expect(filename1).toContain(".jpg");
 
-        const info2 = await handleFilePromise(file2);
-        const filename2 = info2.filename;
-        // Filenames should be different even with same original name
-        expect(filename1).not.toBe(filename2);
-        expect(filename2).toContain("test-image");
-        expect(filename2).toContain(".jpg");
+          const info2 = await handleFilePromise(file2);
+          const filename2 = info2.filename;
+          // Filenames should be different even with same original name
+          expect(filename1).not.toBe(filename2);
+          expect(filename2).toContain("test-image");
+          expect(filename2).toContain(".jpg");
+
+          // Uploaded files should exist in the temporary uploads directory
+          expect(fs.existsSync(path.join(uploadsDir, filename1))).toBe(true);
+          expect(fs.existsSync(path.join(uploadsDir, filename2))).toBe(true);
+        } finally {
+          // Cleanup: remove the created test uploads directory and its contents
+          if (fs.existsSync(testDataDir)) {
+            fs.rmSync(testDataDir, { recursive: true, force: true });
+          }
+
+          // Restore original DB_PATH
+          if (originalDbPath) {
+            process.env.DB_PATH = originalDbPath;
+          } else {
+            delete process.env.DB_PATH;
+          }
+        }
       });
 
       it("should sanitize special characters in filenames", async () => {
+        const originalDbPath = process.env.DB_PATH;
+
+        // Use a temporary directory within the project for testing file creation
+        const testDataDir = path.join(
+          __dirname,
+          "../../../test-upload-storage-sanitize"
+        );
+        const testDbPath = path.join(testDataDir, "database.db");
+        process.env.DB_PATH = testDbPath;
+
         const config = new UploadConfig();
+        const uploadsDir = config.getUploadsDirectory();
         const multerInstance = config.getMulterInstance();
         const storage = (multerInstance as any).storage;
 
@@ -253,27 +290,56 @@ describe("Upload Middleware", () => {
         } as Express.Multer.File;
 
         // Promisify the callback
-        const info = await new Promise<any>((resolve, reject) => {
-          storage._handleFile(
-            {} as Express.Request,
-            file,
-            (err: Error | null, info: any) => {
-              if (err) reject(err);
-              else resolve(info);
-            }
-          );
-        });
+        try {
+          const info = await new Promise<any>((resolve, reject) => {
+            storage._handleFile(
+              {} as Express.Request,
+              file,
+              (err: Error | null, info: any) => {
+                if (err) reject(err);
+                else resolve(info);
+              }
+            );
+          });
 
-        const generatedFilename = info.filename;
-        // Filename should not contain special characters like spaces, parentheses
-        expect(generatedFilename).not.toContain(" ");
-        expect(generatedFilename).not.toContain("(");
-        expect(generatedFilename).not.toContain(")");
-        expect(generatedFilename).toContain("test");
-        expect(generatedFilename).toContain(".jpg");
+          const generatedFilename = info.filename;
+          // Filename should not contain special characters like spaces, parentheses
+          expect(generatedFilename).not.toContain(" ");
+          expect(generatedFilename).not.toContain("(");
+          expect(generatedFilename).not.toContain(")");
+          expect(generatedFilename).toContain("test");
+          expect(generatedFilename).toContain(".jpg");
+
+          // Uploaded file should exist in the temporary uploads directory
+          expect(
+            fs.existsSync(path.join(uploadsDir, generatedFilename))
+          ).toBe(true);
+        } finally {
+          // Cleanup: remove the created test uploads directory and its contents
+          if (fs.existsSync(testDataDir)) {
+            fs.rmSync(testDataDir, { recursive: true, force: true });
+          }
+
+          // Restore original DB_PATH
+          if (originalDbPath) {
+            process.env.DB_PATH = originalDbPath;
+          } else {
+            delete process.env.DB_PATH;
+          }
+        }
       });
 
       it("should use correct destination directory in storage", async () => {
+        const originalDbPath = process.env.DB_PATH;
+
+        // Use a temporary directory within the project for testing file creation
+        const testDataDir = path.join(
+          __dirname,
+          "../../../test-upload-storage-destination"
+        );
+        const testDbPath = path.join(testDataDir, "database.db");
+        process.env.DB_PATH = testDbPath;
+
         const config = new UploadConfig();
         const uploadsDir = config.getUploadsDirectory();
         const multerInstance = config.getMulterInstance();
@@ -297,19 +363,38 @@ describe("Upload Middleware", () => {
         } as Express.Multer.File;
 
         // Promisify the callback
-        const info = await new Promise<any>((resolve, reject) => {
-          storage._handleFile(
-            {} as Express.Request,
-            file,
-            (err: Error | null, info: any) => {
-              if (err) reject(err);
-              else resolve(info);
-            }
-          );
-        });
+        try {
+          const info = await new Promise<any>((resolve, reject) => {
+            storage._handleFile(
+              {} as Express.Request,
+              file,
+              (err: Error | null, info: any) => {
+                if (err) reject(err);
+                else resolve(info);
+              }
+            );
+          });
 
-        expect(info.destination).toBe(uploadsDir);
-        expect(info.filename).toBeDefined();
+          expect(info.destination).toBe(uploadsDir);
+          expect(info.filename).toBeDefined();
+
+          // Uploaded file should exist in the temporary uploads directory
+          expect(
+            fs.existsSync(path.join(uploadsDir, info.filename))
+          ).toBe(true);
+        } finally {
+          // Cleanup: remove the created test uploads directory and its contents
+          if (fs.existsSync(testDataDir)) {
+            fs.rmSync(testDataDir, { recursive: true, force: true });
+          }
+
+          // Restore original DB_PATH
+          if (originalDbPath) {
+            process.env.DB_PATH = originalDbPath;
+          } else {
+            delete process.env.DB_PATH;
+          }
+        }
       });
     });
   });
