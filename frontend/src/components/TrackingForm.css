@@ -255,6 +255,10 @@
   box-sizing: border-box;
 }
 
+.schedule-input-row > .schedule-add-button {
+  align-self: flex-start;
+}
+
 .schedule-time-inputs {
   display: flex;
   gap: 12px;
@@ -288,6 +292,9 @@
 }
 
 .schedule-add-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   height: 42px;
   padding: 10px 20px;
   background: var(--primary-color);
@@ -301,9 +308,8 @@
   white-space: nowrap;
   flex-shrink: 0;
   flex-grow: 0;
-  flex-basis: auto;
   width: auto;
-  min-width: auto;
+  min-width: unset;
 }
 
 .schedule-add-button:hover:not(:disabled) {
