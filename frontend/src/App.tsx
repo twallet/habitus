@@ -347,7 +347,7 @@ function App() {
     notes: string | undefined,
     icon: string | undefined,
     schedules: Array<{ hour: number; minutes: number }>,
-    days: import("./models/Tracking").DaysPattern | undefined
+    days: import("./models/Tracking").DaysPattern
   ) => {
     console.log(`[${new Date().toISOString()}] FRONTEND_APP | Creating tracking`);
     try {

@@ -82,7 +82,7 @@ export function useTrackings() {
    * @param notes - Optional notes (rich text)
    * @param icon - Optional icon (emoji)
    * @param schedules - Required schedules array (1-5 schedules)
-   * @param days - Optional days pattern for reminder frequency
+   * @param days - Required days pattern for reminder frequency
    * @returns The created tracking data
    * @throws Error if API request fails
    * @public
@@ -93,7 +93,7 @@ export function useTrackings() {
     notes: string | undefined,
     icon: string | undefined,
     schedules: Array<{ hour: number; minutes: number }>,
-    days?: DaysPattern
+    days: DaysPattern
   ): Promise<TrackingData> => {
     const token = localStorage.getItem(TOKEN_KEY);
     if (!token) {

@@ -4,14 +4,7 @@ import { DaysPattern, DaysPatternType } from "./Tracking";
  * Frequency preset type for simplified selection.
  * @public
  */
-export type FrequencyPreset =
-  | "daily"
-  | "weekdays"
-  | "interval"
-  | "weekly"
-  | "monthly"
-  | "yearly"
-  | "custom";
+export type FrequencyPreset = "daily" | "weekly" | "monthly" | "yearly";
 
 /**
  * Builder class for creating and managing days patterns.
@@ -20,8 +13,6 @@ export type FrequencyPreset =
  */
 export class DaysPatternBuilder {
   private preset: FrequencyPreset;
-  private intervalValue: number;
-  private intervalUnit: "days" | "weeks" | "months" | "years";
   private selectedDays: number[];
   private monthlyDay: number;
   private monthlyType: "day" | "last" | "weekday";
@@ -37,9 +28,7 @@ export class DaysPatternBuilder {
    */
   constructor(value?: DaysPattern) {
     this.preset = value ? this.detectPresetFromPattern(value) : "daily";
-    this.intervalValue = value?.interval_value || 1;
-    this.intervalUnit = value?.interval_unit || "days";
-    this.selectedDays = value?.days || [];
+    this.selectedDays = value?.days || [1]; // Default to Monday for weekly
     this.monthlyDay = value?.day_numbers?.[0] || 1;
     this.monthlyType =
       value?.type === "last_day"
@@ -69,42 +58,10 @@ export class DaysPatternBuilder {
    */
   setPreset(preset: FrequencyPreset): void {
     this.preset = preset;
-  }
-
-  /**
-   * Get interval value.
-   * @returns Current interval value
-   * @public
-   */
-  getIntervalValue(): number {
-    return this.intervalValue;
-  }
-
-  /**
-   * Set interval value.
-   * @param value - Interval value to set
-   * @public
-   */
-  setIntervalValue(value: number): void {
-    this.intervalValue = value;
-  }
-
-  /**
-   * Get interval unit.
-   * @returns Current interval unit
-   * @public
-   */
-  getIntervalUnit(): "days" | "weeks" | "months" | "years" {
-    return this.intervalUnit;
-  }
-
-  /**
-   * Set interval unit.
-   * @param unit - Interval unit to set
-   * @public
-   */
-  setIntervalUnit(unit: "days" | "weeks" | "months" | "years"): void {
-    this.intervalUnit = unit;
+    // Set default values when switching presets
+    if (preset === "weekly" && this.selectedDays.length === 0) {
+      this.selectedDays = [1]; // Default to Monday
+    }
   }
 
   /**
@@ -254,24 +211,11 @@ export class DaysPatternBuilder {
    */
   detectPresetFromPattern(pattern: DaysPattern): FrequencyPreset {
     if (pattern.pattern_type === DaysPatternType.INTERVAL) {
-      if (pattern.interval_value === 1 && pattern.interval_unit === "days") {
-        return "daily";
-      }
-      return "interval";
+      // Interval patterns map to daily (every X days)
+      return "daily";
     }
 
     if (pattern.pattern_type === DaysPatternType.DAY_OF_WEEK) {
-      if (
-        pattern.days &&
-        pattern.days.length === 5 &&
-        pattern.days.includes(1) &&
-        pattern.days.includes(2) &&
-        pattern.days.includes(3) &&
-        pattern.days.includes(4) &&
-        pattern.days.includes(5)
-      ) {
-        return "weekdays";
-      }
       return "weekly";
     }
 
@@ -283,36 +227,24 @@ export class DaysPatternBuilder {
       return "yearly";
     }
 
-    return "custom";
+    // Default to daily
+    return "daily";
   }
 
   /**
    * Build pattern from current builder state.
-   * @param originalValue - Original pattern value for custom preset fallback
-   * @returns Built pattern or undefined
+   * Always returns a pattern (mandatory field).
+   * @returns Built pattern
    * @throws Error if validation fails
    * @public
    */
-  buildPattern(originalValue?: DaysPattern): DaysPattern | undefined {
+  buildPattern(): DaysPattern {
     if (this.preset === "daily") {
-      return undefined; // Daily means no pattern (default)
-    }
-
-    if (this.preset === "weekdays") {
-      return {
-        pattern_type: DaysPatternType.DAY_OF_WEEK,
-        days: [1, 2, 3, 4, 5], // Monday to Friday
-      };
-    }
-
-    if (this.preset === "interval") {
-      if (this.intervalValue < 1) {
-        throw new Error("Interval value must be at least 1");
-      }
+      // Daily = every 1 day (interval pattern)
       return {
         pattern_type: DaysPatternType.INTERVAL,
-        interval_value: this.intervalValue,
-        interval_unit: this.intervalUnit,
+        interval_value: 1,
+        interval_unit: "days",
       };
     }
 
@@ -359,12 +291,12 @@ export class DaysPatternBuilder {
       };
     }
 
-    // Custom preset - preserve existing pattern if available
-    if (originalValue && this.preset === "custom") {
-      return originalValue;
-    }
-
-    return undefined;
+    // Fallback to daily
+    return {
+      pattern_type: DaysPatternType.INTERVAL,
+      interval_value: 1,
+      interval_unit: "days",
+    };
   }
 
   /**

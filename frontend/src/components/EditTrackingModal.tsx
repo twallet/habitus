@@ -1,5 +1,5 @@
 import { useState, FormEvent, useEffect, useRef } from "react";
-import { TrackingData, TrackingType, DaysPattern } from "../models/Tracking";
+import { TrackingData, TrackingType, DaysPattern, DaysPatternType } from "../models/Tracking";
 import { ApiClient } from "../config/api";
 import { DaysPatternInput } from "./DaysPatternInput";
 import "./EditTrackingModal.css";
@@ -45,7 +45,13 @@ export function EditTrackingModal({
         })) || []
     );
     const [scheduleTime, setScheduleTime] = useState<string>("09:00");
-    const [days, setDays] = useState<DaysPattern | undefined>(tracking.days);
+    const [days, setDays] = useState<DaysPattern>(
+        tracking.days || {
+            pattern_type: DaysPatternType.INTERVAL,
+            interval_value: 1,
+            interval_unit: "days",
+        }
+    );
     const [daysError, setDaysError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);

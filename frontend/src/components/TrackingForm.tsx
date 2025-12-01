@@ -1,5 +1,5 @@
 import { useState, FormEvent } from "react";
-import { TrackingType, DaysPattern } from "../models/Tracking";
+import { TrackingType, DaysPattern, DaysPatternType } from "../models/Tracking";
 import { ApiClient } from "../config/api";
 import { DaysPatternInput } from "./DaysPatternInput";
 import "./TrackingForm.css";
@@ -11,7 +11,7 @@ interface TrackingFormProps {
         notes: string | undefined,
         icon: string | undefined,
         schedules: Array<{ hour: number; minutes: number }>,
-        days: DaysPattern | undefined
+        days: DaysPattern
     ) => Promise<void>;
     onCancel?: () => void;
     isSubmitting?: boolean;
@@ -38,7 +38,11 @@ export function TrackingForm({
         Array<{ hour: number; minutes: number }>
     >([]);
     const [scheduleTime, setScheduleTime] = useState<string>("09:00");
-    const [days, setDays] = useState<DaysPattern | undefined>(undefined);
+    const [days, setDays] = useState<DaysPattern>({
+        pattern_type: DaysPatternType.INTERVAL,
+        interval_value: 1,
+        interval_unit: "days",
+    });
     const [daysError, setDaysError] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isSuggestingEmoji, setIsSuggestingEmoji] = useState(false);
@@ -204,7 +208,11 @@ export function TrackingForm({
             setIcon("");
             setSchedules([]);
             setScheduleTime("09:00");
-            setDays(undefined);
+            setDays({
+                pattern_type: DaysPatternType.INTERVAL,
+                interval_value: 1,
+                interval_unit: "days",
+            });
         } catch (err) {
             setError(err instanceof Error ? err.message : "Error creating tracking");
         }

@@ -29,9 +29,10 @@ export interface DaysPattern {
   interval_unit?: "days" | "weeks" | "months" | "years";
   // For DAY_OF_WEEK pattern
   days?: number[]; // 0-6, where 0=Sunday
-  // For DAY_OF_MONTH pattern
-  type?: "day_number" | "last_day" | "weekday_ordinal";
-  day_numbers?: number[]; // 1-31
+  // For DAY_OF_MONTH pattern: "day_number" | "last_day" | "weekday_ordinal"
+  // For DAY_OF_YEAR pattern: "date" | "weekday_ordinal"
+  type?: "day_number" | "last_day" | "weekday_ordinal" | "date";
+  day_numbers?: number[]; // 1-31 (for DAY_OF_MONTH)
   weekday?: number; // 0-6, where 0=Sunday
   ordinal?: number; // 1-5 (first, second, third, fourth, fifth)
   // For DAY_OF_YEAR pattern

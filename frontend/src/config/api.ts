@@ -536,7 +536,7 @@ export class ApiClient {
     notes: string | undefined,
     icon: string | undefined,
     schedules: Array<{ hour: number; minutes: number }>,
-    days?: DaysPattern
+    days: DaysPattern
   ): Promise<TrackingData> {
     return this.post<TrackingData>(API_ENDPOINTS.trackings, {
       question,

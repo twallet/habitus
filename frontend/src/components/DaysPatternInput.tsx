@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import { DaysPattern } from "../models/Tracking";
+import { DaysPattern, DaysPatternType } from "../models/Tracking";
 import { DaysPatternBuilder, FrequencyPreset } from "../models/DaysPatternBuilder";
 import "./DaysPatternInput.css";
 
 interface DaysPatternInputProps {
     value?: DaysPattern;
-    onChange: (pattern: DaysPattern | undefined) => void;
+    onChange: (pattern: DaysPattern) => void;
     disabled?: boolean;
     error?: string | null;
     onErrorChange?: (error: string | null) => void;
@@ -13,10 +13,10 @@ interface DaysPatternInputProps {
 
 /**
  * Component for selecting/editing days patterns for reminder frequency.
- * Uses progressive disclosure with simple presets and natural language.
+ * Simplified UI starting with Daily/Weekly/Monthly/Yearly choice.
  * @param props - Component props
  * @param props.value - Current days pattern value
- * @param props.onChange - Callback when pattern changes
+ * @param props.onChange - Callback when pattern changes (always called with a pattern)
  * @param props.disabled - Whether the input is disabled
  * @param props.error - Error message to display
  * @param props.onErrorChange - Callback when error changes
@@ -33,12 +33,6 @@ export function DaysPatternInput({
     const [preset, setPreset] = useState<FrequencyPreset>(
         builderRef.current.getPreset()
     );
-    const [intervalValue, setIntervalValue] = useState<number>(
-        builderRef.current.getIntervalValue()
-    );
-    const [intervalUnit, setIntervalUnit] = useState<
-        "days" | "weeks" | "months" | "years"
-    >(builderRef.current.getIntervalUnit());
     const [selectedDays, setSelectedDays] = useState<number[]>(
         builderRef.current.getSelectedDays()
     );
@@ -94,11 +88,9 @@ export function DaysPatternInput({
      * Update builder with current state and build pattern.
      * @internal
      */
-    const buildPattern = (): DaysPattern | undefined => {
+    const buildPattern = (): DaysPattern => {
         const builder = builderRef.current;
         builder.setPreset(preset);
-        builder.setIntervalValue(intervalValue);
-        builder.setIntervalUnit(intervalUnit);
         builder.setSelectedDays(selectedDays);
         builder.setMonthlyDay(monthlyDay);
         builder.setMonthlyType(monthlyType);
@@ -113,18 +105,28 @@ export function DaysPatternInput({
                 if (onErrorChange) {
                     onErrorChange(validationError);
                 }
-                return undefined;
+                // Return a default pattern even on validation error
+                return {
+                    pattern_type: DaysPatternType.INTERVAL,
+                    interval_value: 1,
+                    interval_unit: "days",
+                };
             }
             if (onErrorChange) {
                 onErrorChange(null);
             }
-            return builder.buildPattern(value);
+            return builder.buildPattern();
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : "Invalid pattern";
             if (onErrorChange) {
                 onErrorChange(errorMessage);
             }
-            return undefined;
+            // Return a default pattern even on error
+            return {
+                pattern_type: DaysPatternType.INTERVAL,
+                interval_value: 1,
+                interval_unit: "days",
+            };
         }
     };
 
@@ -135,6 +137,12 @@ export function DaysPatternInput({
     const handlePresetChange = (newPreset: FrequencyPreset) => {
         setPreset(newPreset);
         builderRef.current.setPreset(newPreset);
+        // Update selectedDays if switching to weekly and it's empty
+        if (newPreset === "weekly" && selectedDays.length === 0) {
+            const newDays = [1]; // Default to Monday
+            setSelectedDays(newDays);
+            builderRef.current.setSelectedDays(newDays);
+        }
         if (onErrorChange) {
             onErrorChange(null);
         }
@@ -160,8 +168,6 @@ export function DaysPatternInput({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         preset,
-        intervalValue,
-        intervalUnit,
         selectedDays,
         monthlyDay,
         monthlyType,
@@ -180,8 +186,6 @@ export function DaysPatternInput({
             builderRef.current = new DaysPatternBuilder(value);
             const detectedPreset = builderRef.current.getPreset();
             setPreset(detectedPreset);
-            setIntervalValue(builderRef.current.getIntervalValue());
-            setIntervalUnit(builderRef.current.getIntervalUnit());
             setSelectedDays(builderRef.current.getSelectedDays());
             setMonthlyDay(builderRef.current.getMonthlyDay());
             setMonthlyType(builderRef.current.getMonthlyType());
@@ -192,6 +196,7 @@ export function DaysPatternInput({
         } else {
             builderRef.current = new DaysPatternBuilder();
             setPreset("daily");
+            setSelectedDays([1]);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -200,7 +205,7 @@ export function DaysPatternInput({
         <div className="days-pattern-input">
             <div className="form-label-row">
                 <label htmlFor="frequency-preset">
-                    Frequency{" "}
+                    Frequency <span className="required">*</span>
                     <button
                         type="button"
                         className="field-help"
@@ -218,49 +223,13 @@ export function DaysPatternInput({
                 onChange={(e) => handlePresetChange(e.target.value as FrequencyPreset)}
                 disabled={disabled}
                 className="frequency-preset-select"
+                required
             >
                 <option value="daily">Daily</option>
-                <option value="weekdays">Every weekday (Mon-Fri)</option>
-                <option value="interval">Every X days/weeks/months/years</option>
-                <option value="weekly">Weekly on specific days</option>
-                <option value="monthly">Monthly on specific day</option>
-                <option value="yearly">Yearly on specific date</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
             </select>
-
-            {preset === "interval" && (
-                <div className="frequency-options">
-                    <div className="interval-inputs">
-                        <label htmlFor="interval-value">Every</label>
-                        <input
-                            id="interval-value"
-                            type="number"
-                            min="1"
-                            value={intervalValue}
-                            onChange={(e) => {
-                                const val = parseInt(e.target.value, 10) || 1;
-                                setIntervalValue(val);
-                                builderRef.current.setIntervalValue(val);
-                            }}
-                            disabled={disabled}
-                            className="interval-value-input"
-                        />
-                        <select
-                            value={intervalUnit}
-                            onChange={(e) => {
-                                const unit = e.target.value as "days" | "weeks" | "months" | "years";
-                                setIntervalUnit(unit);
-                                builderRef.current.setIntervalUnit(unit);
-                            }}
-                            disabled={disabled}
-                        >
-                            <option value="days">day(s)</option>
-                            <option value="weeks">week(s)</option>
-                            <option value="months">month(s)</option>
-                            <option value="years">year(s)</option>
-                        </select>
-                    </div>
-                </div>
-            )}
 
             {preset === "weekly" && (
                 <div className="frequency-options">
@@ -314,6 +283,7 @@ export function DaysPatternInput({
                                 }}
                                 disabled={disabled}
                                 className="day-input"
+                                placeholder="Day (1-31)"
                             />
                         )}
 
@@ -385,6 +355,7 @@ export function DaysPatternInput({
                             }}
                             disabled={disabled}
                             className="day-input"
+                            placeholder="Day (1-31)"
                         />
                     </div>
                 </div>
