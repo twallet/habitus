@@ -84,6 +84,11 @@ export function TrackingForm({
             return;
         }
 
+        if (notes.trim().length > 500) {
+            setError("Notes must not exceed 500 characters");
+            return;
+        }
+
         try {
             await onSubmit(
                 question.trim(),
@@ -237,8 +242,12 @@ export function TrackingForm({
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     disabled={isSubmitting}
+                    maxLength={500}
                     rows={4}
                 />
+                <span className="char-count">
+                    {notes.length}/500
+                </span>
             </div>
 
             <div className="form-actions">

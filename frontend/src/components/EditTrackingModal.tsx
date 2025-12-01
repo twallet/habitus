@@ -119,6 +119,12 @@ export function EditTrackingModal({
             return;
         }
 
+        if (notes.trim().length > 500) {
+            setError("Notes must not exceed 500 characters");
+            setIsSubmitting(false);
+            return;
+        }
+
         try {
             await onSave(
                 tracking.id,
@@ -305,10 +311,11 @@ export function EditTrackingModal({
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
                             disabled={isSubmitting}
+                            maxLength={500}
                             rows={4}
                         />
-                        <span className="field-hint">
-                            Rich text editor - supports HTML formatting
+                        <span className="char-count">
+                            {notes.length}/500
                         </span>
                     </div>
 
