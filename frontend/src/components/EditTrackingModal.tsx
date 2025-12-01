@@ -42,8 +42,7 @@ export function EditTrackingModal({
             minutes: s.minutes,
         })) || []
     );
-    const [scheduleHour, setScheduleHour] = useState<number>(0);
-    const [scheduleMinutes, setScheduleMinutes] = useState<number>(0);
+    const [scheduleTime, setScheduleTime] = useState<string>("09:00");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isSuggestingEmoji, setIsSuggestingEmoji] = useState(false);
@@ -96,18 +95,25 @@ export function EditTrackingModal({
     const handleAddOrUpdateSchedule = () => {
         setError(null);
 
+        // Parse time string (format: "HH:MM")
+        const [hourStr, minutesStr] = scheduleTime.split(":");
+        const hour = parseInt(hourStr, 10);
+        const minutes = parseInt(minutesStr, 10);
+
         // Validate hour and minutes
         if (
-            scheduleHour < 0 ||
-            scheduleHour > 23 ||
-            scheduleMinutes < 0 ||
-            scheduleMinutes > 59
+            isNaN(hour) ||
+            isNaN(minutes) ||
+            hour < 0 ||
+            hour > 23 ||
+            minutes < 0 ||
+            minutes > 59
         ) {
-            setError("Hour must be 0-23 and minutes must be 0-59");
+            setError("Invalid time format. Please use HH:MM format (e.g., 09:00)");
             return;
         }
 
-        const newSchedule = { hour: scheduleHour, minutes: scheduleMinutes };
+        const newSchedule = { hour, minutes };
 
         // Check for duplicates
         const isDuplicate = schedules.some(
@@ -118,7 +124,7 @@ export function EditTrackingModal({
 
         if (isDuplicate) {
             setError(
-                `Schedule ${String(scheduleHour).padStart(2, "0")}:${String(scheduleMinutes).padStart(2, "0")} already exists`
+                `Schedule ${String(hour).padStart(2, "0")}:${String(minutes).padStart(2, "0")} already exists`
             );
             return;
         }
@@ -130,9 +136,8 @@ export function EditTrackingModal({
         }
         setSchedules([...schedules, newSchedule]);
 
-        // Reset inputs
-        setScheduleHour(0);
-        setScheduleMinutes(0);
+        // Reset input
+        setScheduleTime("09:00");
     };
 
     /**
@@ -453,30 +458,13 @@ export function EditTrackingModal({
                         )}
                         <div className="schedule-input-row">
                             <div className="schedule-time-inputs">
-                                <label htmlFor="edit-schedule-hour">Hour</label>
+                                <label htmlFor="edit-schedule-time">Time</label>
                                 <input
-                                    type="number"
-                                    id="edit-schedule-hour"
-                                    name="edit-schedule-hour"
-                                    min="0"
-                                    max="23"
-                                    value={scheduleHour}
-                                    onChange={(e) =>
-                                        setScheduleHour(parseInt(e.target.value) || 0)
-                                    }
-                                    disabled={isSubmitting}
-                                />
-                                <label htmlFor="edit-schedule-minutes">Minutes</label>
-                                <input
-                                    type="number"
-                                    id="edit-schedule-minutes"
-                                    name="edit-schedule-minutes"
-                                    min="0"
-                                    max="59"
-                                    value={scheduleMinutes}
-                                    onChange={(e) =>
-                                        setScheduleMinutes(parseInt(e.target.value) || 0)
-                                    }
+                                    type="time"
+                                    id="edit-schedule-time"
+                                    name="edit-schedule-time"
+                                    value={scheduleTime}
+                                    onChange={(e) => setScheduleTime(e.target.value)}
                                     disabled={isSubmitting}
                                 />
                             </div>

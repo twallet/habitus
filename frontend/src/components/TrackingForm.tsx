@@ -35,8 +35,7 @@ export function TrackingForm({
     const [schedules, setSchedules] = useState<
         Array<{ hour: number; minutes: number }>
     >([]);
-    const [scheduleHour, setScheduleHour] = useState<number>(0);
-    const [scheduleMinutes, setScheduleMinutes] = useState<number>(0);
+    const [scheduleTime, setScheduleTime] = useState<string>("09:00");
     const [error, setError] = useState<string | null>(null);
     const [isSuggestingEmoji, setIsSuggestingEmoji] = useState(false);
     const [apiClient] = useState(() => {
@@ -78,18 +77,25 @@ export function TrackingForm({
     const handleAddOrUpdateSchedule = () => {
         setError(null);
 
+        // Parse time string (format: "HH:MM")
+        const [hourStr, minutesStr] = scheduleTime.split(":");
+        const hour = parseInt(hourStr, 10);
+        const minutes = parseInt(minutesStr, 10);
+
         // Validate hour and minutes
         if (
-            scheduleHour < 0 ||
-            scheduleHour > 23 ||
-            scheduleMinutes < 0 ||
-            scheduleMinutes > 59
+            isNaN(hour) ||
+            isNaN(minutes) ||
+            hour < 0 ||
+            hour > 23 ||
+            minutes < 0 ||
+            minutes > 59
         ) {
-            setError("Hour must be 0-23 and minutes must be 0-59");
+            setError("Invalid time format. Please use HH:MM format (e.g., 09:00)");
             return;
         }
 
-        const newSchedule = { hour: scheduleHour, minutes: scheduleMinutes };
+        const newSchedule = { hour, minutes };
 
         // Check for duplicates
         const isDuplicate = schedules.some(
@@ -100,7 +106,7 @@ export function TrackingForm({
 
         if (isDuplicate) {
             setError(
-                `Schedule ${String(scheduleHour).padStart(2, "0")}:${String(scheduleMinutes).padStart(2, "0")} already exists`
+                `Schedule ${String(hour).padStart(2, "0")}:${String(minutes).padStart(2, "0")} already exists`
             );
             return;
         }
@@ -112,9 +118,8 @@ export function TrackingForm({
         }
         setSchedules([...schedules, newSchedule]);
 
-        // Reset inputs
-        setScheduleHour(0);
-        setScheduleMinutes(0);
+        // Reset input
+        setScheduleTime("09:00");
     };
 
     /**
@@ -188,8 +193,7 @@ export function TrackingForm({
             setNotes("");
             setIcon("");
             setSchedules([]);
-            setScheduleHour(0);
-            setScheduleMinutes(0);
+            setScheduleTime("09:00");
         } catch (err) {
             setError(err instanceof Error ? err.message : "Error creating tracking");
         }
@@ -362,30 +366,13 @@ export function TrackingForm({
                 )}
                 <div className="schedule-input-row">
                     <div className="schedule-time-inputs">
-                        <label htmlFor="schedule-hour">Hour</label>
+                        <label htmlFor="schedule-time">Time</label>
                         <input
-                            type="number"
-                            id="schedule-hour"
-                            name="schedule-hour"
-                            min="0"
-                            max="23"
-                            value={scheduleHour}
-                            onChange={(e) =>
-                                setScheduleHour(parseInt(e.target.value) || 0)
-                            }
-                            disabled={isSubmitting}
-                        />
-                        <label htmlFor="schedule-minutes">Minutes</label>
-                        <input
-                            type="number"
-                            id="schedule-minutes"
-                            name="schedule-minutes"
-                            min="0"
-                            max="59"
-                            value={scheduleMinutes}
-                            onChange={(e) =>
-                                setScheduleMinutes(parseInt(e.target.value) || 0)
-                            }
+                            type="time"
+                            id="schedule-time"
+                            name="schedule-time"
+                            value={scheduleTime}
+                            onChange={(e) => setScheduleTime(e.target.value)}
                             disabled={isSubmitting}
                         />
                     </div>

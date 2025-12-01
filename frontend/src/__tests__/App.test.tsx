@@ -936,14 +936,11 @@ describe('App', () => {
     await userEvent.type(questionInput, 'Did you exercise?');
 
     // Add a schedule before submitting
-    const hourInput = screen.getByLabelText(/^hour$/i);
-    const minutesInput = screen.getByLabelText(/^minutes$/i);
+    const timeInput = screen.getByLabelText(/^time$/i);
     const buttons = screen.getAllByRole('button', { name: /^add$/i });
     const addScheduleButton = buttons.find(btn => btn.getAttribute("type") === "button") as HTMLButtonElement;
-    await userEvent.clear(hourInput);
-    await userEvent.type(hourInput, '9');
-    await userEvent.clear(minutesInput);
-    await userEvent.type(minutesInput, '0');
+    await userEvent.clear(timeInput);
+    await userEvent.type(timeInput, '09:00');
     await userEvent.click(addScheduleButton);
 
     const submitButton = buttons.find(btn => btn.getAttribute("type") === "submit") as HTMLButtonElement;
@@ -1359,14 +1356,11 @@ describe('App', () => {
     await userEvent.type(questionInput, 'Did you exercise?');
 
     // Add a schedule before submitting
-    const hourInput = screen.getByLabelText(/^hour$/i);
-    const minutesInput = screen.getByLabelText(/^minutes$/i);
+    const timeInput = screen.getByLabelText(/^time$/i);
     const buttons = screen.getAllByRole('button', { name: /^add$/i });
     const addScheduleButton = buttons.find(btn => btn.getAttribute("type") === "button") as HTMLButtonElement;
-    await userEvent.clear(hourInput);
-    await userEvent.type(hourInput, '9');
-    await userEvent.clear(minutesInput);
-    await userEvent.type(minutesInput, '0');
+    await userEvent.clear(timeInput);
+    await userEvent.type(timeInput, '09:00');
     await userEvent.click(addScheduleButton);
 
     const submitButton = buttons.find(btn => btn.getAttribute("type") === "submit") as HTMLButtonElement;

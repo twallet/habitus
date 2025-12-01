@@ -23,15 +23,13 @@ describe("TrackingForm", () => {
         hour: number = 9,
         minutes: number = 0
     ) => {
-        const hourInput = screen.getByLabelText(/^hour$/i) as HTMLInputElement;
-        const minutesInput = screen.getByLabelText(/^minutes$/i) as HTMLInputElement;
+        const timeInput = screen.getByLabelText(/^time$/i) as HTMLInputElement;
         const buttons = screen.getAllByRole("button", { name: /^add$/i });
         const addButton = buttons.find(btn => btn.getAttribute("type") === "button") as HTMLButtonElement;
 
-        await user.clear(hourInput);
-        await user.type(hourInput, hour.toString());
-        await user.clear(minutesInput);
-        await user.type(minutesInput, minutes.toString());
+        const timeValue = `${String(hour).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+        await user.clear(timeInput);
+        await user.type(timeInput, timeValue);
         await user.click(addButton);
     };
 
