@@ -416,9 +416,6 @@ export function EditTrackingModal({
                                     ?
                                 </button>
                             </label>
-                            <span className="schedule-count">
-                                {schedules.length}/5 times
-                            </span>
                         </div>
                         <div className="schedule-input-row">
                             <div className="schedule-time-inputs">
@@ -441,6 +438,9 @@ export function EditTrackingModal({
                             >
                                 Schedule
                             </button>
+                            <span className="schedule-count">
+                                {schedules.length}/5 times
+                            </span>
                         </div>
                         {schedules.length > 0 && (
                             <div className="schedules-list">

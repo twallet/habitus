@@ -293,9 +293,8 @@
   white-space: nowrap;
   flex-shrink: 0;
   flex-grow: 0;
-  width: auto;
-  min-width: auto;
-  max-width: none;
+  width: fit-content;
+  min-width: 0;
 }
 
 .schedule-add-button:hover:not(:disabled) {
