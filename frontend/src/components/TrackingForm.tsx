@@ -122,18 +122,33 @@ export function TrackingForm({
             )}
 
             <div className="form-group">
-                <div className="form-label-row">
-                    <label htmlFor="tracking-question">
-                        Question <span className="required-asterisk">*</span>
-                    </label>
-                    <button
-                        type="button"
-                        className="field-help"
-                        aria-label="Question help"
-                        title="Main nanohabit question you want to track, for example 'Did I drink 8 glasses of water today?'"
-                    >
-                        ?
-                    </button>
+                <div className="question-icon-labels-row">
+                    <div className="form-label-row">
+                        <label htmlFor="tracking-question">
+                            Question <span className="required-asterisk">*</span>
+                        </label>
+                        <button
+                            type="button"
+                            className="field-help"
+                            aria-label="Question help"
+                            title="Main nanohabit question you want to track, for example 'Did I drink 8 glasses of water today?'"
+                        >
+                            ?
+                        </button>
+                    </div>
+                    <div className="form-label-row">
+                        <label htmlFor="tracking-icon">
+                            Icon
+                        </label>
+                        <button
+                            type="button"
+                            className="field-help"
+                            aria-label="Icon help"
+                            title="Optional emoji or icon to visually identify this tracking."
+                        >
+                            ?
+                        </button>
+                    </div>
                 </div>
                 <div className="question-icon-row">
                     <div className="question-field-wrapper">
@@ -153,9 +168,6 @@ export function TrackingForm({
                         </span>
                     </div>
                     <div className="icon-field-wrapper">
-                        <label htmlFor="tracking-icon" className="sr-only">
-                            Icon
-                        </label>
                         <div className="icon-input-row">
                             <input
                                 type="text"
@@ -181,9 +193,6 @@ export function TrackingForm({
                         </div>
                     </div>
                 </div>
-                <span className="field-hint">
-                    Question is required. Icon is optional and helps you visually identify the tracking.
-                </span>
             </div>
 
             <div className="form-group">
@@ -233,9 +242,6 @@ export function TrackingForm({
                     onChange={(e) => setStartTrackingDate(e.target.value)}
                     disabled={isSubmitting}
                 />
-                <span className="field-hint">
-                    Leave empty to start tracking now.
-                </span>
             </div>
 
             <div className="form-group">
@@ -259,9 +265,6 @@ export function TrackingForm({
                     disabled={isSubmitting}
                     rows={4}
                 />
-                <span className="field-hint">
-                    Optional field for extra context or comments.
-                </span>
             </div>
 
             <div className="form-actions">
@@ -277,7 +280,7 @@ export function TrackingForm({
                 )}
                 <button
                     type="submit"
-                    className="btn-primary"
+                    className="btn-primary create-tracking-button"
                     disabled={isSubmitting || !question.trim()}
                 >
                     {isSubmitting ? "Creating..." : "Create Tracking"}

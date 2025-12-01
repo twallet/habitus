@@ -69,6 +69,12 @@
   transition: var(--transition);
   background: var(--bg-primary);
   color: var(--text-primary);
+  box-sizing: border-box;
+}
+
+.question-field-wrapper input[type="text"],
+.icon-input-row input[type="text"] {
+  height: 42px;
 }
 
 .form-group textarea:focus,
@@ -149,6 +155,13 @@
   cursor: not-allowed;
 }
 
+.question-icon-labels-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr);
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
 .question-icon-row {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr);
@@ -169,19 +182,26 @@
 .icon-input-row {
   display: flex;
   gap: 8px;
-  align-items: center;
+  align-items: stretch;
 }
 
 .icon-input-row input[type="text"] {
   flex: 1;
+  height: 100%;
 }
 
 .icon-suggest-button {
-  padding-inline: 10px;
-  min-width: 40px;
+  padding-inline: 8px;
+  min-width: auto;
+  width: auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  height: 100%;
+}
+
+.create-tracking-button {
+  padding-inline: 16px;
 }
 
 .sr-only {
@@ -197,6 +217,10 @@
 }
 
 @media (max-width: 640px) {
+  .question-icon-labels-row {
+    grid-template-columns: 1fr;
+  }
+
   .question-icon-row {
     grid-template-columns: 1fr;
   }
