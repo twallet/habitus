@@ -78,6 +78,11 @@
   min-width: 45ch;
 }
 
+.form-group select {
+  width: fit-content;
+  min-width: 15ch;
+}
+
 .icon-input-row input[type="text"],
 .icon-suggest-button {
   height: 42px;
@@ -167,6 +172,20 @@
   margin-bottom: 20px;
 }
 
+.icon-type-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.icon-field-wrapper {
+  flex: 0 0 auto;
+}
+
+.type-field-wrapper {
+  flex: 0 0 auto;
+}
+
 .icon-input-row {
   display: flex;
   gap: 8px;
@@ -209,8 +228,11 @@
   vertical-align: middle;
 }
 
-.create-tracking-button {
+.form-actions .btn-primary.create-tracking-button {
   padding-inline: 16px;
+  width: auto;
+  flex-shrink: 0;
+  min-width: auto;
 }
 
 .sr-only {

@@ -148,69 +148,72 @@ export function TrackingForm({
                     </span>
                 </div>
 
-                <div className="form-label-row">
-                    <label htmlFor="tracking-icon">
-                        Icon{" "}
-                        <button
-                            type="button"
-                            className="field-help"
-                            aria-label="Icon help"
-                            title="Optional emoji or icon to visually identify this tracking."
+                <div className="icon-type-row">
+                    <div className="icon-field-wrapper">
+                        <div className="form-label-row">
+                            <label htmlFor="tracking-icon">
+                                Icon{" "}
+                                <button
+                                    type="button"
+                                    className="field-help"
+                                    aria-label="Icon help"
+                                    title="Optional emoji or icon to visually identify this tracking."
+                                >
+                                    ?
+                                </button>
+                            </label>
+                        </div>
+                        <div className="icon-input-row">
+                            <input
+                                type="text"
+                                id="tracking-icon"
+                                name="icon"
+                                placeholder="e.g., 💪🏼"
+                                value={icon}
+                                onChange={(e) => setIcon(e.target.value)}
+                                disabled={isSubmitting}
+                                maxLength={30}
+                            />
+                            <button
+                                type="button"
+                                className="icon-suggest-button"
+                                onClick={handleSuggestEmoji}
+                                disabled={isSubmitting || isSuggestingEmoji || !question.trim()}
+                                aria-label="Suggest emoji based on question"
+                                title="Suggest an emoji based on the question text"
+                            >
+                                <span className="icon-suggest-text">{isSuggestingEmoji ? "..." : "✨"}</span>
+                                <span className="sr-only">Suggest emoji</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div className="type-field-wrapper">
+                        <div className="form-label-row">
+                            <label htmlFor="tracking-type">
+                                Type <span className="required-asterisk">*</span>{" "}
+                                <button
+                                    type="button"
+                                    className="field-help"
+                                    aria-label="Type help"
+                                    title="Choose whether you want a simple Yes/No tracking or a free text register."
+                                >
+                                    ?
+                                </button>
+                            </label>
+                        </div>
+                        <select
+                            id="tracking-type"
+                            name="type"
+                            value={type}
+                            onChange={(e) => setType(e.target.value as TrackingType)}
+                            required
+                            disabled={isSubmitting}
                         >
-                            ?
-                        </button>
-                    </label>
+                            <option value={TrackingType.TRUE_FALSE}>🔘 Yes/No</option>
+                            <option value={TrackingType.REGISTER}>🖊️ Text</option>
+                        </select>
+                    </div>
                 </div>
-                <div className="icon-input-row">
-                    <input
-                        type="text"
-                        id="tracking-icon"
-                        name="icon"
-                        placeholder="e.g., 💪🏼"
-                        value={icon}
-                        onChange={(e) => setIcon(e.target.value)}
-                        disabled={isSubmitting}
-                        maxLength={30}
-                    />
-                    <button
-                        type="button"
-                        className="icon-suggest-button"
-                        onClick={handleSuggestEmoji}
-                        disabled={isSubmitting || isSuggestingEmoji || !question.trim()}
-                        aria-label="Suggest emoji based on question"
-                        title="Suggest an emoji based on the question text"
-                    >
-                        <span className="icon-suggest-text">{isSuggestingEmoji ? "..." : "✨"}</span>
-                        <span className="sr-only">Suggest emoji</span>
-                    </button>
-                </div>
-            </div>
-
-            <div className="form-group">
-                <div className="form-label-row">
-                    <label htmlFor="tracking-type">
-                        Type <span className="required-asterisk">*</span>{" "}
-                        <button
-                            type="button"
-                            className="field-help"
-                            aria-label="Type help"
-                            title="Choose whether you want a simple Yes/No tracking or a free text register."
-                        >
-                            ?
-                        </button>
-                    </label>
-                </div>
-                <select
-                    id="tracking-type"
-                    name="type"
-                    value={type}
-                    onChange={(e) => setType(e.target.value as TrackingType)}
-                    required
-                    disabled={isSubmitting}
-                >
-                    <option value={TrackingType.TRUE_FALSE}>🔘 Yes/No</option>
-                    <option value={TrackingType.REGISTER}>🖊️ Text</option>
-                </select>
             </div>
 
             <div className="form-group">

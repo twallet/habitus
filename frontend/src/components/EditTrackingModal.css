@@ -96,9 +96,21 @@
 }
 
 .form-group textarea,
-.form-group input[type="datetime-local"],
-.form-group select {
+.form-group input[type="datetime-local"] {
   width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: var(--transition);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.form-group select {
+  width: fit-content;
+  min-width: 15ch;
   padding: 10px 12px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
