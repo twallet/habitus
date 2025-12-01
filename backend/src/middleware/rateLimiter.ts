@@ -2,34 +2,12 @@ import rateLimit, { RateLimitRequestHandler } from "express-rate-limit";
 import { Request, Response } from "express";
 
 /**
- * Rate limiter for authentication endpoints (login and register).
- * Prevents abuse by limiting the number of requests per IP address.
- *
- * Configuration:
- * - Window: 15 minutes
- * - Max requests: 5 per window
- * - Message: User-friendly error message
- *
- * @public
- */
-/**
- * Rate limiter for authentication endpoints (login and register).
- * Prevents abuse by limiting the number of requests per IP address.
- * Includes logging for rate limit violations.
- *
- * Configuration:
- * - Window: 15 minutes
- * - Max requests: 5 per window
- * - Message: User-friendly error message
- *
- * @public
- */
-/**
  * Handler function for rate limit exceeded.
  * Logs the violation and sends a 429 response.
  *
  * @param req - Express request object
  * @param res - Express response object
+ * @public
  */
 export function handleRateLimitExceeded(req: Request, res: Response): void {
   const ip = req.ip || req.socket.remoteAddress || "unknown";
@@ -43,6 +21,18 @@ export function handleRateLimitExceeded(req: Request, res: Response): void {
   });
 }
 
+/**
+ * Rate limiter for authentication endpoints (login and register).
+ * Prevents abuse by limiting the number of requests per IP address.
+ * Includes logging for rate limit violations.
+ *
+ * Configuration:
+ * - Window: 15 minutes
+ * - Max requests: 5 per window
+ * - Message: User-friendly error message
+ *
+ * @public
+ */
 export const authRateLimiter: RateLimitRequestHandler = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5, // Limit each IP to 5 requests per windowMs

@@ -4,17 +4,6 @@ import fs from "fs";
 import { getWorkspaceRoot, PATHS } from "../config/paths.js";
 
 /**
- * Get project root directory (workspace root).
- * Uses centralized path configuration from config/paths.ts.
- * @returns The project root path
- * @private
- */
-function getProjectRoot(): string {
-  // Use centralized path configuration (requires PROJECT_ROOT env var)
-  return getWorkspaceRoot();
-}
-
-/**
  * Get database path from environment variable or default location.
  * DB_PATH environment variable is the single source of truth.
  * If DB_PATH is not set, defaults to backend/data/habitus.db relative to workspace root.

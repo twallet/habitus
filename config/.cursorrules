@@ -7,23 +7,27 @@
    1.2. Prefer classes and instances over static functions and procedural code.
 
 2. **Dead Code**:
-   2.1. Always check for dead code in the modified files when doing some changes.
+   2.1. Always check for dead code in the modified files when making changes.
    2.2. Remove unused code, functions, and imports.
    2.3. Don't maintain code for backward compatibility.
 
-3. **Error**:
+3. **Error Handling**:
    3.1. Error texts must be in English.
-   3.2. Check that errors are handled when suitable.
+   3.2. Check that errors are handled appropriately.
+   3.3. Provide meaningful error messages that help with debugging.
 
 4. **Testing**:
    4.1. Always run all available test suites after changing code.
    4.2. Tests must be in English.
    4.3. Maintain test coverage above 75%.
+   4.4. Write tests for new features and bug fixes.
 
 5. **Documentation**:
-   5.4. Always comment in English.
-   5.5. Use JSDoc style for comments.
-   5.6. Document classes, methods, and complex logic.
+   5.1. Always comment in English.
+   5.2. Use JSDoc style for comments.
+   5.3. Document classes, methods, and complex logic.
+   5.4. Include parameter descriptions, return types, and examples when applicable.
 
 6. **File Structure**:
-   6.1. Make sugestions when suitable to improve file names and folders structure acording to best practices.
+   6.1. Make suggestions when suitable to improve file names and folder structure according to best practices.
+   6.2. Follow consistent naming conventions across the project.
