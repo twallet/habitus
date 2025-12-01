@@ -603,7 +603,6 @@ function App() {
           tracking={editingTracking}
           onClose={() => setEditingTracking(null)}
           onSave={handleSaveTracking}
-          onDelete={handleDeleteTracking}
         />
       )}
     </div>

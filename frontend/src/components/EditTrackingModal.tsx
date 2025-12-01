@@ -2,6 +2,7 @@ import { useState, FormEvent, useEffect, useRef } from "react";
 import { TrackingData, TrackingType } from "../models/Tracking";
 import { ApiClient } from "../config/api";
 import "./EditTrackingModal.css";
+import "./TrackingForm.css";
 
 interface EditTrackingModalProps {
     tracking: TrackingData;
@@ -13,7 +14,6 @@ interface EditTrackingModalProps {
         notes?: string,
         icon?: string
     ) => Promise<void>;
-    onDelete: (trackingId: number) => Promise<void>;
 }
 
 /**
@@ -22,23 +22,19 @@ interface EditTrackingModalProps {
  * @param props.tracking - The tracking data to edit
  * @param props.onClose - Callback when modal is closed
  * @param props.onSave - Callback when tracking is saved
- * @param props.onDelete - Callback when tracking is deleted
  * @public
  */
 export function EditTrackingModal({
     tracking,
     onClose,
     onSave,
-    onDelete,
 }: EditTrackingModalProps) {
     const [question, setQuestion] = useState(tracking.question);
     const [type, setType] = useState<TrackingType>(tracking.type);
     const [notes, setNotes] = useState(tracking.notes || "");
     const [icon, setIcon] = useState(tracking.icon || "");
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isDeleting, setIsDeleting] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
     const [isSuggestingEmoji, setIsSuggestingEmoji] = useState(false);
     const [apiClient] = useState(() => {
         const client = new ApiClient();
@@ -48,16 +44,12 @@ export function EditTrackingModal({
         }
         return client;
     });
-    const isDeletingRef = useRef(false);
-    const hasDeleteErrorRef = useRef(false);
     const hasSaveErrorRef = useRef(false);
     const hasCalledOnCloseRef = useRef(false);
     const isSubmittingRef = useRef(false);
 
     // Reset refs on mount to prevent state pollution between tests
     useEffect(() => {
-        isDeletingRef.current = false;
-        hasDeleteErrorRef.current = false;
         hasSaveErrorRef.current = false;
         hasCalledOnCloseRef.current = false;
         isSubmittingRef.current = false;
@@ -93,14 +85,6 @@ export function EditTrackingModal({
      */
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-
-        // Prevent submission if currently deleting or delete confirmation is showing
-        // Also check if the submitter is a delete button
-        const submitter = (e.nativeEvent as SubmitEvent).submitter;
-        if (isDeleting || isDeletingRef.current || showDeleteConfirmation ||
-            (submitter && submitter.classList.contains('btn-delete'))) {
-            return;
-        }
 
         setIsSubmitting(true);
         isSubmittingRef.current = true;
@@ -143,33 +127,6 @@ export function EditTrackingModal({
         }
     };
 
-    /**
-     * Handle delete confirmation.
-     * @internal
-     */
-    const handleDelete = async () => {
-        isDeletingRef.current = true;
-        hasDeleteErrorRef.current = false;
-        setIsDeleting(true);
-        setError(null);
-
-        try {
-            await onDelete(tracking.id);
-            hasDeleteErrorRef.current = false;
-            isDeletingRef.current = false;
-            setIsDeleting(false);
-            if (!hasCalledOnCloseRef.current) {
-                hasCalledOnCloseRef.current = true;
-                onClose();
-            }
-        } catch (err) {
-            hasDeleteErrorRef.current = true;
-            isDeletingRef.current = false;
-            setIsDeleting(false);
-            setError(err instanceof Error ? err.message : "Error deleting tracking");
-            setShowDeleteConfirmation(false);
-        }
-    };
 
     /**
      * Handle escape key to close modal.
@@ -178,9 +135,7 @@ export function EditTrackingModal({
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
             if (e.key === "Escape") {
-                if (showDeleteConfirmation) {
-                    setShowDeleteConfirmation(false);
-                } else if (!isDeleting && !isSubmitting && !isSubmittingRef.current && !error && !hasSaveErrorRef.current && !hasCalledOnCloseRef.current) {
+                if (!isSubmitting && !isSubmittingRef.current && !error && !hasSaveErrorRef.current && !hasCalledOnCloseRef.current) {
                     hasCalledOnCloseRef.current = true;
                     onClose();
                 }
@@ -191,10 +146,10 @@ export function EditTrackingModal({
         return () => {
             document.removeEventListener("keydown", handleEscape);
         };
-    }, [onClose, showDeleteConfirmation, isDeleting, isSubmitting, error]);
+    }, [onClose, isSubmitting, error]);
 
     const handleOverlayClick = () => {
-        if (!isDeleting && !isSubmitting && !isSubmittingRef.current && !error && !hasDeleteErrorRef.current && !hasSaveErrorRef.current && !hasCalledOnCloseRef.current) {
+        if (!isSubmitting && !isSubmittingRef.current && !error && !hasSaveErrorRef.current && !hasCalledOnCloseRef.current) {
             hasCalledOnCloseRef.current = true;
             onClose();
         }
@@ -229,7 +184,6 @@ export function EditTrackingModal({
                                 className="message-close"
                                 onClick={() => {
                                     setError(null);
-                                    hasDeleteErrorRef.current = false;
                                     hasSaveErrorRef.current = false;
                                 }}
                                 aria-label="Close"
@@ -240,70 +194,118 @@ export function EditTrackingModal({
                     )}
 
                     <div className="form-group">
-                        <label htmlFor="edit-tracking-question">
-                            Question * <span className="field-hint">(Check status of nanohabit)</span>
-                        </label>
-                        <textarea
-                            id="edit-tracking-question"
-                            name="question"
-                            placeholder="e.g., Did I drink 8 glasses of water today?"
-                            value={question}
-                            onChange={(e) => setQuestion(e.target.value)}
-                            disabled={isSubmitting}
-                            rows={3}
-                        />
-                        <span className="char-count">
-                            {question.length}/500
-                        </span>
-                    </div>
-
-                    <div className="form-group">
-                        <label htmlFor="edit-tracking-type">Type *</label>
-                        <select
-                            id="edit-tracking-type"
-                            name="type"
-                            value={type}
-                            onChange={(e) => setType(e.target.value as TrackingType)}
-                            disabled={isSubmitting}
-                        >
-                            <option value={TrackingType.TRUE_FALSE}>🔘 Yes/No</option>
-                            <option value={TrackingType.REGISTER}>🖊️ Text</option>
-                        </select>
-                    </div>
-
-                    <div className="form-group">
-                        <label htmlFor="edit-tracking-icon">
-                            Icon (Optional)
-                        </label>
-                        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                            <input
-                                type="text"
-                                id="edit-tracking-icon"
-                                name="icon"
-                                placeholder="e.g., 💉"
-                                value={icon}
-                                onChange={(e) => setIcon(e.target.value)}
-                                disabled={isSubmitting}
-                                maxLength={20}
-                                style={{ flex: 1 }}
-                            />
-                            <button
-                                type="button"
-                                className="btn-secondary"
-                                onClick={handleSuggestEmoji}
-                                disabled={isSubmitting || isSuggestingEmoji || !question.trim()}
-                                style={{ whiteSpace: "nowrap" }}
-                            >
-                                {isSuggestingEmoji ? "Suggesting..." : "Suggest Emoji"}
-                            </button>
+                        <div className="form-label-row">
+                            <label htmlFor="edit-tracking-question">
+                                Question <span className="required-asterisk">*</span>{" "}
+                                <button
+                                    type="button"
+                                    className="field-help"
+                                    aria-label="Question help"
+                                    title="Main nanohabit question you want to track, for example 'Did I drink 8 glasses of water today?'"
+                                >
+                                    ?
+                                </button>
+                            </label>
                         </div>
-                        <span className="field-hint">
-                            Enter an emoji or click "Suggest Emoji" to get an AI suggestion
-                        </span>
+                        <div className="question-field-wrapper">
+                            <textarea
+                                id="edit-tracking-question"
+                                name="question"
+                                placeholder="e.g., Did I drink 8 glasses of water today?"
+                                value={question}
+                                onChange={(e) => setQuestion(e.target.value)}
+                                required
+                                disabled={isSubmitting}
+                                maxLength={500}
+                                rows={3}
+                            />
+                            <span className="char-count">
+                                {question.length}/500
+                            </span>
+                        </div>
+
+                        <div className="icon-type-row">
+                            <div className="icon-field-wrapper">
+                                <div className="form-label-row">
+                                    <label htmlFor="edit-tracking-icon">
+                                        Icon{" "}
+                                        <button
+                                            type="button"
+                                            className="field-help"
+                                            aria-label="Icon help"
+                                            title="Optional emoji or icon to visually identify this tracking."
+                                        >
+                                            ?
+                                        </button>
+                                    </label>
+                                </div>
+                                <div className="icon-input-row">
+                                    <input
+                                        type="text"
+                                        id="edit-tracking-icon"
+                                        name="icon"
+                                        placeholder="e.g., 💪🏼"
+                                        value={icon}
+                                        onChange={(e) => setIcon(e.target.value)}
+                                        disabled={isSubmitting}
+                                        maxLength={30}
+                                    />
+                                    <button
+                                        type="button"
+                                        className="icon-suggest-button"
+                                        onClick={handleSuggestEmoji}
+                                        disabled={isSubmitting || isSuggestingEmoji || !question.trim()}
+                                        aria-label="Suggest emoji based on question"
+                                        title="Suggest an emoji based on the question text"
+                                    >
+                                        <span className="icon-suggest-text">{isSuggestingEmoji ? "..." : "✨"}</span>
+                                        <span className="sr-only">Suggest emoji</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="type-field-wrapper">
+                                <div className="form-label-row">
+                                    <label htmlFor="edit-tracking-type">
+                                        Type <span className="required-asterisk">*</span>{" "}
+                                        <button
+                                            type="button"
+                                            className="field-help"
+                                            aria-label="Type help"
+                                            title="Choose whether you want a simple Yes/No tracking or a free text register."
+                                        >
+                                            ?
+                                        </button>
+                                    </label>
+                                </div>
+                                <select
+                                    id="edit-tracking-type"
+                                    name="type"
+                                    value={type}
+                                    onChange={(e) => setType(e.target.value as TrackingType)}
+                                    required
+                                    disabled={isSubmitting}
+                                >
+                                    <option value={TrackingType.TRUE_FALSE}>🔘 Yes/No</option>
+                                    <option value={TrackingType.REGISTER}>🖊️ Text</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
 
                     <div className="form-group">
-                        <label htmlFor="edit-tracking-notes">Notes (Optional)</label>
+                        <div className="form-label-row">
+                            <label htmlFor="edit-tracking-notes">
+                                Notes{" "}
+                                <button
+                                    type="button"
+                                    className="field-help"
+                                    aria-label="Notes help"
+                                    title="Add any extra context or details you want to remember about this tracking."
+                                >
+                                    ?
+                                </button>
+                            </label>
+                        </div>
                         <textarea
                             id="edit-tracking-notes"
                             name="notes"
@@ -319,70 +321,28 @@ export function EditTrackingModal({
                         </span>
                     </div>
 
-                    <div className="modal-actions">
+                    <div className="form-actions">
                         <button
                             type="button"
-                            className="btn-delete"
-                            onClick={() => setShowDeleteConfirmation(true)}
-                            disabled={isSubmitting || isDeleting}
+                            className="btn-secondary"
+                            onClick={() => {
+                                if (!hasCalledOnCloseRef.current) {
+                                    hasCalledOnCloseRef.current = true;
+                                    onClose();
+                                }
+                            }}
+                            disabled={isSubmitting}
                         >
-                            Delete
+                            Cancel
                         </button>
-                        <div className="modal-actions-right">
-                            <button
-                                type="button"
-                                className="btn-secondary"
-                                onClick={() => {
-                                    if (!hasCalledOnCloseRef.current) {
-                                        hasCalledOnCloseRef.current = true;
-                                        onClose();
-                                    }
-                                }}
-                                disabled={isSubmitting || isDeleting}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                className="btn-primary"
-                                disabled={isSubmitting || isDeleting}
-                            >
-                                {isSubmitting ? "Saving..." : "Save Changes"}
-                            </button>
-                        </div>
+                        <button
+                            type="submit"
+                            className="btn-primary create-tracking-button"
+                            disabled={isSubmitting || !question.trim()}
+                        >
+                            {isSubmitting ? "Saving..." : "Save Changes"}
+                        </button>
                     </div>
-
-                    {showDeleteConfirmation && (
-                        <div className="delete-confirmation" onClick={(e) => e.stopPropagation()}>
-                            <p>Are you sure you want to delete this tracking?</p>
-                            <div className="delete-confirmation-actions">
-                                <button
-                                    type="button"
-                                    className="btn-secondary"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        setShowDeleteConfirmation(false);
-                                    }}
-                                    disabled={isDeleting}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="button"
-                                    className="btn-delete"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        handleDelete();
-                                    }}
-                                    disabled={isDeleting}
-                                >
-                                    {isDeleting ? "Deleting..." : "Delete"}
-                                </button>
-                            </div>
-                        </div>
-                    )}
                 </form>
             </div>
         </div>

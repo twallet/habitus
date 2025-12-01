@@ -16,7 +16,6 @@ describe('EditTrackingModal', () => {
 
   const mockOnClose = vi.fn();
   const mockOnSave = vi.fn().mockResolvedValue(undefined);
-  const mockOnDelete = vi.fn().mockResolvedValue(undefined);
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -28,7 +27,6 @@ describe('EditTrackingModal', () => {
         tracking={mockTracking}
         onClose={mockOnClose}
         onSave={mockOnSave}
-        onDelete={mockOnDelete}
       />
     );
 
@@ -43,7 +41,6 @@ describe('EditTrackingModal', () => {
         tracking={mockTracking}
         onClose={mockOnClose}
         onSave={mockOnSave}
-        onDelete={mockOnDelete}
       />
     );
 
@@ -60,7 +57,6 @@ describe('EditTrackingModal', () => {
         tracking={mockTracking}
         onClose={mockOnClose}
         onSave={mockOnSave}
-        onDelete={mockOnDelete}
       />
     );
 
@@ -77,7 +73,6 @@ describe('EditTrackingModal', () => {
         tracking={mockTracking}
         onClose={mockOnClose}
         onSave={mockOnSave}
-        onDelete={mockOnDelete}
       />
     );
 
@@ -93,7 +88,6 @@ describe('EditTrackingModal', () => {
         tracking={mockTracking}
         onClose={mockOnClose}
         onSave={mockOnSave}
-        onDelete={mockOnDelete}
       />
     );
 
@@ -110,7 +104,6 @@ describe('EditTrackingModal', () => {
         tracking={mockTracking}
         onClose={mockOnClose}
         onSave={mockOnSave}
-        onDelete={mockOnDelete}
       />
     );
 
@@ -124,7 +117,6 @@ describe('EditTrackingModal', () => {
         tracking={mockTracking}
         onClose={mockOnClose}
         onSave={mockOnSave}
-        onDelete={mockOnDelete}
       />
     );
 
@@ -141,7 +133,6 @@ describe('EditTrackingModal', () => {
         tracking={mockTracking}
         onClose={mockOnClose}
         onSave={mockOnSave}
-        onDelete={mockOnDelete}
       />
     );
 
@@ -159,7 +150,6 @@ describe('EditTrackingModal', () => {
         tracking={mockTracking}
         onClose={mockOnClose}
         onSave={mockOnSave}
-        onDelete={mockOnDelete}
       />
     );
 
@@ -181,7 +171,6 @@ describe('EditTrackingModal', () => {
         tracking={mockTracking}
         onClose={mockOnClose}
         onSave={mockOnSave}
-        onDelete={mockOnDelete}
       />
     );
 
@@ -205,7 +194,6 @@ describe('EditTrackingModal', () => {
         tracking={mockTracking}
         onClose={mockOnClose}
         onSave={mockOnSave}
-        onDelete={mockOnDelete}
       />
     );
 
@@ -234,7 +222,6 @@ describe('EditTrackingModal', () => {
         tracking={mockTracking}
         onClose={mockOnClose}
         onSave={mockOnSave}
-        onDelete={mockOnDelete}
       />
     );
 
@@ -266,7 +253,6 @@ describe('EditTrackingModal', () => {
         tracking={mockTracking}
         onClose={mockOnClose}
         onSave={slowSave}
-        onDelete={mockOnDelete}
       />
     );
 
@@ -286,7 +272,6 @@ describe('EditTrackingModal', () => {
         tracking={mockTracking}
         onClose={mockOnClose}
         onSave={errorSave}
-        onDelete={mockOnDelete}
       />
     );
 
@@ -308,22 +293,6 @@ describe('EditTrackingModal', () => {
     expect(mockOnClose).not.toHaveBeenCalled();
   });
 
-  it('should show delete confirmation when delete button is clicked', async () => {
-    const user = userEvent.setup();
-    render(
-      <EditTrackingModal
-        tracking={mockTracking}
-        onClose={mockOnClose}
-        onSave={mockOnSave}
-        onDelete={mockOnDelete}
-      />
-    );
-
-    const deleteButton = screen.getByRole('button', { name: /delete/i });
-    await user.click(deleteButton);
-
-    expect(screen.getByText(/are you sure you want to delete this tracking\?/i)).toBeInTheDocument();
-  });
 
   // TODO: Fix race condition with onClose being called twice
   // it('should call onDelete when delete is confirmed', async () => {
@@ -357,76 +326,8 @@ describe('EditTrackingModal', () => {
   //   });
   // });
 
-  it('should cancel delete confirmation', async () => {
-    const user = userEvent.setup();
-    render(
-      <EditTrackingModal
-        tracking={mockTracking}
-        onClose={mockOnClose}
-        onSave={mockOnSave}
-        onDelete={mockOnDelete}
-      />
-    );
 
-    const deleteButton = screen.getByRole('button', { name: /delete/i });
-    await user.click(deleteButton);
 
-    const cancelButton = screen.getAllByRole('button', { name: /cancel/i })[1];
-    await user.click(cancelButton);
-
-    expect(screen.queryByText(/are you sure you want to delete this tracking\?/i)).not.toBeInTheDocument();
-    expect(mockOnDelete).not.toHaveBeenCalled();
-  });
-
-  it('should close delete confirmation on Escape key', async () => {
-    render(
-      <EditTrackingModal
-        tracking={mockTracking}
-        onClose={mockOnClose}
-        onSave={mockOnSave}
-        onDelete={mockOnDelete}
-      />
-    );
-
-    const deleteButton = screen.getByRole('button', { name: /delete/i });
-    await userEvent.click(deleteButton);
-
-    await userEvent.keyboard('{Escape}');
-
-    expect(screen.queryByText(/are you sure you want to delete this tracking\?/i)).not.toBeInTheDocument();
-  });
-
-  it('should show loading state when deleting', async () => {
-    const user = userEvent.setup();
-    const slowDelete = vi.fn().mockImplementation(
-      () => new Promise(resolve => setTimeout(resolve, 100))
-    );
-
-    render(
-      <EditTrackingModal
-        tracking={mockTracking}
-        onClose={mockOnClose}
-        onSave={mockOnSave}
-        onDelete={slowDelete}
-      />
-    );
-
-    const deleteButton = screen.getByRole('button', { name: /delete/i });
-    await user.click(deleteButton);
-
-    // Wait for confirmation dialog to appear
-    await waitFor(() => {
-      expect(screen.getByText(/are you sure you want to delete this tracking\?/i)).toBeInTheDocument();
-    });
-
-    // Find the delete button within the confirmation dialog
-    const confirmationDialog = screen.getByText(/are you sure you want to delete this tracking\?/i).closest('.delete-confirmation') as HTMLElement;
-    expect(confirmationDialog).toBeInTheDocument();
-    const confirmDeleteButton = within(confirmationDialog).getByRole('button', { name: /delete/i });
-    await user.click(confirmDeleteButton);
-
-    expect(screen.getByText(/deleting.../i)).toBeInTheDocument();
-  });
 
   // TODO: Fix race condition with onClose being called on delete failure
   // it('should show error message on delete failure', async () => {
@@ -484,7 +385,6 @@ describe('EditTrackingModal', () => {
         tracking={trackingWithoutNotes}
         onClose={mockOnClose}
         onSave={mockOnSave}
-        onDelete={mockOnDelete}
       />
     );
 
