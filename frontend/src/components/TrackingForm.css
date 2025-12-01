@@ -73,9 +73,9 @@
   min-width: 40ch;
 }
 
-.question-field-wrapper input[type="text"] {
-  height: 42px;
+.question-field-wrapper textarea {
   width: fit-content;
+  min-width: 45ch;
 }
 
 .icon-input-row input[type="text"],

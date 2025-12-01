@@ -136,8 +136,7 @@ export function TrackingForm({
                     </label>
                 </div>
                 <div className="question-field-wrapper">
-                    <input
-                        type="text"
+                    <textarea
                         id="tracking-question"
                         name="question"
                         placeholder="e.g., Did I drink 8 glasses of water today?"
@@ -146,7 +145,7 @@ export function TrackingForm({
                         required
                         disabled={isSubmitting}
                         maxLength={500}
-                        size={45}
+                        rows={3}
                     />
                     <span className="char-count">
                         {question.length}/500
@@ -176,7 +175,7 @@ export function TrackingForm({
                         onChange={(e) => setIcon(e.target.value)}
                         disabled={isSubmitting}
                         maxLength={30}
-                        size={10}
+                        size={9}
                     />
                     <button
                         type="button"
