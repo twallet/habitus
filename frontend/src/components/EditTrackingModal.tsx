@@ -44,9 +44,6 @@ export function EditTrackingModal({
     );
     const [scheduleHour, setScheduleHour] = useState<number>(0);
     const [scheduleMinutes, setScheduleMinutes] = useState<number>(0);
-    const [editingScheduleIndex, setEditingScheduleIndex] = useState<
-        number | null
-    >(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isSuggestingEmoji, setIsSuggestingEmoji] = useState(false);
@@ -114,10 +111,9 @@ export function EditTrackingModal({
 
         // Check for duplicates
         const isDuplicate = schedules.some(
-            (s, index) =>
+            (s) =>
                 s.hour === newSchedule.hour &&
-                s.minutes === newSchedule.minutes &&
-                index !== editingScheduleIndex
+                s.minutes === newSchedule.minutes
         );
 
         if (isDuplicate) {
@@ -127,48 +123,16 @@ export function EditTrackingModal({
             return;
         }
 
-        if (editingScheduleIndex !== null) {
-            // Update existing schedule
-            const updatedSchedules = [...schedules];
-            updatedSchedules[editingScheduleIndex] = newSchedule;
-            setSchedules(updatedSchedules);
-            setEditingScheduleIndex(null);
-        } else {
-            // Add new schedule
-            if (schedules.length >= 5) {
-                setError("Maximum 5 schedules allowed");
-                return;
-            }
-            setSchedules([...schedules, newSchedule]);
+        // Add new schedule
+        if (schedules.length >= 5) {
+            setError("Maximum 5 schedules allowed");
+            return;
         }
+        setSchedules([...schedules, newSchedule]);
 
         // Reset inputs
         setScheduleHour(0);
         setScheduleMinutes(0);
-    };
-
-    /**
-     * Start editing a schedule.
-     * @param index - Index of schedule to edit
-     * @internal
-     */
-    const handleEditSchedule = (index: number) => {
-        const schedule = schedules[index];
-        setScheduleHour(schedule.hour);
-        setScheduleMinutes(schedule.minutes);
-        setEditingScheduleIndex(index);
-        setError(null);
-    };
-
-    /**
-     * Cancel editing schedule.
-     * @internal
-     */
-    const handleCancelEditSchedule = () => {
-        setEditingScheduleIndex(null);
-        setScheduleHour(0);
-        setScheduleMinutes(0);
-        setError(null);
     };
 
     /**
@@ -179,16 +143,6 @@ export function EditTrackingModal({
     const handleDeleteSchedule = (index: number) => {
         const updatedSchedules = schedules.filter((_, i) => i !== index);
         setSchedules(updatedSchedules);
-        if (editingScheduleIndex === index) {
-            setEditingScheduleIndex(null);
-            setScheduleHour(0);
-            setScheduleMinutes(0);
-        } else if (
-            editingScheduleIndex !== null &&
-            editingScheduleIndex > index
-        ) {
-            setEditingScheduleIndex(editingScheduleIndex - 1);
-        }
         setError(null);
     };
 
@@ -449,35 +403,6 @@ export function EditTrackingModal({
 
                     <div className="form-group">
                         <div className="form-label-row">
-                            <label htmlFor="edit-tracking-notes">
-                                Notes{" "}
-                                <button
-                                    type="button"
-                                    className="field-help"
-                                    aria-label="Notes help"
-                                    title="Add any extra context or details you want to remember about this tracking."
-                                >
-                                    ?
-                                </button>
-                            </label>
-                        </div>
-                        <textarea
-                            id="edit-tracking-notes"
-                            name="notes"
-                            placeholder="Add any additional notes or context..."
-                            value={notes}
-                            onChange={(e) => setNotes(e.target.value)}
-                            disabled={isSubmitting}
-                            maxLength={500}
-                            rows={4}
-                        />
-                        <span className="char-count">
-                            {notes.length}/500
-                        </span>
-                    </div>
-
-                    <div className="form-group">
-                        <div className="form-label-row">
                             <label htmlFor="edit-tracking-schedules">
                                 Schedules <span className="required-asterisk">*</span>{" "}
                                 <button
@@ -493,6 +418,39 @@ export function EditTrackingModal({
                                 {schedules.length}/5 schedules
                             </span>
                         </div>
+                        {schedules.length > 0 && (
+                            <div className="schedules-list">
+                                {sortSchedules(schedules).map((schedule) => {
+                                    const originalIndex = schedules.findIndex(
+                                        (s) =>
+                                            s.hour === schedule.hour &&
+                                            s.minutes === schedule.minutes
+                                    );
+                                    return (
+                                        <div
+                                            key={`${schedule.hour}-${schedule.minutes}-${originalIndex}`}
+                                            className="schedule-item"
+                                        >
+                                            <span className="schedule-time">
+                                                {String(schedule.hour).padStart(2, "0")}:
+                                                {String(schedule.minutes).padStart(2, "0")}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                className="btn-icon"
+                                                onClick={() =>
+                                                    handleDeleteSchedule(originalIndex)
+                                                }
+                                                disabled={isSubmitting}
+                                                aria-label="Delete schedule"
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                         <div className="schedule-input-row">
                             <div className="schedule-time-inputs">
                                 <label htmlFor="edit-schedule-hour">Hour</label>
@@ -522,90 +480,46 @@ export function EditTrackingModal({
                                     disabled={isSubmitting}
                                 />
                             </div>
-                            {editingScheduleIndex !== null ? (
-                                <div className="schedule-edit-actions">
-                                    <button
-                                        type="button"
-                                        className="btn-secondary btn-small"
-                                        onClick={handleAddOrUpdateSchedule}
-                                        disabled={isSubmitting}
-                                    >
-                                        Save
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="btn-secondary btn-small"
-                                        onClick={handleCancelEditSchedule}
-                                        disabled={isSubmitting}
-                                    >
-                                        Cancel
-                                    </button>
-                                </div>
-                            ) : (
+                            <button
+                                type="button"
+                                className="btn-secondary btn-small"
+                                onClick={handleAddOrUpdateSchedule}
+                                disabled={
+                                    isSubmitting || schedules.length >= 5
+                                }
+                            >
+                                Add
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="form-group">
+                        <div className="form-label-row">
+                            <label htmlFor="edit-tracking-notes">
+                                Notes{" "}
                                 <button
                                     type="button"
-                                    className="btn-secondary btn-small"
-                                    onClick={handleAddOrUpdateSchedule}
-                                    disabled={
-                                        isSubmitting || schedules.length >= 5
-                                    }
+                                    className="field-help"
+                                    aria-label="Notes help"
+                                    title="Add any extra context or details you want to remember about this tracking."
                                 >
-                                    Add Schedule
+                                    ?
                                 </button>
-                            )}
+                            </label>
                         </div>
-                        {schedules.length > 0 && (
-                            <div className="schedules-list">
-                                {sortSchedules(schedules).map((schedule, index) => {
-                                    const originalIndex = schedules.findIndex(
-                                        (s) =>
-                                            s.hour === schedule.hour &&
-                                            s.minutes === schedule.minutes
-                                    );
-                                    return (
-                                        <div
-                                            key={`${schedule.hour}-${schedule.minutes}-${originalIndex}`}
-                                            className="schedule-item"
-                                        >
-                                            <span className="schedule-time">
-                                                {String(schedule.hour).padStart(2, "0")}:
-                                                {String(schedule.minutes).padStart(2, "0")}
-                                            </span>
-                                            <div className="schedule-item-actions">
-                                                <button
-                                                    type="button"
-                                                    className="btn-icon"
-                                                    onClick={() =>
-                                                        handleEditSchedule(originalIndex)
-                                                    }
-                                                    disabled={
-                                                        isSubmitting ||
-                                                        editingScheduleIndex !== null
-                                                    }
-                                                    aria-label="Edit schedule"
-                                                >
-                                                    ✏️
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className="btn-icon"
-                                                    onClick={() =>
-                                                        handleDeleteSchedule(originalIndex)
-                                                    }
-                                                    disabled={
-                                                        isSubmitting ||
-                                                        editingScheduleIndex !== null
-                                                    }
-                                                    aria-label="Delete schedule"
-                                                >
-                                                    🗑️
-                                                </button>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
+                        <textarea
+                            id="edit-tracking-notes"
+                            name="notes"
+                            placeholder="Add any additional notes or context..."
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                            disabled={isSubmitting}
+                            maxLength={500}
+                            rows={4}
+                        />
+                        <span className="char-count">
+                            {notes.length}/500
+                        </span>
                     </div>
 
                     <div className="form-actions">

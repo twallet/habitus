@@ -306,16 +306,18 @@
 
 .schedules-list {
   margin-top: 12px;
+  margin-bottom: 12px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
 .schedule-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
+  gap: 8px;
+  padding: 8px 12px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
@@ -325,11 +327,6 @@
   font-weight: 500;
   color: var(--text-primary);
   font-size: 0.95rem;
-}
-
-.schedule-item-actions {
-  display: flex;
-  gap: 8px;
 }
 
 .btn-icon {
