@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { getTrackingService } from "../services/index.js";
+import { getTrackingService, getAiService } from "../services/index.js";
 import {
   authenticateToken,
   AuthRequest,
@@ -19,7 +19,9 @@ const getTrackingServiceInstance = () => getTrackingService();
 router.get("/", authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
-    const trackings = await getTrackingServiceInstance().getTrackingsByUserId(userId);
+    const trackings = await getTrackingServiceInstance().getTrackingsByUserId(
+      userId
+    );
     res.json(trackings);
   } catch (error) {
     console.error(
@@ -84,7 +86,7 @@ router.get(
 router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
-    const { question, type, start_tracking_date, notes } = req.body;
+    const { question, type, start_tracking_date, notes, icon } = req.body;
 
     if (!question || !type) {
       return res.status(400).json({ error: "Question and type are required" });
@@ -95,7 +97,8 @@ router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
       question,
       type,
       start_tracking_date,
-      notes
+      notes,
+      icon
     );
 
     res.status(201).json(tracking);
@@ -130,7 +133,7 @@ router.put(
     try {
       const trackingId = parseInt(req.params.id, 10);
       const userId = req.userId!;
-      const { question, type, start_tracking_date, notes } = req.body;
+      const { question, type, start_tracking_date, notes, icon } = req.body;
 
       if (isNaN(trackingId)) {
         return res.status(400).json({ error: "Invalid tracking ID" });
@@ -142,7 +145,8 @@ router.put(
         question,
         type,
         start_tracking_date,
-        notes
+        notes,
+        icon
       );
 
       res.json(tracking);
@@ -197,6 +201,45 @@ router.delete(
         error
       );
       res.status(500).json({ error: "Error deleting tracking" });
+    }
+  }
+);
+
+/**
+ * POST /api/trackings/suggest-emoji
+ * Suggest an emoji based on a tracking question.
+ * @route POST /api/trackings/suggest-emoji
+ * @header {string} Authorization - Bearer token
+ * @body {string} question - The tracking question
+ * @returns {Object} Object with suggested emoji
+ */
+router.post(
+  "/suggest-emoji",
+  authenticateToken,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { question } = req.body;
+
+      if (!question || typeof question !== "string" || !question.trim()) {
+        return res.status(400).json({ error: "Question is required" });
+      }
+
+      const aiService = getAiService();
+      const emoji = await aiService.suggestEmoji(question.trim());
+
+      res.json({ emoji });
+    } catch (error) {
+      console.error(
+        `[${new Date().toISOString()}] TRACKING_ROUTE | Error suggesting emoji:`,
+        error
+      );
+      if (error instanceof Error) {
+        if (error.message.includes("API key")) {
+          return res.status(500).json({ error: "AI service not configured" });
+        }
+        return res.status(500).json({ error: error.message });
+      }
+      res.status(500).json({ error: "Error suggesting emoji" });
     }
   }
 );

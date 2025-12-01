@@ -55,6 +55,12 @@ export class Tracking {
   notes?: string;
 
   /**
+   * Optional icon (emoji).
+   * @public
+   */
+  icon?: string;
+
+  /**
    * Creation timestamp (optional).
    * @public
    */
@@ -78,6 +84,7 @@ export class Tracking {
     this.type = data.type;
     this.start_tracking_date = data.start_tracking_date;
     this.notes = data.notes;
+    this.icon = data.icon;
     this.created_at = data.created_at;
     this.updated_at = data.updated_at;
   }
@@ -111,6 +118,7 @@ export class Tracking {
       type: this.type,
       start_tracking_date: this.start_tracking_date,
       notes: this.notes,
+      icon: this.icon,
       created_at: this.created_at,
       updated_at: this.updated_at,
     };
@@ -202,6 +210,7 @@ export interface TrackingData {
   type: TrackingType;
   start_tracking_date: string;
   notes?: string;
+  icon?: string;
   created_at?: string;
   updated_at?: string;
 }

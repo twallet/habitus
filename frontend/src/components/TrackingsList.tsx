@@ -83,7 +83,14 @@ export function TrackingsList({
                 {trackings.map((tracking) => (
                     <div key={tracking.id} className="tracking-card">
                         <div className="tracking-header">
-                            <h3 className="tracking-question">{tracking.question}</h3>
+                            <h3 className="tracking-question">
+                                {tracking.icon && (
+                                    <span className="tracking-icon" style={{ marginRight: "8px" }}>
+                                        {tracking.icon}
+                                    </span>
+                                )}
+                                {tracking.question}
+                            </h3>
                             <span className={`tracking-type tracking-type-${tracking.type}`}>
                                 {getTypeLabel(tracking.type)}
                             </span>

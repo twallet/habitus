@@ -524,6 +524,7 @@ export class ApiClient {
    * @param type - The tracking type (true_false or register)
    * @param startTrackingDate - Optional start tracking date (ISO string, defaults to now)
    * @param notes - Optional notes (rich text)
+   * @param icon - Optional icon (emoji)
    * @returns Promise resolving to created tracking data
    * @throws Error if request fails
    * @public
@@ -532,13 +533,15 @@ export class ApiClient {
     question: string,
     type: TrackingType,
     startTrackingDate?: string,
-    notes?: string
+    notes?: string,
+    icon?: string
   ): Promise<TrackingData> {
     return this.post<TrackingData>(API_ENDPOINTS.trackings, {
       question,
       type,
       start_tracking_date: startTrackingDate,
       notes,
+      icon,
     });
   }
 
@@ -549,6 +552,7 @@ export class ApiClient {
    * @param type - Updated type (optional)
    * @param startTrackingDate - Updated start tracking date (optional)
    * @param notes - Updated notes (optional)
+   * @param icon - Updated icon (optional)
    * @returns Promise resolving to updated tracking data
    * @throws Error if request fails
    * @public
@@ -558,13 +562,15 @@ export class ApiClient {
     question?: string,
     type?: TrackingType,
     startTrackingDate?: string,
-    notes?: string
+    notes?: string,
+    icon?: string
   ): Promise<TrackingData> {
     return this.put<TrackingData>(`${API_ENDPOINTS.trackings}/${trackingId}`, {
       question,
       type,
       start_tracking_date: startTrackingDate,
       notes,
+      icon,
     });
   }
 
@@ -577,5 +583,20 @@ export class ApiClient {
    */
   async deleteTracking(trackingId: number): Promise<void> {
     await this.delete(`${API_ENDPOINTS.trackings}/${trackingId}`);
+  }
+
+  /**
+   * Suggest an emoji based on a tracking question.
+   * @param question - The tracking question
+   * @returns Promise resolving to suggested emoji string
+   * @throws Error if request fails
+   * @public
+   */
+  async suggestEmoji(question: string): Promise<string> {
+    const response = await this.post<{ emoji: string }>(
+      `${API_ENDPOINTS.trackings}/suggest-emoji`,
+      { question }
+    );
+    return response.emoji;
   }
 }

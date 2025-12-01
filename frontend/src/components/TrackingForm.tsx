@@ -1,5 +1,6 @@
 import { useState, FormEvent } from "react";
 import { TrackingType } from "../models/Tracking";
+import { ApiClient } from "../config/api";
 import "./TrackingForm.css";
 
 interface TrackingFormProps {
@@ -7,7 +8,8 @@ interface TrackingFormProps {
         question: string,
         type: TrackingType,
         startTrackingDate?: string,
-        notes?: string
+        notes?: string,
+        icon?: string
     ) => Promise<void>;
     onCancel?: () => void;
     isSubmitting?: boolean;
@@ -30,7 +32,40 @@ export function TrackingForm({
     const [type, setType] = useState<TrackingType>(TrackingType.TRUE_FALSE);
     const [startTrackingDate, setStartTrackingDate] = useState("");
     const [notes, setNotes] = useState("");
+    const [icon, setIcon] = useState("");
     const [error, setError] = useState<string | null>(null);
+    const [isSuggestingEmoji, setIsSuggestingEmoji] = useState(false);
+    const [apiClient] = useState(() => {
+        const client = new ApiClient();
+        const token = localStorage.getItem("habitus_token");
+        if (token) {
+            client.setToken(token);
+        }
+        return client;
+    });
+
+    /**
+     * Handle emoji suggestion.
+     * @internal
+     */
+    const handleSuggestEmoji = async () => {
+        if (!question.trim()) {
+            setError("Please enter a question first");
+            return;
+        }
+
+        setIsSuggestingEmoji(true);
+        setError(null);
+
+        try {
+            const suggestedEmoji = await apiClient.suggestEmoji(question.trim());
+            setIcon(suggestedEmoji);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Error suggesting emoji");
+        } finally {
+            setIsSuggestingEmoji(false);
+        }
+    };
 
     /**
      * Handle form submission.
@@ -56,13 +91,15 @@ export function TrackingForm({
                 question.trim(),
                 type,
                 startTrackingDate || undefined,
-                notes.trim() || undefined
+                notes.trim() || undefined,
+                icon.trim() || undefined
             );
             // Reset form on success
             setQuestion("");
             setType(TrackingType.TRUE_FALSE);
             setStartTrackingDate("");
             setNotes("");
+            setIcon("");
         } catch (err) {
             setError(err instanceof Error ? err.message : "Error creating tracking");
         }
@@ -119,6 +156,37 @@ export function TrackingForm({
                     <option value={TrackingType.TRUE_FALSE}>🔘 Yes/No</option>
                     <option value={TrackingType.REGISTER}>🖊️ Text</option>
                 </select>
+            </div>
+
+            <div className="form-group">
+                <label htmlFor="tracking-icon">
+                    Icon (Optional)
+                </label>
+                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                    <input
+                        type="text"
+                        id="tracking-icon"
+                        name="icon"
+                        placeholder="e.g., 💉"
+                        value={icon}
+                        onChange={(e) => setIcon(e.target.value)}
+                        disabled={isSubmitting}
+                        maxLength={20}
+                        style={{ flex: 1 }}
+                    />
+                    <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={handleSuggestEmoji}
+                        disabled={isSubmitting || isSuggestingEmoji || !question.trim()}
+                        style={{ whiteSpace: "nowrap" }}
+                    >
+                        {isSuggestingEmoji ? "Suggesting..." : "Suggest Emoji"}
+                    </button>
+                </div>
+                <span className="field-hint">
+                    Enter an emoji or click "Suggest Emoji" to get an AI suggestion
+                </span>
             </div>
 
             <div className="form-group">

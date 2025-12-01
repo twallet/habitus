@@ -3,6 +3,7 @@ import { AuthService } from "./authService.js";
 import { UserService } from "./userService.js";
 import { TrackingService } from "./trackingService.js";
 import { EmailService } from "./emailService.js";
+import { AiService } from "./aiService.js";
 
 /**
  * Service instances singleton.
@@ -13,6 +14,7 @@ let authService: AuthService | null = null;
 let userService: UserService | null = null;
 let trackingService: TrackingService | null = null;
 let emailService: EmailService | null = null;
+let aiService: AiService | null = null;
 
 /**
  * Initialize all service instances.
@@ -25,6 +27,7 @@ export function initializeServices(db: Database): void {
   authService = new AuthService(db, emailService);
   userService = new UserService(db);
   trackingService = new TrackingService(db);
+  aiService = new AiService();
 }
 
 /**
@@ -85,4 +88,19 @@ export function getEmailService(): EmailService {
     );
   }
   return emailService;
+}
+
+/**
+ * Get AiService instance.
+ * @returns AiService instance
+ * @throws Error if services not initialized
+ * @public
+ */
+export function getAiService(): AiService {
+  if (!aiService) {
+    throw new Error(
+      "Services not initialized. Call initializeServices() first."
+    );
+  }
+  return aiService;
 }

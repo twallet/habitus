@@ -1,5 +1,6 @@
 import { useState, FormEvent, useEffect, useRef } from "react";
 import { TrackingData, TrackingType } from "../models/Tracking";
+import { ApiClient } from "../config/api";
 import "./EditTrackingModal.css";
 
 interface EditTrackingModalProps {
@@ -10,7 +11,8 @@ interface EditTrackingModalProps {
         question?: string,
         type?: TrackingType,
         startTrackingDate?: string,
-        notes?: string
+        notes?: string,
+        icon?: string
     ) => Promise<void>;
     onDelete: (trackingId: number) => Promise<void>;
 }
@@ -46,10 +48,20 @@ export function EditTrackingModal({
         return "";
     });
     const [notes, setNotes] = useState(tracking.notes || "");
+    const [icon, setIcon] = useState(tracking.icon || "");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+    const [isSuggestingEmoji, setIsSuggestingEmoji] = useState(false);
+    const [apiClient] = useState(() => {
+        const client = new ApiClient();
+        const token = localStorage.getItem("habitus_token");
+        if (token) {
+            client.setToken(token);
+        }
+        return client;
+    });
     const isDeletingRef = useRef(false);
     const hasDeleteErrorRef = useRef(false);
     const hasSaveErrorRef = useRef(false);
@@ -64,6 +76,29 @@ export function EditTrackingModal({
         hasCalledOnCloseRef.current = false;
         isSubmittingRef.current = false;
     }, []);
+
+    /**
+     * Handle emoji suggestion.
+     * @internal
+     */
+    const handleSuggestEmoji = async () => {
+        if (!question.trim()) {
+            setError("Please enter a question first");
+            return;
+        }
+
+        setIsSuggestingEmoji(true);
+        setError(null);
+
+        try {
+            const suggestedEmoji = await apiClient.suggestEmoji(question.trim());
+            setIcon(suggestedEmoji);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Error suggesting emoji");
+        } finally {
+            setIsSuggestingEmoji(false);
+        }
+    };
 
     /**
      * Handle form submission.
@@ -116,7 +151,8 @@ export function EditTrackingModal({
                 question.trim() !== tracking.question ? question.trim() : undefined,
                 type !== tracking.type ? type : undefined,
                 startTrackingDate !== originalStartDate ? (startTrackingDate || undefined) : undefined,
-                notes.trim() !== (tracking.notes || "") ? notes.trim() || undefined : undefined
+                notes.trim() !== (tracking.notes || "") ? notes.trim() || undefined : undefined,
+                icon.trim() !== (tracking.icon || "") ? icon.trim() || undefined : undefined
             );
             onClose();
         } catch (err) {
@@ -254,6 +290,37 @@ export function EditTrackingModal({
                             <option value={TrackingType.TRUE_FALSE}>🔘 Yes/No</option>
                             <option value={TrackingType.REGISTER}>🖊️ Text</option>
                         </select>
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="edit-tracking-icon">
+                            Icon (Optional)
+                        </label>
+                        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                            <input
+                                type="text"
+                                id="edit-tracking-icon"
+                                name="icon"
+                                placeholder="e.g., 💉"
+                                value={icon}
+                                onChange={(e) => setIcon(e.target.value)}
+                                disabled={isSubmitting}
+                                maxLength={20}
+                                style={{ flex: 1 }}
+                            />
+                            <button
+                                type="button"
+                                className="btn-secondary"
+                                onClick={handleSuggestEmoji}
+                                disabled={isSubmitting || isSuggestingEmoji || !question.trim()}
+                                style={{ whiteSpace: "nowrap" }}
+                            >
+                                {isSuggestingEmoji ? "Suggesting..." : "Suggest Emoji"}
+                            </button>
+                        </div>
+                        <span className="field-hint">
+                            Enter an emoji or click "Suggest Emoji" to get an AI suggestion
+                        </span>
                     </div>
 
                     <div className="form-group">

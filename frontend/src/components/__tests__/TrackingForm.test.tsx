@@ -54,6 +54,7 @@ describe("TrackingForm", () => {
                 "Did I exercise today?",
                 TrackingType.TRUE_FALSE,
                 undefined,
+                undefined,
                 undefined
             );
         });
@@ -78,7 +79,8 @@ describe("TrackingForm", () => {
                 "Did I exercise?",
                 TrackingType.TRUE_FALSE,
                 undefined,
-                "Exercise notes"
+                "Exercise notes",
+                undefined
             );
         });
     });

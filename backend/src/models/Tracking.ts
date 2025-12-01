@@ -20,6 +20,7 @@ export interface TrackingData {
   type: TrackingType;
   start_tracking_date: string;
   notes?: string;
+  icon?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -72,6 +73,12 @@ export class Tracking {
   notes?: string;
 
   /**
+   * Optional icon (emoji).
+   * @public
+   */
+  icon?: string;
+
+  /**
    * Creation timestamp (optional).
    * @public
    */
@@ -95,6 +102,7 @@ export class Tracking {
     this.type = data.type;
     this.start_tracking_date = data.start_tracking_date;
     this.notes = data.notes;
+    this.icon = data.icon;
     this.created_at = data.created_at;
     this.updated_at = data.updated_at;
   }
@@ -112,6 +120,9 @@ export class Tracking {
     this.type = Tracking.validateType(this.type as string);
     if (this.notes !== undefined) {
       this.notes = Tracking.validateNotes(this.notes);
+    }
+    if (this.icon !== undefined) {
+      this.icon = Tracking.validateIcon(this.icon);
     }
     return this;
   }
@@ -146,11 +157,18 @@ export class Tracking {
         values.push(this.notes || null);
       }
 
+      if (this.icon !== undefined) {
+        updates.push("icon = ?");
+        values.push(this.icon || null);
+      }
+
       updates.push("updated_at = CURRENT_TIMESTAMP");
       values.push(this.id, this.user_id);
 
       await db.run(
-        `UPDATE trackings SET ${updates.join(", ")} WHERE id = ? AND user_id = ?`,
+        `UPDATE trackings SET ${updates.join(
+          ", "
+        )} WHERE id = ? AND user_id = ?`,
         values
       );
 
@@ -158,13 +176,14 @@ export class Tracking {
     } else {
       // Create new tracking
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question, type, start_tracking_date, notes) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO trackings (user_id, question, type, start_tracking_date, notes, icon) VALUES (?, ?, ?, ?, ?, ?)",
         [
           this.user_id,
           this.question,
           this.type,
           this.start_tracking_date,
           this.notes || null,
+          this.icon || null,
         ]
       );
 
@@ -205,6 +224,9 @@ export class Tracking {
     if (updates.notes !== undefined) {
       this.notes = Tracking.validateNotes(updates.notes);
     }
+    if (updates.icon !== undefined) {
+      this.icon = Tracking.validateIcon(updates.icon);
+    }
 
     return this.save(db);
   }
@@ -244,6 +266,7 @@ export class Tracking {
       type: this.type,
       start_tracking_date: this.start_tracking_date,
       notes: this.notes,
+      icon: this.icon,
       created_at: this.created_at,
       updated_at: this.updated_at,
     };
@@ -269,10 +292,11 @@ export class Tracking {
       type: string;
       start_tracking_date: string;
       notes: string | null;
+      icon: string | null;
       created_at: string;
       updated_at: string;
     }>(
-      "SELECT id, user_id, question, type, start_tracking_date, notes, created_at, updated_at FROM trackings WHERE id = ? AND user_id = ?",
+      "SELECT id, user_id, question, type, start_tracking_date, notes, icon, created_at, updated_at FROM trackings WHERE id = ? AND user_id = ?",
       [id, userId]
     );
 
@@ -287,6 +311,7 @@ export class Tracking {
       type: row.type as TrackingType,
       start_tracking_date: row.start_tracking_date,
       notes: row.notes || undefined,
+      icon: row.icon || undefined,
       created_at: row.created_at,
       updated_at: row.updated_at,
     });
@@ -299,10 +324,7 @@ export class Tracking {
    * @returns Promise resolving to array of Tracking instances
    * @public
    */
-  static async loadByUserId(
-    userId: number,
-    db: Database
-  ): Promise<Tracking[]> {
+  static async loadByUserId(userId: number, db: Database): Promise<Tracking[]> {
     const rows = await db.all<{
       id: number;
       user_id: number;
@@ -310,10 +332,11 @@ export class Tracking {
       type: string;
       start_tracking_date: string;
       notes: string | null;
+      icon: string | null;
       created_at: string;
       updated_at: string;
     }>(
-      "SELECT id, user_id, question, type, start_tracking_date, notes, created_at, updated_at FROM trackings WHERE user_id = ? ORDER BY created_at DESC",
+      "SELECT id, user_id, question, type, start_tracking_date, notes, icon, created_at, updated_at FROM trackings WHERE user_id = ? ORDER BY created_at DESC",
       [userId]
     );
 
@@ -326,6 +349,7 @@ export class Tracking {
           type: row.type as TrackingType,
           start_tracking_date: row.start_tracking_date,
           notes: row.notes || undefined,
+          icon: row.icon || undefined,
           created_at: row.created_at,
           updated_at: row.updated_at,
         })
@@ -423,5 +447,34 @@ export class Tracking {
     }
 
     return userId;
+  }
+
+  /**
+   * Validates icon (optional emoji).
+   * @param icon - The icon to validate (optional)
+   * @returns The validated icon or undefined if empty
+   * @throws {@link TypeError} If the icon is invalid
+   * @public
+   */
+  static validateIcon(icon?: string | null): string | undefined {
+    if (icon === null || icon === undefined) {
+      return undefined;
+    }
+
+    if (typeof icon !== "string") {
+      throw new TypeError("Icon must be a string");
+    }
+
+    const trimmedIcon = icon.trim();
+    if (!trimmedIcon) {
+      return undefined;
+    }
+
+    // Emojis can be up to ~10 characters (some complex emojis are longer)
+    if (trimmedIcon.length > 20) {
+      throw new TypeError("Icon must not exceed 20 characters");
+    }
+
+    return trimmedIcon;
   }
 }

@@ -35,10 +35,11 @@ export class TrackingService {
       type: string;
       start_tracking_date: string;
       notes: string | null;
+      icon: string | null;
       created_at: string;
       updated_at: string;
     }>(
-      "SELECT id, user_id, question, type, start_tracking_date, notes, created_at, updated_at FROM trackings WHERE user_id = ? ORDER BY created_at DESC",
+      "SELECT id, user_id, question, type, start_tracking_date, notes, icon, created_at, updated_at FROM trackings WHERE user_id = ? ORDER BY created_at DESC",
       [userId]
     );
 
@@ -55,6 +56,7 @@ export class TrackingService {
       type: row.type as TrackingType,
       start_tracking_date: row.start_tracking_date,
       notes: row.notes || undefined,
+      icon: row.icon || undefined,
       created_at: row.created_at,
       updated_at: row.updated_at,
     }));
@@ -82,10 +84,11 @@ export class TrackingService {
       type: string;
       start_tracking_date: string;
       notes: string | null;
+      icon: string | null;
       created_at: string;
       updated_at: string;
     }>(
-      "SELECT id, user_id, question, type, start_tracking_date, notes, created_at, updated_at FROM trackings WHERE id = ? AND user_id = ?",
+      "SELECT id, user_id, question, type, start_tracking_date, notes, icon, created_at, updated_at FROM trackings WHERE id = ? AND user_id = ?",
       [trackingId, userId]
     );
 
@@ -109,6 +112,7 @@ export class TrackingService {
       type: row.type as TrackingType,
       start_tracking_date: row.start_tracking_date,
       notes: row.notes || undefined,
+      icon: row.icon || undefined,
       created_at: row.created_at,
       updated_at: row.updated_at,
     };
@@ -121,6 +125,7 @@ export class TrackingService {
    * @param type - The tracking type (true_false or register)
    * @param startTrackingDate - Optional start tracking date (defaults to now)
    * @param notes - Optional notes (rich text)
+   * @param icon - Optional icon (emoji)
    * @returns Promise resolving to created tracking data
    * @throws Error if validation fails
    * @public
@@ -130,7 +135,8 @@ export class TrackingService {
     question: string,
     type: string,
     startTrackingDate?: string,
-    notes?: string
+    notes?: string,
+    icon?: string
   ): Promise<TrackingData> {
     console.log(
       `[${new Date().toISOString()}] TRACKING | Creating tracking for userId: ${userId}`
@@ -141,19 +147,21 @@ export class TrackingService {
     const validatedQuestion = Tracking.validateQuestion(question);
     const validatedType = Tracking.validateType(type);
     const validatedNotes = Tracking.validateNotes(notes);
+    const validatedIcon = Tracking.validateIcon(icon);
 
     // Use provided date or current timestamp
     const startDate = startTrackingDate || new Date().toISOString();
 
     // Insert tracking
     const result = await this.db.run(
-      "INSERT INTO trackings (user_id, question, type, start_tracking_date, notes) VALUES (?, ?, ?, ?, ?)",
+      "INSERT INTO trackings (user_id, question, type, start_tracking_date, notes, icon) VALUES (?, ?, ?, ?, ?, ?)",
       [
         validatedUserId,
         validatedQuestion,
         validatedType,
         startDate,
         validatedNotes || null,
+        validatedIcon || null,
       ]
     );
 
@@ -190,6 +198,7 @@ export class TrackingService {
    * @param type - Updated type (optional)
    * @param startTrackingDate - Updated start tracking date (optional)
    * @param notes - Updated notes (optional)
+   * @param icon - Updated icon (optional)
    * @returns Promise resolving to updated tracking data
    * @throws Error if tracking not found or validation fails
    * @public
@@ -200,7 +209,8 @@ export class TrackingService {
     question?: string,
     type?: string,
     startTrackingDate?: string,
-    notes?: string
+    notes?: string,
+    icon?: string
   ): Promise<TrackingData> {
     console.log(
       `[${new Date().toISOString()}] TRACKING | Updating tracking ID: ${trackingId} for userId: ${userId}`
@@ -240,6 +250,12 @@ export class TrackingService {
       const validatedNotes = Tracking.validateNotes(notes);
       updates.push("notes = ?");
       values.push(validatedNotes || null);
+    }
+
+    if (icon !== undefined) {
+      const validatedIcon = Tracking.validateIcon(icon);
+      updates.push("icon = ?");
+      values.push(validatedIcon || null);
     }
 
     if (updates.length === 0) {

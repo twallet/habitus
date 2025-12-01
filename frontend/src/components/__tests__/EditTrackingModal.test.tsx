@@ -222,6 +222,7 @@ describe('EditTrackingModal', () => {
         'New question?',
         undefined,
         undefined,
+        undefined,
         undefined
       );
     });
@@ -250,6 +251,7 @@ describe('EditTrackingModal', () => {
         1,
         undefined,
         TrackingType.REGISTER,
+        undefined,
         undefined,
         undefined
       );

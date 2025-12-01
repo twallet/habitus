@@ -173,6 +173,7 @@ export class Database {
               type TEXT NOT NULL CHECK(type IN ('true_false', 'register')),
               start_tracking_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
               notes TEXT,
+              icon TEXT,
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -248,6 +249,23 @@ export class Database {
                       console.warn(
                         `[${new Date().toISOString()}] DATABASE | Warning creating email_verification_token index:`,
                         indexErr.message
+                      );
+                    }
+                  }
+                );
+
+                // Migrate existing databases: add icon column to trackings if it doesn't exist
+                this.db!.run(
+                  `ALTER TABLE trackings ADD COLUMN icon TEXT`,
+                  (alterErr) => {
+                    // Ignore error if column already exists
+                    if (
+                      alterErr &&
+                      !alterErr.message.includes("duplicate column")
+                    ) {
+                      console.warn(
+                        `[${new Date().toISOString()}] DATABASE | Warning adding icon column:`,
+                        alterErr.message
                       );
                     }
                   }

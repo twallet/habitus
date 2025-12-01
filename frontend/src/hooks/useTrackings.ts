@@ -78,6 +78,7 @@ export function useTrackings() {
    * @param type - The tracking type (true_false or register)
    * @param startTrackingDate - Optional start tracking date (ISO string, defaults to now)
    * @param notes - Optional notes (rich text)
+   * @param icon - Optional icon (emoji)
    * @returns The created tracking data
    * @throws Error if API request fails
    * @public
@@ -86,7 +87,8 @@ export function useTrackings() {
     question: string,
     type: TrackingType,
     startTrackingDate?: string,
-    notes?: string
+    notes?: string,
+    icon?: string
   ): Promise<TrackingData> => {
     const token = localStorage.getItem(TOKEN_KEY);
     if (!token) {
@@ -102,7 +104,8 @@ export function useTrackings() {
         question,
         type,
         startTrackingDate,
-        notes
+        notes,
+        icon
       );
       console.log(
         `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Tracking created successfully: ID ${
@@ -127,6 +130,7 @@ export function useTrackings() {
    * @param type - Updated type (optional)
    * @param startTrackingDate - Updated start tracking date (optional)
    * @param notes - Updated notes (optional)
+   * @param icon - Updated icon (optional)
    * @returns The updated tracking data
    * @throws Error if API request fails
    * @public
@@ -136,7 +140,8 @@ export function useTrackings() {
     question?: string,
     type?: TrackingType,
     startTrackingDate?: string,
-    notes?: string
+    notes?: string,
+    icon?: string
   ): Promise<TrackingData> => {
     const token = localStorage.getItem(TOKEN_KEY);
     if (!token) {
@@ -153,7 +158,8 @@ export function useTrackings() {
         question,
         type,
         startTrackingDate,
-        notes
+        notes,
+        icon
       );
       console.log(
         `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Tracking updated successfully: ID ${
