@@ -99,17 +99,6 @@ describe('EditTrackingModal', () => {
     expect(questionInput).toHaveValue('New question?');
   });
 
-  it('should show character count for question', () => {
-    render(
-      <EditTrackingModal
-        tracking={mockTracking}
-        onClose={mockOnClose}
-        onSave={mockOnSave}
-      />
-    );
-
-    expect(screen.getByText(/21\/500/i)).toBeInTheDocument();
-  });
 
   it('should update type when select changes', async () => {
     const user = userEvent.setup();

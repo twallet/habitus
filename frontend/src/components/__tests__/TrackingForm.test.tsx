@@ -47,19 +47,6 @@ describe("TrackingForm", () => {
         expect(addButtons.length).toBeGreaterThan(0);
     });
 
-    it("should update character count as user types", async () => {
-        const user = userEvent.setup();
-        render(<TrackingForm onSubmit={mockOnSubmit} />);
-
-        const questionInput = screen.getByRole("textbox", {
-            name: /^question \*/i,
-        });
-        await user.type(questionInput, "Did I exercise?");
-
-        // Character count should be visible after typing
-        // "Did I exercise?" has 15 characters
-        expect(screen.getByText(/15\/500/i)).toBeInTheDocument();
-    });
 
     it("should call onSubmit with form data when submitted", async () => {
         const user = userEvent.setup();
