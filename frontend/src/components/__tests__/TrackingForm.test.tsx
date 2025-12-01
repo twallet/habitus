@@ -15,7 +15,6 @@ describe("TrackingForm", () => {
     it("should render form elements", () => {
         render(<TrackingForm onSubmit={mockOnSubmit} />);
 
-        expect(screen.getByText(/create new tracking/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/question/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/^type \*/i)).toBeInTheDocument();
         expect(

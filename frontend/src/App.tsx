@@ -586,7 +586,7 @@ function App() {
         <div className="modal-overlay" onClick={() => setShowTrackingForm(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Create New Tracking</h2>
+              <h2>Add new tracking</h2>
               <button
                 type="button"
                 className="modal-close"
