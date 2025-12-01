@@ -491,11 +491,6 @@ function App() {
       </header>
 
       <main>
-        <div className="dashboard-header">
-          <h2>Your Trackings</h2>
-          <p className="dashboard-subtitle">Manage your nanohabit trackings</p>
-        </div>
-
         {message && message.type === 'error' && (
           <Message
             text={message.text}
