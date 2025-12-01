@@ -12,6 +12,28 @@ describe("TrackingForm", () => {
         vi.clearAllMocks();
     });
 
+    /**
+     * Helper function to add a schedule in tests.
+     * @param user - User event instance
+     * @param hour - Hour value (default: 9)
+     * @param minutes - Minutes value (default: 0)
+     */
+    const addSchedule = async (
+        user: ReturnType<typeof userEvent.setup>,
+        hour: number = 9,
+        minutes: number = 0
+    ) => {
+        const hourInput = screen.getByLabelText(/^hour$/i) as HTMLInputElement;
+        const minutesInput = screen.getByLabelText(/^minutes$/i) as HTMLInputElement;
+        const addButton = screen.getByRole("button", { name: /add schedule/i });
+
+        await user.clear(hourInput);
+        await user.type(hourInput, hour.toString());
+        await user.clear(minutesInput);
+        await user.type(minutesInput, minutes.toString());
+        await user.click(addButton);
+    };
+
     it("should render form elements", () => {
         render(<TrackingForm onSubmit={mockOnSubmit} />);
 
@@ -54,6 +76,7 @@ describe("TrackingForm", () => {
 
         await user.type(questionInput, "Did I exercise today?");
         await user.selectOptions(typeSelect, TrackingType.TRUE_FALSE);
+        await addSchedule(user);
         await user.click(submitButton);
 
         await waitFor(() => {
@@ -61,7 +84,8 @@ describe("TrackingForm", () => {
                 "Did I exercise today?",
                 TrackingType.TRUE_FALSE,
                 undefined,
-                undefined
+                undefined,
+                [{ hour: 9, minutes: 0 }]
             );
         });
     });
@@ -82,6 +106,7 @@ describe("TrackingForm", () => {
 
         await user.type(questionInput, "Did I exercise?");
         await user.type(notesInput, "Exercise notes");
+        await addSchedule(user);
         await user.click(submitButton);
 
         await waitFor(() => {
@@ -89,7 +114,8 @@ describe("TrackingForm", () => {
                 "Did I exercise?",
                 TrackingType.TRUE_FALSE,
                 "Exercise notes",
-                undefined
+                undefined,
+                [{ hour: 9, minutes: 0 }]
             );
         });
     });
@@ -135,6 +161,7 @@ describe("TrackingForm", () => {
             name: /^question \*/i,
         }) as HTMLInputElement;
         await user.type(questionInput, "Did I exercise?");
+        await addSchedule(user);
         await user.click(
             screen.getByRole("button", { name: /^add$/i })
         );
@@ -171,6 +198,40 @@ describe("TrackingForm", () => {
             name: /^add$/i,
         }) as HTMLButtonElement;
         expect(submitButton.disabled).toBe(true);
+    });
+
+    it("should disable submit button when no schedules are added", () => {
+        render(<TrackingForm onSubmit={mockOnSubmit} />);
+
+        const questionInput = screen.getByRole("textbox", {
+            name: /^question \*/i,
+        }) as HTMLInputElement;
+        fireEvent.change(questionInput, { target: { value: "Test question" } });
+
+        const submitButton = screen.getByRole("button", {
+            name: /^add$/i,
+        }) as HTMLButtonElement;
+        expect(submitButton.disabled).toBe(true);
+    });
+
+    it("should show error when submitting without schedules", async () => {
+        const user = userEvent.setup();
+        render(<TrackingForm onSubmit={mockOnSubmit} />);
+
+        const questionInput = screen.getByRole("textbox", {
+            name: /^question \*/i,
+        });
+        const submitButton = screen.getByRole("button", {
+            name: /^add$/i,
+        });
+
+        await user.type(questionInput, "Did I exercise?");
+        await user.click(submitButton);
+
+        expect(
+            screen.getByText(/at least one schedule is required/i)
+        ).toBeInTheDocument();
+        expect(mockOnSubmit).not.toHaveBeenCalled();
     });
 });
 

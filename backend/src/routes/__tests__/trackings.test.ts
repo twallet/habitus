@@ -208,12 +208,15 @@ describe("Trackings Routes", () => {
         .send({
           question: "Did I exercise today?",
           type: "true_false",
+          schedules: [{ hour: 9, minutes: 0 }],
         });
 
       expect(response.status).toBe(201);
       expect(response.body.question).toBe("Did I exercise today?");
       expect(response.body.type).toBe("true_false");
       expect(response.body.user_id).toBe(testUserId);
+      expect(response.body.schedules).toBeDefined();
+      expect(response.body.schedules.length).toBe(1);
     });
 
     it("should create tracking with notes", async () => {
@@ -224,10 +227,12 @@ describe("Trackings Routes", () => {
           question: "Did I meditate?",
           type: "true_false",
           notes: "Meditation notes",
+          schedules: [{ hour: 10, minutes: 30 }],
         });
 
       expect(response.status).toBe(201);
       expect(response.body.notes).toBe("Meditation notes");
+      expect(response.body.schedules).toBeDefined();
     });
 
     it("should return 400 when question is missing", async () => {
@@ -236,6 +241,7 @@ describe("Trackings Routes", () => {
         .set("Authorization", "Bearer test-token")
         .send({
           type: "true_false",
+          schedules: [{ hour: 9, minutes: 0 }],
         });
 
       expect(response.status).toBe(400);
@@ -248,10 +254,24 @@ describe("Trackings Routes", () => {
         .set("Authorization", "Bearer test-token")
         .send({
           question: "Test question",
+          schedules: [{ hour: 9, minutes: 0 }],
         });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain("required");
+    });
+
+    it("should return 400 when schedules are missing", async () => {
+      const response = await request(app)
+        .post("/api/trackings")
+        .set("Authorization", "Bearer test-token")
+        .send({
+          question: "Test question",
+          type: "true_false",
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain("schedule");
     });
 
     it("should return 400 for invalid question", async () => {
@@ -261,6 +281,7 @@ describe("Trackings Routes", () => {
         .send({
           question: "",
           type: "true_false",
+          schedules: [{ hour: 9, minutes: 0 }],
         });
 
       expect(response.status).toBe(400);
@@ -273,6 +294,7 @@ describe("Trackings Routes", () => {
         .send({
           question: "Test question",
           type: "invalid_type",
+          schedules: [{ hour: 9, minutes: 0 }],
         });
 
       expect(response.status).toBe(400);

@@ -196,7 +196,10 @@ describe("TrackingService", () => {
       const tracking = await trackingService.createTracking(
         testUserId,
         "Did I exercise today?",
-        TrackingType.TRUE_FALSE
+        TrackingType.TRUE_FALSE,
+        undefined,
+        undefined,
+        [{ hour: 9, minutes: 0 }]
       );
 
       expect(tracking).not.toBeNull();
@@ -204,6 +207,10 @@ describe("TrackingService", () => {
       expect(tracking.type).toBe(TrackingType.TRUE_FALSE);
       expect(tracking.user_id).toBe(testUserId);
       expect(tracking.id).toBeGreaterThan(0);
+      expect(tracking.schedules).toBeDefined();
+      expect(tracking.schedules?.length).toBe(1);
+      expect(tracking.schedules?.[0].hour).toBe(9);
+      expect(tracking.schedules?.[0].minutes).toBe(0);
     });
 
     it("should create tracking with notes", async () => {
@@ -211,15 +218,26 @@ describe("TrackingService", () => {
         testUserId,
         "Did I meditate?",
         TrackingType.TRUE_FALSE,
-        "Meditation notes"
+        "Meditation notes",
+        undefined,
+        [{ hour: 10, minutes: 30 }]
       );
 
       expect(tracking.notes).toBe("Meditation notes");
+      expect(tracking.schedules).toBeDefined();
+      expect(tracking.schedules?.length).toBe(1);
     });
 
     it("should throw error for invalid question", async () => {
       await expect(
-        trackingService.createTracking(testUserId, "", TrackingType.TRUE_FALSE)
+        trackingService.createTracking(
+          testUserId,
+          "",
+          TrackingType.TRUE_FALSE,
+          undefined,
+          undefined,
+          [{ hour: 9, minutes: 0 }]
+        )
       ).rejects.toThrow();
     });
 
@@ -228,9 +246,22 @@ describe("TrackingService", () => {
         trackingService.createTracking(
           testUserId,
           "Valid question",
-          "invalid_type"
+          "invalid_type",
+          undefined,
+          undefined,
+          [{ hour: 9, minutes: 0 }]
         )
       ).rejects.toThrow();
+    });
+
+    it("should throw error when no schedules provided", async () => {
+      await expect(
+        trackingService.createTracking(
+          testUserId,
+          "Valid question",
+          TrackingType.TRUE_FALSE
+        )
+      ).rejects.toThrow("At least one schedule is required");
     });
   });
 
