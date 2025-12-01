@@ -431,7 +431,7 @@ export function TrackingForm({
                         schedules.length === 0
                     }
                 >
-                    {isSubmitting ? "Adding..." : "Add"}
+                    {isSubmitting ? "Creating..." : "Create"}
                 </button>
             </div>
         </form>

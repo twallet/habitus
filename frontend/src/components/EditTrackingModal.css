@@ -247,15 +247,11 @@
   box-sizing: border-box;
 }
 
-.schedule-input-row > .schedule-add-button {
-  align-self: flex-start;
-}
-
 .schedule-time-inputs {
   display: flex;
   gap: 12px;
   align-items: center;
-  flex: 1;
+  flex-shrink: 0;
 }
 
 .schedule-time-inputs input[type="time"] {

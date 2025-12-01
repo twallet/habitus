@@ -517,8 +517,8 @@ function App() {
         type="button"
         className="fab"
         onClick={() => setShowTrackingForm(true)}
-        aria-label="Add new tracking"
-        title="Add new tracking"
+        aria-label="Create Tracking"
+        title="Create Tracking"
       >
         +
       </button>
@@ -551,7 +551,7 @@ function App() {
         <div className="modal-overlay" onClick={() => setShowTrackingForm(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Add new tracking</h2>
+              <h2>Create Tracking</h2>
               <button
                 type="button"
                 className="modal-close"

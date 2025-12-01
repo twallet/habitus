@@ -216,7 +216,7 @@ describe('App', () => {
     expect(userMenuButton).toBeInTheDocument();
 
     // Verify FAB button is present
-    const fabButton = screen.getByRole('button', { name: /add new tracking/i });
+    const fabButton = screen.getByRole('button', { name: /create tracking/i });
     expect(fabButton).toBeInTheDocument();
   });
 
@@ -920,7 +920,7 @@ describe('App', () => {
       expect(screen.getByText(/your trackings/i)).toBeInTheDocument();
     });
 
-    const fabButton = screen.getByRole('button', { name: /add new tracking/i });
+    const fabButton = screen.getByRole('button', { name: /create tracking/i });
     await userEvent.click(fabButton);
 
     // Wait for the form input to appear (more reliable than waiting for text)
@@ -1342,7 +1342,7 @@ describe('App', () => {
       expect(screen.getByText(/your trackings/i)).toBeInTheDocument();
     });
 
-    const fabButton = screen.getByRole('button', { name: /add new tracking/i });
+    const fabButton = screen.getByRole('button', { name: /create tracking/i });
     await userEvent.click(fabButton);
 
     // Wait for the form input to appear (more reliable than waiting for text)
