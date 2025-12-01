@@ -117,7 +117,9 @@ export function EditTrackingModal({
                 notes.trim() !== (tracking.notes || "") ? notes.trim() || undefined : undefined,
                 icon.trim() !== (tracking.icon || "") ? icon.trim() || undefined : undefined
             );
-            onClose();
+            if (!hasSaveErrorRef.current) {
+                onClose();
+            }
         } catch (err) {
             hasSaveErrorRef.current = true;
             setError(err instanceof Error ? err.message : "Error updating tracking");

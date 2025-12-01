@@ -44,7 +44,6 @@ function App() {
     isLoading: trackingsLoading,
     createTracking,
     updateTracking,
-    deleteTracking,
   } = useTrackings();
 
   /**
@@ -401,33 +400,6 @@ function App() {
     }
   };
 
-  /**
-   * Handle delete tracking.
-   * @internal
-   */
-  /**
-   * Handle delete tracking.
-   * @param trackingId - ID of tracking to delete
-   * @internal
-   */
-  const handleDeleteTracking = async (trackingId: number) => {
-    console.log(`[${new Date().toISOString()}] FRONTEND_APP | Deleting tracking ID: ${trackingId}`);
-    try {
-      await deleteTracking(trackingId);
-      setEditingTracking(null);
-      setMessage({
-        text: 'Tracking deleted successfully',
-        type: 'success',
-      });
-    } catch (error) {
-      console.error(`[${new Date().toISOString()}] FRONTEND_APP | Error deleting tracking:`, error);
-      setMessage({
-        text: error instanceof Error ? error.message : 'Error deleting tracking',
-        type: 'error',
-      });
-      throw error;
-    }
-  };
 
   // Show loading state while checking authentication
   if (isLoading) {

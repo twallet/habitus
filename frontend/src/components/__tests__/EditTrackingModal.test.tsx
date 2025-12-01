@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { vi } from 'vitest';
-import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { EditTrackingModal } from '../EditTrackingModal';
 import { TrackingData, TrackingType } from '../../models/Tracking';
@@ -91,7 +91,7 @@ describe('EditTrackingModal', () => {
       />
     );
 
-    const questionInput = screen.getByLabelText(/question \*/i);
+    const questionInput = screen.getByRole('textbox', { name: /^question \*/i });
     await user.clear(questionInput);
     await user.type(questionInput, 'New question?');
 
@@ -120,7 +120,7 @@ describe('EditTrackingModal', () => {
       />
     );
 
-    const typeSelect = screen.getByLabelText(/type \*/i);
+    const typeSelect = screen.getByRole('combobox', { name: /^type \*/i });
     await user.selectOptions(typeSelect, TrackingType.REGISTER);
 
     expect(typeSelect).toHaveValue(TrackingType.REGISTER);
@@ -136,7 +136,7 @@ describe('EditTrackingModal', () => {
       />
     );
 
-    const notesInput = screen.getByLabelText(/notes/i);
+    const notesInput = screen.getByRole('textbox', { name: /^notes \?/i });
     await user.clear(notesInput);
     await user.type(notesInput, 'New notes');
 
@@ -144,7 +144,6 @@ describe('EditTrackingModal', () => {
   });
 
   it('should show error for empty question', async () => {
-    const user = userEvent.setup();
     render(
       <EditTrackingModal
         tracking={mockTracking}
@@ -153,11 +152,11 @@ describe('EditTrackingModal', () => {
       />
     );
 
-    const questionInput = screen.getByLabelText(/question \*/i);
-    await user.clear(questionInput);
+    const questionInput = screen.getByRole('textbox', { name: /^question \*/i });
+    fireEvent.change(questionInput, { target: { value: '' } });
 
-    const saveButton = screen.getByRole('button', { name: /save changes/i });
-    await user.click(saveButton);
+    const form = questionInput.closest('form')!;
+    fireEvent.submit(form);
 
     await waitFor(() => {
       expect(screen.getByText(/question is required/i)).toBeInTheDocument();
@@ -174,7 +173,7 @@ describe('EditTrackingModal', () => {
       />
     );
 
-    const questionInput = screen.getByLabelText(/question \*/i);
+    const questionInput = screen.getByRole('textbox', { name: /^question \*/i });
     fireEvent.change(questionInput, { target: { value: 'x'.repeat(501) } });
 
     const saveButton = screen.getByRole('button', { name: /save changes/i });
@@ -197,7 +196,7 @@ describe('EditTrackingModal', () => {
       />
     );
 
-    const questionInput = screen.getByLabelText(/question \*/i);
+    const questionInput = screen.getByRole('textbox', { name: /^question \*/i });
     fireEvent.change(questionInput, { target: { value: 'New question?' } });
 
     const saveButton = screen.getByRole('button', { name: /save changes/i });
@@ -225,7 +224,7 @@ describe('EditTrackingModal', () => {
       />
     );
 
-    const typeSelect = screen.getByLabelText(/type \*/i);
+    const typeSelect = screen.getByRole('combobox', { name: /^type \*/i });
     await user.selectOptions(typeSelect, TrackingType.REGISTER);
 
     const saveButton = screen.getByRole('button', { name: /save changes/i });
@@ -289,8 +288,11 @@ describe('EditTrackingModal', () => {
     expect(screen.getByText('Edit Tracking')).toBeInTheDocument();
     expect(screen.getByText(/save failed/i)).toBeInTheDocument();
 
-    // Verify onClose was not called after the error
-    expect(mockOnClose).not.toHaveBeenCalled();
+    // Wait a bit to ensure onClose is not called after error is shown
+    await waitFor(() => {
+      // Verify onClose was not called after the error
+      expect(mockOnClose).not.toHaveBeenCalled();
+    }, { timeout: 500 });
   });
 
 
@@ -388,7 +390,7 @@ describe('EditTrackingModal', () => {
       />
     );
 
-    const notesInput = screen.getByLabelText(/notes/i);
+    const notesInput = screen.getByRole('textbox', { name: /^notes \?/i });
     expect(notesInput).toHaveValue('');
   });
 });
