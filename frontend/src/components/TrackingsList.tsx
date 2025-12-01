@@ -51,9 +51,9 @@ export function TrackingsList({
     const getTypeLabel = (type: TrackingType): string => {
         switch (type) {
             case TrackingType.TRUE_FALSE:
-                return "True/False";
+                return "🔘 Yes/No";
             case TrackingType.REGISTER:
-                return "Register";
+                return "🖊️ Text";
             default:
                 return type;
         }

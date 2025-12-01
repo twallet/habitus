@@ -116,8 +116,8 @@ export function TrackingForm({
                     required
                     disabled={isSubmitting}
                 >
-                    <option value={TrackingType.TRUE_FALSE}>True/False</option>
-                    <option value={TrackingType.REGISTER}>Register</option>
+                    <option value={TrackingType.TRUE_FALSE}>🔘 Yes/No</option>
+                    <option value={TrackingType.REGISTER}>🖊️ Text</option>
                 </select>
             </div>
 

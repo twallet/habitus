@@ -541,16 +541,17 @@ function App() {
             isLoading={trackingsLoading}
           />
         </div>
-
-        <button
-          type="button"
-          className="fab"
-          onClick={() => setShowTrackingForm(true)}
-          aria-label="Add new tracking"
-        >
-          +
-        </button>
       </main>
+
+      <button
+        type="button"
+        className="fab"
+        onClick={() => setShowTrackingForm(true)}
+        aria-label="Add new tracking"
+        title="Add new tracking"
+      >
+        +
+      </button>
 
       {showEditProfile && user && (
         <EditProfileModal

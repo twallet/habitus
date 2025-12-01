@@ -89,6 +89,7 @@ export function UserMenu({
                 onClick={toggleMenu}
                 aria-label="User menu"
                 aria-expanded={isOpen}
+                title="User menu"
             >
                 {user.profile_picture_url ? (
                     <img

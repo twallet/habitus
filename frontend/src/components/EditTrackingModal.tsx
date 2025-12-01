@@ -251,8 +251,8 @@ export function EditTrackingModal({
                             onChange={(e) => setType(e.target.value as TrackingType)}
                             disabled={isSubmitting}
                         >
-                            <option value={TrackingType.TRUE_FALSE}>True/False</option>
-                            <option value={TrackingType.REGISTER}>Register</option>
+                            <option value={TrackingType.TRUE_FALSE}>🔘 Yes/No</option>
+                            <option value={TrackingType.REGISTER}>🖊️ Text</option>
                         </select>
                     </div>
 

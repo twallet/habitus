@@ -63,8 +63,8 @@ describe("TrackingsList", () => {
 
         expect(screen.getByText("Did I exercise today?")).toBeInTheDocument();
         expect(screen.getByText("Did I meditate?")).toBeInTheDocument();
-        expect(screen.getByText("True/False")).toBeInTheDocument();
-        expect(screen.getByText("Register")).toBeInTheDocument();
+        expect(screen.getByText("🔘 Yes/No")).toBeInTheDocument();
+        expect(screen.getByText("🖊️ Text")).toBeInTheDocument();
     });
 
     it("should call onEdit when edit button is clicked", () => {
