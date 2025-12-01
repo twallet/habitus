@@ -1,5 +1,5 @@
 import { UserData } from "../models/User.js";
-import { TrackingData, TrackingType } from "../models/Tracking.js";
+import { TrackingData, TrackingType, DaysPattern } from "../models/Tracking.js";
 
 /**
  * Get Vite environment variables.
@@ -525,6 +525,7 @@ export class ApiClient {
    * @param notes - Optional notes (rich text)
    * @param icon - Optional icon (emoji)
    * @param schedules - Required schedules array (1-5 schedules)
+   * @param days - Optional days pattern for reminder frequency
    * @returns Promise resolving to created tracking data
    * @throws Error if request fails
    * @public
@@ -534,7 +535,8 @@ export class ApiClient {
     type: TrackingType,
     notes: string | undefined,
     icon: string | undefined,
-    schedules: Array<{ hour: number; minutes: number }>
+    schedules: Array<{ hour: number; minutes: number }>,
+    days?: DaysPattern
   ): Promise<TrackingData> {
     return this.post<TrackingData>(API_ENDPOINTS.trackings, {
       question,
@@ -542,6 +544,7 @@ export class ApiClient {
       notes,
       icon,
       schedules,
+      days,
     });
   }
 
@@ -553,6 +556,7 @@ export class ApiClient {
    * @param notes - Updated notes (optional)
    * @param icon - Updated icon (optional)
    * @param schedules - Updated schedules array (optional, 1-5 schedules if provided)
+   * @param days - Updated days pattern (optional)
    * @returns Promise resolving to updated tracking data
    * @throws Error if request fails
    * @public
@@ -563,7 +567,8 @@ export class ApiClient {
     type?: TrackingType,
     notes?: string,
     icon?: string,
-    schedules?: Array<{ hour: number; minutes: number }>
+    schedules?: Array<{ hour: number; minutes: number }>,
+    days?: DaysPattern
   ): Promise<TrackingData> {
     return this.put<TrackingData>(`${API_ENDPOINTS.trackings}/${trackingId}`, {
       question,
@@ -571,6 +576,7 @@ export class ApiClient {
       notes,
       icon,
       schedules,
+      days,
     });
   }
 

@@ -1,9 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  TrackingData,
-  TrackingType,
-  TrackingScheduleData,
-} from "../models/Tracking";
+import { TrackingData, TrackingType, DaysPattern } from "../models/Tracking";
 import { ApiClient } from "../config/api";
 
 /**
@@ -86,6 +82,7 @@ export function useTrackings() {
    * @param notes - Optional notes (rich text)
    * @param icon - Optional icon (emoji)
    * @param schedules - Required schedules array (1-5 schedules)
+   * @param days - Optional days pattern for reminder frequency
    * @returns The created tracking data
    * @throws Error if API request fails
    * @public
@@ -95,7 +92,8 @@ export function useTrackings() {
     type: TrackingType,
     notes: string | undefined,
     icon: string | undefined,
-    schedules: Array<{ hour: number; minutes: number }>
+    schedules: Array<{ hour: number; minutes: number }>,
+    days?: DaysPattern
   ): Promise<TrackingData> => {
     const token = localStorage.getItem(TOKEN_KEY);
     if (!token) {
@@ -115,7 +113,8 @@ export function useTrackings() {
         type,
         notes,
         icon,
-        schedules
+        schedules,
+        days
       );
       console.log(
         `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Tracking created successfully: ID ${
@@ -141,6 +140,7 @@ export function useTrackings() {
    * @param notes - Updated notes (optional)
    * @param icon - Updated icon (optional)
    * @param schedules - Updated schedules array (optional, 1-5 schedules if provided)
+   * @param days - Updated days pattern (optional)
    * @returns The updated tracking data
    * @throws Error if API request fails
    * @public
@@ -151,7 +151,8 @@ export function useTrackings() {
     type?: TrackingType,
     notes?: string,
     icon?: string,
-    schedules?: Array<{ hour: number; minutes: number }>
+    schedules?: Array<{ hour: number; minutes: number }>,
+    days?: DaysPattern
   ): Promise<TrackingData> => {
     const token = localStorage.getItem(TOKEN_KEY);
     if (!token) {
@@ -172,7 +173,8 @@ export function useTrackings() {
         type,
         notes,
         icon,
-        schedules
+        schedules,
+        days
       );
       console.log(
         `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Tracking updated successfully: ID ${

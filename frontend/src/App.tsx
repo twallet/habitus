@@ -338,6 +338,7 @@ function App() {
    * @param notes - Optional notes
    * @param icon - Optional icon
    * @param schedules - Required schedules array
+   * @param days - Optional days pattern
    * @internal
    */
   const handleCreateTracking = async (
@@ -345,11 +346,12 @@ function App() {
     type: TrackingType,
     notes: string | undefined,
     icon: string | undefined,
-    schedules: Array<{ hour: number; minutes: number }>
+    schedules: Array<{ hour: number; minutes: number }>,
+    days: import("./models/Tracking").DaysPattern | undefined
   ) => {
     console.log(`[${new Date().toISOString()}] FRONTEND_APP | Creating tracking`);
     try {
-      await createTracking(question, type, notes, icon, schedules);
+      await createTracking(question, type, notes, icon, schedules, days);
       setShowTrackingForm(false);
       setMessage({
         text: 'Tracking created successfully',
@@ -383,11 +385,12 @@ function App() {
     type?: TrackingType,
     notes?: string,
     icon?: string,
-    schedules?: Array<{ hour: number; minutes: number }>
+    schedules?: Array<{ hour: number; minutes: number }>,
+    days?: import("./models/Tracking").DaysPattern
   ) => {
     console.log(`[${new Date().toISOString()}] FRONTEND_APP | Updating tracking ID: ${trackingId}`);
     try {
-      await updateTracking(trackingId, question, type, notes, icon, schedules);
+      await updateTracking(trackingId, question, type, notes, icon, schedules, days);
       setEditingTracking(null);
       setMessage({
         text: 'Tracking updated successfully',

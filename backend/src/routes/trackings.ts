@@ -82,12 +82,13 @@ router.get(
  * @body {string} notes - Optional notes (rich text)
  * @body {string} icon - Optional icon (emoji)
  * @body {Array<{hour: number, minutes: number}>} schedules - Required schedules array (1-5 schedules)
+ * @body {DaysPattern} days - Optional days pattern for reminder frequency
  * @returns {TrackingData} Created tracking data
  */
 router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
-    const { question, type, notes, icon, schedules } = req.body;
+    const { question, type, notes, icon, schedules, days } = req.body;
 
     if (!question || !type) {
       return res.status(400).json({ error: "Question and type are required" });
@@ -105,7 +106,8 @@ router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
       type,
       notes,
       icon,
-      schedules
+      schedules,
+      days
     );
 
     res.status(201).json(tracking);
@@ -132,6 +134,7 @@ router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
  * @body {string} notes - Updated notes (optional)
  * @body {string} icon - Updated icon (optional)
  * @body {Array<{hour: number, minutes: number}>} schedules - Updated schedules array (optional, 1-5 schedules if provided)
+ * @body {DaysPattern} days - Updated days pattern (optional)
  * @returns {TrackingData} Updated tracking data
  */
 router.put(
@@ -141,7 +144,7 @@ router.put(
     try {
       const trackingId = parseInt(req.params.id, 10);
       const userId = req.userId!;
-      const { question, type, notes, icon, schedules } = req.body;
+      const { question, type, notes, icon, schedules, days } = req.body;
 
       if (isNaN(trackingId)) {
         return res.status(400).json({ error: "Invalid tracking ID" });
@@ -163,7 +166,8 @@ router.put(
         type,
         notes,
         icon,
-        schedules
+        schedules,
+        days
       );
 
       res.json(tracking);

@@ -11,6 +11,38 @@ export enum TrackingType {
 }
 
 /**
+ * Days pattern type enumeration.
+ * @public
+ */
+export enum DaysPatternType {
+  INTERVAL = "interval",
+  DAY_OF_WEEK = "day_of_week",
+  DAY_OF_MONTH = "day_of_month",
+  DAY_OF_YEAR = "day_of_year",
+}
+
+/**
+ * Days pattern interface for reminder frequency.
+ * @public
+ */
+export interface DaysPattern {
+  pattern_type: DaysPatternType;
+  // For INTERVAL pattern
+  interval_value?: number;
+  interval_unit?: "days" | "weeks" | "months" | "years";
+  // For DAY_OF_WEEK pattern
+  days?: number[]; // 0-6, where 0=Sunday
+  // For DAY_OF_MONTH pattern
+  type?: "day_number" | "last_day" | "weekday_ordinal";
+  day_numbers?: number[]; // 1-31
+  weekday?: number; // 0-6, where 0=Sunday
+  ordinal?: number; // 1-5 (first, second, third, fourth, fifth)
+  // For DAY_OF_YEAR pattern
+  month?: number; // 1-12
+  day?: number; // 1-31
+}
+
+/**
  * Tracking data interface.
  * @public
  */
@@ -21,6 +53,7 @@ export interface TrackingData {
   type: TrackingType;
   notes?: string;
   icon?: string;
+  days?: DaysPattern;
   schedules?: TrackingScheduleData[];
   created_at?: string;
   updated_at?: string;
@@ -74,6 +107,12 @@ export class Tracking {
   icon?: string;
 
   /**
+   * Optional days pattern for reminder frequency.
+   * @public
+   */
+  days?: DaysPattern;
+
+  /**
    * Creation timestamp (optional).
    * @public
    */
@@ -97,6 +136,7 @@ export class Tracking {
     this.type = data.type;
     this.notes = data.notes;
     this.icon = data.icon;
+    this.days = data.days;
     this.created_at = data.created_at;
     this.updated_at = data.updated_at;
   }
@@ -117,6 +157,9 @@ export class Tracking {
     }
     if (this.icon !== undefined) {
       this.icon = Tracking.validateIcon(this.icon);
+    }
+    if (this.days !== undefined) {
+      this.days = Tracking.validateDays(this.days);
     }
     return this;
   }
@@ -153,6 +196,11 @@ export class Tracking {
         values.push(this.icon || null);
       }
 
+      if (this.days !== undefined) {
+        updates.push("days = ?");
+        values.push(this.days ? JSON.stringify(this.days) : null);
+      }
+
       updates.push("updated_at = CURRENT_TIMESTAMP");
       values.push(this.id, this.user_id);
 
@@ -167,13 +215,14 @@ export class Tracking {
     } else {
       // Create new tracking
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question, type, notes, icon) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO trackings (user_id, question, type, notes, icon, days) VALUES (?, ?, ?, ?, ?, ?)",
         [
           this.user_id,
           this.question,
           this.type,
           this.notes || null,
           this.icon || null,
+          this.days ? JSON.stringify(this.days) : null,
         ]
       );
 
@@ -214,6 +263,9 @@ export class Tracking {
     if (updates.icon !== undefined) {
       this.icon = Tracking.validateIcon(updates.icon);
     }
+    if (updates.days !== undefined) {
+      this.days = Tracking.validateDays(updates.days);
+    }
 
     return this.save(db);
   }
@@ -253,6 +305,7 @@ export class Tracking {
       type: this.type,
       notes: this.notes,
       icon: this.icon,
+      days: this.days,
       schedules: (this as any).schedules,
       created_at: this.created_at,
       updated_at: this.updated_at,
@@ -279,15 +332,28 @@ export class Tracking {
       type: string;
       notes: string | null;
       icon: string | null;
+      days: string | null;
       created_at: string;
       updated_at: string;
     }>(
-      "SELECT id, user_id, question, type, notes, icon, created_at, updated_at FROM trackings WHERE id = ? AND user_id = ?",
+      "SELECT id, user_id, question, type, notes, icon, days, created_at, updated_at FROM trackings WHERE id = ? AND user_id = ?",
       [id, userId]
     );
 
     if (!row) {
       return null;
+    }
+
+    let daysPattern: DaysPattern | undefined;
+    if (row.days) {
+      try {
+        daysPattern = JSON.parse(row.days) as DaysPattern;
+      } catch (err) {
+        console.error(
+          `[${new Date().toISOString()}] TRACKING | Failed to parse days JSON for tracking ${id}:`,
+          err
+        );
+      }
     }
 
     const tracking = new Tracking({
@@ -297,6 +363,7 @@ export class Tracking {
       type: row.type as TrackingType,
       notes: row.notes || undefined,
       icon: row.icon || undefined,
+      days: daysPattern,
       created_at: row.created_at,
       updated_at: row.updated_at,
     });
@@ -323,15 +390,30 @@ export class Tracking {
       type: string;
       notes: string | null;
       icon: string | null;
+      days: string | null;
       created_at: string;
       updated_at: string;
     }>(
-      "SELECT id, user_id, question, type, notes, icon, created_at, updated_at FROM trackings WHERE user_id = ? ORDER BY created_at DESC",
+      "SELECT id, user_id, question, type, notes, icon, days, created_at, updated_at FROM trackings WHERE user_id = ? ORDER BY created_at DESC",
       [userId]
     );
 
     const trackings = await Promise.all(
       rows.map(async (row) => {
+        let daysPattern: DaysPattern | undefined;
+        if (row.days) {
+          try {
+            daysPattern = JSON.parse(row.days) as DaysPattern;
+          } catch (err) {
+            console.error(
+              `[${new Date().toISOString()}] TRACKING | Failed to parse days JSON for tracking ${
+                row.id
+              }:`,
+              err
+            );
+          }
+        }
+
         const tracking = new Tracking({
           id: row.id,
           user_id: row.user_id,
@@ -339,6 +421,7 @@ export class Tracking {
           type: row.type as TrackingType,
           notes: row.notes || undefined,
           icon: row.icon || undefined,
+          days: daysPattern,
           created_at: row.created_at,
           updated_at: row.updated_at,
         });
@@ -474,5 +557,217 @@ export class Tracking {
     }
 
     return trimmedIcon;
+  }
+
+  /**
+   * Validates days pattern (optional).
+   * @param days - The days pattern to validate (optional)
+   * @returns The validated days pattern or undefined if empty
+   * @throws {@link TypeError} If the days pattern is invalid
+   * @public
+   */
+  static validateDays(days?: DaysPattern | null): DaysPattern | undefined {
+    if (days === null || days === undefined) {
+      return undefined;
+    }
+
+    if (typeof days !== "object" || Array.isArray(days)) {
+      throw new TypeError("Days must be an object");
+    }
+
+    if (!days.pattern_type) {
+      throw new TypeError("Days pattern_type is required");
+    }
+
+    const patternType = days.pattern_type;
+    if (
+      patternType !== DaysPatternType.INTERVAL &&
+      patternType !== DaysPatternType.DAY_OF_WEEK &&
+      patternType !== DaysPatternType.DAY_OF_MONTH &&
+      patternType !== DaysPatternType.DAY_OF_YEAR
+    ) {
+      throw new TypeError(
+        `Invalid pattern_type: ${patternType}. Must be one of: interval, day_of_week, day_of_month, day_of_year`
+      );
+    }
+
+    // Validate INTERVAL pattern
+    if (patternType === DaysPatternType.INTERVAL) {
+      if (days.interval_value === undefined || days.interval_value === null) {
+        throw new TypeError("interval_value is required for INTERVAL pattern");
+      }
+      if (
+        typeof days.interval_value !== "number" ||
+        !Number.isInteger(days.interval_value) ||
+        days.interval_value <= 0
+      ) {
+        throw new TypeError("interval_value must be a positive integer");
+      }
+      if (!days.interval_unit) {
+        throw new TypeError("interval_unit is required for INTERVAL pattern");
+      }
+      if (
+        days.interval_unit !== "days" &&
+        days.interval_unit !== "weeks" &&
+        days.interval_unit !== "months" &&
+        days.interval_unit !== "years"
+      ) {
+        throw new TypeError(
+          "interval_unit must be one of: days, weeks, months, years"
+        );
+      }
+    }
+
+    // Validate DAY_OF_WEEK pattern
+    if (patternType === DaysPatternType.DAY_OF_WEEK) {
+      if (!days.days || !Array.isArray(days.days) || days.days.length === 0) {
+        throw new TypeError(
+          "days array is required for DAY_OF_WEEK pattern and must not be empty"
+        );
+      }
+      for (const day of days.days) {
+        if (
+          typeof day !== "number" ||
+          !Number.isInteger(day) ||
+          day < 0 ||
+          day > 6
+        ) {
+          throw new TypeError(
+            "days array must contain integers between 0 and 6 (0=Sunday, 6=Saturday)"
+          );
+        }
+      }
+      // Check for duplicates
+      const uniqueDays = new Set(days.days);
+      if (uniqueDays.size !== days.days.length) {
+        throw new TypeError("days array must not contain duplicates");
+      }
+    }
+
+    // Validate DAY_OF_MONTH pattern
+    if (patternType === DaysPatternType.DAY_OF_MONTH) {
+      if (!days.type) {
+        throw new TypeError("type is required for DAY_OF_MONTH pattern");
+      }
+      if (
+        days.type !== "day_number" &&
+        days.type !== "last_day" &&
+        days.type !== "weekday_ordinal"
+      ) {
+        throw new TypeError(
+          "type must be one of: day_number, last_day, weekday_ordinal"
+        );
+      }
+      if (days.type === "day_number") {
+        if (
+          !days.day_numbers ||
+          !Array.isArray(days.day_numbers) ||
+          days.day_numbers.length === 0
+        ) {
+          throw new TypeError(
+            "day_numbers array is required for day_number type and must not be empty"
+          );
+        }
+        for (const dayNum of days.day_numbers) {
+          if (
+            typeof dayNum !== "number" ||
+            !Number.isInteger(dayNum) ||
+            dayNum < 1 ||
+            dayNum > 31
+          ) {
+            throw new TypeError(
+              "day_numbers must contain integers between 1 and 31"
+            );
+          }
+        }
+      } else if (days.type === "weekday_ordinal") {
+        if (days.weekday === undefined || days.weekday === null) {
+          throw new TypeError("weekday is required for weekday_ordinal type");
+        }
+        if (
+          typeof days.weekday !== "number" ||
+          !Number.isInteger(days.weekday) ||
+          days.weekday < 0 ||
+          days.weekday > 6
+        ) {
+          throw new TypeError(
+            "weekday must be an integer between 0 and 6 (0=Sunday, 6=Saturday)"
+          );
+        }
+        if (days.ordinal === undefined || days.ordinal === null) {
+          throw new TypeError("ordinal is required for weekday_ordinal type");
+        }
+        if (
+          typeof days.ordinal !== "number" ||
+          !Number.isInteger(days.ordinal) ||
+          days.ordinal < 1 ||
+          days.ordinal > 5
+        ) {
+          throw new TypeError("ordinal must be an integer between 1 and 5");
+        }
+      }
+    }
+
+    // Validate DAY_OF_YEAR pattern
+    if (patternType === DaysPatternType.DAY_OF_YEAR) {
+      if (!days.type) {
+        throw new TypeError("type is required for DAY_OF_YEAR pattern");
+      }
+      const dayOfYearType = days.type as "date" | "weekday_ordinal";
+      if (dayOfYearType !== "date" && dayOfYearType !== "weekday_ordinal") {
+        throw new TypeError("type must be one of: date, weekday_ordinal");
+      }
+      if (dayOfYearType === "date") {
+        if (days.month === undefined || days.month === null) {
+          throw new TypeError("month is required for date type");
+        }
+        if (
+          typeof days.month !== "number" ||
+          !Number.isInteger(days.month) ||
+          days.month < 1 ||
+          days.month > 12
+        ) {
+          throw new TypeError("month must be an integer between 1 and 12");
+        }
+        if (days.day === undefined || days.day === null) {
+          throw new TypeError("day is required for date type");
+        }
+        if (
+          typeof days.day !== "number" ||
+          !Number.isInteger(days.day) ||
+          days.day < 1 ||
+          days.day > 31
+        ) {
+          throw new TypeError("day must be an integer between 1 and 31");
+        }
+      } else if (dayOfYearType === "weekday_ordinal") {
+        if (days.weekday === undefined || days.weekday === null) {
+          throw new TypeError("weekday is required for weekday_ordinal type");
+        }
+        if (
+          typeof days.weekday !== "number" ||
+          !Number.isInteger(days.weekday) ||
+          days.weekday < 0 ||
+          days.weekday > 6
+        ) {
+          throw new TypeError(
+            "weekday must be an integer between 0 and 6 (0=Sunday, 6=Saturday)"
+          );
+        }
+        if (days.ordinal === undefined || days.ordinal === null) {
+          throw new TypeError("ordinal is required for weekday_ordinal type");
+        }
+        if (
+          typeof days.ordinal !== "number" ||
+          !Number.isInteger(days.ordinal) ||
+          days.ordinal < 1 ||
+          days.ordinal > 5
+        ) {
+          throw new TypeError("ordinal must be an integer between 1 and 5");
+        }
+      }
+    }
+
+    return days;
   }
 }

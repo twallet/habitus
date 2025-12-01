@@ -1,5 +1,10 @@
 import { Database } from "../db/database.js";
-import { Tracking, TrackingData, TrackingType } from "../models/Tracking.js";
+import {
+  Tracking,
+  TrackingData,
+  TrackingType,
+  DaysPattern,
+} from "../models/Tracking.js";
 import {
   TrackingSchedule,
   TrackingScheduleData,
@@ -84,6 +89,7 @@ export class TrackingService {
    * @param notes - Optional notes (rich text)
    * @param icon - Optional icon (emoji)
    * @param schedules - Array of schedules (required, 1-5 schedules)
+   * @param days - Optional days pattern for reminder frequency
    * @returns Promise resolving to created tracking data
    * @throws Error if validation fails
    * @public
@@ -94,7 +100,8 @@ export class TrackingService {
     type: string,
     notes?: string,
     icon?: string,
-    schedules?: Array<{ hour: number; minutes: number }>
+    schedules?: Array<{ hour: number; minutes: number }>,
+    days?: import("../models/Tracking.js").DaysPattern
   ): Promise<TrackingData> {
     console.log(
       `[${new Date().toISOString()}] TRACKING | Creating tracking for userId: ${userId}`
@@ -106,6 +113,7 @@ export class TrackingService {
     const validatedType = Tracking.validateType(type);
     const validatedNotes = Tracking.validateNotes(notes);
     const validatedIcon = Tracking.validateIcon(icon);
+    const validatedDays = Tracking.validateDays(days);
 
     // Validate schedules
     if (!schedules || schedules.length === 0) {
@@ -115,13 +123,14 @@ export class TrackingService {
 
     // Insert tracking
     const result = await this.db.run(
-      "INSERT INTO trackings (user_id, question, type, notes, icon) VALUES (?, ?, ?, ?, ?)",
+      "INSERT INTO trackings (user_id, question, type, notes, icon, days) VALUES (?, ?, ?, ?, ?, ?)",
       [
         validatedUserId,
         validatedQuestion,
         validatedType,
         validatedNotes || null,
         validatedIcon || null,
+        validatedDays ? JSON.stringify(validatedDays) : null,
       ]
     );
 
@@ -170,6 +179,7 @@ export class TrackingService {
    * @param notes - Updated notes (optional)
    * @param icon - Updated icon (optional)
    * @param schedules - Updated schedules array (optional, 1-5 schedules if provided)
+   * @param days - Updated days pattern (optional)
    * @returns Promise resolving to updated tracking data
    * @throws Error if tracking not found or validation fails
    * @public
@@ -181,7 +191,8 @@ export class TrackingService {
     type?: string,
     notes?: string,
     icon?: string,
-    schedules?: Array<{ hour: number; minutes: number }>
+    schedules?: Array<{ hour: number; minutes: number }>,
+    days?: DaysPattern
   ): Promise<TrackingData> {
     console.log(
       `[${new Date().toISOString()}] TRACKING | Updating tracking ID: ${trackingId} for userId: ${userId}`
@@ -222,6 +233,12 @@ export class TrackingService {
       const validatedIcon = Tracking.validateIcon(icon);
       updates.push("icon = ?");
       values.push(validatedIcon || null);
+    }
+
+    if (days !== undefined) {
+      const validatedDays = Tracking.validateDays(days);
+      updates.push("days = ?");
+      values.push(validatedDays ? JSON.stringify(validatedDays) : null);
     }
 
     // Update schedules if provided

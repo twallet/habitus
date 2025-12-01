@@ -8,6 +8,38 @@ export enum TrackingType {
 }
 
 /**
+ * Days pattern type enumeration.
+ * @public
+ */
+export enum DaysPatternType {
+  INTERVAL = "interval",
+  DAY_OF_WEEK = "day_of_week",
+  DAY_OF_MONTH = "day_of_month",
+  DAY_OF_YEAR = "day_of_year",
+}
+
+/**
+ * Days pattern interface for reminder frequency.
+ * @public
+ */
+export interface DaysPattern {
+  pattern_type: DaysPatternType;
+  // For INTERVAL pattern
+  interval_value?: number;
+  interval_unit?: "days" | "weeks" | "months" | "years";
+  // For DAY_OF_WEEK pattern
+  days?: number[]; // 0-6, where 0=Sunday
+  // For DAY_OF_MONTH pattern
+  type?: "day_number" | "last_day" | "weekday_ordinal";
+  day_numbers?: number[]; // 1-31
+  weekday?: number; // 0-6, where 0=Sunday
+  ordinal?: number; // 1-5 (first, second, third, fourth, fifth)
+  // For DAY_OF_YEAR pattern
+  month?: number; // 1-12
+  day?: number; // 1-31
+}
+
+/**
  * Tracking model class for representing tracking entities.
  * @public
  */
@@ -215,6 +247,7 @@ export interface TrackingData {
   type: TrackingType;
   notes?: string;
   icon?: string;
+  days?: DaysPattern;
   schedules?: TrackingScheduleData[];
   created_at?: string;
   updated_at?: string;

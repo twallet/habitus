@@ -162,6 +162,7 @@ export class Database {
               type TEXT NOT NULL CHECK(type IN ('true_false', 'register')),
               notes TEXT,
               icon TEXT,
+              days TEXT,
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -193,7 +194,27 @@ export class Database {
                   `[${new Date().toISOString()}] DATABASE | Database schema created successfully`
                 );
 
-                resolve();
+                // Migrate: Add days column to trackings table if it doesn't exist
+                this.db!.run(
+                  `ALTER TABLE trackings ADD COLUMN days TEXT`,
+                  (migrationErr) => {
+                    // Ignore error if column already exists
+                    if (
+                      migrationErr &&
+                      !migrationErr.message.includes("duplicate column name")
+                    ) {
+                      console.error(
+                        `[${new Date().toISOString()}] DATABASE | Failed to add days column:`,
+                        migrationErr
+                      );
+                    } else if (!migrationErr) {
+                      console.log(
+                        `[${new Date().toISOString()}] DATABASE | Added days column to trackings table`
+                      );
+                    }
+                    resolve();
+                  }
+                );
               }
             );
           });

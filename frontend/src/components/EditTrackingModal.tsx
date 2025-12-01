@@ -1,6 +1,7 @@
 import { useState, FormEvent, useEffect, useRef } from "react";
-import { TrackingData, TrackingType } from "../models/Tracking";
+import { TrackingData, TrackingType, DaysPattern } from "../models/Tracking";
 import { ApiClient } from "../config/api";
+import { DaysPatternInput } from "./DaysPatternInput";
 import "./EditTrackingModal.css";
 import "./TrackingForm.css";
 
@@ -13,7 +14,8 @@ interface EditTrackingModalProps {
         type?: TrackingType,
         notes?: string,
         icon?: string,
-        schedules?: Array<{ hour: number; minutes: number }>
+        schedules?: Array<{ hour: number; minutes: number }>,
+        days?: DaysPattern
     ) => Promise<void>;
 }
 
@@ -43,6 +45,8 @@ export function EditTrackingModal({
         })) || []
     );
     const [scheduleTime, setScheduleTime] = useState<string>("09:00");
+    const [days, setDays] = useState<DaysPattern | undefined>(tracking.days);
+    const [daysError, setDaysError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isSuggestingEmoji, setIsSuggestingEmoji] = useState(false);
@@ -205,6 +209,12 @@ export function EditTrackingModal({
             return;
         }
 
+        if (daysError) {
+            setError(daysError);
+            setIsSubmitting(false);
+            return;
+        }
+
         // Check if schedules changed
         const originalSchedules = tracking.schedules?.map((s) => ({
             hour: s.hour,
@@ -220,6 +230,9 @@ export function EditTrackingModal({
                     s.minutes !== sortedOriginalSchedules[i]?.minutes
             );
 
+        // Check if days changed
+        const daysChanged = JSON.stringify(days) !== JSON.stringify(tracking.days);
+
         try {
             await onSave(
                 tracking.id,
@@ -227,7 +240,8 @@ export function EditTrackingModal({
                 type !== tracking.type ? type : undefined,
                 notes.trim() !== (tracking.notes || "") ? notes.trim() || undefined : undefined,
                 icon.trim() !== (tracking.icon || "") ? icon.trim() || undefined : undefined,
-                schedulesChanged ? sortedNewSchedules : undefined
+                schedulesChanged ? sortedNewSchedules : undefined,
+                daysChanged ? days : undefined
             );
             if (!hasSaveErrorRef.current) {
                 onClose();
@@ -475,6 +489,16 @@ export function EditTrackingModal({
                                 })}
                             </div>
                         )}
+                    </div>
+
+                    <div className="form-group">
+                        <DaysPatternInput
+                            value={days}
+                            onChange={setDays}
+                            disabled={isSubmitting}
+                            error={daysError}
+                            onErrorChange={setDaysError}
+                        />
                     </div>
 
                     <div className="form-group">

@@ -1,6 +1,7 @@
 import { useState, FormEvent } from "react";
-import { TrackingType } from "../models/Tracking";
+import { TrackingType, DaysPattern } from "../models/Tracking";
 import { ApiClient } from "../config/api";
+import { DaysPatternInput } from "./DaysPatternInput";
 import "./TrackingForm.css";
 
 interface TrackingFormProps {
@@ -9,7 +10,8 @@ interface TrackingFormProps {
         type: TrackingType,
         notes: string | undefined,
         icon: string | undefined,
-        schedules: Array<{ hour: number; minutes: number }>
+        schedules: Array<{ hour: number; minutes: number }>,
+        days: DaysPattern | undefined
     ) => Promise<void>;
     onCancel?: () => void;
     isSubmitting?: boolean;
@@ -36,6 +38,8 @@ export function TrackingForm({
         Array<{ hour: number; minutes: number }>
     >([]);
     const [scheduleTime, setScheduleTime] = useState<string>("09:00");
+    const [days, setDays] = useState<DaysPattern | undefined>(undefined);
+    const [daysError, setDaysError] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isSuggestingEmoji, setIsSuggestingEmoji] = useState(false);
     const [apiClient] = useState(() => {
@@ -179,13 +183,19 @@ export function TrackingForm({
             return;
         }
 
+        if (daysError) {
+            setError(daysError);
+            return;
+        }
+
         try {
             await onSubmit(
                 question.trim(),
                 type,
                 notes.trim() || undefined,
                 icon.trim() || undefined,
-                sortSchedules(schedules)
+                sortSchedules(schedules),
+                days
             );
             // Reset form on success
             setQuestion("");
@@ -194,6 +204,7 @@ export function TrackingForm({
             setIcon("");
             setSchedules([]);
             setScheduleTime("09:00");
+            setDays(undefined);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Error creating tracking");
         }
@@ -383,6 +394,16 @@ export function TrackingForm({
                         })}
                     </div>
                 )}
+            </div>
+
+            <div className="form-group">
+                <DaysPatternInput
+                    value={days}
+                    onChange={setDays}
+                    disabled={isSubmitting}
+                    error={daysError}
+                    onErrorChange={setDaysError}
+                />
             </div>
 
             <div className="form-group">
