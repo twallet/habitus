@@ -5,31 +5,39 @@ param(
     [string]$DbPath = ""
 )
 
-# Get the script directory and backend root
+# Get the script directory, backend root, and project root
 # Script is in backend/scripts/ directory, so backend root is one level up
+# Project root (habitus/) is two levels up from the script
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $backendRoot = Split-Path -Parent $scriptDir
+$projectRoot = Split-Path -Parent $backendRoot
 
 # Determine database path
+# Priority: 1) Custom -DbPath parameter, 2) DB_PATH environment variable, 3) Default path
 if ([string]::IsNullOrEmpty($DbPath)) {
     # Check for DB_PATH environment variable
     $envDbPath = $env:DB_PATH
     if (-not [string]::IsNullOrEmpty($envDbPath)) {
         if ([System.IO.Path]::IsPathRooted($envDbPath)) {
+            # Absolute path: use as-is
             $dbPath = $envDbPath
         } else {
-            $dbPath = Join-Path $backendRoot $envDbPath
+            # Relative path: resolve relative to project root
+            $dbPath = Join-Path $projectRoot $envDbPath
         }
     } else {
-        # Default path: backend/data/habitus.db
-        $dataDir = Join-Path $backendRoot "data"
+        # Default path: project root/data/habitus.db
+        # Example: D:\Code\habitus\data\habitus.db
+        $dataDir = Join-Path $projectRoot "data"
         $dbPath = Join-Path $dataDir "habitus.db"
     }
 } else {
     # If custom path provided, make it absolute if it's relative
     if (-not [System.IO.Path]::IsPathRooted($DbPath)) {
-        $dbPath = Join-Path $backendRoot $DbPath
+        # Relative path: resolve relative to project root
+        $dbPath = Join-Path $projectRoot $DbPath
     } else {
+        # Absolute path: use as-is
         $dbPath = $DbPath
     }
 }
@@ -55,17 +63,33 @@ Write-Host ""
 $tempScript = Join-Path $env:TEMP "habitus-query-users-$(Get-Date -Format 'yyyyMMddHHmmss').js"
 
 $backendNodeModules = Join-Path $backendRoot "node_modules"
+$projectNodeModules = Join-Path $projectRoot "node_modules"
 $nodeScript = @"
 const path = require('path');
+const fs = require('fs');
 
-// Try to require sqlite3 from backend node_modules
+// Try to require sqlite3 - check multiple possible locations
 let sqlite3;
+const backendNodeModules = '$($backendNodeModules.Replace('\', '\\'))';
+const projectNodeModules = '$($projectNodeModules.Replace('\', '\\'))';
+
+// Try direct require first (will work if NODE_PATH is set correctly)
 try {
   sqlite3 = require('sqlite3');
 } catch (e) {
-  // If not found, try with full path
-  const backendNodeModules = '$($backendNodeModules.Replace('\', '\\'))';
-  sqlite3 = require(path.join(backendNodeModules, 'sqlite3'));
+  // Try backend/node_modules/sqlite3
+  const backendSqlite3 = path.join(backendNodeModules, 'sqlite3');
+  if (fs.existsSync(backendSqlite3)) {
+    sqlite3 = require(backendSqlite3);
+  } else {
+    // Try project root/node_modules/sqlite3 (for npm workspaces)
+    const projectSqlite3 = path.join(projectNodeModules, 'sqlite3');
+    if (fs.existsSync(projectSqlite3)) {
+      sqlite3 = require(projectSqlite3);
+    } else {
+      throw new Error('Cannot find sqlite3 module. Tried: require("sqlite3"), ' + backendSqlite3 + ', ' + projectSqlite3);
+    }
+  }
 }
 
 const dbPath = '$($dbPath.Replace('\', '\\'))';
@@ -118,15 +142,24 @@ try {
     }
     
     # Execute the Node.js script from backend directory to ensure sqlite3 module is found
-    # Set NODE_PATH to include backend node_modules
-    $env:NODE_PATH = $backendNodeModules
+    # Set NODE_PATH to include both backend and project root node_modules (for npm workspaces)
+    $originalNodePath = $env:NODE_PATH
+    if ($originalNodePath) {
+        $env:NODE_PATH = "$backendNodeModules;$projectNodeModules;$originalNodePath"
+    } else {
+        $env:NODE_PATH = "$backendNodeModules;$projectNodeModules"
+    }
     Push-Location $backendRoot
     try {
         $output = node $tempScript 2>&1
     } finally {
         Pop-Location
         # Restore NODE_PATH
-        Remove-Item Env:\NODE_PATH -ErrorAction SilentlyContinue
+        if ($originalNodePath) {
+            $env:NODE_PATH = $originalNodePath
+        } else {
+            Remove-Item Env:\NODE_PATH -ErrorAction SilentlyContinue
+        }
     }
     
     if ($LASTEXITCODE -ne 0) {
