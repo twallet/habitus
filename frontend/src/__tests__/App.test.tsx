@@ -936,14 +936,16 @@ describe('App', () => {
     await userEvent.type(questionInput, 'Did you exercise?');
 
     // Add a schedule before submitting
-    const timeInput = document.querySelector('input[type="time"]') as HTMLInputElement;
-    const buttons = screen.getAllByRole('button', { name: /^schedule$/i });
-    const addScheduleButton = buttons.find(btn => btn.getAttribute("type") === "button") as HTMLButtonElement;
+    const timeInput = document.getElementById("schedule-time") as HTMLInputElement;
+    if (!timeInput) {
+      throw new Error("Time input not found");
+    }
+    const scheduleButton = screen.getByRole('button', { name: /^schedule$/i });
     await userEvent.clear(timeInput);
     await userEvent.type(timeInput, '09:00');
-    await userEvent.click(addScheduleButton);
+    await userEvent.click(scheduleButton);
 
-    const submitButton = buttons.find(btn => btn.getAttribute("type") === "submit") as HTMLButtonElement;
+    const submitButton = screen.getByRole('button', { name: /^add$/i, hidden: false });
     await userEvent.click(submitButton);
 
     await waitFor(() => {
@@ -1356,14 +1358,16 @@ describe('App', () => {
     await userEvent.type(questionInput, 'Did you exercise?');
 
     // Add a schedule before submitting
-    const timeInput = document.querySelector('input[type="time"]') as HTMLInputElement;
-    const buttons = screen.getAllByRole('button', { name: /^schedule$/i });
-    const addScheduleButton = buttons.find(btn => btn.getAttribute("type") === "button") as HTMLButtonElement;
+    const timeInput = document.getElementById("schedule-time") as HTMLInputElement;
+    if (!timeInput) {
+      throw new Error("Time input not found");
+    }
+    const scheduleButton = screen.getByRole('button', { name: /^schedule$/i });
     await userEvent.clear(timeInput);
     await userEvent.type(timeInput, '09:00');
-    await userEvent.click(addScheduleButton);
+    await userEvent.click(scheduleButton);
 
-    const submitButton = buttons.find(btn => btn.getAttribute("type") === "submit") as HTMLButtonElement;
+    const submitButton = screen.getByRole('button', { name: /^add$/i, hidden: false });
     await userEvent.click(submitButton);
 
     await waitFor(() => {
