@@ -43,14 +43,12 @@ describe("TrackingsList", () => {
                 user_id: 1,
                 question: "Did I exercise today?",
                 type: TrackingType.TRUE_FALSE,
-                start_tracking_date: "2024-01-01T10:00:00Z",
             },
             {
                 id: 2,
                 user_id: 1,
                 question: "Did I meditate?",
                 type: TrackingType.REGISTER,
-                start_tracking_date: "2024-01-01T11:00:00Z",
             },
         ];
 
@@ -74,7 +72,6 @@ describe("TrackingsList", () => {
                 user_id: 1,
                 question: "Did I exercise?",
                 type: TrackingType.TRUE_FALSE,
-                start_tracking_date: "2024-01-01T10:00:00Z",
             },
         ];
 
@@ -99,7 +96,6 @@ describe("TrackingsList", () => {
                 user_id: 1,
                 question: "Did I exercise?",
                 type: TrackingType.TRUE_FALSE,
-                start_tracking_date: "2024-01-01T10:00:00Z",
                 notes: "<p>Some notes</p>",
             },
         ];
@@ -121,7 +117,6 @@ describe("TrackingsList", () => {
                 user_id: 1,
                 question: "Did I exercise?",
                 type: TrackingType.TRUE_FALSE,
-                start_tracking_date: "2024-01-01T10:00:00Z",
             },
         ];
 

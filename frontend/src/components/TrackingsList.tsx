@@ -22,27 +22,6 @@ export function TrackingsList({
     isLoading,
 }: TrackingsListProps) {
     /**
-     * Format date for display.
-     * @param dateString - ISO date string
-     * @returns Formatted date string
-     * @internal
-     */
-    const formatDate = (dateString: string): string => {
-        try {
-            const date = new Date(dateString);
-            return date.toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-            });
-        } catch {
-            return dateString;
-        }
-    };
-
-    /**
      * Get display label for tracking type.
      * @param type - Tracking type
      * @returns Display label
@@ -97,12 +76,6 @@ export function TrackingsList({
                         </div>
                         <div className="tracking-body">
                             <div className="tracking-info">
-                                <div className="tracking-info-item">
-                                    <span className="tracking-label">Started:</span>
-                                    <span className="tracking-value">
-                                        {formatDate(tracking.start_tracking_date)}
-                                    </span>
-                                </div>
                                 {tracking.notes && (
                                     <div className="tracking-notes">
                                         <span className="tracking-label">Notes:</span>

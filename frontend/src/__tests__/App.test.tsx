@@ -888,7 +888,6 @@ describe('App', () => {
       id: 1,
       question: 'Did you exercise?',
       type: 'true_false',
-      start_tracking_date: '2024-01-01',
       notes: undefined,
     });
 
@@ -958,7 +957,6 @@ describe('App', () => {
       user_id: 1,
       question: 'Did you exercise?',
       type: TrackingType.TRUE_FALSE,
-      start_tracking_date: '2024-01-01',
       notes: undefined,
     };
 
@@ -1012,7 +1010,6 @@ describe('App', () => {
       user_id: 1,
       question: 'Did you exercise?',
       type: TrackingType.TRUE_FALSE,
-      start_tracking_date: '2024-01-01',
       notes: undefined,
     };
 
@@ -1083,7 +1080,6 @@ describe('App', () => {
       user_id: 1,
       question: 'Did you exercise?',
       type: TrackingType.TRUE_FALSE,
-      start_tracking_date: '2024-01-01',
       notes: undefined,
     };
 
@@ -1445,7 +1441,6 @@ describe('App', () => {
       user_id: 1,
       question: 'Did you exercise?',
       type: TrackingType.TRUE_FALSE,
-      start_tracking_date: '2024-01-01',
       notes: undefined,
     };
 
@@ -1513,7 +1508,6 @@ describe('App', () => {
       user_id: 1,
       question: 'Did you exercise?',
       type: TrackingType.TRUE_FALSE,
-      start_tracking_date: '2024-01-01',
       notes: undefined,
     };
 

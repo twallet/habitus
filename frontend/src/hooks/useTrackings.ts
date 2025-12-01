@@ -76,7 +76,6 @@ export function useTrackings() {
    * Create a new tracking via API.
    * @param question - The tracking question
    * @param type - The tracking type (true_false or register)
-   * @param startTrackingDate - Optional start tracking date (ISO string, defaults to now)
    * @param notes - Optional notes (rich text)
    * @param icon - Optional icon (emoji)
    * @returns The created tracking data
@@ -86,7 +85,6 @@ export function useTrackings() {
   const createTracking = async (
     question: string,
     type: TrackingType,
-    startTrackingDate?: string,
     notes?: string,
     icon?: string
   ): Promise<TrackingData> => {
@@ -103,7 +101,6 @@ export function useTrackings() {
       const trackingData = await apiClient.createTracking(
         question,
         type,
-        startTrackingDate,
         notes,
         icon
       );
@@ -128,7 +125,6 @@ export function useTrackings() {
    * @param trackingId - The tracking ID
    * @param question - Updated question (optional)
    * @param type - Updated type (optional)
-   * @param startTrackingDate - Updated start tracking date (optional)
    * @param notes - Updated notes (optional)
    * @param icon - Updated icon (optional)
    * @returns The updated tracking data
@@ -139,7 +135,6 @@ export function useTrackings() {
     trackingId: number,
     question?: string,
     type?: TrackingType,
-    startTrackingDate?: string,
     notes?: string,
     icon?: string
   ): Promise<TrackingData> => {
@@ -157,7 +152,6 @@ export function useTrackings() {
         trackingId,
         question,
         type,
-        startTrackingDate,
         notes,
         icon
       );

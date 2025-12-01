@@ -171,7 +171,6 @@ export class Database {
               user_id INTEGER NOT NULL,
               question TEXT NOT NULL CHECK(length(question) <= 500),
               type TEXT NOT NULL CHECK(type IN ('true_false', 'register')),
-              start_tracking_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
               notes TEXT,
               icon TEXT,
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -179,7 +178,6 @@ export class Database {
               FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             );
             CREATE INDEX IF NOT EXISTS idx_trackings_user_id ON trackings(user_id);
-            CREATE INDEX IF NOT EXISTS idx_trackings_start_tracking_date ON trackings(start_tracking_date);
             CREATE INDEX IF NOT EXISTS idx_trackings_created_at ON trackings(created_at);
           `,
               (err) => {

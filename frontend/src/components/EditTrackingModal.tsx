@@ -10,7 +10,6 @@ interface EditTrackingModalProps {
         trackingId: number,
         question?: string,
         type?: TrackingType,
-        startTrackingDate?: string,
         notes?: string,
         icon?: string
     ) => Promise<void>;
@@ -34,19 +33,6 @@ export function EditTrackingModal({
 }: EditTrackingModalProps) {
     const [question, setQuestion] = useState(tracking.question);
     const [type, setType] = useState<TrackingType>(tracking.type);
-    const [startTrackingDate, setStartTrackingDate] = useState(() => {
-        // Convert ISO date to datetime-local format
-        if (tracking.start_tracking_date) {
-            const date = new Date(tracking.start_tracking_date);
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, "0");
-            const day = String(date.getDate()).padStart(2, "0");
-            const hours = String(date.getHours()).padStart(2, "0");
-            const minutes = String(date.getMinutes()).padStart(2, "0");
-            return `${year}-${month}-${day}T${hours}:${minutes}`;
-        }
-        return "";
-    });
     const [notes, setNotes] = useState(tracking.notes || "");
     const [icon, setIcon] = useState(tracking.icon || "");
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -134,23 +120,10 @@ export function EditTrackingModal({
         }
 
         try {
-            // Convert original start_tracking_date to datetime-local format for comparison
-            let originalStartDate = "";
-            if (tracking.start_tracking_date) {
-                const date = new Date(tracking.start_tracking_date);
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, "0");
-                const day = String(date.getDate()).padStart(2, "0");
-                const hours = String(date.getHours()).padStart(2, "0");
-                const minutes = String(date.getMinutes()).padStart(2, "0");
-                originalStartDate = `${year}-${month}-${day}T${hours}:${minutes}`;
-            }
-
             await onSave(
                 tracking.id,
                 question.trim() !== tracking.question ? question.trim() : undefined,
                 type !== tracking.type ? type : undefined,
-                startTrackingDate !== originalStartDate ? (startTrackingDate || undefined) : undefined,
                 notes.trim() !== (tracking.notes || "") ? notes.trim() || undefined : undefined,
                 icon.trim() !== (tracking.icon || "") ? icon.trim() || undefined : undefined
             );
@@ -321,20 +294,6 @@ export function EditTrackingModal({
                         <span className="field-hint">
                             Enter an emoji or click "Suggest Emoji" to get an AI suggestion
                         </span>
-                    </div>
-
-                    <div className="form-group">
-                        <label htmlFor="edit-tracking-start-date">
-                            Start Tracking Date
-                        </label>
-                        <input
-                            type="datetime-local"
-                            id="edit-tracking-start-date"
-                            name="startTrackingDate"
-                            value={startTrackingDate}
-                            onChange={(e) => setStartTrackingDate(e.target.value)}
-                            disabled={isSubmitting}
-                        />
                     </div>
 
                     <div className="form-group">

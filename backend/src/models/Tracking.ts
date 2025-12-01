@@ -18,7 +18,6 @@ export interface TrackingData {
   user_id: number;
   question: string;
   type: TrackingType;
-  start_tracking_date: string;
   notes?: string;
   icon?: string;
   created_at?: string;
@@ -61,12 +60,6 @@ export class Tracking {
   type: TrackingType;
 
   /**
-   * Start tracking date.
-   * @public
-   */
-  start_tracking_date: string;
-
-  /**
    * Optional notes (rich text).
    * @public
    */
@@ -100,7 +93,6 @@ export class Tracking {
     this.user_id = data.user_id;
     this.question = data.question;
     this.type = data.type;
-    this.start_tracking_date = data.start_tracking_date;
     this.notes = data.notes;
     this.icon = data.icon;
     this.created_at = data.created_at;
@@ -149,9 +141,6 @@ export class Tracking {
       updates.push("type = ?");
       values.push(this.type);
 
-      updates.push("start_tracking_date = ?");
-      values.push(this.start_tracking_date);
-
       if (this.notes !== undefined) {
         updates.push("notes = ?");
         values.push(this.notes || null);
@@ -176,12 +165,11 @@ export class Tracking {
     } else {
       // Create new tracking
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question, type, start_tracking_date, notes, icon) VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO trackings (user_id, question, type, notes, icon) VALUES (?, ?, ?, ?, ?)",
         [
           this.user_id,
           this.question,
           this.type,
-          this.start_tracking_date,
           this.notes || null,
           this.icon || null,
         ]
@@ -217,9 +205,6 @@ export class Tracking {
     }
     if (updates.type !== undefined) {
       this.type = Tracking.validateType(updates.type as string);
-    }
-    if (updates.start_tracking_date !== undefined) {
-      this.start_tracking_date = updates.start_tracking_date;
     }
     if (updates.notes !== undefined) {
       this.notes = Tracking.validateNotes(updates.notes);
@@ -264,7 +249,6 @@ export class Tracking {
       user_id: this.user_id,
       question: this.question,
       type: this.type,
-      start_tracking_date: this.start_tracking_date,
       notes: this.notes,
       icon: this.icon,
       created_at: this.created_at,
@@ -290,13 +274,12 @@ export class Tracking {
       user_id: number;
       question: string;
       type: string;
-      start_tracking_date: string;
       notes: string | null;
       icon: string | null;
       created_at: string;
       updated_at: string;
     }>(
-      "SELECT id, user_id, question, type, start_tracking_date, notes, icon, created_at, updated_at FROM trackings WHERE id = ? AND user_id = ?",
+      "SELECT id, user_id, question, type, notes, icon, created_at, updated_at FROM trackings WHERE id = ? AND user_id = ?",
       [id, userId]
     );
 
@@ -309,7 +292,6 @@ export class Tracking {
       user_id: row.user_id,
       question: row.question,
       type: row.type as TrackingType,
-      start_tracking_date: row.start_tracking_date,
       notes: row.notes || undefined,
       icon: row.icon || undefined,
       created_at: row.created_at,
@@ -330,13 +312,12 @@ export class Tracking {
       user_id: number;
       question: string;
       type: string;
-      start_tracking_date: string;
       notes: string | null;
       icon: string | null;
       created_at: string;
       updated_at: string;
     }>(
-      "SELECT id, user_id, question, type, start_tracking_date, notes, icon, created_at, updated_at FROM trackings WHERE user_id = ? ORDER BY created_at DESC",
+      "SELECT id, user_id, question, type, notes, icon, created_at, updated_at FROM trackings WHERE user_id = ? ORDER BY created_at DESC",
       [userId]
     );
 
@@ -347,7 +328,6 @@ export class Tracking {
           user_id: row.user_id,
           question: row.question,
           type: row.type as TrackingType,
-          start_tracking_date: row.start_tracking_date,
           notes: row.notes || undefined,
           icon: row.icon || undefined,
           created_at: row.created_at,

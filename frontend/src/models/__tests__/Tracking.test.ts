@@ -8,7 +8,6 @@ describe("Tracking", () => {
         user_id: 10,
         question: "Did you exercise today?",
         type: TrackingType.TRUE_FALSE,
-        start_tracking_date: "2024-01-01",
         notes: "Some notes",
         created_at: "2024-01-01T00:00:00Z",
         updated_at: "2024-01-02T00:00:00Z",
@@ -20,7 +19,6 @@ describe("Tracking", () => {
       expect(tracking.user_id).toBe(10);
       expect(tracking.question).toBe("Did you exercise today?");
       expect(tracking.type).toBe(TrackingType.TRUE_FALSE);
-      expect(tracking.start_tracking_date).toBe("2024-01-01");
       expect(tracking.notes).toBe("Some notes");
       expect(tracking.created_at).toBe("2024-01-01T00:00:00Z");
       expect(tracking.updated_at).toBe("2024-01-02T00:00:00Z");
@@ -32,7 +30,6 @@ describe("Tracking", () => {
         user_id: 10,
         question: "Did you exercise today?",
         type: TrackingType.REGISTER,
-        start_tracking_date: "2024-01-01",
       };
 
       const tracking = new Tracking(data);
@@ -41,7 +38,6 @@ describe("Tracking", () => {
       expect(tracking.user_id).toBe(10);
       expect(tracking.question).toBe("Did you exercise today?");
       expect(tracking.type).toBe(TrackingType.REGISTER);
-      expect(tracking.start_tracking_date).toBe("2024-01-01");
       expect(tracking.notes).toBeUndefined();
       expect(tracking.created_at).toBeUndefined();
       expect(tracking.updated_at).toBeUndefined();
@@ -55,7 +51,6 @@ describe("Tracking", () => {
         user_id: 10,
         question: "  Did you exercise?  ",
         type: TrackingType.TRUE_FALSE,
-        start_tracking_date: "2024-01-01",
       });
 
       const validated = tracking.validate();
@@ -70,7 +65,6 @@ describe("Tracking", () => {
         user_id: 10,
         question: "Did you exercise?",
         type: "TRUE_FALSE" as TrackingType,
-        start_tracking_date: "2024-01-01",
       });
 
       const validated = tracking.validate();
@@ -84,7 +78,6 @@ describe("Tracking", () => {
         user_id: 10,
         question: "Did you exercise?",
         type: TrackingType.TRUE_FALSE,
-        start_tracking_date: "2024-01-01",
         notes: "  Some notes  ",
       });
 
@@ -99,7 +92,6 @@ describe("Tracking", () => {
         user_id: 10,
         question: "Did you exercise?",
         type: TrackingType.TRUE_FALSE,
-        start_tracking_date: "2024-01-01",
       });
 
       const validated = tracking.validate();
@@ -115,7 +107,6 @@ describe("Tracking", () => {
         user_id: 10,
         question: "Did you exercise?",
         type: TrackingType.TRUE_FALSE,
-        start_tracking_date: "2024-01-01",
         notes: "Some notes",
         created_at: "2024-01-01T00:00:00Z",
         updated_at: "2024-01-02T00:00:00Z",
@@ -128,7 +119,6 @@ describe("Tracking", () => {
         user_id: 10,
         question: "Did you exercise?",
         type: TrackingType.TRUE_FALSE,
-        start_tracking_date: "2024-01-01",
         notes: "Some notes",
         created_at: "2024-01-01T00:00:00Z",
         updated_at: "2024-01-02T00:00:00Z",
@@ -141,7 +131,6 @@ describe("Tracking", () => {
         user_id: 10,
         question: "Did you exercise?",
         type: TrackingType.REGISTER,
-        start_tracking_date: "2024-01-01",
       });
 
       const json = tracking.toJSON();
@@ -151,7 +140,6 @@ describe("Tracking", () => {
         user_id: 10,
         question: "Did you exercise?",
         type: TrackingType.REGISTER,
-        start_tracking_date: "2024-01-01",
         notes: undefined,
         created_at: undefined,
         updated_at: undefined,

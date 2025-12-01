@@ -7,7 +7,6 @@ interface TrackingFormProps {
     onSubmit: (
         question: string,
         type: TrackingType,
-        startTrackingDate?: string,
         notes?: string,
         icon?: string
     ) => Promise<void>;
@@ -30,7 +29,6 @@ export function TrackingForm({
 }: TrackingFormProps) {
     const [question, setQuestion] = useState("");
     const [type, setType] = useState<TrackingType>(TrackingType.TRUE_FALSE);
-    const [startTrackingDate, setStartTrackingDate] = useState("");
     const [notes, setNotes] = useState("");
     const [icon, setIcon] = useState("");
     const [error, setError] = useState<string | null>(null);
@@ -90,14 +88,12 @@ export function TrackingForm({
             await onSubmit(
                 question.trim(),
                 type,
-                startTrackingDate || undefined,
                 notes.trim() || undefined,
                 icon.trim() || undefined
             );
             // Reset form on success
             setQuestion("");
             setType(TrackingType.TRUE_FALSE);
-            setStartTrackingDate("");
             setNotes("");
             setIcon("");
         } catch (err) {
@@ -215,30 +211,6 @@ export function TrackingForm({
                     <option value={TrackingType.TRUE_FALSE}>🔘 Yes/No</option>
                     <option value={TrackingType.REGISTER}>🖊️ Text</option>
                 </select>
-            </div>
-
-            <div className="form-group">
-                <div className="form-label-row">
-                    <label htmlFor="tracking-start-date">
-                        Start tracking date{" "}
-                        <button
-                            type="button"
-                            className="field-help"
-                            aria-label="Start tracking date help"
-                            title="Define when this tracking should start. Leave empty to start right now."
-                        >
-                            ?
-                        </button>
-                    </label>
-                </div>
-                <input
-                    type="datetime-local"
-                    id="tracking-start-date"
-                    name="startTrackingDate"
-                    value={startTrackingDate}
-                    onChange={(e) => setStartTrackingDate(e.target.value)}
-                    disabled={isSubmitting}
-                />
             </div>
 
             <div className="form-group">

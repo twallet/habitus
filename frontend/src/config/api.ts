@@ -522,7 +522,6 @@ export class ApiClient {
    * Create a new tracking.
    * @param question - The tracking question
    * @param type - The tracking type (true_false or register)
-   * @param startTrackingDate - Optional start tracking date (ISO string, defaults to now)
    * @param notes - Optional notes (rich text)
    * @param icon - Optional icon (emoji)
    * @returns Promise resolving to created tracking data
@@ -532,14 +531,12 @@ export class ApiClient {
   async createTracking(
     question: string,
     type: TrackingType,
-    startTrackingDate?: string,
     notes?: string,
     icon?: string
   ): Promise<TrackingData> {
     return this.post<TrackingData>(API_ENDPOINTS.trackings, {
       question,
       type,
-      start_tracking_date: startTrackingDate,
       notes,
       icon,
     });
@@ -550,7 +547,6 @@ export class ApiClient {
    * @param trackingId - The tracking ID
    * @param question - Updated question (optional)
    * @param type - Updated type (optional)
-   * @param startTrackingDate - Updated start tracking date (optional)
    * @param notes - Updated notes (optional)
    * @param icon - Updated icon (optional)
    * @returns Promise resolving to updated tracking data
@@ -561,14 +557,12 @@ export class ApiClient {
     trackingId: number,
     question?: string,
     type?: TrackingType,
-    startTrackingDate?: string,
     notes?: string,
     icon?: string
   ): Promise<TrackingData> {
     return this.put<TrackingData>(`${API_ENDPOINTS.trackings}/${trackingId}`, {
       question,
       type,
-      start_tracking_date: startTrackingDate,
       notes,
       icon,
     });

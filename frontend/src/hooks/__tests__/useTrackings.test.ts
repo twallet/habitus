@@ -57,14 +57,12 @@ describe("useTrackings", () => {
         user_id: 1,
         question: "Did I exercise?",
         type: TrackingType.TRUE_FALSE,
-        start_tracking_date: "2024-01-01T10:00:00Z",
       },
       {
         id: 2,
         user_id: 1,
         question: "Did I meditate?",
         type: TrackingType.REGISTER,
-        start_tracking_date: "2024-01-01T11:00:00Z",
       },
     ];
 
@@ -104,7 +102,6 @@ describe("useTrackings", () => {
           user_id: 1,
           question: "Did I exercise?",
           type: TrackingType.TRUE_FALSE,
-          start_tracking_date: "2024-01-01T10:00:00Z",
         }),
       });
 
@@ -134,7 +131,6 @@ describe("useTrackings", () => {
       user_id: 1,
       question: "Old Question",
       type: TrackingType.TRUE_FALSE,
-      start_tracking_date: "2024-01-01T10:00:00Z",
     };
 
     (global.fetch as Mock)
@@ -179,7 +175,6 @@ describe("useTrackings", () => {
       user_id: 1,
       question: "Question",
       type: TrackingType.TRUE_FALSE,
-      start_tracking_date: "2024-01-01T10:00:00Z",
     };
 
     (global.fetch as Mock)

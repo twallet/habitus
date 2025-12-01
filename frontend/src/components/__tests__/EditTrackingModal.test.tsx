@@ -10,7 +10,6 @@ describe('EditTrackingModal', () => {
     id: 1,
     question: 'Did I exercise today?',
     type: TrackingType.TRUE_FALSE,
-    start_tracking_date: '2024-01-15T10:30:00Z',
     notes: 'Some notes',
     user_id: 1,
   };
@@ -475,25 +474,6 @@ describe('EditTrackingModal', () => {
   //   expect(mockOnClose).not.toHaveBeenCalled();
   //   expect(mockOnSave).not.toHaveBeenCalled();
   // });
-
-  it('should handle tracking without start_tracking_date', () => {
-    const trackingWithoutDate: TrackingData = {
-      ...mockTracking,
-      start_tracking_date: undefined as unknown as string,
-    };
-
-    render(
-      <EditTrackingModal
-        tracking={trackingWithoutDate}
-        onClose={mockOnClose}
-        onSave={mockOnSave}
-        onDelete={mockOnDelete}
-      />
-    );
-
-    const dateInput = screen.getByLabelText(/start tracking date/i);
-    expect(dateInput).toHaveValue('');
-  });
 
   it('should handle tracking without notes', () => {
     const trackingWithoutNotes: TrackingData = {

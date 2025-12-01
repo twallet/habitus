@@ -394,7 +394,6 @@ describe("api", () => {
             user_id: 1,
             question: "Did you exercise?",
             type: TrackingType.TRUE_FALSE,
-            start_tracking_date: "2024-01-01",
             notes: undefined,
           },
         ];
@@ -422,7 +421,6 @@ describe("api", () => {
           user_id: 1,
           question: "Did you exercise?",
           type: TrackingType.TRUE_FALSE,
-          start_tracking_date: "2024-01-01",
           notes: undefined,
         };
 
@@ -433,8 +431,7 @@ describe("api", () => {
 
         const result = await apiClient.createTracking(
           "Did you exercise?",
-          TrackingType.TRUE_FALSE,
-          "2024-01-01"
+          TrackingType.TRUE_FALSE
         );
         expect(result).toEqual(mockTracking);
         expect(global.fetch).toHaveBeenCalledWith(
@@ -444,7 +441,6 @@ describe("api", () => {
             body: JSON.stringify({
               question: "Did you exercise?",
               type: TrackingType.TRUE_FALSE,
-              start_tracking_date: "2024-01-01",
               notes: undefined,
             }),
           })
@@ -459,7 +455,6 @@ describe("api", () => {
           user_id: 1,
           question: "Did you meditate?",
           type: TrackingType.TRUE_FALSE,
-          start_tracking_date: "2024-01-01",
           notes: undefined,
         };
 
@@ -477,7 +472,6 @@ describe("api", () => {
             body: JSON.stringify({
               question: "Did you meditate?",
               type: undefined,
-              start_tracking_date: undefined,
               notes: undefined,
             }),
           })

@@ -33,13 +33,12 @@ export class TrackingService {
       user_id: number;
       question: string;
       type: string;
-      start_tracking_date: string;
       notes: string | null;
       icon: string | null;
       created_at: string;
       updated_at: string;
     }>(
-      "SELECT id, user_id, question, type, start_tracking_date, notes, icon, created_at, updated_at FROM trackings WHERE user_id = ? ORDER BY created_at DESC",
+      "SELECT id, user_id, question, type, notes, icon, created_at, updated_at FROM trackings WHERE user_id = ? ORDER BY created_at DESC",
       [userId]
     );
 
@@ -54,7 +53,6 @@ export class TrackingService {
       user_id: row.user_id,
       question: row.question,
       type: row.type as TrackingType,
-      start_tracking_date: row.start_tracking_date,
       notes: row.notes || undefined,
       icon: row.icon || undefined,
       created_at: row.created_at,
@@ -82,13 +80,12 @@ export class TrackingService {
       user_id: number;
       question: string;
       type: string;
-      start_tracking_date: string;
       notes: string | null;
       icon: string | null;
       created_at: string;
       updated_at: string;
     }>(
-      "SELECT id, user_id, question, type, start_tracking_date, notes, icon, created_at, updated_at FROM trackings WHERE id = ? AND user_id = ?",
+      "SELECT id, user_id, question, type, notes, icon, created_at, updated_at FROM trackings WHERE id = ? AND user_id = ?",
       [trackingId, userId]
     );
 
@@ -110,7 +107,6 @@ export class TrackingService {
       user_id: row.user_id,
       question: row.question,
       type: row.type as TrackingType,
-      start_tracking_date: row.start_tracking_date,
       notes: row.notes || undefined,
       icon: row.icon || undefined,
       created_at: row.created_at,
@@ -123,7 +119,6 @@ export class TrackingService {
    * @param userId - The user ID
    * @param question - The tracking question
    * @param type - The tracking type (true_false or register)
-   * @param startTrackingDate - Optional start tracking date (defaults to now)
    * @param notes - Optional notes (rich text)
    * @param icon - Optional icon (emoji)
    * @returns Promise resolving to created tracking data
@@ -134,7 +129,6 @@ export class TrackingService {
     userId: number,
     question: string,
     type: string,
-    startTrackingDate?: string,
     notes?: string,
     icon?: string
   ): Promise<TrackingData> {
@@ -149,17 +143,13 @@ export class TrackingService {
     const validatedNotes = Tracking.validateNotes(notes);
     const validatedIcon = Tracking.validateIcon(icon);
 
-    // Use provided date or current timestamp
-    const startDate = startTrackingDate || new Date().toISOString();
-
     // Insert tracking
     const result = await this.db.run(
-      "INSERT INTO trackings (user_id, question, type, start_tracking_date, notes, icon) VALUES (?, ?, ?, ?, ?, ?)",
+      "INSERT INTO trackings (user_id, question, type, notes, icon) VALUES (?, ?, ?, ?, ?)",
       [
         validatedUserId,
         validatedQuestion,
         validatedType,
-        startDate,
         validatedNotes || null,
         validatedIcon || null,
       ]
@@ -196,7 +186,6 @@ export class TrackingService {
    * @param userId - The user ID (for authorization)
    * @param question - Updated question (optional)
    * @param type - Updated type (optional)
-   * @param startTrackingDate - Updated start tracking date (optional)
    * @param notes - Updated notes (optional)
    * @param icon - Updated icon (optional)
    * @returns Promise resolving to updated tracking data
@@ -208,7 +197,6 @@ export class TrackingService {
     userId: number,
     question?: string,
     type?: string,
-    startTrackingDate?: string,
     notes?: string,
     icon?: string
   ): Promise<TrackingData> {
@@ -239,11 +227,6 @@ export class TrackingService {
       const validatedType = Tracking.validateType(type);
       updates.push("type = ?");
       values.push(validatedType);
-    }
-
-    if (startTrackingDate !== undefined) {
-      updates.push("start_tracking_date = ?");
-      values.push(startTrackingDate);
     }
 
     if (notes !== undefined) {

@@ -79,14 +79,13 @@ router.get(
  * @header {string} Authorization - Bearer token
  * @body {string} question - The tracking question
  * @body {string} type - The tracking type ("true_false" or "register")
- * @body {string} start_tracking_date - Optional start tracking date (ISO string, defaults to now)
  * @body {string} notes - Optional notes (rich text)
  * @returns {TrackingData} Created tracking data
  */
 router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
-    const { question, type, start_tracking_date, notes, icon } = req.body;
+    const { question, type, notes, icon } = req.body;
 
     if (!question || !type) {
       return res.status(400).json({ error: "Question and type are required" });
@@ -96,7 +95,6 @@ router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
       userId,
       question,
       type,
-      start_tracking_date,
       notes,
       icon
     );
@@ -122,7 +120,6 @@ router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
  * @param {number} id - The tracking ID
  * @body {string} question - Updated question (optional)
  * @body {string} type - Updated type (optional)
- * @body {string} start_tracking_date - Updated start tracking date (optional)
  * @body {string} notes - Updated notes (optional)
  * @returns {TrackingData} Updated tracking data
  */
@@ -133,7 +130,7 @@ router.put(
     try {
       const trackingId = parseInt(req.params.id, 10);
       const userId = req.userId!;
-      const { question, type, start_tracking_date, notes, icon } = req.body;
+      const { question, type, notes, icon } = req.body;
 
       if (isNaN(trackingId)) {
         return res.status(400).json({ error: "Invalid tracking ID" });
@@ -144,7 +141,6 @@ router.put(
         userId,
         question,
         type,
-        start_tracking_date,
         notes,
         icon
       );

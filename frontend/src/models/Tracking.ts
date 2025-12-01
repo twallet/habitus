@@ -43,12 +43,6 @@ export class Tracking {
   type: TrackingType;
 
   /**
-   * Start tracking date.
-   * @public
-   */
-  start_tracking_date: string;
-
-  /**
    * Optional notes (rich text).
    * @public
    */
@@ -82,7 +76,6 @@ export class Tracking {
     this.user_id = data.user_id;
     this.question = data.question;
     this.type = data.type;
-    this.start_tracking_date = data.start_tracking_date;
     this.notes = data.notes;
     this.icon = data.icon;
     this.created_at = data.created_at;
@@ -116,7 +109,6 @@ export class Tracking {
       user_id: this.user_id,
       question: this.question,
       type: this.type,
-      start_tracking_date: this.start_tracking_date,
       notes: this.notes,
       icon: this.icon,
       created_at: this.created_at,
@@ -208,7 +200,6 @@ export interface TrackingData {
   user_id: number;
   question: string;
   type: TrackingType;
-  start_tracking_date: string;
   notes?: string;
   icon?: string;
   created_at?: string;
