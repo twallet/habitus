@@ -12,6 +12,7 @@ describe('EditTrackingModal', () => {
     type: TrackingType.TRUE_FALSE,
     notes: 'Some notes',
     user_id: 1,
+    schedules: [{ id: 1, tracking_id: 1, hour: 9, minutes: 0 }],
   };
 
   const mockOnClose = vi.fn();
@@ -209,6 +210,7 @@ describe('EditTrackingModal', () => {
         undefined,
         undefined,
         undefined,
+        undefined,
       );
     });
     expect(mockOnClose).toHaveBeenCalledTimes(1);
@@ -235,6 +237,7 @@ describe('EditTrackingModal', () => {
         1,
         undefined,
         TrackingType.REGISTER,
+        undefined,
         undefined,
         undefined,
       );
@@ -392,6 +395,36 @@ describe('EditTrackingModal', () => {
 
     const notesInput = screen.getByRole('textbox', { name: /^notes \?/i });
     expect(notesInput).toHaveValue('');
+  });
+
+  it('should show error when submitting without schedules', async () => {
+    const trackingWithoutSchedules: TrackingData = {
+      ...mockTracking,
+      schedules: [],
+    };
+
+    render(
+      <EditTrackingModal
+        tracking={trackingWithoutSchedules}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+      />
+    );
+
+    // Submit button should be disabled when no schedules
+    const saveButton = screen.getByRole('button', { name: /save changes/i }) as HTMLButtonElement;
+    expect(saveButton.disabled).toBe(true);
+
+    // Try to submit form directly
+    const form = screen.getByRole('textbox', { name: /^question \*/i }).closest('form')!;
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/at least one schedule is required/i)
+      ).toBeInTheDocument();
+    });
+    expect(mockOnSave).not.toHaveBeenCalled();
   });
 });
 

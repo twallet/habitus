@@ -143,13 +143,15 @@ describe("TrackingForm", () => {
         }) as HTMLInputElement;
         const longQuestion = "a".repeat(501);
         fireEvent.change(questionInput, { target: { value: longQuestion } });
-        await user.click(
-            screen.getByRole("button", { name: /^add$/i })
-        );
+        await addSchedule(user);
+        const form = questionInput.closest("form")!;
+        fireEvent.submit(form);
 
-        expect(
-            screen.getByText(/must not exceed 500 characters/i)
-        ).toBeInTheDocument();
+        await waitFor(() => {
+            expect(
+                screen.getByText(/must not exceed 500 characters/i)
+            ).toBeInTheDocument();
+        });
         expect(mockOnSubmit).not.toHaveBeenCalled();
     });
 
@@ -221,16 +223,23 @@ describe("TrackingForm", () => {
         const questionInput = screen.getByRole("textbox", {
             name: /^question \*/i,
         });
+        await user.type(questionInput, "Did I exercise?");
+
+        // Submit button should be disabled when no schedules
         const submitButton = screen.getByRole("button", {
             name: /^add$/i,
+        }) as HTMLButtonElement;
+        expect(submitButton.disabled).toBe(true);
+
+        // Try to submit form directly
+        const form = questionInput.closest("form")!;
+        fireEvent.submit(form);
+
+        await waitFor(() => {
+            expect(
+                screen.getByText(/at least one schedule is required/i)
+            ).toBeInTheDocument();
         });
-
-        await user.type(questionInput, "Did I exercise?");
-        await user.click(submitButton);
-
-        expect(
-            screen.getByText(/at least one schedule is required/i)
-        ).toBeInTheDocument();
         expect(mockOnSubmit).not.toHaveBeenCalled();
     });
 });

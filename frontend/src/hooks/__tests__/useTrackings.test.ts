@@ -115,7 +115,10 @@ describe("useTrackings", () => {
     await act(async () => {
       newTracking = await result.current.createTracking(
         "Did I exercise?",
-        TrackingType.TRUE_FALSE
+        TrackingType.TRUE_FALSE,
+        undefined,
+        undefined,
+        [{ hour: 9, minutes: 0 }]
       );
     });
 
@@ -245,7 +248,10 @@ describe("useTrackings", () => {
       await act(async () => {
         await result.current.createTracking(
           "Test Question",
-          TrackingType.TRUE_FALSE
+          TrackingType.TRUE_FALSE,
+          undefined,
+          undefined,
+          [{ hour: 9, minutes: 0 }]
         );
       });
     }).rejects.toThrow();
@@ -269,7 +275,10 @@ describe("useTrackings", () => {
       await act(async () => {
         await result.current.createTracking(
           "Test Question",
-          TrackingType.TRUE_FALSE
+          TrackingType.TRUE_FALSE,
+          undefined,
+          undefined,
+          [{ hour: 9, minutes: 0 }]
         );
       });
     }).rejects.toThrow("Not authenticated");
