@@ -75,7 +75,7 @@ describe("TrackingForm", () => {
             name: /^question \*/i,
         });
         const notesInput = screen.getByRole("textbox", {
-            name: /^notes$/i,
+            name: /^notes \?/i,
         });
         const submitButton = screen.getByRole("button", {
             name: /create tracking/i,

@@ -124,7 +124,7 @@ export function TrackingForm({
             <div className="form-group">
                 <div className="form-label-row">
                     <label htmlFor="tracking-question">
-                        Question <span className="required-asterisk">*</span>
+                        Question <span className="required-asterisk">*</span>{" "}
                         <button
                             type="button"
                             className="field-help"
@@ -154,7 +154,7 @@ export function TrackingForm({
 
                 <div className="form-label-row">
                     <label htmlFor="tracking-icon">
-                        Icon
+                        Icon{" "}
                         <button
                             type="button"
                             className="field-help"
@@ -193,7 +193,7 @@ export function TrackingForm({
             <div className="form-group">
                 <div className="form-label-row">
                     <label htmlFor="tracking-type">
-                        Type <span className="required-asterisk">*</span>
+                        Type <span className="required-asterisk">*</span>{" "}
                         <button
                             type="button"
                             className="field-help"
@@ -220,7 +220,7 @@ export function TrackingForm({
             <div className="form-group">
                 <div className="form-label-row">
                     <label htmlFor="tracking-start-date">
-                        Start tracking date
+                        Start tracking date{" "}
                         <button
                             type="button"
                             className="field-help"
@@ -244,7 +244,7 @@ export function TrackingForm({
             <div className="form-group">
                 <div className="form-label-row">
                     <label htmlFor="tracking-notes">
-                        Notes
+                        Notes{" "}
                         <button
                             type="button"
                             className="field-help"
