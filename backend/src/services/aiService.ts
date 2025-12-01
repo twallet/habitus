@@ -25,7 +25,7 @@ export class AiService {
    */
   constructor() {
     this.apiKey = process.env.PERPLEXITY_API_KEY;
-    this.model = process.env.PERPLEXITY_MODEL || "sonar";
+    this.model = process.env.PERPLEXITY_MODEL;
   }
 
   /**
