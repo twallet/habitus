@@ -82,7 +82,8 @@ beforeAll(() => {
         args[0].includes("AUTH_ROUTE |") ||
         args[0].includes("USER_ROUTE |") ||
         args[0].includes("RATE_LIMITER |") ||
-        args[0].includes("UPLOAD |"))
+        args[0].includes("UPLOAD |") ||
+        args[0].includes("AI_SERVICE |"))
     ) {
       return;
     }
