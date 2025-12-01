@@ -331,7 +331,7 @@ export function EditTrackingModal({
                                 required
                                 disabled={isSubmitting}
                                 maxLength={500}
-                                rows={3}
+                                rows={2}
                             />
                             <span className="char-count">
                                 {question.length}/500
@@ -503,7 +503,7 @@ export function EditTrackingModal({
                             onChange={(e) => setNotes(e.target.value)}
                             disabled={isSubmitting}
                             maxLength={500}
-                            rows={4}
+                            rows={2}
                         />
                         <span className="char-count">
                             {notes.length}/500
