@@ -926,10 +926,14 @@ describe('App', () => {
 
     // Wait for the form input to appear (more reliable than waiting for text)
     await waitFor(() => {
-      expect(screen.getByLabelText(/question/i)).toBeInTheDocument();
+      expect(
+        screen.getByRole('textbox', { name: /^question \*/i })
+      ).toBeInTheDocument();
     });
 
-    const questionInput = screen.getByLabelText(/question/i);
+    const questionInput = screen.getByRole('textbox', {
+      name: /^question \*/i,
+    });
     await userEvent.type(questionInput, 'Did you exercise?');
 
     const submitButton = screen.getByRole('button', { name: /create/i });
