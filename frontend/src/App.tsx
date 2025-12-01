@@ -59,7 +59,8 @@ function App() {
     const emailChangeVerified = urlParams.get('emailChangeVerified');
     if (emailChangeVerified === 'true') {
       console.log(`[${new Date().toISOString()}] FRONTEND_APP | Email change verification successful`);
-      window.history.replaceState({}, document.title, window.location.pathname);
+      // Always normalize URL to app root after email change verification
+      window.history.replaceState({}, document.title, '/');
       setMessage({
         text: 'Your email has been updated!',
         type: 'success',
@@ -72,7 +73,8 @@ function App() {
     } else if (emailChangeVerified === 'false') {
       const errorMsg = urlParams.get('error');
       console.error(`[${new Date().toISOString()}] FRONTEND_APP | Email change verification failed:`, errorMsg);
-      window.history.replaceState({}, document.title, window.location.pathname);
+      // Always normalize URL to app root after email change verification failure
+      window.history.replaceState({}, document.title, '/');
       setMessage({
         text: errorMsg ? decodeURIComponent(errorMsg) : 'Email change verification failed',
         type: 'error',
@@ -92,8 +94,8 @@ function App() {
     if (token) {
       console.log(`[${new Date().toISOString()}] FRONTEND_APP | Magic link token found in URL, attempting verification`);
       verificationAttempted.current = true;
-      // Clean up URL immediately to prevent re-processing
-      window.history.replaceState({}, document.title, window.location.pathname);
+      // Clean up URL immediately to prevent re-processing and normalize to app root
+      window.history.replaceState({}, document.title, '/');
 
       verifyMagicLink(token)
         .then(() => {
@@ -118,7 +120,7 @@ function App() {
         type: 'error',
       });
       // Clean up URL
-      window.history.replaceState({}, document.title, window.location.pathname);
+      window.history.replaceState({}, document.title, '/');
     }
   }, [verifyMagicLink, isAuthenticated]);
 
