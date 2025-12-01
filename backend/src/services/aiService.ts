@@ -4,22 +4,28 @@
  * Required environment variable:
  * - PERPLEXITY_API_KEY: Your Perplexity API key (get it from https://www.perplexity.ai/)
  *
+ * Optional environment variable:
+ * - PERPLEXITY_MODEL: Model name to use for Perplexity (defaults to "sonar")
+ *
  * Add this to your config/.env file:
  * PERPLEXITY_API_KEY=your_api_key_here
+ * PERPLEXITY_MODEL=sonar
  *
  * @public
  */
 export class AiService {
   private apiKey: string | undefined;
   private apiUrl: string = "https://api.perplexity.ai/chat/completions";
+  private model: string;
 
   /**
    * Create a new AiService instance.
-   * Reads PERPLEXITY_API_KEY from environment variables.
+   * Reads PERPLEXITY_API_KEY and PERPLEXITY_MODEL from environment variables.
    * @public
    */
   constructor() {
     this.apiKey = process.env.PERPLEXITY_API_KEY;
+    this.model = process.env.PERPLEXITY_MODEL || "sonar";
   }
 
   /**
@@ -48,7 +54,7 @@ export class AiService {
           Authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify({
-          model: "sonar-small-online",
+          model: this.model,
           messages: [
             {
               role: "system",
