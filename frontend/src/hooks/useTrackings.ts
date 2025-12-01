@@ -40,6 +40,9 @@ export function useTrackings() {
       return;
     }
 
+    // Sync token with apiClient before making the request
+    apiClient.setToken(token);
+
     setIsLoading(true);
     console.log(
       `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Fetching trackings from API`
@@ -93,6 +96,9 @@ export function useTrackings() {
       throw new Error("Not authenticated");
     }
 
+    // Sync token with apiClient before making the request
+    apiClient.setToken(token);
+
     console.log(
       `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Creating new tracking with question: ${question}, type: ${type}`
     );
@@ -143,6 +149,9 @@ export function useTrackings() {
       throw new Error("Not authenticated");
     }
 
+    // Sync token with apiClient before making the request
+    apiClient.setToken(token);
+
     console.log(
       `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Updating tracking ID: ${trackingId}`
     );
@@ -185,6 +194,9 @@ export function useTrackings() {
     if (!token) {
       throw new Error("Not authenticated");
     }
+
+    // Sync token with apiClient before making the request
+    apiClient.setToken(token);
 
     console.log(
       `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Deleting tracking ID: ${trackingId}`
