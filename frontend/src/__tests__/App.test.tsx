@@ -1355,8 +1355,19 @@ describe('App', () => {
     const questionInput = screen.getByRole('textbox', {
       name: /^question \*/i,
     });
-    const submitButton = screen.getByRole('button', { name: /^add$/i });
     await userEvent.type(questionInput, 'Did you exercise?');
+
+    // Add a schedule before submitting
+    const hourInput = screen.getByLabelText(/^hour$/i);
+    const minutesInput = screen.getByLabelText(/^minutes$/i);
+    const addScheduleButton = screen.getByRole('button', { name: /add schedule/i });
+    await userEvent.clear(hourInput);
+    await userEvent.type(hourInput, '9');
+    await userEvent.clear(minutesInput);
+    await userEvent.type(minutesInput, '0');
+    await userEvent.click(addScheduleButton);
+
+    const submitButton = screen.getByRole('button', { name: /^add$/i });
     await userEvent.click(submitButton);
 
     await waitFor(() => {
