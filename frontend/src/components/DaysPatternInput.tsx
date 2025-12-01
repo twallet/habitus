@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { DaysPattern, DaysPatternType } from "../models/Tracking";
+import { useState, useEffect, useRef } from "react";
+import { DaysPattern } from "../models/Tracking";
+import { DaysPatternBuilder, FrequencyPreset } from "../models/DaysPatternBuilder";
 import "./DaysPatternInput.css";
 
 interface DaysPatternInputProps {
@@ -9,19 +10,6 @@ interface DaysPatternInputProps {
     error?: string | null;
     onErrorChange?: (error: string | null) => void;
 }
-
-/**
- * Frequency preset type for simplified selection.
- * @internal
- */
-type FrequencyPreset =
-    | "daily"
-    | "weekdays"
-    | "interval"
-    | "weekly"
-    | "monthly"
-    | "yearly"
-    | "custom";
 
 /**
  * Component for selecting/editing days patterns for reminder frequency.
@@ -41,27 +29,33 @@ export function DaysPatternInput({
     error,
     onErrorChange,
 }: DaysPatternInputProps) {
-    const [preset, setPreset] = useState<FrequencyPreset>("daily");
+    const builderRef = useRef<DaysPatternBuilder>(new DaysPatternBuilder(value));
+    const [preset, setPreset] = useState<FrequencyPreset>(
+        builderRef.current.getPreset()
+    );
     const [intervalValue, setIntervalValue] = useState<number>(
-        value?.interval_value || 1
+        builderRef.current.getIntervalValue()
     );
     const [intervalUnit, setIntervalUnit] = useState<
         "days" | "weeks" | "months" | "years"
-    >(value?.interval_unit || "days");
+    >(builderRef.current.getIntervalUnit());
     const [selectedDays, setSelectedDays] = useState<number[]>(
-        value?.days || []
+        builderRef.current.getSelectedDays()
     );
     const [monthlyDay, setMonthlyDay] = useState<number>(
-        value?.day_numbers?.[0] || 1
+        builderRef.current.getMonthlyDay()
     );
     const [monthlyType, setMonthlyType] = useState<"day" | "last" | "weekday">(
-        value?.type === "last_day" ? "last" :
-            value?.type === "weekday_ordinal" ? "weekday" : "day"
+        builderRef.current.getMonthlyType()
     );
-    const [weekday, setWeekday] = useState<number>(value?.weekday || 1); // Monday by default
-    const [ordinal, setOrdinal] = useState<number>(value?.ordinal || 1);
-    const [yearlyMonth, setYearlyMonth] = useState<number>(value?.month || 1);
-    const [yearlyDay, setYearlyDay] = useState<number>(value?.day || 1);
+    const [weekday, setWeekday] = useState<number>(builderRef.current.getWeekday());
+    const [ordinal, setOrdinal] = useState<number>(builderRef.current.getOrdinal());
+    const [yearlyMonth, setYearlyMonth] = useState<number>(
+        builderRef.current.getYearlyMonth()
+    );
+    const [yearlyDay, setYearlyDay] = useState<number>(
+        builderRef.current.getYearlyDay()
+    );
 
     const weekdays = [
         { value: 1, label: "Monday", short: "Mon" },
@@ -97,123 +91,41 @@ export function DaysPatternInput({
     ];
 
     /**
-     * Determine preset from current value.
-     * @internal
-     */
-    const getPresetFromValue = (): FrequencyPreset => {
-        if (!value) return "daily";
-
-        if (value.pattern_type === DaysPatternType.INTERVAL) {
-            if (value.interval_value === 1 && value.interval_unit === "days") {
-                return "daily";
-            }
-            return "interval";
-        }
-
-        if (value.pattern_type === DaysPatternType.DAY_OF_WEEK) {
-            if (value.days && value.days.length === 5 &&
-                value.days.includes(1) && value.days.includes(2) &&
-                value.days.includes(3) && value.days.includes(4) &&
-                value.days.includes(5)) {
-                return "weekdays";
-            }
-            return "weekly";
-        }
-
-        if (value.pattern_type === DaysPatternType.DAY_OF_MONTH) {
-            return "monthly";
-        }
-
-        if (value.pattern_type === DaysPatternType.DAY_OF_YEAR) {
-            return "yearly";
-        }
-
-        return "custom";
-    };
-
-    /**
-     * Build pattern from current preset and state.
+     * Update builder with current state and build pattern.
      * @internal
      */
     const buildPattern = (): DaysPattern | undefined => {
-        if (preset === "daily") {
-            return undefined; // Daily means no pattern (default)
-        }
+        const builder = builderRef.current;
+        builder.setPreset(preset);
+        builder.setIntervalValue(intervalValue);
+        builder.setIntervalUnit(intervalUnit);
+        builder.setSelectedDays(selectedDays);
+        builder.setMonthlyDay(monthlyDay);
+        builder.setMonthlyType(monthlyType);
+        builder.setWeekday(weekday);
+        builder.setOrdinal(ordinal);
+        builder.setYearlyMonth(yearlyMonth);
+        builder.setYearlyDay(yearlyDay);
 
-        if (preset === "weekdays") {
-            return {
-                pattern_type: DaysPatternType.DAY_OF_WEEK,
-                days: [1, 2, 3, 4, 5], // Monday to Friday
-            };
-        }
-
-        if (preset === "interval") {
-            if (intervalValue < 1) {
+        try {
+            const validationError = builder.validate();
+            if (validationError) {
                 if (onErrorChange) {
-                    onErrorChange("Interval value must be at least 1");
+                    onErrorChange(validationError);
                 }
                 return undefined;
             }
-            return {
-                pattern_type: DaysPatternType.INTERVAL,
-                interval_value: intervalValue,
-                interval_unit: intervalUnit,
-            };
-        }
-
-        if (preset === "weekly") {
-            if (selectedDays.length === 0) {
-                if (onErrorChange) {
-                    onErrorChange("Please select at least one day of the week");
-                }
-                return undefined;
+            if (onErrorChange) {
+                onErrorChange(null);
             }
-            return {
-                pattern_type: DaysPatternType.DAY_OF_WEEK,
-                days: [...selectedDays].sort((a, b) => a - b),
-            };
-        }
-
-        if (preset === "monthly") {
-            if (monthlyType === "day") {
-                return {
-                    pattern_type: DaysPatternType.DAY_OF_MONTH,
-                    type: "day_number",
-                    day_numbers: [monthlyDay],
-                };
+            return builder.buildPattern(value);
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Invalid pattern";
+            if (onErrorChange) {
+                onErrorChange(errorMessage);
             }
-            if (monthlyType === "last") {
-                return {
-                    pattern_type: DaysPatternType.DAY_OF_MONTH,
-                    type: "last_day",
-                };
-            }
-            if (monthlyType === "weekday") {
-                return {
-                    pattern_type: DaysPatternType.DAY_OF_MONTH,
-                    type: "weekday_ordinal",
-                    weekday: weekday,
-                    ordinal: ordinal,
-                };
-            }
+            return undefined;
         }
-
-        if (preset === "yearly") {
-            return {
-                pattern_type: DaysPatternType.DAY_OF_YEAR,
-                type: "date",
-                month: yearlyMonth,
-                day: yearlyDay,
-            };
-        }
-
-        // Custom preset - preserve existing pattern if available
-        // This handles patterns that don't match our simplified presets
-        if (value && preset === "custom") {
-            return value;
-        }
-
-        return undefined;
     };
 
     /**
@@ -222,6 +134,7 @@ export function DaysPatternInput({
      */
     const handlePresetChange = (newPreset: FrequencyPreset) => {
         setPreset(newPreset);
+        builderRef.current.setPreset(newPreset);
         if (onErrorChange) {
             onErrorChange(null);
         }
@@ -233,10 +146,8 @@ export function DaysPatternInput({
      * @internal
      */
     const handleDayToggle = (dayValue: number) => {
-        const newDays = selectedDays.includes(dayValue)
-            ? selectedDays.filter((d) => d !== dayValue)
-            : [...selectedDays, dayValue];
-        setSelectedDays(newDays);
+        builderRef.current.toggleDay(dayValue);
+        setSelectedDays(builderRef.current.getSelectedDays());
     };
 
     /**
@@ -266,39 +177,20 @@ export function DaysPatternInput({
      */
     useEffect(() => {
         if (value) {
-            const detectedPreset = getPresetFromValue();
+            builderRef.current = new DaysPatternBuilder(value);
+            const detectedPreset = builderRef.current.getPreset();
             setPreset(detectedPreset);
-
-            if (value.interval_value !== undefined) {
-                setIntervalValue(value.interval_value);
-            }
-            if (value.interval_unit) {
-                setIntervalUnit(value.interval_unit);
-            }
-            if (value.days) {
-                setSelectedDays(value.days);
-            }
-            if (value.day_numbers && value.day_numbers.length > 0) {
-                setMonthlyDay(value.day_numbers[0]);
-            }
-            if (value.type === "last_day") {
-                setMonthlyType("last");
-            } else if (value.type === "weekday_ordinal") {
-                setMonthlyType("weekday");
-            }
-            if (value.weekday !== undefined) {
-                setWeekday(value.weekday);
-            }
-            if (value.ordinal !== undefined) {
-                setOrdinal(value.ordinal);
-            }
-            if (value.month !== undefined) {
-                setYearlyMonth(value.month);
-            }
-            if (value.day !== undefined) {
-                setYearlyDay(value.day);
-            }
+            setIntervalValue(builderRef.current.getIntervalValue());
+            setIntervalUnit(builderRef.current.getIntervalUnit());
+            setSelectedDays(builderRef.current.getSelectedDays());
+            setMonthlyDay(builderRef.current.getMonthlyDay());
+            setMonthlyType(builderRef.current.getMonthlyType());
+            setWeekday(builderRef.current.getWeekday());
+            setOrdinal(builderRef.current.getOrdinal());
+            setYearlyMonth(builderRef.current.getYearlyMonth());
+            setYearlyDay(builderRef.current.getYearlyDay());
         } else {
+            builderRef.current = new DaysPatternBuilder();
             setPreset("daily");
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -344,19 +236,21 @@ export function DaysPatternInput({
                             type="number"
                             min="1"
                             value={intervalValue}
-                            onChange={(e) =>
-                                setIntervalValue(parseInt(e.target.value, 10) || 1)
-                            }
+                            onChange={(e) => {
+                                const val = parseInt(e.target.value, 10) || 1;
+                                setIntervalValue(val);
+                                builderRef.current.setIntervalValue(val);
+                            }}
                             disabled={disabled}
                             className="interval-value-input"
                         />
                         <select
                             value={intervalUnit}
-                            onChange={(e) =>
-                                setIntervalUnit(
-                                    e.target.value as "days" | "weeks" | "months" | "years"
-                                )
-                            }
+                            onChange={(e) => {
+                                const unit = e.target.value as "days" | "weeks" | "months" | "years";
+                                setIntervalUnit(unit);
+                                builderRef.current.setIntervalUnit(unit);
+                            }}
                             disabled={disabled}
                         >
                             <option value="days">day(s)</option>
@@ -395,9 +289,11 @@ export function DaysPatternInput({
                     <div className="monthly-options">
                         <select
                             value={monthlyType}
-                            onChange={(e) =>
-                                setMonthlyType(e.target.value as "day" | "last" | "weekday")
-                            }
+                            onChange={(e) => {
+                                const type = e.target.value as "day" | "last" | "weekday";
+                                setMonthlyType(type);
+                                builderRef.current.setMonthlyType(type);
+                            }}
                             disabled={disabled}
                         >
                             <option value="day">On day</option>
@@ -411,9 +307,11 @@ export function DaysPatternInput({
                                 min="1"
                                 max="31"
                                 value={monthlyDay}
-                                onChange={(e) =>
-                                    setMonthlyDay(parseInt(e.target.value, 10) || 1)
-                                }
+                                onChange={(e) => {
+                                    const day = parseInt(e.target.value, 10) || 1;
+                                    setMonthlyDay(day);
+                                    builderRef.current.setMonthlyDay(day);
+                                }}
                                 disabled={disabled}
                                 className="day-input"
                             />
@@ -423,9 +321,11 @@ export function DaysPatternInput({
                             <div className="weekday-ordinal-inputs">
                                 <select
                                     value={ordinal}
-                                    onChange={(e) =>
-                                        setOrdinal(parseInt(e.target.value, 10))
-                                    }
+                                    onChange={(e) => {
+                                        const ord = parseInt(e.target.value, 10);
+                                        setOrdinal(ord);
+                                        builderRef.current.setOrdinal(ord);
+                                    }}
                                     disabled={disabled}
                                 >
                                     {ordinalLabels.map((ord) => (
@@ -436,9 +336,11 @@ export function DaysPatternInput({
                                 </select>
                                 <select
                                     value={weekday}
-                                    onChange={(e) =>
-                                        setWeekday(parseInt(e.target.value, 10))
-                                    }
+                                    onChange={(e) => {
+                                        const wd = parseInt(e.target.value, 10);
+                                        setWeekday(wd);
+                                        builderRef.current.setWeekday(wd);
+                                    }}
                                     disabled={disabled}
                                 >
                                     {weekdays.map((wd) => (
@@ -458,9 +360,11 @@ export function DaysPatternInput({
                     <div className="yearly-options">
                         <select
                             value={yearlyMonth}
-                            onChange={(e) =>
-                                setYearlyMonth(parseInt(e.target.value, 10))
-                            }
+                            onChange={(e) => {
+                                const month = parseInt(e.target.value, 10);
+                                setYearlyMonth(month);
+                                builderRef.current.setYearlyMonth(month);
+                            }}
                             disabled={disabled}
                         >
                             {months.map((m) => (
@@ -474,9 +378,11 @@ export function DaysPatternInput({
                             min="1"
                             max="31"
                             value={yearlyDay}
-                            onChange={(e) =>
-                                setYearlyDay(parseInt(e.target.value, 10) || 1)
-                            }
+                            onChange={(e) => {
+                                const day = parseInt(e.target.value, 10) || 1;
+                                setYearlyDay(day);
+                                builderRef.current.setYearlyDay(day);
+                            }}
                             disabled={disabled}
                             className="day-input"
                         />
