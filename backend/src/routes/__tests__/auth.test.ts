@@ -32,11 +32,13 @@ vi.mock("../../middleware/authMiddleware.js", () => ({
 
 // Mock services module before importing router
 vi.mock("../../services/index.js", () => ({
-  getTrackingService: vi.fn(),
-  getAuthService: vi.fn(),
-  getUserService: vi.fn(),
-  getEmailService: vi.fn(),
-  initializeServices: vi.fn(),
+  ServiceManager: {
+    getTrackingService: vi.fn(),
+    getAuthService: vi.fn(),
+    getUserService: vi.fn(),
+    getEmailService: vi.fn(),
+    initializeServices: vi.fn(),
+  },
 }));
 
 import request from "supertest";
@@ -127,11 +129,15 @@ describe("Auth Routes", () => {
     userService = new UserService(testDb);
 
     // Mock getAuthService to return our test service
-    // The route calls getAuthService() at module load time, so we need to ensure
+    // The route calls ServiceManager.getAuthService() at module load time, so we need to ensure
     // the mock returns our test service. Since vi.mock() is called before import,
     // we just need to update the mock implementation here.
-    (servicesModule.getAuthService as Mock).mockReturnValue(authService);
-    (servicesModule.getUserService as Mock).mockReturnValue(userService);
+    (servicesModule.ServiceManager.getAuthService as Mock).mockReturnValue(
+      authService
+    );
+    (servicesModule.ServiceManager.getUserService as Mock).mockReturnValue(
+      userService
+    );
 
     // Mock authenticateToken middleware - must be set up before routes
     vi.spyOn(authMiddlewareModule, "authenticateToken").mockImplementation(

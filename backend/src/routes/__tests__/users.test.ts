@@ -11,11 +11,13 @@ import * as uploadModule from "../../middleware/upload.js";
 
 // Mock services module before importing router
 vi.mock("../../services/index.js", () => ({
-  getTrackingService: vi.fn(),
-  getAuthService: vi.fn(),
-  getUserService: vi.fn(),
-  getEmailService: vi.fn(),
-  initializeServices: vi.fn(),
+  ServiceManager: {
+    getTrackingService: vi.fn(),
+    getAuthService: vi.fn(),
+    getUserService: vi.fn(),
+    getEmailService: vi.fn(),
+    initializeServices: vi.fn(),
+  },
 }));
 
 // Mock authMiddleware
@@ -106,7 +108,9 @@ describe("Users Routes", () => {
     vi.restoreAllMocks();
 
     // Mock getUserService to return our test service
-    vi.spyOn(servicesModule, "getUserService").mockReturnValue(userService);
+    vi.spyOn(servicesModule.ServiceManager, "getUserService").mockReturnValue(
+      userService
+    );
 
     // Create Express app with routes
     app = express();
@@ -152,7 +156,7 @@ describe("Users Routes", () => {
       const errorService = {
         getAllUsers: vi.fn().mockRejectedValue(new Error("Database error")),
       };
-      vi.spyOn(servicesModule, "getUserService").mockReturnValue(
+      vi.spyOn(servicesModule.ServiceManager, "getUserService").mockReturnValue(
         errorService as any
       );
 
@@ -197,7 +201,7 @@ describe("Users Routes", () => {
       const errorService = {
         getUserById: vi.fn().mockRejectedValue(new Error("Database error")),
       };
-      vi.spyOn(servicesModule, "getUserService").mockReturnValue(
+      vi.spyOn(servicesModule.ServiceManager, "getUserService").mockReturnValue(
         errorService as any
       );
 
@@ -259,7 +263,7 @@ describe("Users Routes", () => {
       const errorService = {
         updateProfile: vi.fn().mockRejectedValue(new Error("Database error")),
       };
-      vi.spyOn(servicesModule, "getUserService").mockReturnValue(
+      vi.spyOn(servicesModule.ServiceManager, "getUserService").mockReturnValue(
         errorService as any
       );
 
@@ -322,7 +326,7 @@ describe("Users Routes", () => {
       const errorService = {
         deleteUser: vi.fn().mockRejectedValue(new Error("Database error")),
       };
-      vi.spyOn(servicesModule, "getUserService").mockReturnValue(
+      vi.spyOn(servicesModule.ServiceManager, "getUserService").mockReturnValue(
         errorService as any
       );
 

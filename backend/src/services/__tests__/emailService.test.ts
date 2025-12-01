@@ -62,7 +62,7 @@ describe("EmailService", () => {
       delete process.env.SMTP_PORT;
       delete process.env.SMTP_USER;
       delete process.env.SMTP_PASS;
-      // Keep VITE_SERVER_URL and VITE_PORT as they are required by getServerUrl() and getPort()
+      // Keep VITE_SERVER_URL and VITE_PORT as they are required by ServerConfig.getServerUrl() and ServerConfig.getPort()
       // These are set by setupTests.ts, so we don't need to delete them
 
       emailService = new EmailService();

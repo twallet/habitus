@@ -1,11 +1,7 @@
 import { vi, type Mock, type Mocked } from "vitest";
 import { Request, Response, NextFunction } from "express";
 import { authenticateToken, AuthRequest } from "../authMiddleware.js";
-import {
-  getAuthService,
-  getUserService,
-  initializeServices,
-} from "../../services/index.js";
+import { ServiceManager } from "../../services/index.js";
 import { Database } from "../../db/database.js";
 import { AuthService } from "../../services/authService.js";
 import { UserService } from "../../services/userService.js";
@@ -14,9 +10,11 @@ import sqlite3 from "sqlite3";
 
 // Mock services
 vi.mock("../../services/index.js", () => ({
-  getAuthService: vi.fn(),
-  getUserService: vi.fn(),
-  initializeServices: vi.fn(),
+  ServiceManager: {
+    getAuthService: vi.fn(),
+    getUserService: vi.fn(),
+    initializeServices: vi.fn(),
+  },
 }));
 
 /**
@@ -83,8 +81,8 @@ describe("authMiddleware", () => {
       updateLastAccess: vi.fn().mockResolvedValue(undefined),
     } as any;
 
-    (getAuthService as Mock).mockReturnValue(mockAuthService);
-    (getUserService as Mock).mockReturnValue(mockUserService);
+    (ServiceManager.getAuthService as Mock).mockReturnValue(mockAuthService);
+    (ServiceManager.getUserService as Mock).mockReturnValue(mockUserService);
 
     mockReq = {
       headers: {},

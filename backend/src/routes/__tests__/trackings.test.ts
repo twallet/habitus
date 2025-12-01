@@ -16,11 +16,14 @@ vi.mock("../../middleware/authMiddleware.js", () => ({
 
 // Mock services module before importing router
 vi.mock("../../services/index.js", () => ({
-  getTrackingService: vi.fn(),
-  getAuthService: vi.fn(),
-  getUserService: vi.fn(),
-  getEmailService: vi.fn(),
-  initializeServices: vi.fn(),
+  ServiceManager: {
+    getTrackingService: vi.fn(),
+    getAuthService: vi.fn(),
+    getUserService: vi.fn(),
+    getEmailService: vi.fn(),
+    getAiService: vi.fn(),
+    initializeServices: vi.fn(),
+  },
 }));
 
 // Import router after mocking
@@ -135,9 +138,10 @@ describe("Trackings Routes", () => {
     );
 
     // Mock getTrackingService to return our test service
-    vi.spyOn(servicesModule, "getTrackingService").mockReturnValue(
-      trackingService
-    );
+    vi.spyOn(
+      servicesModule.ServiceManager,
+      "getTrackingService"
+    ).mockReturnValue(trackingService);
 
     // Create Express app with routes
     app = express();

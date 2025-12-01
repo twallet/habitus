@@ -61,14 +61,18 @@ vi.mock("../middleware/upload.js", () => ({
 const mockGetPort = vi.fn(() => 3000);
 const mockGetServerUrl = vi.fn(() => "http://localhost");
 vi.mock("../setup/constants.js", () => ({
-  getPort: mockGetPort,
-  getServerUrl: mockGetServerUrl,
+  ServerConfig: {
+    getPort: mockGetPort,
+    getServerUrl: mockGetServerUrl,
+  },
 }));
 
 // Mock paths
 const mockGetWorkspaceRoot = vi.fn(() => "/test/workspace");
 vi.mock("../config/paths.js", () => ({
-  getWorkspaceRoot: mockGetWorkspaceRoot,
+  PathConfig: {
+    getWorkspaceRoot: mockGetWorkspaceRoot,
+  },
 }));
 
 // Mock Vite
@@ -1231,7 +1235,9 @@ describe("Server Configuration - Integration Tests", () => {
 
       // Mock services
       vi.doMock("../services/index.js", () => ({
-        initializeServices: initServicesMock,
+        ServiceManager: {
+          initializeServices: initServicesMock,
+        },
       }));
 
       // Mock routes
@@ -1254,13 +1260,17 @@ describe("Server Configuration - Integration Tests", () => {
 
       // Mock constants
       vi.doMock("../setup/constants.js", () => ({
-        getPort: getPortMock,
-        getServerUrl: getServerUrlMock,
+        ServerConfig: {
+          getPort: getPortMock,
+          getServerUrl: getServerUrlMock,
+        },
       }));
 
       // Mock paths
       vi.doMock("../config/paths.js", () => ({
-        getWorkspaceRoot: getWorkspaceRootMock,
+        PathConfig: {
+          getWorkspaceRoot: getWorkspaceRootMock,
+        },
       }));
 
       // Mock fs - create a minimal mock with readFileSync
