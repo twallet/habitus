@@ -99,7 +99,7 @@ describe("TrackingForm", () => {
                 "Exercise notes",
                 undefined,
                 [{ hour: 9, minutes: 0 }],
-                undefined
+                undefined // No days pattern set (defaults to daily)
             );
         });
     });
