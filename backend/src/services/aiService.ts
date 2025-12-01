@@ -1,3 +1,9 @@
+import {
+  PERPLEXITY_DEFAULT_MODEL,
+  PERPLEXITY_API_URL,
+  AI_DEFAULT_EMOJI,
+} from "../setup/constants.js";
+
 /**
  * AI Service for emoji suggestions using Perplexity API.
  *
@@ -5,7 +11,9 @@
  * - PERPLEXITY_API_KEY: Your Perplexity API key (get it from https://www.perplexity.ai/)
  *
  * Optional environment variable:
- * - PERPLEXITY_MODEL: Model name to use for Perplexity (defaults to "sonar")
+ * - PERPLEXITY_MODEL: Model name to use for Perplexity (defaults to value from constants)
+ *
+ * Constants are defined in setup/constants.ts.
  *
  * Add this to your config/.env file:
  * PERPLEXITY_API_KEY=your_api_key_here
@@ -15,7 +23,7 @@
  */
 export class AiService {
   private apiKey: string | undefined;
-  private apiUrl: string = "https://api.perplexity.ai/chat/completions";
+  private apiUrl: string = PERPLEXITY_API_URL;
   private model: string;
 
   /**
@@ -25,7 +33,7 @@ export class AiService {
    */
   constructor() {
     this.apiKey = process.env.PERPLEXITY_API_KEY;
-    this.model = process.env.PERPLEXITY_MODEL || "sonar";
+    this.model = process.env.PERPLEXITY_MODEL || PERPLEXITY_DEFAULT_MODEL;
   }
 
   /**
@@ -111,7 +119,7 @@ export class AiService {
       }
 
       // Default fallback emoji
-      return "📝";
+      return AI_DEFAULT_EMOJI;
     } catch (error) {
       console.error(
         `[${new Date().toISOString()}] AI_SERVICE | Error suggesting emoji:`,
