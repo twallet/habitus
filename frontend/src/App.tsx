@@ -500,6 +500,7 @@ function App() {
         )}
 
         <div className="trackings-view">
+          <h2>Your trackings</h2>
           <TrackingsList
             trackings={trackings}
             onEdit={handleEditTracking}
