@@ -23,8 +23,11 @@ describe("TrackingForm", () => {
         hour: number = 9,
         minutes: number = 0
     ) => {
-        const timeInput = screen.getByLabelText(/^time$/i) as HTMLInputElement;
-        const buttons = screen.getAllByRole("button", { name: /^add$/i });
+        const timeInput = document.getElementById("schedule-time") as HTMLInputElement;
+        if (!timeInput) {
+            throw new Error("Time input not found");
+        }
+        const buttons = screen.getAllByRole("button", { name: /^schedule$/i });
         const addButton = buttons.find(btn => btn.getAttribute("type") === "button") as HTMLButtonElement;
 
         const timeValue = `${String(hour).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
