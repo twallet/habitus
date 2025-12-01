@@ -221,6 +221,7 @@ describe('EditTrackingModal', () => {
         'New question?',
         undefined,
         undefined,
+        undefined,
       );
     });
     expect(mockOnClose).toHaveBeenCalledTimes(1);
@@ -248,6 +249,7 @@ describe('EditTrackingModal', () => {
         1,
         undefined,
         TrackingType.REGISTER,
+        undefined,
         undefined,
       );
     });
