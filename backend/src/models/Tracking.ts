@@ -1,4 +1,5 @@
 import { Database } from "../db/database.js";
+import { TrackingSchedule, TrackingScheduleData } from "./TrackingSchedule.js";
 
 /**
  * Tracking type enumeration.
@@ -20,6 +21,7 @@ export interface TrackingData {
   type: TrackingType;
   notes?: string;
   icon?: string;
+  schedules?: TrackingScheduleData[];
   created_at?: string;
   updated_at?: string;
 }
@@ -251,6 +253,7 @@ export class Tracking {
       type: this.type,
       notes: this.notes,
       icon: this.icon,
+      schedules: (this as any).schedules,
       created_at: this.created_at,
       updated_at: this.updated_at,
     };
@@ -287,7 +290,7 @@ export class Tracking {
       return null;
     }
 
-    return new Tracking({
+    const tracking = new Tracking({
       id: row.id,
       user_id: row.user_id,
       question: row.question,
@@ -297,6 +300,12 @@ export class Tracking {
       created_at: row.created_at,
       updated_at: row.updated_at,
     });
+
+    // Load schedules
+    const schedules = await TrackingSchedule.loadByTrackingId(id, db);
+    (tracking as any).schedules = schedules.map((s) => s.toData());
+
+    return tracking;
   }
 
   /**
@@ -321,9 +330,9 @@ export class Tracking {
       [userId]
     );
 
-    return rows.map(
-      (row) =>
-        new Tracking({
+    const trackings = await Promise.all(
+      rows.map(async (row) => {
+        const tracking = new Tracking({
           id: row.id,
           user_id: row.user_id,
           question: row.question,
@@ -332,8 +341,17 @@ export class Tracking {
           icon: row.icon || undefined,
           created_at: row.created_at,
           updated_at: row.updated_at,
-        })
+        });
+
+        // Load schedules for each tracking
+        const schedules = await TrackingSchedule.loadByTrackingId(row.id, db);
+        (tracking as any).schedules = schedules.map((s) => s.toData());
+
+        return tracking;
+      })
     );
+
+    return trackings;
   }
 
   /**

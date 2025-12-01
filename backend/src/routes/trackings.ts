@@ -80,15 +80,23 @@ router.get(
  * @body {string} question - The tracking question
  * @body {string} type - The tracking type ("true_false" or "register")
  * @body {string} notes - Optional notes (rich text)
+ * @body {string} icon - Optional icon (emoji)
+ * @body {Array<{hour: number, minutes: number}>} schedules - Required schedules array (1-5 schedules)
  * @returns {TrackingData} Created tracking data
  */
 router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
-    const { question, type, notes, icon } = req.body;
+    const { question, type, notes, icon, schedules } = req.body;
 
     if (!question || !type) {
       return res.status(400).json({ error: "Question and type are required" });
+    }
+
+    if (!schedules || !Array.isArray(schedules) || schedules.length === 0) {
+      return res
+        .status(400)
+        .json({ error: "At least one schedule is required" });
     }
 
     const tracking = await getTrackingServiceInstance().createTracking(
@@ -96,7 +104,8 @@ router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
       question,
       type,
       notes,
-      icon
+      icon,
+      schedules
     );
 
     res.status(201).json(tracking);
@@ -121,6 +130,8 @@ router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
  * @body {string} question - Updated question (optional)
  * @body {string} type - Updated type (optional)
  * @body {string} notes - Updated notes (optional)
+ * @body {string} icon - Updated icon (optional)
+ * @body {Array<{hour: number, minutes: number}>} schedules - Updated schedules array (optional, 1-5 schedules if provided)
  * @returns {TrackingData} Updated tracking data
  */
 router.put(
@@ -130,10 +141,19 @@ router.put(
     try {
       const trackingId = parseInt(req.params.id, 10);
       const userId = req.userId!;
-      const { question, type, notes, icon } = req.body;
+      const { question, type, notes, icon, schedules } = req.body;
 
       if (isNaN(trackingId)) {
         return res.status(400).json({ error: "Invalid tracking ID" });
+      }
+
+      if (
+        schedules !== undefined &&
+        (!Array.isArray(schedules) || schedules.length === 0)
+      ) {
+        return res
+          .status(400)
+          .json({ error: "If provided, schedules must be a non-empty array" });
       }
 
       const tracking = await getTrackingServiceInstance().updateTracking(
@@ -142,7 +162,8 @@ router.put(
         question,
         type,
         notes,
-        icon
+        icon,
+        schedules
       );
 
       res.json(tracking);

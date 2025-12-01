@@ -524,6 +524,7 @@ export class ApiClient {
    * @param type - The tracking type (true_false or register)
    * @param notes - Optional notes (rich text)
    * @param icon - Optional icon (emoji)
+   * @param schedules - Required schedules array (1-5 schedules)
    * @returns Promise resolving to created tracking data
    * @throws Error if request fails
    * @public
@@ -531,14 +532,16 @@ export class ApiClient {
   async createTracking(
     question: string,
     type: TrackingType,
-    notes?: string,
-    icon?: string
+    notes: string | undefined,
+    icon: string | undefined,
+    schedules: Array<{ hour: number; minutes: number }>
   ): Promise<TrackingData> {
     return this.post<TrackingData>(API_ENDPOINTS.trackings, {
       question,
       type,
       notes,
       icon,
+      schedules,
     });
   }
 
@@ -549,6 +552,7 @@ export class ApiClient {
    * @param type - Updated type (optional)
    * @param notes - Updated notes (optional)
    * @param icon - Updated icon (optional)
+   * @param schedules - Updated schedules array (optional, 1-5 schedules if provided)
    * @returns Promise resolving to updated tracking data
    * @throws Error if request fails
    * @public
@@ -558,13 +562,15 @@ export class ApiClient {
     question?: string,
     type?: TrackingType,
     notes?: string,
-    icon?: string
+    icon?: string,
+    schedules?: Array<{ hour: number; minutes: number }>
   ): Promise<TrackingData> {
     return this.put<TrackingData>(`${API_ENDPOINTS.trackings}/${trackingId}`, {
       question,
       type,
       notes,
       icon,
+      schedules,
     });
   }
 

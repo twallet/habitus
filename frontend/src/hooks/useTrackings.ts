@@ -1,5 +1,9 @@
 import { useState, useEffect } from "react";
-import { TrackingData, TrackingType } from "../models/Tracking";
+import {
+  TrackingData,
+  TrackingType,
+  TrackingScheduleData,
+} from "../models/Tracking";
 import { ApiClient } from "../config/api";
 
 /**
@@ -81,6 +85,7 @@ export function useTrackings() {
    * @param type - The tracking type (true_false or register)
    * @param notes - Optional notes (rich text)
    * @param icon - Optional icon (emoji)
+   * @param schedules - Required schedules array (1-5 schedules)
    * @returns The created tracking data
    * @throws Error if API request fails
    * @public
@@ -88,8 +93,9 @@ export function useTrackings() {
   const createTracking = async (
     question: string,
     type: TrackingType,
-    notes?: string,
-    icon?: string
+    notes: string | undefined,
+    icon: string | undefined,
+    schedules: Array<{ hour: number; minutes: number }>
   ): Promise<TrackingData> => {
     const token = localStorage.getItem(TOKEN_KEY);
     if (!token) {
@@ -108,7 +114,8 @@ export function useTrackings() {
         question,
         type,
         notes,
-        icon
+        icon,
+        schedules
       );
       console.log(
         `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Tracking created successfully: ID ${
@@ -133,6 +140,7 @@ export function useTrackings() {
    * @param type - Updated type (optional)
    * @param notes - Updated notes (optional)
    * @param icon - Updated icon (optional)
+   * @param schedules - Updated schedules array (optional, 1-5 schedules if provided)
    * @returns The updated tracking data
    * @throws Error if API request fails
    * @public
@@ -142,7 +150,8 @@ export function useTrackings() {
     question?: string,
     type?: TrackingType,
     notes?: string,
-    icon?: string
+    icon?: string,
+    schedules?: Array<{ hour: number; minutes: number }>
   ): Promise<TrackingData> => {
     const token = localStorage.getItem(TOKEN_KEY);
     if (!token) {
@@ -162,7 +171,8 @@ export function useTrackings() {
         question,
         type,
         notes,
-        icon
+        icon,
+        schedules
       );
       console.log(
         `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Tracking updated successfully: ID ${

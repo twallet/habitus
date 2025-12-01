@@ -192,6 +192,19 @@ export class Tracking {
 }
 
 /**
+ * Tracking schedule data interface.
+ * @public
+ */
+export interface TrackingScheduleData {
+  id: number;
+  tracking_id: number;
+  hour: number;
+  minutes: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
  * Tracking data interface.
  * @public
  */
@@ -202,6 +215,7 @@ export interface TrackingData {
   type: TrackingType;
   notes?: string;
   icon?: string;
+  schedules?: TrackingScheduleData[];
   created_at?: string;
   updated_at?: string;
 }

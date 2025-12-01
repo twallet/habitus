@@ -1,5 +1,9 @@
 import { Database } from "../db/database.js";
 import { Tracking, TrackingData, TrackingType } from "../models/Tracking.js";
+import {
+  TrackingSchedule,
+  TrackingScheduleData,
+} from "../models/TrackingSchedule.js";
 
 /**
  * Service for tracking-related database operations.
@@ -28,36 +32,15 @@ export class TrackingService {
       `[${new Date().toISOString()}] TRACKING | Fetching trackings for userId: ${userId}`
     );
 
-    const rows = await this.db.all<{
-      id: number;
-      user_id: number;
-      question: string;
-      type: string;
-      notes: string | null;
-      icon: string | null;
-      created_at: string;
-      updated_at: string;
-    }>(
-      "SELECT id, user_id, question, type, notes, icon, created_at, updated_at FROM trackings WHERE user_id = ? ORDER BY created_at DESC",
-      [userId]
-    );
+    const trackings = await Tracking.loadByUserId(userId, this.db);
 
     console.log(
       `[${new Date().toISOString()}] TRACKING | Retrieved ${
-        rows.length
+        trackings.length
       } trackings for userId: ${userId}`
     );
 
-    return rows.map((row) => ({
-      id: row.id,
-      user_id: row.user_id,
-      question: row.question,
-      type: row.type as TrackingType,
-      notes: row.notes || undefined,
-      icon: row.icon || undefined,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-    }));
+    return trackings.map((tracking) => tracking.toData());
   }
 
   /**
@@ -75,21 +58,9 @@ export class TrackingService {
       `[${new Date().toISOString()}] TRACKING | Fetching tracking by ID: ${trackingId} for userId: ${userId}`
     );
 
-    const row = await this.db.get<{
-      id: number;
-      user_id: number;
-      question: string;
-      type: string;
-      notes: string | null;
-      icon: string | null;
-      created_at: string;
-      updated_at: string;
-    }>(
-      "SELECT id, user_id, question, type, notes, icon, created_at, updated_at FROM trackings WHERE id = ? AND user_id = ?",
-      [trackingId, userId]
-    );
+    const tracking = await Tracking.loadById(trackingId, userId, this.db);
 
-    if (!row) {
+    if (!tracking) {
       console.log(
         `[${new Date().toISOString()}] TRACKING | Tracking not found for ID: ${trackingId} and userId: ${userId}`
       );
@@ -98,20 +69,11 @@ export class TrackingService {
 
     console.log(
       `[${new Date().toISOString()}] TRACKING | Tracking found: ID ${
-        row.id
-      }, question: ${row.question}`
+        tracking.id
+      }, question: ${tracking.question}`
     );
 
-    return {
-      id: row.id,
-      user_id: row.user_id,
-      question: row.question,
-      type: row.type as TrackingType,
-      notes: row.notes || undefined,
-      icon: row.icon || undefined,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-    };
+    return tracking.toData();
   }
 
   /**
@@ -121,6 +83,7 @@ export class TrackingService {
    * @param type - The tracking type (true_false or register)
    * @param notes - Optional notes (rich text)
    * @param icon - Optional icon (emoji)
+   * @param schedules - Array of schedules (required, 1-5 schedules)
    * @returns Promise resolving to created tracking data
    * @throws Error if validation fails
    * @public
@@ -130,7 +93,8 @@ export class TrackingService {
     question: string,
     type: string,
     notes?: string,
-    icon?: string
+    icon?: string,
+    schedules?: Array<{ hour: number; minutes: number }>
   ): Promise<TrackingData> {
     console.log(
       `[${new Date().toISOString()}] TRACKING | Creating tracking for userId: ${userId}`
@@ -142,6 +106,12 @@ export class TrackingService {
     const validatedType = Tracking.validateType(type);
     const validatedNotes = Tracking.validateNotes(notes);
     const validatedIcon = Tracking.validateIcon(icon);
+
+    // Validate schedules
+    if (!schedules || schedules.length === 0) {
+      throw new TypeError("At least one schedule is required");
+    }
+    const validatedSchedules = TrackingSchedule.validateSchedules(schedules, 0); // trackingId will be set after creation
 
     // Insert tracking
     const result = await this.db.run(
@@ -160,6 +130,17 @@ export class TrackingService {
         `[${new Date().toISOString()}] TRACKING | Failed to create tracking for userId: ${userId}`
       );
       throw new Error("Failed to create tracking");
+    }
+
+    // Create schedules
+    for (const schedule of validatedSchedules) {
+      const scheduleInstance = new TrackingSchedule({
+        id: 0,
+        tracking_id: result.lastID,
+        hour: schedule.hour,
+        minutes: schedule.minutes,
+      });
+      await scheduleInstance.save(this.db);
     }
 
     // Retrieve created tracking
@@ -188,6 +169,7 @@ export class TrackingService {
    * @param type - Updated type (optional)
    * @param notes - Updated notes (optional)
    * @param icon - Updated icon (optional)
+   * @param schedules - Updated schedules array (optional, 1-5 schedules if provided)
    * @returns Promise resolving to updated tracking data
    * @throws Error if tracking not found or validation fails
    * @public
@@ -198,7 +180,8 @@ export class TrackingService {
     question?: string,
     type?: string,
     notes?: string,
-    icon?: string
+    icon?: string,
+    schedules?: Array<{ hour: number; minutes: number }>
   ): Promise<TrackingData> {
     console.log(
       `[${new Date().toISOString()}] TRACKING | Updating tracking ID: ${trackingId} for userId: ${userId}`
@@ -241,26 +224,55 @@ export class TrackingService {
       values.push(validatedIcon || null);
     }
 
-    if (updates.length === 0) {
+    // Update schedules if provided
+    if (schedules !== undefined) {
+      const validatedSchedules = TrackingSchedule.validateSchedules(
+        schedules,
+        trackingId
+      );
+
+      // Delete existing schedules
+      await this.db.run(
+        "DELETE FROM tracking_schedules WHERE tracking_id = ?",
+        [trackingId]
+      );
+
+      // Create new schedules
+      for (const schedule of validatedSchedules) {
+        const scheduleInstance = new TrackingSchedule({
+          id: 0,
+          tracking_id: trackingId,
+          hour: schedule.hour,
+          minutes: schedule.minutes,
+        });
+        await scheduleInstance.save(this.db);
+      }
+    }
+
+    if (updates.length === 0 && schedules === undefined) {
       console.warn(
         `[${new Date().toISOString()}] TRACKING | Update failed: no fields to update for tracking ID: ${trackingId}`
       );
       throw new Error("No fields to update");
     }
 
-    // Add updated_at timestamp
-    updates.push("updated_at = CURRENT_TIMESTAMP");
-    values.push(trackingId, userId);
+    // Add updated_at timestamp if there are field updates
+    if (updates.length > 0) {
+      updates.push("updated_at = CURRENT_TIMESTAMP");
+      values.push(trackingId, userId);
 
-    console.log(
-      `[${new Date().toISOString()}] TRACKING | Executing tracking update query for ID: ${trackingId}`
-    );
+      console.log(
+        `[${new Date().toISOString()}] TRACKING | Executing tracking update query for ID: ${trackingId}`
+      );
 
-    // Update tracking
-    await this.db.run(
-      `UPDATE trackings SET ${updates.join(", ")} WHERE id = ? AND user_id = ?`,
-      values
-    );
+      // Update tracking
+      await this.db.run(
+        `UPDATE trackings SET ${updates.join(
+          ", "
+        )} WHERE id = ? AND user_id = ?`,
+        values
+      );
+    }
 
     // Retrieve updated tracking
     const tracking = await this.getTrackingById(trackingId, userId);

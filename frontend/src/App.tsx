@@ -337,17 +337,19 @@ function App() {
    * @param type - Tracking type
    * @param notes - Optional notes
    * @param icon - Optional icon
+   * @param schedules - Required schedules array
    * @internal
    */
   const handleCreateTracking = async (
     question: string,
     type: TrackingType,
-    notes?: string,
-    icon?: string
+    notes: string | undefined,
+    icon: string | undefined,
+    schedules: Array<{ hour: number; minutes: number }>
   ) => {
     console.log(`[${new Date().toISOString()}] FRONTEND_APP | Creating tracking`);
     try {
-      await createTracking(question, type, notes, icon);
+      await createTracking(question, type, notes, icon, schedules);
       setShowTrackingForm(false);
       setMessage({
         text: 'Tracking created successfully',
@@ -380,11 +382,12 @@ function App() {
     question?: string,
     type?: TrackingType,
     notes?: string,
-    icon?: string
+    icon?: string,
+    schedules?: Array<{ hour: number; minutes: number }>
   ) => {
     console.log(`[${new Date().toISOString()}] FRONTEND_APP | Updating tracking ID: ${trackingId}`);
     try {
-      await updateTracking(trackingId, question, type, notes, icon);
+      await updateTracking(trackingId, question, type, notes, icon, schedules);
       setEditingTracking(null);
       setMessage({
         text: 'Tracking updated successfully',

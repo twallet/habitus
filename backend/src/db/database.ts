@@ -179,6 +179,17 @@ export class Database {
             );
             CREATE INDEX IF NOT EXISTS idx_trackings_user_id ON trackings(user_id);
             CREATE INDEX IF NOT EXISTS idx_trackings_created_at ON trackings(created_at);
+            CREATE TABLE IF NOT EXISTS tracking_schedules (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              tracking_id INTEGER NOT NULL,
+              hour INTEGER NOT NULL CHECK(hour >= 0 AND hour <= 23),
+              minutes INTEGER NOT NULL CHECK(minutes >= 0 AND minutes <= 59),
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              FOREIGN KEY (tracking_id) REFERENCES trackings(id) ON DELETE CASCADE,
+              UNIQUE(tracking_id, hour, minutes)
+            );
+            CREATE INDEX IF NOT EXISTS idx_tracking_schedules_tracking_id ON tracking_schedules(tracking_id);
           `,
               (err) => {
                 if (err) {
