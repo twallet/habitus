@@ -11,7 +11,21 @@ interface DaysPatternInputProps {
 }
 
 /**
+ * Frequency preset type for simplified selection.
+ * @internal
+ */
+type FrequencyPreset =
+    | "daily"
+    | "weekdays"
+    | "interval"
+    | "weekly"
+    | "monthly"
+    | "yearly"
+    | "custom";
+
+/**
  * Component for selecting/editing days patterns for reminder frequency.
+ * Uses progressive disclosure with simple presets and natural language.
  * @param props - Component props
  * @param props.value - Current days pattern value
  * @param props.onChange - Callback when pattern changes
@@ -27,9 +41,7 @@ export function DaysPatternInput({
     error,
     onErrorChange,
 }: DaysPatternInputProps) {
-    const [patternType, setPatternType] = useState<DaysPatternType | "">(
-        value?.pattern_type || ""
-    );
+    const [preset, setPreset] = useState<FrequencyPreset>("daily");
     const [intervalValue, setIntervalValue] = useState<number>(
         value?.interval_value || 1
     );
@@ -39,36 +51,26 @@ export function DaysPatternInput({
     const [selectedDays, setSelectedDays] = useState<number[]>(
         value?.days || []
     );
-    const [dayOfMonthType, setDayOfMonthType] = useState<
-        "day_number" | "last_day" | "weekday_ordinal"
-    >(
-        value?.pattern_type === DaysPatternType.DAY_OF_MONTH && value?.type
-            ? (value.type as "day_number" | "last_day" | "weekday_ordinal")
-            : "day_number"
+    const [monthlyDay, setMonthlyDay] = useState<number>(
+        value?.day_numbers?.[0] || 1
     );
-    const [dayNumbers, setDayNumbers] = useState<number[]>(
-        value?.day_numbers || []
+    const [monthlyType, setMonthlyType] = useState<"day" | "last" | "weekday">(
+        value?.type === "last_day" ? "last" :
+            value?.type === "weekday_ordinal" ? "weekday" : "day"
     );
-    const [weekday, setWeekday] = useState<number>(value?.weekday || 0);
+    const [weekday, setWeekday] = useState<number>(value?.weekday || 1); // Monday by default
     const [ordinal, setOrdinal] = useState<number>(value?.ordinal || 1);
-    const [dayOfYearType, setDayOfYearType] = useState<
-        "date" | "weekday_ordinal"
-    >(
-        value?.pattern_type === DaysPatternType.DAY_OF_YEAR && value?.type
-            ? (value.type as "date" | "weekday_ordinal")
-            : "date"
-    );
-    const [month, setMonth] = useState<number>(value?.month || 1);
-    const [day, setDay] = useState<number>(value?.day || 1);
+    const [yearlyMonth, setYearlyMonth] = useState<number>(value?.month || 1);
+    const [yearlyDay, setYearlyDay] = useState<number>(value?.day || 1);
 
     const weekdays = [
-        { value: 0, label: "Sunday" },
-        { value: 1, label: "Monday" },
-        { value: 2, label: "Tuesday" },
-        { value: 3, label: "Wednesday" },
-        { value: 4, label: "Thursday" },
-        { value: 5, label: "Friday" },
-        { value: 6, label: "Saturday" },
+        { value: 1, label: "Monday", short: "Mon" },
+        { value: 2, label: "Tuesday", short: "Tue" },
+        { value: 3, label: "Wednesday", short: "Wed" },
+        { value: 4, label: "Thursday", short: "Thu" },
+        { value: 5, label: "Friday", short: "Fri" },
+        { value: 6, label: "Saturday", short: "Sat" },
+        { value: 0, label: "Sunday", short: "Sun" },
     ];
 
     const ordinalLabels = [
@@ -95,92 +97,139 @@ export function DaysPatternInput({
     ];
 
     /**
-     * Validate and build the pattern from current state.
+     * Determine preset from current value.
+     * @internal
+     */
+    const getPresetFromValue = (): FrequencyPreset => {
+        if (!value) return "daily";
+
+        if (value.pattern_type === DaysPatternType.INTERVAL) {
+            if (value.interval_value === 1 && value.interval_unit === "days") {
+                return "daily";
+            }
+            return "interval";
+        }
+
+        if (value.pattern_type === DaysPatternType.DAY_OF_WEEK) {
+            if (value.days && value.days.length === 5 &&
+                value.days.includes(1) && value.days.includes(2) &&
+                value.days.includes(3) && value.days.includes(4) &&
+                value.days.includes(5)) {
+                return "weekdays";
+            }
+            return "weekly";
+        }
+
+        if (value.pattern_type === DaysPatternType.DAY_OF_MONTH) {
+            return "monthly";
+        }
+
+        if (value.pattern_type === DaysPatternType.DAY_OF_YEAR) {
+            return "yearly";
+        }
+
+        return "custom";
+    };
+
+    /**
+     * Build pattern from current preset and state.
      * @internal
      */
     const buildPattern = (): DaysPattern | undefined => {
-        if (!patternType) {
-            return undefined;
+        if (preset === "daily") {
+            return undefined; // Daily means no pattern (default)
         }
 
-        const pattern: DaysPattern = {
-            pattern_type: patternType as DaysPatternType,
-        };
+        if (preset === "weekdays") {
+            return {
+                pattern_type: DaysPatternType.DAY_OF_WEEK,
+                days: [1, 2, 3, 4, 5], // Monday to Friday
+            };
+        }
 
-        if (patternType === DaysPatternType.INTERVAL) {
+        if (preset === "interval") {
             if (intervalValue < 1) {
                 if (onErrorChange) {
                     onErrorChange("Interval value must be at least 1");
                 }
                 return undefined;
             }
-            pattern.interval_value = intervalValue;
-            pattern.interval_unit = intervalUnit;
-        } else if (patternType === DaysPatternType.DAY_OF_WEEK) {
+            return {
+                pattern_type: DaysPatternType.INTERVAL,
+                interval_value: intervalValue,
+                interval_unit: intervalUnit,
+            };
+        }
+
+        if (preset === "weekly") {
             if (selectedDays.length === 0) {
                 if (onErrorChange) {
                     onErrorChange("Please select at least one day of the week");
                 }
                 return undefined;
             }
-            pattern.days = [...selectedDays].sort((a, b) => a - b);
-        } else if (patternType === DaysPatternType.DAY_OF_MONTH) {
-            pattern.type = dayOfMonthType;
-            if (dayOfMonthType === "day_number") {
-                if (dayNumbers.length === 0) {
-                    if (onErrorChange) {
-                        onErrorChange("Please select at least one day number");
-                    }
-                    return undefined;
-                }
-                pattern.day_numbers = [...dayNumbers].sort((a, b) => a - b);
-            } else if (dayOfMonthType === "weekday_ordinal") {
-                pattern.weekday = weekday;
-                pattern.ordinal = ordinal;
+            return {
+                pattern_type: DaysPatternType.DAY_OF_WEEK,
+                days: [...selectedDays].sort((a, b) => a - b),
+            };
+        }
+
+        if (preset === "monthly") {
+            if (monthlyType === "day") {
+                return {
+                    pattern_type: DaysPatternType.DAY_OF_MONTH,
+                    type: "day_number",
+                    day_numbers: [monthlyDay],
+                };
             }
-        } else if (patternType === DaysPatternType.DAY_OF_YEAR) {
-            pattern.type = dayOfYearType as any;
-            if (dayOfYearType === "date") {
-                pattern.month = month;
-                pattern.day = day;
-            } else if (dayOfYearType === "weekday_ordinal") {
-                pattern.weekday = weekday;
-                pattern.ordinal = ordinal;
+            if (monthlyType === "last") {
+                return {
+                    pattern_type: DaysPatternType.DAY_OF_MONTH,
+                    type: "last_day",
+                };
+            }
+            if (monthlyType === "weekday") {
+                return {
+                    pattern_type: DaysPatternType.DAY_OF_MONTH,
+                    type: "weekday_ordinal",
+                    weekday: weekday,
+                    ordinal: ordinal,
+                };
             }
         }
 
-        if (onErrorChange) {
-            onErrorChange(null);
+        if (preset === "yearly") {
+            return {
+                pattern_type: DaysPatternType.DAY_OF_YEAR,
+                type: "date",
+                month: yearlyMonth,
+                day: yearlyDay,
+            };
         }
-        return pattern;
+
+        // Custom preset - preserve existing pattern if available
+        // This handles patterns that don't match our simplified presets
+        if (value && preset === "custom") {
+            return value;
+        }
+
+        return undefined;
     };
 
     /**
-     * Handle pattern type change.
+     * Handle preset change.
      * @internal
      */
-    const handlePatternTypeChange = (newType: DaysPatternType | "") => {
-        setPatternType(newType);
-        if (!newType) {
-            onChange(undefined);
-            return;
+    const handlePresetChange = (newPreset: FrequencyPreset) => {
+        setPreset(newPreset);
+        if (onErrorChange) {
+            onErrorChange(null);
         }
-        // Reset all fields when pattern type changes
-        setIntervalValue(1);
-        setIntervalUnit("days");
-        setSelectedDays([]);
-        setDayOfMonthType("day_number");
-        setDayNumbers([]);
-        setWeekday(0);
-        setOrdinal(1);
-        setDayOfYearType("date");
-        setMonth(1);
-        setDay(1);
     };
 
     /**
      * Handle day of week toggle.
-     * @param dayValue - Day value (0-6)
+     * @param dayValue - Day value (0-6, where 0=Sunday)
      * @internal
      */
     const handleDayToggle = (dayValue: number) => {
@@ -191,40 +240,24 @@ export function DaysPatternInput({
     };
 
     /**
-     * Handle day number toggle.
-     * @param dayNum - Day number (1-31)
-     * @internal
-     */
-    const handleDayNumberToggle = (dayNum: number) => {
-        const newDayNumbers = dayNumbers.includes(dayNum)
-            ? dayNumbers.filter((d) => d !== dayNum)
-            : [...dayNumbers, dayNum];
-        setDayNumbers(newDayNumbers);
-    };
-
-    /**
      * Update pattern when state changes.
      * @internal
      */
     useEffect(() => {
         const pattern = buildPattern();
-        if (pattern) {
-            onChange(pattern);
-        } else if (!patternType) {
-            onChange(undefined);
-        }
+        onChange(pattern);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
-        patternType,
+        preset,
         intervalValue,
         intervalUnit,
         selectedDays,
-        dayOfMonthType,
-        dayNumbers,
+        monthlyDay,
+        monthlyType,
         weekday,
         ordinal,
-        dayOfYearType,
-        month,
-        day,
+        yearlyMonth,
+        yearlyDay,
     ]);
 
     /**
@@ -233,7 +266,9 @@ export function DaysPatternInput({
      */
     useEffect(() => {
         if (value) {
-            setPatternType(value.pattern_type);
+            const detectedPreset = getPresetFromValue();
+            setPreset(detectedPreset);
+
             if (value.interval_value !== undefined) {
                 setIntervalValue(value.interval_value);
             }
@@ -243,14 +278,13 @@ export function DaysPatternInput({
             if (value.days) {
                 setSelectedDays(value.days);
             }
-            if (value.pattern_type === DaysPatternType.DAY_OF_MONTH && value.type) {
-                setDayOfMonthType(value.type as "day_number" | "last_day" | "weekday_ordinal");
+            if (value.day_numbers && value.day_numbers.length > 0) {
+                setMonthlyDay(value.day_numbers[0]);
             }
-            if (value.pattern_type === DaysPatternType.DAY_OF_YEAR && value.type) {
-                setDayOfYearType(value.type as "date" | "weekday_ordinal");
-            }
-            if (value.day_numbers) {
-                setDayNumbers(value.day_numbers);
+            if (value.type === "last_day") {
+                setMonthlyType("last");
+            } else if (value.type === "weekday_ordinal") {
+                setMonthlyType("weekday");
             }
             if (value.weekday !== undefined) {
                 setWeekday(value.weekday);
@@ -259,58 +293,54 @@ export function DaysPatternInput({
                 setOrdinal(value.ordinal);
             }
             if (value.month !== undefined) {
-                setMonth(value.month);
+                setYearlyMonth(value.month);
             }
             if (value.day !== undefined) {
-                setDay(value.day);
+                setYearlyDay(value.day);
             }
+        } else {
+            setPreset("daily");
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return (
         <div className="days-pattern-input">
             <div className="form-label-row">
-                <label htmlFor="days-pattern-type">
+                <label htmlFor="frequency-preset">
                     Frequency{" "}
                     <button
                         type="button"
                         className="field-help"
                         aria-label="Frequency help"
-                        title="Define how often reminders should be sent (e.g., every 3 days, every Monday, first of month, etc.)"
+                        title="Define how often reminders should be sent"
                     >
                         ?
                     </button>
                 </label>
             </div>
+
             <select
-                id="days-pattern-type"
-                value={patternType}
-                onChange={(e) =>
-                    handlePatternTypeChange(
-                        e.target.value as DaysPatternType | ""
-                    )
-                }
+                id="frequency-preset"
+                value={preset}
+                onChange={(e) => handlePresetChange(e.target.value as FrequencyPreset)}
                 disabled={disabled}
+                className="frequency-preset-select"
             >
-                <option value="">None (daily)</option>
-                <option value={DaysPatternType.INTERVAL}>
-                    Every X days/weeks/months/years
-                </option>
-                <option value={DaysPatternType.DAY_OF_WEEK}>
-                    Day of week (e.g., Monday, Thursday)
-                </option>
-                <option value={DaysPatternType.DAY_OF_MONTH}>
-                    Day of month (e.g., 1st, last, first Monday)
-                </option>
-                <option value={DaysPatternType.DAY_OF_YEAR}>
-                    Day of year (e.g., March 15th, first Monday)
-                </option>
+                <option value="daily">Daily</option>
+                <option value="weekdays">Every weekday (Mon-Fri)</option>
+                <option value="interval">Every X days/weeks/months/years</option>
+                <option value="weekly">Weekly on specific days</option>
+                <option value="monthly">Monthly on specific day</option>
+                <option value="yearly">Yearly on specific date</option>
             </select>
 
-            {patternType === DaysPatternType.INTERVAL && (
-                <div className="pattern-input-group">
+            {preset === "interval" && (
+                <div className="frequency-options">
                     <div className="interval-inputs">
+                        <label htmlFor="interval-value">Every</label>
                         <input
+                            id="interval-value"
                             type="number"
                             min="1"
                             value={intervalValue}
@@ -324,11 +354,7 @@ export function DaysPatternInput({
                             value={intervalUnit}
                             onChange={(e) =>
                                 setIntervalUnit(
-                                    e.target.value as
-                                    | "days"
-                                    | "weeks"
-                                    | "months"
-                                    | "years"
+                                    e.target.value as "days" | "weeks" | "months" | "years"
                                 )
                             }
                             disabled={disabled}
@@ -342,179 +368,119 @@ export function DaysPatternInput({
                 </div>
             )}
 
-            {patternType === DaysPatternType.DAY_OF_WEEK && (
-                <div className="pattern-input-group">
+            {preset === "weekly" && (
+                <div className="frequency-options">
                     <div className="days-of-week-selector">
-                        {weekdays.map((wd) => (
-                            <label key={wd.value} className="day-checkbox-label">
-                                <input
-                                    type="checkbox"
-                                    checked={selectedDays.includes(wd.value)}
-                                    onChange={() => handleDayToggle(wd.value)}
+                        <label>Select days:</label>
+                        <div className="weekday-buttons">
+                            {weekdays.map((wd) => (
+                                <button
+                                    key={wd.value}
+                                    type="button"
+                                    className={`weekday-button ${selectedDays.includes(wd.value) ? "selected" : ""}`}
+                                    onClick={() => handleDayToggle(wd.value)}
                                     disabled={disabled}
-                                />
-                                <span>{wd.label}</span>
-                            </label>
-                        ))}
+                                    aria-pressed={selectedDays.includes(wd.value)}
+                                >
+                                    {wd.short}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
             )}
 
-            {patternType === DaysPatternType.DAY_OF_MONTH && (
-                <div className="pattern-input-group">
-                    <select
-                        value={dayOfMonthType}
-                        onChange={(e) =>
-                            setDayOfMonthType(
-                                e.target.value as
-                                | "day_number"
-                                | "last_day"
-                                | "weekday_ordinal"
-                            )
-                        }
-                        disabled={disabled}
-                    >
-                        <option value="day_number">Specific day(s)</option>
-                        <option value="last_day">Last day of month</option>
-                        <option value="weekday_ordinal">
-                            Weekday ordinal (e.g., first Monday)
-                        </option>
-                    </select>
+            {preset === "monthly" && (
+                <div className="frequency-options">
+                    <div className="monthly-options">
+                        <select
+                            value={monthlyType}
+                            onChange={(e) =>
+                                setMonthlyType(e.target.value as "day" | "last" | "weekday")
+                            }
+                            disabled={disabled}
+                        >
+                            <option value="day">On day</option>
+                            <option value="last">On last day</option>
+                            <option value="weekday">On weekday</option>
+                        </select>
 
-                    {dayOfMonthType === "day_number" && (
-                        <div className="day-numbers-selector">
-                            <div className="day-numbers-grid">
-                                {Array.from({ length: 31 }, (_, i) => i + 1).map(
-                                    (dayNum) => (
-                                        <label
-                                            key={dayNum}
-                                            className="day-number-checkbox-label"
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                checked={dayNumbers.includes(dayNum)}
-                                                onChange={() =>
-                                                    handleDayNumberToggle(dayNum)
-                                                }
-                                                disabled={disabled}
-                                            />
-                                            <span>{dayNum}</span>
-                                        </label>
-                                    )
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {dayOfMonthType === "weekday_ordinal" && (
-                        <div className="weekday-ordinal-inputs">
-                            <select
-                                value={ordinal}
-                                onChange={(e) =>
-                                    setOrdinal(parseInt(e.target.value, 10))
-                                }
-                                disabled={disabled}
-                            >
-                                {ordinalLabels.map((ord) => (
-                                    <option key={ord.value} value={ord.value}>
-                                        {ord.label}
-                                    </option>
-                                ))}
-                            </select>
-                            <select
-                                value={weekday}
-                                onChange={(e) =>
-                                    setWeekday(parseInt(e.target.value, 10))
-                                }
-                                disabled={disabled}
-                            >
-                                {weekdays.map((wd) => (
-                                    <option key={wd.value} value={wd.value}>
-                                        {wd.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {patternType === DaysPatternType.DAY_OF_YEAR && (
-                <div className="pattern-input-group">
-                    <select
-                        value={dayOfYearType}
-                        onChange={(e) =>
-                            setDayOfYearType(
-                                e.target.value as "date" | "weekday_ordinal"
-                            )
-                        }
-                        disabled={disabled}
-                    >
-                        <option value="date">Specific date</option>
-                        <option value="weekday_ordinal">
-                            Weekday ordinal (e.g., first Monday of year)
-                        </option>
-                    </select>
-
-                    {dayOfYearType === "date" && (
-                        <div className="date-inputs">
-                            <select
-                                value={month}
-                                onChange={(e) =>
-                                    setMonth(parseInt(e.target.value, 10))
-                                }
-                                disabled={disabled}
-                            >
-                                {months.map((m) => (
-                                    <option key={m.value} value={m.value}>
-                                        {m.label}
-                                    </option>
-                                ))}
-                            </select>
+                        {monthlyType === "day" && (
                             <input
                                 type="number"
                                 min="1"
                                 max="31"
-                                value={day}
+                                value={monthlyDay}
                                 onChange={(e) =>
-                                    setDay(parseInt(e.target.value, 10) || 1)
+                                    setMonthlyDay(parseInt(e.target.value, 10) || 1)
                                 }
                                 disabled={disabled}
                                 className="day-input"
                             />
-                        </div>
-                    )}
+                        )}
 
-                    {dayOfYearType === "weekday_ordinal" && (
-                        <div className="weekday-ordinal-inputs">
-                            <select
-                                value={ordinal}
-                                onChange={(e) =>
-                                    setOrdinal(parseInt(e.target.value, 10))
-                                }
-                                disabled={disabled}
-                            >
-                                {ordinalLabels.map((ord) => (
-                                    <option key={ord.value} value={ord.value}>
-                                        {ord.label}
-                                    </option>
-                                ))}
-                            </select>
-                            <select
-                                value={weekday}
-                                onChange={(e) =>
-                                    setWeekday(parseInt(e.target.value, 10))
-                                }
-                                disabled={disabled}
-                            >
-                                {weekdays.map((wd) => (
-                                    <option key={wd.value} value={wd.value}>
-                                        {wd.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
+                        {monthlyType === "weekday" && (
+                            <div className="weekday-ordinal-inputs">
+                                <select
+                                    value={ordinal}
+                                    onChange={(e) =>
+                                        setOrdinal(parseInt(e.target.value, 10))
+                                    }
+                                    disabled={disabled}
+                                >
+                                    {ordinalLabels.map((ord) => (
+                                        <option key={ord.value} value={ord.value}>
+                                            {ord.label}
+                                        </option>
+                                    ))}
+                                </select>
+                                <select
+                                    value={weekday}
+                                    onChange={(e) =>
+                                        setWeekday(parseInt(e.target.value, 10))
+                                    }
+                                    disabled={disabled}
+                                >
+                                    {weekdays.map((wd) => (
+                                        <option key={wd.value} value={wd.value}>
+                                            {wd.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {preset === "yearly" && (
+                <div className="frequency-options">
+                    <div className="yearly-options">
+                        <select
+                            value={yearlyMonth}
+                            onChange={(e) =>
+                                setYearlyMonth(parseInt(e.target.value, 10))
+                            }
+                            disabled={disabled}
+                        >
+                            {months.map((m) => (
+                                <option key={m.value} value={m.value}>
+                                    {m.label}
+                                </option>
+                            ))}
+                        </select>
+                        <input
+                            type="number"
+                            min="1"
+                            max="31"
+                            value={yearlyDay}
+                            onChange={(e) =>
+                                setYearlyDay(parseInt(e.target.value, 10) || 1)
+                            }
+                            disabled={disabled}
+                            className="day-input"
+                        />
+                    </div>
                 </div>
             )}
 
@@ -524,4 +490,3 @@ export function DaysPatternInput({
         </div>
     );
 }
-

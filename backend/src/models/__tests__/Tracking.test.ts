@@ -40,6 +40,7 @@ async function createTestDatabase(): Promise<Database> {
               type TEXT NOT NULL CHECK(type IN ('true_false', 'register')),
               notes TEXT,
               icon TEXT,
+              days TEXT,
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE

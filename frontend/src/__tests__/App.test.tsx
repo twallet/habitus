@@ -945,7 +945,7 @@ describe('App', () => {
     await userEvent.type(timeInput, '09:00');
     await userEvent.click(scheduleButton);
 
-    const submitButton = screen.getByRole('button', { name: /^add$/i, hidden: false });
+    const submitButton = screen.getByRole('button', { name: /^create$/i });
     await userEvent.click(submitButton);
 
     await waitFor(() => {
@@ -1367,7 +1367,7 @@ describe('App', () => {
     await userEvent.type(timeInput, '09:00');
     await userEvent.click(scheduleButton);
 
-    const submitButton = screen.getByRole('button', { name: /^add$/i, hidden: false });
+    const submitButton = screen.getByRole('button', { name: /^create$/i });
     await userEvent.click(submitButton);
 
     await waitFor(() => {
