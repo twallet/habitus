@@ -431,7 +431,7 @@ describe('EditTrackingModal', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(/at least one schedule is required/i)
+        screen.getByText(/at least one time is required/i)
       ).toBeInTheDocument();
     });
     expect(mockOnSave).not.toHaveBeenCalled();

@@ -106,14 +106,14 @@ export function TrackingForm({
 
         if (isDuplicate) {
             setError(
-                `Schedule ${String(hour).padStart(2, "0")}:${String(minutes).padStart(2, "0")} already exists`
+                `Time ${String(hour).padStart(2, "0")}:${String(minutes).padStart(2, "0")} already exists`
             );
             return;
         }
 
         // Add new schedule
         if (schedules.length >= 5) {
-            setError("Maximum 5 schedules allowed");
+            setError("Maximum 5 times allowed");
             return;
         }
         setSchedules([...schedules, newSchedule]);
@@ -175,7 +175,7 @@ export function TrackingForm({
         }
 
         if (schedules.length === 0) {
-            setError("At least one schedule is required");
+            setError("At least one time is required");
             return;
         }
 
@@ -317,19 +317,41 @@ export function TrackingForm({
             <div className="form-group">
                 <div className="form-label-row">
                     <label htmlFor="tracking-schedules">
-                        Schedules <span className="required-asterisk">*</span>{" "}
+                        Times <span className="required-asterisk">*</span>{" "}
                         <button
                             type="button"
                             className="field-help"
-                            aria-label="Schedules help"
-                            title="Define up to 5 schedules (hour and minutes) for this tracking. At least one schedule is required."
+                            aria-label="Times help"
+                            title="Define up to 5 times (hour and minutes) when reminders will be sent for this tracking. At least one time is required."
                         >
                             ?
                         </button>
                     </label>
                     <span className="schedule-count">
-                        {schedules.length}/5 schedules
+                        {schedules.length}/5 times
                     </span>
+                </div>
+                <div className="schedule-input-row">
+                    <div className="schedule-time-inputs">
+                        <input
+                            type="time"
+                            id="schedule-time"
+                            name="schedule-time"
+                            value={scheduleTime}
+                            onChange={(e) => setScheduleTime(e.target.value)}
+                            disabled={isSubmitting}
+                        />
+                    </div>
+                    <button
+                        type="button"
+                        className="btn-primary schedule-add-button"
+                        onClick={handleAddOrUpdateSchedule}
+                        disabled={
+                            isSubmitting || schedules.length >= 5
+                        }
+                    >
+                        Schedule
+                    </button>
                 </div>
                 {schedules.length > 0 && (
                     <div className="schedules-list">
@@ -364,29 +386,6 @@ export function TrackingForm({
                         })}
                     </div>
                 )}
-                <div className="schedule-input-row">
-                    <div className="schedule-time-inputs">
-                        <label htmlFor="schedule-time">Time</label>
-                        <input
-                            type="time"
-                            id="schedule-time"
-                            name="schedule-time"
-                            value={scheduleTime}
-                            onChange={(e) => setScheduleTime(e.target.value)}
-                            disabled={isSubmitting}
-                        />
-                    </div>
-                    <button
-                        type="button"
-                        className="btn-secondary btn-small"
-                        onClick={handleAddOrUpdateSchedule}
-                        disabled={
-                            isSubmitting || schedules.length >= 5
-                        }
-                    >
-                        Add
-                    </button>
-                </div>
             </div>
 
             <div className="form-group">

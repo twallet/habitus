@@ -936,8 +936,8 @@ describe('App', () => {
     await userEvent.type(questionInput, 'Did you exercise?');
 
     // Add a schedule before submitting
-    const timeInput = screen.getByLabelText(/^time$/i);
-    const buttons = screen.getAllByRole('button', { name: /^add$/i });
+    const timeInput = document.querySelector('input[type="time"]') as HTMLInputElement;
+    const buttons = screen.getAllByRole('button', { name: /^schedule$/i });
     const addScheduleButton = buttons.find(btn => btn.getAttribute("type") === "button") as HTMLButtonElement;
     await userEvent.clear(timeInput);
     await userEvent.type(timeInput, '09:00');
@@ -1356,8 +1356,8 @@ describe('App', () => {
     await userEvent.type(questionInput, 'Did you exercise?');
 
     // Add a schedule before submitting
-    const timeInput = screen.getByLabelText(/^time$/i);
-    const buttons = screen.getAllByRole('button', { name: /^add$/i });
+    const timeInput = document.querySelector('input[type="time"]') as HTMLInputElement;
+    const buttons = screen.getAllByRole('button', { name: /^schedule$/i });
     const addScheduleButton = buttons.find(btn => btn.getAttribute("type") === "button") as HTMLButtonElement;
     await userEvent.clear(timeInput);
     await userEvent.type(timeInput, '09:00');
