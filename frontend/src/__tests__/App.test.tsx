@@ -935,6 +935,16 @@ describe('App', () => {
     });
     await userEvent.type(questionInput, 'Did you exercise?');
 
+    // Add a schedule before submitting
+    const hourInput = screen.getByLabelText(/^hour$/i);
+    const minutesInput = screen.getByLabelText(/^minutes$/i);
+    const addScheduleButton = screen.getByRole('button', { name: /add schedule/i });
+    await userEvent.clear(hourInput);
+    await userEvent.type(hourInput, '9');
+    await userEvent.clear(minutesInput);
+    await userEvent.type(minutesInput, '0');
+    await userEvent.click(addScheduleButton);
+
     const submitButton = screen.getByRole('button', { name: /^add$/i });
     await userEvent.click(submitButton);
 
@@ -1011,6 +1021,7 @@ describe('App', () => {
       question: 'Did you exercise?',
       type: TrackingType.TRUE_FALSE,
       notes: undefined,
+      schedules: [{ id: 1, tracking_id: 1, hour: 9, minutes: 0 }],
     };
 
     const mockUpdateTracking = vi.fn().mockResolvedValue({
@@ -1370,6 +1381,7 @@ describe('App', () => {
       question: 'Did you exercise?',
       type: TrackingType.TRUE_FALSE,
       notes: undefined,
+      schedules: [{ id: 1, tracking_id: 1, hour: 9, minutes: 0 }],
     };
 
     const mockUpdateTracking = vi.fn().mockRejectedValue(new Error('Failed to update tracking'));
