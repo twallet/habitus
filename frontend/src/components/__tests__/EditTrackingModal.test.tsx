@@ -293,10 +293,12 @@ describe('EditTrackingModal', () => {
     expect(screen.getByText(/save failed/i)).toBeInTheDocument();
 
     // Wait a bit more to ensure onClose is not called after error is shown
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 200));
 
     // Verify onClose was not called after the error
-    expect(mockOnClose).not.toHaveBeenCalled();
+    // Note: onClose might be called during render or initial setup, but not after error
+    const callsAfterError = mockOnClose.mock.calls.length;
+    expect(callsAfterError).toBe(0);
   });
 
 
