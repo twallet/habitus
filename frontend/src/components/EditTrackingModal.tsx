@@ -333,9 +333,6 @@ export function EditTrackingModal({
                                 maxLength={500}
                                 rows={2}
                             />
-                            <span className="char-count">
-                                {question.length}/500
-                            </span>
                         </div>
 
                         <div className="icon-type-row">
@@ -504,9 +501,6 @@ export function EditTrackingModal({
                             maxLength={500}
                             rows={2}
                         />
-                        <span className="char-count">
-                            {notes.length}/500
-                        </span>
                     </div>
 
                     <div className="form-actions">
