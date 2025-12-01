@@ -20,7 +20,7 @@ describe("TrackingForm", () => {
         ).toBeInTheDocument();
         expect(screen.getByRole("combobox", { name: /^type \*/i })).toBeInTheDocument();
         expect(
-            screen.getByRole("button", { name: /create tracking/i })
+            screen.getByRole("button", { name: /^add$/i })
         ).toBeInTheDocument();
     });
 
@@ -49,7 +49,7 @@ describe("TrackingForm", () => {
             name: /^type \*/i,
         });
         const submitButton = screen.getByRole("button", {
-            name: /create tracking/i,
+            name: /^add$/i,
         });
 
         await user.type(questionInput, "Did I exercise today?");
@@ -77,7 +77,7 @@ describe("TrackingForm", () => {
             name: /^notes \?/i,
         });
         const submitButton = screen.getByRole("button", {
-            name: /create tracking/i,
+            name: /^add$/i,
         });
 
         await user.type(questionInput, "Did I exercise?");
@@ -118,7 +118,7 @@ describe("TrackingForm", () => {
         const longQuestion = "a".repeat(501);
         fireEvent.change(questionInput, { target: { value: longQuestion } });
         await user.click(
-            screen.getByRole("button", { name: /create tracking/i })
+            screen.getByRole("button", { name: /^add$/i })
         );
 
         expect(
@@ -136,7 +136,7 @@ describe("TrackingForm", () => {
         }) as HTMLInputElement;
         await user.type(questionInput, "Did I exercise?");
         await user.click(
-            screen.getByRole("button", { name: /create tracking/i })
+            screen.getByRole("button", { name: /^add$/i })
         );
 
         await waitFor(() => {
@@ -159,7 +159,7 @@ describe("TrackingForm", () => {
         render(<TrackingForm onSubmit={mockOnSubmit} isSubmitting={true} />);
 
         const submitButton = screen.getByRole("button", {
-            name: /creating/i,
+            name: /adding/i,
         }) as HTMLButtonElement;
         expect(submitButton.disabled).toBe(true);
     });
@@ -168,7 +168,7 @@ describe("TrackingForm", () => {
         render(<TrackingForm onSubmit={mockOnSubmit} />);
 
         const submitButton = screen.getByRole("button", {
-            name: /create tracking/i,
+            name: /^add$/i,
         }) as HTMLButtonElement;
         expect(submitButton.disabled).toBe(true);
     });

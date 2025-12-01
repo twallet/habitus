@@ -935,7 +935,7 @@ describe('App', () => {
     });
     await userEvent.type(questionInput, 'Did you exercise?');
 
-    const submitButton = screen.getByRole('button', { name: /create/i });
+    const submitButton = screen.getByRole('button', { name: /^add$/i });
     await userEvent.click(submitButton);
 
     await waitFor(() => {
@@ -1416,7 +1416,7 @@ describe('App', () => {
     const questionInput = screen.getByRole('textbox', {
       name: /^question \*/i,
     });
-    const submitButton = screen.getByRole('button', { name: /create/i });
+    const submitButton = screen.getByRole('button', { name: /^add$/i });
     await userEvent.type(questionInput, 'Did you exercise?');
     await userEvent.click(submitButton);
 

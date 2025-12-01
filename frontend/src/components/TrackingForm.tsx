@@ -266,7 +266,7 @@ export function TrackingForm({
                     className="btn-primary create-tracking-button"
                     disabled={isSubmitting || !question.trim()}
                 >
-                    {isSubmitting ? "Creating..." : "Create Tracking"}
+                    {isSubmitting ? "Adding..." : "Add"}
                 </button>
             </div>
         </form>
