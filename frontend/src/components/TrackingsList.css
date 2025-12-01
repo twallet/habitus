@@ -150,6 +150,29 @@
   font-size: 1.1rem;
 }
 
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #00a8d6;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: inherit;
+  font-family: inherit;
+  transition: var(--transition);
+}
+
+.link-button:hover {
+  color: #0099c4;
+  text-decoration: underline;
+}
+
+.link-button:focus {
+  outline: 2px solid #00a8d6;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 @media (max-width: 768px) {
   .trackings-grid {
     grid-template-columns: 1fr;

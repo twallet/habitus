@@ -4,6 +4,7 @@ import "./TrackingsList.css";
 interface TrackingsListProps {
     trackings: TrackingData[];
     onEdit: (tracking: TrackingData) => void;
+    onCreate?: () => void;
     isLoading?: boolean;
 }
 
@@ -19,6 +20,7 @@ interface TrackingsListProps {
 export function TrackingsList({
     trackings,
     onEdit,
+    onCreate,
     isLoading,
 }: TrackingsListProps) {
     /**
@@ -50,7 +52,24 @@ export function TrackingsList({
         return (
             <div className="trackings-list">
                 <div className="empty-state">
-                    <p>No trackings yet. Create your first tracking to get started!</p>
+                    <p>
+                        No trackings yet.{" "}
+                        {onCreate ? (
+                            <>
+                                <button
+                                    type="button"
+                                    className="link-button"
+                                    onClick={onCreate}
+                                    aria-label="Create your first tracking"
+                                >
+                                    Create your first tracking
+                                </button>{" "}
+                                to get started!
+                            </>
+                        ) : (
+                            "Create your first tracking to get started!"
+                        )}
+                    </p>
                 </div>
             </div>
         );

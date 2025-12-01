@@ -508,6 +508,7 @@ function App() {
           <TrackingsList
             trackings={trackings}
             onEdit={handleEditTracking}
+            onCreate={() => setShowTrackingForm(true)}
             isLoading={trackingsLoading}
           />
         </div>
