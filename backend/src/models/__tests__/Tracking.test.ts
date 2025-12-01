@@ -40,6 +40,7 @@ async function createTestDatabase(): Promise<Database> {
               type TEXT NOT NULL CHECK(type IN ('true_false', 'register')),
               start_tracking_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
               notes TEXT,
+              icon TEXT,
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -179,7 +180,12 @@ describe("Tracking Model", () => {
     it("should update existing tracking when id is set", async () => {
       const result = await db.run(
         "INSERT INTO trackings (user_id, question, type, start_tracking_date) VALUES (?, ?, ?, ?)",
-        [userId, "Original question", TrackingType.TRUE_FALSE, "2024-01-01T00:00:00Z"]
+        [
+          userId,
+          "Original question",
+          TrackingType.TRUE_FALSE,
+          "2024-01-01T00:00:00Z",
+        ]
       );
       const trackingId = result.lastID;
 
@@ -218,7 +224,12 @@ describe("Tracking Model", () => {
     it("should update tracking fields", async () => {
       const result = await db.run(
         "INSERT INTO trackings (user_id, question, type, start_tracking_date) VALUES (?, ?, ?, ?)",
-        [userId, "Original question", TrackingType.TRUE_FALSE, "2024-01-01T00:00:00Z"]
+        [
+          userId,
+          "Original question",
+          TrackingType.TRUE_FALSE,
+          "2024-01-01T00:00:00Z",
+        ]
       );
       const trackingId = result.lastID;
 
@@ -261,7 +272,12 @@ describe("Tracking Model", () => {
     it("should delete tracking from database", async () => {
       const result = await db.run(
         "INSERT INTO trackings (user_id, question, type, start_tracking_date) VALUES (?, ?, ?, ?)",
-        [userId, "Did I exercise?", TrackingType.TRUE_FALSE, "2024-01-01T00:00:00Z"]
+        [
+          userId,
+          "Did I exercise?",
+          TrackingType.TRUE_FALSE,
+          "2024-01-01T00:00:00Z",
+        ]
       );
       const trackingId = result.lastID;
 
@@ -275,10 +291,9 @@ describe("Tracking Model", () => {
 
       await tracking.delete(db);
 
-      const deleted = await db.get(
-        "SELECT id FROM trackings WHERE id = ?",
-        [trackingId]
-      );
+      const deleted = await db.get("SELECT id FROM trackings WHERE id = ?", [
+        trackingId,
+      ]);
       expect(deleted).toBeUndefined();
     });
 
@@ -341,7 +356,12 @@ describe("Tracking Model", () => {
     it("should load tracking by id", async () => {
       const result = await db.run(
         "INSERT INTO trackings (user_id, question, type, start_tracking_date) VALUES (?, ?, ?, ?)",
-        [userId, "Did I exercise?", TrackingType.TRUE_FALSE, "2024-01-01T00:00:00Z"]
+        [
+          userId,
+          "Did I exercise?",
+          TrackingType.TRUE_FALSE,
+          "2024-01-01T00:00:00Z",
+        ]
       );
       const trackingId = result.lastID;
 
@@ -366,7 +386,12 @@ describe("Tracking Model", () => {
 
       const result = await db.run(
         "INSERT INTO trackings (user_id, question, type, start_tracking_date) VALUES (?, ?, ?, ?)",
-        [otherUserId, "Did I exercise?", TrackingType.TRUE_FALSE, "2024-01-01T00:00:00Z"]
+        [
+          otherUserId,
+          "Did I exercise?",
+          TrackingType.TRUE_FALSE,
+          "2024-01-01T00:00:00Z",
+        ]
       );
       const trackingId = result.lastID;
 
