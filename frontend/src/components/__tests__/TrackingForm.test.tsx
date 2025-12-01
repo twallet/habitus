@@ -61,7 +61,6 @@ describe("TrackingForm", () => {
                 "Did I exercise today?",
                 TrackingType.TRUE_FALSE,
                 undefined,
-                undefined,
                 undefined
             );
         });
@@ -89,7 +88,6 @@ describe("TrackingForm", () => {
             expect(mockOnSubmit).toHaveBeenCalledWith(
                 "Did I exercise?",
                 TrackingType.TRUE_FALSE,
-                undefined,
                 "Exercise notes",
                 undefined
             );

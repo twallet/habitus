@@ -251,12 +251,7 @@ describe("Tracking Model", () => {
     it("should delete tracking from database", async () => {
       const result = await db.run(
         "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [
-          userId,
-          "Did I exercise?",
-          TrackingType.TRUE_FALSE,
-          "2024-01-01T00:00:00Z",
-        ]
+        [userId, "Did I exercise?", TrackingType.TRUE_FALSE]
       );
       const trackingId = result.lastID;
 
@@ -330,12 +325,7 @@ describe("Tracking Model", () => {
     it("should load tracking by id", async () => {
       const result = await db.run(
         "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [
-          userId,
-          "Did I exercise?",
-          TrackingType.TRUE_FALSE,
-          "2024-01-01T00:00:00Z",
-        ]
+        [userId, "Did I exercise?", TrackingType.TRUE_FALSE]
       );
       const trackingId = result.lastID;
 
@@ -360,12 +350,7 @@ describe("Tracking Model", () => {
 
       const result = await db.run(
         "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [
-          otherUserId,
-          "Did I exercise?",
-          TrackingType.TRUE_FALSE,
-          "2024-01-01T00:00:00Z",
-        ]
+        [otherUserId, "Did I exercise?", TrackingType.TRUE_FALSE]
       );
       const trackingId = result.lastID;
 

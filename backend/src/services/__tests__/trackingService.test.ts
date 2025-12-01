@@ -211,7 +211,6 @@ describe("TrackingService", () => {
         testUserId,
         "Did I meditate?",
         TrackingType.TRUE_FALSE,
-        undefined,
         "Meditation notes"
       );
 
