@@ -294,11 +294,6 @@
   opacity: 0.6;
 }
 
-.schedule-edit-actions {
-  display: flex;
-  gap: 8px;
-}
-
 .btn-small {
   padding: 6px 12px;
   font-size: 0.85rem;

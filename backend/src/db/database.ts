@@ -1,7 +1,7 @@
 import sqlite3 from "sqlite3";
 import path from "path";
 import fs from "fs";
-import { getWorkspaceRoot, PATHS } from "../config/paths.js";
+import { PathConfig } from "../config/paths.js";
 
 /**
  * Get database path from environment variable or default location.
@@ -26,7 +26,7 @@ function getDatabasePath(customPath?: string): string {
   if (customPath) {
     dbPath = path.isAbsolute(customPath)
       ? customPath
-      : path.resolve(PATHS.backendRoot, customPath);
+      : path.resolve(PathConfig.getBackendRoot(), customPath);
   }
   // Priority 2: DB_PATH environment variable (single source of truth)
   else if (process.env.DB_PATH) {
@@ -35,12 +35,12 @@ function getDatabasePath(customPath?: string): string {
     } else {
       // For relative paths, resolve relative to backend directory
       // This ensures consistent behavior regardless of where the code runs from
-      dbPath = path.resolve(PATHS.backendRoot, process.env.DB_PATH);
+      dbPath = path.resolve(PathConfig.getBackendRoot(), process.env.DB_PATH);
     }
   }
   // Priority 3: Default path (backend/data/habitus.db relative to workspace root)
   else {
-    dbPath = path.join(PATHS.backendData, "habitus.db");
+    dbPath = path.join(PathConfig.getPaths().backendData, "habitus.db");
   }
 
   // Only create directory for file-based databases (not :memory: or file: URIs)

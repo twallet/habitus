@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { getAuthService, getUserService } from "../services/index.js";
+import { ServiceManager } from "../services/index.js";
 
 /**
  * Extended Express Request interface with user ID.
@@ -43,7 +43,7 @@ export async function authenticateToken(
       } with token`
     );
 
-    const authService = getAuthService();
+    const authService = ServiceManager.getAuthService();
     const userId = await authService.verifyToken(token);
     req.userId = userId;
 
@@ -54,7 +54,7 @@ export async function authenticateToken(
     );
 
     // Update last access timestamp (fire and forget, don't wait for it)
-    const userService = getUserService();
+    const userService = ServiceManager.getUserService();
     userService.updateLastAccess(userId).catch((err) => {
       console.error(
         `[${new Date().toISOString()}] AUTH_MIDDLEWARE | Error updating last access for userId ${userId}:`,

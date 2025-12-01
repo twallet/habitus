@@ -1,7 +1,7 @@
 import fs from "fs";
 import multer from "multer";
 import path from "path";
-import { getBackendRoot } from "../config/paths.js";
+import { PathConfig } from "../config/paths.js";
 
 /**
  * Upload configuration class for managing file uploads.
@@ -41,13 +41,13 @@ export class UploadConfig {
         resolvedDbPath = process.env.DB_PATH;
       } else {
         // For relative paths, resolve relative to backend directory
-        const backendRoot = getBackendRoot();
+        const backendRoot = PathConfig.getBackendRoot();
         resolvedDbPath = path.resolve(backendRoot, process.env.DB_PATH);
       }
       dataDir = path.dirname(resolvedDbPath);
     } else {
       // Default: backend/data (same as database default)
-      const backendRoot = getBackendRoot();
+      const backendRoot = PathConfig.getBackendRoot();
       dataDir = path.join(backendRoot, "data");
     }
     this.uploadsDir = path.join(dataDir, "uploads");
@@ -196,7 +196,11 @@ function getUploadConfig(): UploadConfig {
  */
 export const uploadProfilePicture = (() => {
   let middleware: ReturnType<multer.Multer["single"]> | null = null;
-  return (req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
+  return (
+    req: Express.Request,
+    res: Express.Response,
+    next: Express.NextFunction
+  ) => {
     if (!middleware) {
       middleware = getUploadConfig().getProfilePictureMiddleware();
     }

@@ -6,101 +6,103 @@ import { EmailService } from "./emailService.js";
 import { AiService } from "./aiService.js";
 
 /**
- * Service instances singleton.
- * Initializes all services with their dependencies.
+ * Service manager class for managing service instances.
+ * Provides singleton access to all application services.
  * @public
  */
-let authService: AuthService | null = null;
-let userService: UserService | null = null;
-let trackingService: TrackingService | null = null;
-let emailService: EmailService | null = null;
-let aiService: AiService | null = null;
+export class ServiceManager {
+  private static authService: AuthService | null = null;
+  private static userService: UserService | null = null;
+  private static trackingService: TrackingService | null = null;
+  private static emailService: EmailService | null = null;
+  private static aiService: AiService | null = null;
 
-/**
- * Initialize all service instances.
- * Should be called after database is initialized.
- * @param db - Database instance
- * @public
- */
-export function initializeServices(db: Database): void {
-  emailService = new EmailService();
-  authService = new AuthService(db, emailService);
-  userService = new UserService(db);
-  trackingService = new TrackingService(db);
-  aiService = new AiService();
-}
-
-/**
- * Get AuthService instance.
- * @returns AuthService instance
- * @throws Error if services not initialized
- * @public
- */
-export function getAuthService(): AuthService {
-  if (!authService) {
-    throw new Error(
-      "Services not initialized. Call initializeServices() first."
-    );
+  /**
+   * Initialize all service instances.
+   * Should be called after database is initialized.
+   * @param db - Database instance
+   * @public
+   */
+  static initializeServices(db: Database): void {
+    this.emailService = new EmailService();
+    this.authService = new AuthService(db, this.emailService);
+    this.userService = new UserService(db);
+    this.trackingService = new TrackingService(db);
+    this.aiService = new AiService();
   }
-  return authService;
-}
 
-/**
- * Get UserService instance.
- * @returns UserService instance
- * @throws Error if services not initialized
- * @public
- */
-export function getUserService(): UserService {
-  if (!userService) {
-    throw new Error(
-      "Services not initialized. Call initializeServices() first."
-    );
+  /**
+   * Get AuthService instance.
+   * @returns AuthService instance
+   * @throws Error if services not initialized
+   * @public
+   */
+  static getAuthService(): AuthService {
+    if (!this.authService) {
+      throw new Error(
+        "Services not initialized. Call ServiceManager.initializeServices() first."
+      );
+    }
+    return this.authService;
   }
-  return userService;
-}
 
-/**
- * Get TrackingService instance.
- * @returns TrackingService instance
- * @throws Error if services not initialized
- * @public
- */
-export function getTrackingService(): TrackingService {
-  if (!trackingService) {
-    throw new Error(
-      "Services not initialized. Call initializeServices() first."
-    );
+  /**
+   * Get UserService instance.
+   * @returns UserService instance
+   * @throws Error if services not initialized
+   * @public
+   */
+  static getUserService(): UserService {
+    if (!this.userService) {
+      throw new Error(
+        "Services not initialized. Call ServiceManager.initializeServices() first."
+      );
+    }
+    return this.userService;
   }
-  return trackingService;
-}
 
-/**
- * Get EmailService instance.
- * @returns EmailService instance
- * @throws Error if services not initialized
- * @public
- */
-export function getEmailService(): EmailService {
-  if (!emailService) {
-    throw new Error(
-      "Services not initialized. Call initializeServices() first."
-    );
+  /**
+   * Get TrackingService instance.
+   * @returns TrackingService instance
+   * @throws Error if services not initialized
+   * @public
+   */
+  static getTrackingService(): TrackingService {
+    if (!this.trackingService) {
+      throw new Error(
+        "Services not initialized. Call ServiceManager.initializeServices() first."
+      );
+    }
+    return this.trackingService;
   }
-  return emailService;
-}
 
-/**
- * Get AiService instance.
- * @returns AiService instance
- * @throws Error if services not initialized
- * @public
- */
-export function getAiService(): AiService {
-  if (!aiService) {
-    throw new Error(
-      "Services not initialized. Call initializeServices() first."
-    );
+  /**
+   * Get EmailService instance.
+   * @returns EmailService instance
+   * @throws Error if services not initialized
+   * @public
+   */
+  static getEmailService(): EmailService {
+    if (!this.emailService) {
+      throw new Error(
+        "Services not initialized. Call ServiceManager.initializeServices() first."
+      );
+    }
+    return this.emailService;
   }
-  return aiService;
+
+  /**
+   * Get AiService instance.
+   * @returns AiService instance
+   * @throws Error if services not initialized
+   * @public
+   */
+  static getAiService(): AiService {
+    if (!this.aiService) {
+      throw new Error(
+        "Services not initialized. Call ServiceManager.initializeServices() first."
+      );
+    }
+    return this.aiService;
+  }
 }

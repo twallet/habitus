@@ -1,12 +1,6 @@
 import { vi } from "vitest";
 import { Database } from "../../db/database.js";
-import {
-  initializeServices,
-  getAuthService,
-  getUserService,
-  getTrackingService,
-  getEmailService,
-} from "../index.js";
+import { ServiceManager } from "../index.js";
 
 describe("Services Index", () => {
   let db: Database;
@@ -22,38 +16,38 @@ describe("Services Index", () => {
 
   describe("initializeServices", () => {
     it("should initialize all services with database", () => {
-      initializeServices(db);
+      ServiceManager.initializeServices(db);
 
-      expect(getAuthService()).toBeDefined();
-      expect(getUserService()).toBeDefined();
-      expect(getTrackingService()).toBeDefined();
-      expect(getEmailService()).toBeDefined();
+      expect(ServiceManager.getAuthService()).toBeDefined();
+      expect(ServiceManager.getUserService()).toBeDefined();
+      expect(ServiceManager.getTrackingService()).toBeDefined();
+      expect(ServiceManager.getEmailService()).toBeDefined();
     });
 
     it("should create EmailService instance", () => {
-      initializeServices(db);
-      const emailService = getEmailService();
+      ServiceManager.initializeServices(db);
+      const emailService = ServiceManager.getEmailService();
       expect(emailService).toBeDefined();
       expect(typeof emailService.sendMagicLink).toBe("function");
     });
 
     it("should create AuthService with database and emailService", () => {
-      initializeServices(db);
-      const authService = getAuthService();
+      ServiceManager.initializeServices(db);
+      const authService = ServiceManager.getAuthService();
       expect(authService).toBeDefined();
       expect(typeof authService.requestRegisterMagicLink).toBe("function");
     });
 
     it("should create UserService with database", () => {
-      initializeServices(db);
-      const userService = getUserService();
+      ServiceManager.initializeServices(db);
+      const userService = ServiceManager.getUserService();
       expect(userService).toBeDefined();
       expect(typeof userService.getAllUsers).toBe("function");
     });
 
     it("should create TrackingService with database", () => {
-      initializeServices(db);
-      const trackingService = getTrackingService();
+      ServiceManager.initializeServices(db);
+      const trackingService = ServiceManager.getTrackingService();
       expect(trackingService).toBeDefined();
       expect(typeof trackingService.getTrackingsByUserId).toBe("function");
     });
@@ -61,8 +55,8 @@ describe("Services Index", () => {
 
   describe("getAuthService", () => {
     it("should return AuthService instance after initialization", () => {
-      initializeServices(db);
-      const service = getAuthService();
+      ServiceManager.initializeServices(db);
+      const service = ServiceManager.getAuthService();
       expect(service).toBeDefined();
       expect(typeof service.verifyToken).toBe("function");
     });
@@ -71,16 +65,16 @@ describe("Services Index", () => {
       // Reset modules to get fresh state
       vi.resetModules();
       const freshModule = await import("../index.js");
-      expect(() => freshModule.getAuthService()).toThrow(
-        "Services not initialized. Call initializeServices() first."
+      expect(() => freshModule.ServiceManager.getAuthService()).toThrow(
+        /Services not initialized. Call (ServiceManager\.)?initializeServices\(\) first\./
       );
     });
   });
 
   describe("getUserService", () => {
     it("should return UserService instance after initialization", () => {
-      initializeServices(db);
-      const service = getUserService();
+      ServiceManager.initializeServices(db);
+      const service = ServiceManager.getUserService();
       expect(service).toBeDefined();
       expect(typeof service.getUserById).toBe("function");
     });
@@ -89,16 +83,16 @@ describe("Services Index", () => {
       // Reset modules to get fresh state
       vi.resetModules();
       const freshModule = await import("../index.js");
-      expect(() => freshModule.getUserService()).toThrow(
-        "Services not initialized. Call initializeServices() first."
+      expect(() => freshModule.ServiceManager.getUserService()).toThrow(
+        /Services not initialized. Call (ServiceManager\.)?initializeServices\(\) first\./
       );
     });
   });
 
   describe("getTrackingService", () => {
     it("should return TrackingService instance after initialization", () => {
-      initializeServices(db);
-      const service = getTrackingService();
+      ServiceManager.initializeServices(db);
+      const service = ServiceManager.getTrackingService();
       expect(service).toBeDefined();
       expect(typeof service.createTracking).toBe("function");
     });
@@ -107,16 +101,16 @@ describe("Services Index", () => {
       // Reset modules to get fresh state
       vi.resetModules();
       const freshModule = await import("../index.js");
-      expect(() => freshModule.getTrackingService()).toThrow(
-        "Services not initialized. Call initializeServices() first."
+      expect(() => freshModule.ServiceManager.getTrackingService()).toThrow(
+        /Services not initialized. Call (ServiceManager\.)?initializeServices\(\) first\./
       );
     });
   });
 
   describe("getEmailService", () => {
     it("should return EmailService instance after initialization", () => {
-      initializeServices(db);
-      const service = getEmailService();
+      ServiceManager.initializeServices(db);
+      const service = ServiceManager.getEmailService();
       expect(service).toBeDefined();
       expect(typeof service.sendMagicLink).toBe("function");
     });
@@ -125,8 +119,8 @@ describe("Services Index", () => {
       // Reset modules to get fresh state
       vi.resetModules();
       const freshModule = await import("../index.js");
-      expect(() => freshModule.getEmailService()).toThrow(
-        "Services not initialized. Call initializeServices() first."
+      expect(() => freshModule.ServiceManager.getEmailService()).toThrow(
+        /Services not initialized. Call (ServiceManager\.)?initializeServices\(\) first\./
       );
     });
   });

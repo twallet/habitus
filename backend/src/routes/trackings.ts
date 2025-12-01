@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { getTrackingService, getAiService } from "../services/index.js";
+import { ServiceManager } from "../services/index.js";
 import {
   authenticateToken,
   AuthRequest,
@@ -7,7 +7,7 @@ import {
 
 const router = Router();
 // Lazy-load service to allow dependency injection in tests
-const getTrackingServiceInstance = () => getTrackingService();
+const getTrackingServiceInstance = () => ServiceManager.getTrackingService();
 
 /**
  * GET /api/trackings
@@ -241,7 +241,7 @@ router.post(
         return res.status(400).json({ error: "Question is required" });
       }
 
-      const aiService = getAiService();
+      const aiService = ServiceManager.getAiService();
       const emoji = await aiService.suggestEmoji(question.trim());
 
       res.json({ emoji });

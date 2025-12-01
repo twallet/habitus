@@ -14,13 +14,13 @@ import express from "express";
 import cors from "cors";
 import { readFileSync, existsSync } from "fs";
 import { Database } from "./db/database.js";
-import { initializeServices } from "./services/index.js";
+import { ServiceManager } from "./services/index.js";
 import usersRouter from "./routes/users.js";
 import authRouter from "./routes/auth.js";
 import trackingsRouter from "./routes/trackings.js";
 import { getUploadsDirectory } from "./middleware/upload.js";
-import { getPort, getServerUrl } from "./setup/constants.js";
-import { getWorkspaceRoot } from "./config/paths.js";
+import { ServerConfig } from "./setup/constants.js";
+import { PathConfig } from "./config/paths.js";
 
 const isDevelopment = process.env.NODE_ENV !== "production";
 
@@ -139,7 +139,7 @@ async function initializeViteDevServer() {
 
   try {
     const { createServer } = await import("vite");
-    const workspaceRoot = getWorkspaceRoot();
+    const workspaceRoot = PathConfig.getWorkspaceRoot();
     const frontendPath = join(workspaceRoot, "frontend");
 
     const viteServer = await createServer({
@@ -175,7 +175,7 @@ db.initialize()
     console.log(
       `[${new Date().toISOString()}] Database initialized successfully`
     );
-    initializeServices(db);
+    ServiceManager.initializeServices(db);
     console.log(
       `[${new Date().toISOString()}] Services initialized successfully`
     );
@@ -185,7 +185,7 @@ db.initialize()
 
     // In production, serve static files from frontend build
     if (!isDevelopment) {
-      const workspaceRoot = getWorkspaceRoot();
+      const workspaceRoot = PathConfig.getWorkspaceRoot();
       const frontendBuildPath = join(workspaceRoot, "frontend", "dist");
       app.use(express.static(frontendBuildPath));
 
@@ -219,7 +219,7 @@ db.initialize()
       });
     } else if (viteServer) {
       // In development, serve React app for all non-API routes via Vite
-      const workspaceRoot = getWorkspaceRoot();
+      const workspaceRoot = PathConfig.getWorkspaceRoot();
       const frontendPath = join(workspaceRoot, "frontend");
       const indexHtmlPath = join(frontendPath, "index.html");
 
@@ -271,9 +271,9 @@ db.initialize()
       }
     );
 
-    const server = app.listen(getPort(), () => {
+    const server = app.listen(ServerConfig.getPort(), () => {
       console.log(
-        `[${new Date().toISOString()}] Server running on ${getServerUrl()}:${getPort()}`
+        `[${new Date().toISOString()}] Server running on ${ServerConfig.getServerUrl()}:${ServerConfig.getPort()}`
       );
       console.log(
         `[${new Date().toISOString()}] Environment: ${

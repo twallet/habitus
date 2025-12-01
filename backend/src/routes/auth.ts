@@ -1,14 +1,14 @@
 import { Router, Request, Response } from "express";
-import { getAuthService } from "../services/index.js";
+import { ServiceManager } from "../services/index.js";
 import { uploadProfilePicture } from "../middleware/upload.js";
 import { authRateLimiter } from "../middleware/rateLimiter.js";
 import { authenticateToken } from "../middleware/authMiddleware.js";
 import { AuthRequest } from "../middleware/authMiddleware.js";
-import { getServerUrl, getPort } from "../setup/constants.js";
+import { ServerConfig } from "../setup/constants.js";
 
 const router = Router();
 // Lazy-load service to allow dependency injection in tests
-const getAuthServiceInstance = () => getAuthService();
+const getAuthServiceInstance = () => ServiceManager.getAuthService();
 
 /**
  * POST /api/auth/register
@@ -43,7 +43,7 @@ router.post(
       // Build profile picture URL if file was uploaded
       let profilePictureUrl: string | undefined;
       if (file) {
-        profilePictureUrl = `${getServerUrl()}:${getPort()}/uploads/${
+        profilePictureUrl = `${ServerConfig.getServerUrl()}:${ServerConfig.getPort()}/uploads/${
           file.filename
         }`;
       }
@@ -252,8 +252,8 @@ router.get("/verify-email-change", async (req: Request, res: Response) => {
     const { token } = req.query;
 
     if (!token || typeof token !== "string") {
-      const serverUrl = getServerUrl();
-      const port = getPort();
+      const serverUrl = ServerConfig.getServerUrl();
+      const port = ServerConfig.getPort();
       const frontendUrl = `${serverUrl}:${port}`;
       return res.redirect(
         `${frontendUrl}?emailChangeVerified=false&error=${encodeURIComponent(
@@ -262,12 +262,12 @@ router.get("/verify-email-change", async (req: Request, res: Response) => {
       );
     }
 
-    const { getUserService } = await import("../services/index.js");
-    await getUserService().verifyEmailChange(token);
+    const { ServiceManager } = await import("../services/index.js");
+    await ServiceManager.getUserService().verifyEmailChange(token);
 
     // Redirect to frontend with success message
-    const serverUrl = getServerUrl();
-    const port = getPort();
+    const serverUrl = ServerConfig.getServerUrl();
+    const port = ServerConfig.getPort();
     const frontendUrl = `${serverUrl}:${port}`;
     res.redirect(`${frontendUrl}?emailChangeVerified=true`);
   } catch (error) {
@@ -277,8 +277,8 @@ router.get("/verify-email-change", async (req: Request, res: Response) => {
         error.message.includes("expired") ||
         error.message.includes("already registered"))
     ) {
-      const serverUrl = getServerUrl();
-      const port = getPort();
+      const serverUrl = ServerConfig.getServerUrl();
+      const port = ServerConfig.getPort();
       const frontendUrl = `${serverUrl}:${port}`;
       return res.redirect(
         `${frontendUrl}?emailChangeVerified=false&error=${encodeURIComponent(
@@ -290,8 +290,8 @@ router.get("/verify-email-change", async (req: Request, res: Response) => {
       `[${new Date().toISOString()}] AUTH_ROUTE | Error verifying email change:`,
       error
     );
-    const serverUrl = getServerUrl();
-    const port = getPort();
+    const serverUrl = ServerConfig.getServerUrl();
+    const port = ServerConfig.getPort();
     const frontendUrl = `${serverUrl}:${port}`;
     res.redirect(
       `${frontendUrl}?emailChangeVerified=false&error=${encodeURIComponent(

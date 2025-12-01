@@ -10,59 +10,79 @@ import path from "path";
 import fs from "fs";
 
 /**
- * Get workspace root directory from PROJECT_ROOT environment variable.
- * @returns Absolute path to workspace root
- * @throws Error if PROJECT_ROOT is not set or points to non-existent path
+ * Path configuration utility class.
+ * Provides methods to access project paths from environment variables.
+ * @public
  */
-export function getWorkspaceRoot(): string {
-  if (!process.env.PROJECT_ROOT) {
-    throw new Error(
-      "PROJECT_ROOT environment variable is required. Please set it in config/.env file."
-    );
+type PathsType = {
+  readonly workspaceRoot: string;
+  readonly backendRoot: string;
+  readonly backendSrc: string;
+  readonly backendDist: string;
+  readonly backendData: string;
+};
+
+export class PathConfig {
+  private static cachedWorkspaceRoot: string | null = null;
+  private static cachedBackendRoot: string | null = null;
+  private static cachedPaths: PathsType | null = null;
+
+  /**
+   * Get workspace root directory from PROJECT_ROOT environment variable.
+   * @returns Absolute path to workspace root
+   * @throws Error if PROJECT_ROOT is not set or points to non-existent path
+   * @public
+   */
+  static getWorkspaceRoot(): string {
+    if (this.cachedWorkspaceRoot === null) {
+      if (!process.env.PROJECT_ROOT) {
+        throw new Error(
+          "PROJECT_ROOT environment variable is required. Please set it in config/.env file."
+        );
+      }
+
+      const root = path.resolve(process.env.PROJECT_ROOT);
+
+      if (!fs.existsSync(root)) {
+        throw new Error(
+          `PROJECT_ROOT environment variable points to non-existent path: ${root}`
+        );
+      }
+
+      this.cachedWorkspaceRoot = root;
+    }
+    return this.cachedWorkspaceRoot;
   }
 
-  const root = path.resolve(process.env.PROJECT_ROOT);
-
-  if (!fs.existsSync(root)) {
-    throw new Error(
-      `PROJECT_ROOT environment variable points to non-existent path: ${root}`
-    );
+  /**
+   * Get backend root directory.
+   * Constructed as absolute path from PROJECT_ROOT.
+   * @returns Absolute path to backend directory
+   * @public
+   */
+  static getBackendRoot(): string {
+    if (this.cachedBackendRoot === null) {
+      this.cachedBackendRoot = path.join(this.getWorkspaceRoot(), "backend");
+    }
+    return this.cachedBackendRoot;
   }
 
-  return root;
+  /**
+   * Get commonly used paths.
+   * This method ensures lazy evaluation after environment variables are loaded.
+   * @returns Object with commonly used paths
+   * @public
+   */
+  static getPaths(): PathsType {
+    if (this.cachedPaths === null) {
+      this.cachedPaths = {
+        workspaceRoot: this.getWorkspaceRoot(),
+        backendRoot: this.getBackendRoot(),
+        backendSrc: path.join(this.getBackendRoot(), "src"),
+        backendDist: path.join(this.getBackendRoot(), "dist"),
+        backendData: path.join(this.getBackendRoot(), "data"),
+      } as const;
+    }
+    return this.cachedPaths;
+  }
 }
-
-/**
- * Get backend root directory.
- * Constructed as absolute path from PROJECT_ROOT.
- * @returns Absolute path to backend directory
- */
-export function getBackendRoot(): string {
-  return path.join(getWorkspaceRoot(), "backend");
-}
-
-/**
- * Get commonly used paths.
- * This is a function to ensure lazy evaluation after environment variables are loaded.
- * @returns Object with commonly used paths
- */
-export function getPaths() {
-  return {
-    workspaceRoot: getWorkspaceRoot(),
-    backendRoot: getBackendRoot(),
-    backendSrc: path.join(getBackendRoot(), "src"),
-    backendDist: path.join(getBackendRoot(), "dist"),
-    backendData: path.join(getBackendRoot(), "data"),
-  } as const;
-}
-
-/**
- * Export commonly used paths as a constant.
- * Note: This is evaluated lazily via getter to ensure environment variables are loaded first.
- * @deprecated Use getPaths() function instead for better control over when paths are evaluated.
- */
-export const PATHS = new Proxy({} as ReturnType<typeof getPaths>, {
-  get(_target, prop) {
-    return getPaths()[prop as keyof ReturnType<typeof getPaths>];
-  },
-});

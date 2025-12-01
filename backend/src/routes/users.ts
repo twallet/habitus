@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { getUserService } from "../services/index.js";
+import { ServiceManager } from "../services/index.js";
 import {
   authenticateToken,
   AuthRequest,
@@ -8,13 +8,13 @@ import {
   uploadProfilePicture,
   getUploadsDirectory,
 } from "../middleware/upload.js";
-import { getServerUrl, getPort } from "../setup/constants.js";
+import { ServerConfig } from "../setup/constants.js";
 import fs from "fs";
 import path from "path";
 
 const router = Router();
 // Lazy-load service to allow dependency injection in tests
-const getUserServiceInstance = () => getUserService();
+const getUserServiceInstance = () => ServiceManager.getUserService();
 
 /**
  * GET /api/users
@@ -68,7 +68,7 @@ router.put(
         // Explicitly set to null to indicate removal
         profilePictureUrl = null;
       } else if (file) {
-        profilePictureUrl = `${getServerUrl()}:${getPort()}/uploads/${
+        profilePictureUrl = `${ServerConfig.getServerUrl()}:${ServerConfig.getPort()}/uploads/${
           file.filename
         }`;
       }
