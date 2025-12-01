@@ -280,6 +280,14 @@ describe('EditTrackingModal', () => {
     // Clear any previous calls to mockOnClose after render
     mockOnClose.mockClear();
 
+    // Make a change to ensure onSave is called
+    const questionInput = screen.getByRole('textbox', { name: /^question \*/i });
+    await user.clear(questionInput);
+    await user.type(questionInput, 'Updated question?');
+
+    // Get initial call count before clicking save
+    const initialCallCount = mockOnClose.mock.calls.length;
+
     const saveButton = screen.getByRole('button', { name: /save changes/i });
     await user.click(saveButton);
 
@@ -295,10 +303,9 @@ describe('EditTrackingModal', () => {
     // Wait a bit more to ensure onClose is not called after error is shown
     await new Promise(resolve => setTimeout(resolve, 200));
 
-    // Verify onClose was not called after the error
-    // Note: onClose might be called during render or initial setup, but not after error
-    const callsAfterError = mockOnClose.mock.calls.length;
-    expect(callsAfterError).toBe(0);
+    // Verify onClose was not called after clicking save (only check calls after initial)
+    const callsAfterSave = mockOnClose.mock.calls.length - initialCallCount;
+    expect(callsAfterSave).toBe(0);
   });
 
 

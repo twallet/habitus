@@ -142,7 +142,7 @@ export class Database {
               `[${new Date().toISOString()}] DATABASE | WAL mode enabled`
             );
 
-            // Create tables with new schema
+            // Create tables with complete schema
             console.log(
               `[${new Date().toISOString()}] DATABASE | Creating database schema...`
             );
@@ -202,82 +202,6 @@ export class Database {
                 }
                 console.log(
                   `[${new Date().toISOString()}] DATABASE | Database schema created successfully`
-                );
-
-                // Migrate existing databases: add email verification columns if they don't exist
-                this.db!.run(
-                  `ALTER TABLE users ADD COLUMN pending_email TEXT`,
-                  (alterErr) => {
-                    // Ignore error if column already exists
-                    if (
-                      alterErr &&
-                      !alterErr.message.includes("duplicate column")
-                    ) {
-                      console.warn(
-                        `[${new Date().toISOString()}] DATABASE | Warning adding pending_email column:`,
-                        alterErr.message
-                      );
-                    }
-                  }
-                );
-                this.db!.run(
-                  `ALTER TABLE users ADD COLUMN email_verification_token TEXT`,
-                  (alterErr) => {
-                    // Ignore error if column already exists
-                    if (
-                      alterErr &&
-                      !alterErr.message.includes("duplicate column")
-                    ) {
-                      console.warn(
-                        `[${new Date().toISOString()}] DATABASE | Warning adding email_verification_token column:`,
-                        alterErr.message
-                      );
-                    }
-                  }
-                );
-                this.db!.run(
-                  `ALTER TABLE users ADD COLUMN email_verification_expires DATETIME`,
-                  (alterErr) => {
-                    // Ignore error if column already exists
-                    if (
-                      alterErr &&
-                      !alterErr.message.includes("duplicate column")
-                    ) {
-                      console.warn(
-                        `[${new Date().toISOString()}] DATABASE | Warning adding email_verification_expires column:`,
-                        alterErr.message
-                      );
-                    }
-                  }
-                );
-                // Create index for email verification token if it doesn't exist
-                this.db!.run(
-                  `CREATE INDEX IF NOT EXISTS idx_users_email_verification_token ON users(email_verification_token)`,
-                  (indexErr) => {
-                    if (indexErr) {
-                      console.warn(
-                        `[${new Date().toISOString()}] DATABASE | Warning creating email_verification_token index:`,
-                        indexErr.message
-                      );
-                    }
-                  }
-                );
-
-                // Migrate existing databases: add icon column to trackings if it doesn't exist
-                this.db!.run(
-                  `ALTER TABLE trackings ADD COLUMN icon TEXT`,
-                  (alterErr) => {
-                    // Ignore error if column already exists
-                    if (
-                      alterErr &&
-                      !alterErr.message.includes("duplicate column")
-                    ) {
-                      console.warn(
-                        `[${new Date().toISOString()}] DATABASE | Warning adding icon column:`,
-                        alterErr.message
-                      );
-                    }
-                  }
                 );
 
                 resolve();
