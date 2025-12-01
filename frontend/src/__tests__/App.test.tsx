@@ -1054,7 +1054,9 @@ describe('App', () => {
       expect(screen.getByText(/edit tracking/i)).toBeInTheDocument();
     });
 
-    const questionInput = screen.getByLabelText(/question/i);
+    const questionInput = screen.getByRole('textbox', {
+      name: /^question \*/i,
+    });
     await userEvent.clear(questionInput);
     await userEvent.type(questionInput, 'Did you meditate?');
 
