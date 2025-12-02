@@ -1,4 +1,4 @@
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, FormEvent, useEffect, useRef } from 'react';
 import { TrackingData } from '../models/Tracking';
 import './DeleteTrackingConfirmationModal.css';
 
@@ -25,6 +25,17 @@ export function DeleteTrackingConfirmationModal({
     const [confirmationText, setConfirmationText] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const isDeletingRef = useRef(isDeleting);
+    const errorRef = useRef(error);
+
+    // Keep refs in sync with state
+    useEffect(() => {
+        isDeletingRef.current = isDeleting;
+    }, [isDeleting]);
+
+    useEffect(() => {
+        errorRef.current = error;
+    }, [error]);
 
     const isConfirmEnabled = confirmationText === 'DELETE';
 
@@ -55,11 +66,12 @@ export function DeleteTrackingConfirmationModal({
 
     /**
      * Handle escape key to close modal.
+     * Uses refs to always check the latest state values.
      * @internal
      */
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
-            if (e.key === 'Escape' && !isDeleting && !error) {
+            if (e.key === 'Escape' && !isDeletingRef.current && !errorRef.current) {
                 onClose();
             }
         };
@@ -68,7 +80,7 @@ export function DeleteTrackingConfirmationModal({
         return () => {
             document.removeEventListener('keydown', handleEscape);
         };
-    }, [onClose, isDeleting, error]);
+    }, [onClose]);
 
     const handleOverlayClick = () => {
         if (!isDeleting && !error) {

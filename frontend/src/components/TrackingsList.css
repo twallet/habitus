@@ -18,7 +18,7 @@
 }
 
 .trackings-table th {
-  padding: 10px 12px;
+  padding: 6px 12px;
   text-align: left;
   font-weight: 600;
   font-size: 0.875rem;
@@ -65,7 +65,7 @@
 }
 
 .trackings-table td {
-  padding: 10px 12px;
+  padding: 6px 12px;
   vertical-align: middle;
   color: var(--text-primary);
   font-size: 0.875rem;

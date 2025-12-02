@@ -313,7 +313,7 @@ describe('DeleteTrackingConfirmationModal', () => {
         });
 
         // Try to close with Escape while deleting
-        await userEvent.keyboard('{Escape}');
+        await user.keyboard('{Escape}');
 
         // Modal should still be open
         expect(screen.getByRole('heading', { name: /delete tracking/i })).toBeInTheDocument();
