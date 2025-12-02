@@ -3,7 +3,7 @@ import { vi, type Mock } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { useTrackings } from "../useTrackings";
 import { API_ENDPOINTS } from "../../config/api";
-import { TrackingType } from "../../models/Tracking";
+import { TrackingType, DaysPatternType } from "../../models/Tracking";
 
 // Mock fetch
 global.fetch = vi.fn();
@@ -113,12 +113,18 @@ describe("useTrackings", () => {
 
     let newTracking: any;
     await act(async () => {
+      const defaultDays = {
+        pattern_type: DaysPatternType.INTERVAL,
+        interval_value: 1,
+        interval_unit: "days" as const,
+      };
       newTracking = await result.current.createTracking(
         "Did I exercise?",
         TrackingType.TRUE_FALSE,
         undefined,
         undefined,
-        [{ hour: 9, minutes: 0 }]
+        [{ hour: 9, minutes: 0 }],
+        defaultDays
       );
     });
 
@@ -155,8 +161,14 @@ describe("useTrackings", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
+    const defaultDays = {
+      pattern_type: DaysPatternType.INTERVAL,
+      interval_value: 1,
+      interval_unit: "days" as const,
+    };
+
     await act(async () => {
-      await result.current.updateTracking(1, "New Question");
+      await result.current.updateTracking(1, defaultDays, "New Question");
     });
 
     expect(result.current.trackings[0].question).toBe("New Question");
@@ -168,6 +180,7 @@ describe("useTrackings", () => {
       },
       body: JSON.stringify({
         question: "New Question",
+        days: defaultDays,
       }),
     });
   });
@@ -246,12 +259,18 @@ describe("useTrackings", () => {
 
     await expect(async () => {
       await act(async () => {
+        const defaultDays = {
+          pattern_type: DaysPatternType.INTERVAL,
+          interval_value: 1,
+          interval_unit: "days" as const,
+        };
         await result.current.createTracking(
           "Test Question",
           TrackingType.TRUE_FALSE,
           undefined,
           undefined,
-          [{ hour: 9, minutes: 0 }]
+          [{ hour: 9, minutes: 0 }],
+          defaultDays
         );
       });
     }).rejects.toThrow();
@@ -273,12 +292,18 @@ describe("useTrackings", () => {
 
     await expect(async () => {
       await act(async () => {
+        const defaultDays = {
+          pattern_type: DaysPatternType.INTERVAL,
+          interval_value: 1,
+          interval_unit: "days" as const,
+        };
         await result.current.createTracking(
           "Test Question",
           TrackingType.TRUE_FALSE,
           undefined,
           undefined,
-          [{ hour: 9, minutes: 0 }]
+          [{ hour: 9, minutes: 0 }],
+          defaultDays
         );
       });
     }).rejects.toThrow("Not authenticated");

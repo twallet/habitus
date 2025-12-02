@@ -1,7 +1,11 @@
 import { vi, type Mock } from "vitest";
 import { API_ENDPOINTS, API_BASE_URL, ApiClient } from "../api";
 import { UserData } from "../../models/User";
-import { TrackingData, TrackingType } from "../../models/Tracking";
+import {
+  TrackingData,
+  TrackingType,
+  DaysPatternType,
+} from "../../models/Tracking";
 
 // Mock fetch
 global.fetch = vi.fn();
@@ -450,6 +454,11 @@ describe("api", () => {
 
     describe("updateTracking", () => {
       it("should update tracking successfully", async () => {
+        const defaultDays = {
+          pattern_type: DaysPatternType.INTERVAL,
+          interval_value: 1,
+          interval_unit: "days" as const,
+        };
         const mockTracking: TrackingData = {
           id: 1,
           user_id: 1,
@@ -463,7 +472,11 @@ describe("api", () => {
           json: async () => mockTracking,
         });
 
-        const result = await apiClient.updateTracking(1, "Did you meditate?");
+        const result = await apiClient.updateTracking(
+          1,
+          defaultDays,
+          "Did you meditate?"
+        );
         expect(result).toEqual(mockTracking);
         expect(global.fetch).toHaveBeenCalledWith(
           `${API_ENDPOINTS.trackings}/1`,
@@ -473,6 +486,7 @@ describe("api", () => {
               question: "Did you meditate?",
               type: undefined,
               notes: undefined,
+              days: defaultDays,
             }),
           })
         );
