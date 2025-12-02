@@ -6,10 +6,18 @@
 import { spawn } from "child_process";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import { mkdirSync, existsSync } from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const workspaceRoot = join(__dirname, "..");
+
+// Ensure coverage directories exist
+const coverageDir = join(workspaceRoot, "coverage");
+const coverageTmpDir = join(coverageDir, ".tmp");
+if (!existsSync(coverageTmpDir)) {
+  mkdirSync(coverageTmpDir, { recursive: true });
+}
 
 // Run vitest with coverage
 const vitestProcess = spawn(
