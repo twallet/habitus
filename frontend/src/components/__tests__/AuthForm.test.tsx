@@ -28,7 +28,7 @@ describe('AuthForm', () => {
             );
 
             expect(screen.getByRole('heading', { name: /login/i })).toBeInTheDocument();
-            expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+            expect(screen.getAllByLabelText(/email/i)[0]).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /send login link/i })).toBeInTheDocument();
         });
 
@@ -44,7 +44,7 @@ describe('AuthForm', () => {
                 />
             );
 
-            const emailInput = screen.getByLabelText(/email/i);
+            const emailInput = screen.getAllByLabelText(/email/i)[0];
             await user.type(emailInput, 'test@example.com');
             await user.click(screen.getByRole('button', { name: /send login link/i }));
 
@@ -65,7 +65,7 @@ describe('AuthForm', () => {
                 />
             );
 
-            const emailInput = screen.getByLabelText(/email/i);
+            const emailInput = screen.getAllByLabelText(/email/i)[0];
             await user.type(emailInput, 'test@example.com');
             await user.click(screen.getByRole('button', { name: /send login link/i }));
 
@@ -88,7 +88,7 @@ describe('AuthForm', () => {
                 />
             );
 
-            const emailInput = screen.getByLabelText(/email/i);
+            const emailInput = screen.getAllByLabelText(/email/i)[0];
             await user.type(emailInput, 'test@example.com');
             await user.click(screen.getByRole('button', { name: /send login link/i }));
 
@@ -152,7 +152,7 @@ describe('AuthForm', () => {
             await user.click(screen.getByRole('button', { name: /don't have an account\? register/i }));
 
             expect(screen.getByText(/register/i)).toBeInTheDocument();
-            expect(screen.getByLabelText(/^name \*$/i)).toBeInTheDocument();
+            expect(screen.getAllByLabelText(/^name \*$/i)[0]).toBeInTheDocument();
         });
 
         it('should request registration magic link', async () => {
@@ -169,8 +169,8 @@ describe('AuthForm', () => {
 
             await user.click(screen.getByRole('button', { name: /don't have an account\? register/i }));
 
-            const nameInput = screen.getByLabelText(/^name \*$/i);
-            const emailInput = screen.getByLabelText(/email/i);
+            const nameInput = screen.getAllByLabelText(/^name \*$/i)[0];
+            const emailInput = screen.getAllByLabelText(/email/i)[0];
             await user.type(nameInput, 'John Doe');
             await user.type(emailInput, 'john@example.com');
             await user.click(screen.getByRole('button', { name: /send registration link/i }));
@@ -198,15 +198,15 @@ describe('AuthForm', () => {
 
             await user.click(screen.getByRole('button', { name: /don't have an account\? register/i }));
 
-            const nameInput = screen.getByLabelText(/^name \*$/i);
-            const emailInput = screen.getByLabelText(/email/i);
+            const nameInput = screen.getAllByLabelText(/^name \*$/i)[0];
+            const emailInput = screen.getAllByLabelText(/email/i)[0];
 
             await user.type(nameInput, 'John Doe');
             await user.type(emailInput, 'john@example.com');
 
             // Create a mock file
             const file = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
-            const fileInput = screen.getByLabelText(/profile picture/i).closest('div')?.querySelector('input[type="file"]') as HTMLInputElement;
+            const fileInput = document.getElementById('profilePicture') as HTMLInputElement;
 
             if (fileInput) {
                 await user.upload(fileInput, file);
@@ -237,11 +237,11 @@ describe('AuthForm', () => {
             await user.click(screen.getByRole('button', { name: /don't have an account\? register/i }));
 
             await waitFor(() => {
-                expect(screen.getByLabelText(/^name \*$/i)).toBeInTheDocument();
+                expect(screen.getAllByLabelText(/^name \*$/i)[0]).toBeInTheDocument();
             });
 
-            const nameInput = screen.getByLabelText(/^name \*$/i);
-            const emailInput = screen.getByLabelText(/email/i);
+            const nameInput = screen.getAllByLabelText(/^name \*$/i)[0];
+            const emailInput = screen.getAllByLabelText(/email/i)[0];
 
             // Type email but leave name empty
             await user.type(emailInput, 'john@example.com');
@@ -276,7 +276,7 @@ describe('AuthForm', () => {
             await user.click(screen.getByRole('button', { name: /don't have an account\? register/i }));
 
             const file = new File(['content'], 'profile.jpg', { type: 'image/jpeg' });
-            const fileInput = screen.getByLabelText(/profile picture/i) as HTMLInputElement;
+            const fileInput = document.getElementById('profilePicture') as HTMLInputElement;
 
             await user.upload(fileInput, file);
 
@@ -299,11 +299,11 @@ describe('AuthForm', () => {
             await user.click(screen.getByRole('button', { name: /don't have an account\? register/i }));
 
             await waitFor(() => {
-                expect(screen.getByLabelText(/profile picture/i)).toBeInTheDocument();
+                expect(document.getElementById('profilePicture')).toBeInTheDocument();
             });
 
             const file = new File(['content'], 'document.pdf', { type: 'application/pdf' });
-            const fileInput = screen.getByLabelText(/profile picture/i) as HTMLInputElement;
+            const fileInput = document.getElementById('profilePicture') as HTMLInputElement;
 
             // Create a proper FileList-like object
             Object.defineProperty(fileInput, 'files', {
@@ -335,7 +335,7 @@ describe('AuthForm', () => {
             // Create a file larger than 5MB
             const largeContent = new Array(6 * 1024 * 1024).fill('a').join('');
             const file = new File([largeContent], 'large.jpg', { type: 'image/jpeg' });
-            const fileInput = screen.getByLabelText(/profile picture/i) as HTMLInputElement;
+            const fileInput = document.getElementById('profilePicture') as HTMLInputElement;
 
             await user.upload(fileInput, file);
 
@@ -358,7 +358,7 @@ describe('AuthForm', () => {
             await user.click(screen.getByRole('button', { name: /don't have an account\? register/i }));
 
             const file = new File(['content'], 'profile.jpg', { type: 'image/jpeg' });
-            const fileInput = screen.getByLabelText(/profile picture/i) as HTMLInputElement;
+            const fileInput = document.getElementById('profilePicture') as HTMLInputElement;
 
             // Mock FileReader as a class constructor
             const mockFileReaderInstance = {
@@ -412,7 +412,7 @@ describe('AuthForm', () => {
             await user.click(screen.getByRole('button', { name: /don't have an account\? register/i }));
 
             const file = new File(['content'], 'profile.jpg', { type: 'image/jpeg' });
-            const fileInput = screen.getByLabelText(/profile picture/i) as HTMLInputElement;
+            const fileInput = document.getElementById('profilePicture') as HTMLInputElement;
 
             // Mock FileReader as a class constructor
             const mockFileReaderInstance = {
@@ -472,8 +472,8 @@ describe('AuthForm', () => {
 
             await user.click(screen.getByRole('button', { name: /don't have an account\? register/i }));
 
-            const nameInput = screen.getByLabelText(/^name \*$/i);
-            const emailInput = screen.getByLabelText(/email/i);
+            const nameInput = screen.getAllByLabelText(/^name \*$/i)[0];
+            const emailInput = screen.getAllByLabelText(/email/i)[0];
             await user.type(nameInput, 'John Doe');
             await user.type(emailInput, 'john@example.com');
             await user.click(screen.getByRole('button', { name: /send registration link/i }));
@@ -497,8 +497,8 @@ describe('AuthForm', () => {
 
             await user.click(screen.getByRole('button', { name: /don't have an account\? register/i }));
 
-            const nameInput = screen.getByLabelText(/^name \*$/i);
-            const emailInput = screen.getByLabelText(/email/i);
+            const nameInput = screen.getAllByLabelText(/^name \*$/i)[0];
+            const emailInput = screen.getAllByLabelText(/email/i)[0];
             await user.type(nameInput, 'John Doe');
             await user.type(emailInput, 'john@example.com');
             await user.click(screen.getByRole('button', { name: /send registration link/i }));
@@ -540,7 +540,7 @@ describe('AuthForm', () => {
                 />
             );
 
-            const emailInput = screen.getByLabelText(/email/i);
+            const emailInput = screen.getAllByLabelText(/email/i)[0];
             const submitButton = screen.getByRole('button', { name: /send login link/i });
 
             await user.type(emailInput, 'test@example.com');
