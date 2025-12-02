@@ -227,5 +227,200 @@ describe("DaysPatternInput", () => {
             );
         });
     });
+
+    it("should handle monthly day input", async () => {
+        const user = userEvent.setup();
+        render(
+            <DaysPatternInput
+                onChange={mockOnChange}
+                onErrorChange={mockOnErrorChange}
+            />
+        );
+
+        const select = screen.getByRole("combobox", { name: /frequency/i });
+        await user.selectOptions(select, "monthly");
+
+        // Monthly type defaults to "day", so day input should be visible
+        const dayInput = screen.getByRole("spinbutton");
+        expect(dayInput).toBeInTheDocument();
+
+        await user.clear(dayInput);
+        await user.type(dayInput, "15");
+
+        await waitFor(() => {
+            expect(mockOnChange).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    pattern_type: DaysPatternType.DAY_OF_MONTH,
+                    type: "day_number",
+                    day_numbers: [15],
+                })
+            );
+        });
+    });
+
+    it("should handle monthly last day option", async () => {
+        const user = userEvent.setup();
+        render(
+            <DaysPatternInput
+                onChange={mockOnChange}
+                onErrorChange={mockOnErrorChange}
+            />
+        );
+
+        const select = screen.getByRole("combobox", { name: /frequency/i });
+        await user.selectOptions(select, "monthly");
+
+        // Find the monthly type select (second select in monthly options)
+        const selects = screen.getAllByRole("combobox");
+        const monthlyTypeSelect = selects.find(s => s !== select);
+        expect(monthlyTypeSelect).toBeInTheDocument();
+
+        await user.selectOptions(monthlyTypeSelect!, "last");
+
+        await waitFor(() => {
+            expect(mockOnChange).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    pattern_type: DaysPatternType.DAY_OF_MONTH,
+                    type: "last_day",
+                })
+            );
+        });
+    });
+
+    it("should handle monthly weekday ordinal option", async () => {
+        const user = userEvent.setup();
+        render(
+            <DaysPatternInput
+                onChange={mockOnChange}
+                onErrorChange={mockOnErrorChange}
+            />
+        );
+
+        const select = screen.getByRole("combobox", { name: /frequency/i });
+        await user.selectOptions(select, "monthly");
+
+        // Find the monthly type select
+        const selects = screen.getAllByRole("combobox");
+        const monthlyTypeSelect = selects.find(s => s !== select);
+        expect(monthlyTypeSelect).toBeInTheDocument();
+
+        await user.selectOptions(monthlyTypeSelect!, "weekday");
+
+        // Should show ordinal and weekday selects
+        await waitFor(() => {
+            const allSelects = screen.getAllByRole("combobox");
+            expect(allSelects.length).toBeGreaterThan(2);
+        });
+
+        await waitFor(() => {
+            expect(mockOnChange).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    pattern_type: DaysPatternType.DAY_OF_MONTH,
+                    type: "weekday_ordinal",
+                })
+            );
+        });
+    });
+
+    it("should handle yearly month and day inputs", async () => {
+        const user = userEvent.setup();
+        render(
+            <DaysPatternInput
+                onChange={mockOnChange}
+                onErrorChange={mockOnErrorChange}
+            />
+        );
+
+        const select = screen.getByRole("combobox", { name: /frequency/i });
+        await user.selectOptions(select, "yearly");
+
+        // Should show month select and day input
+        const selects = screen.getAllByRole("combobox");
+        const monthSelect = selects.find(s => s !== select);
+        expect(monthSelect).toBeInTheDocument();
+
+        const dayInput = screen.getByRole("spinbutton");
+        expect(dayInput).toBeInTheDocument();
+
+        await user.selectOptions(monthSelect!, "3"); // March
+        await user.clear(dayInput);
+        await user.type(dayInput, "15");
+
+        await waitFor(() => {
+            expect(mockOnChange).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    pattern_type: DaysPatternType.DAY_OF_YEAR,
+                    type: "date",
+                    month: 3,
+                    day: 15,
+                })
+            );
+        });
+    });
+
+    it("should default to Monday when switching to weekly with empty days", async () => {
+        const user = userEvent.setup();
+        const { rerender } = render(
+            <DaysPatternInput
+                value={{
+                    pattern_type: DaysPatternType.INTERVAL,
+                    interval_value: 1,
+                    interval_unit: "days",
+                }}
+                onChange={mockOnChange}
+                onErrorChange={mockOnErrorChange}
+            />
+        );
+
+        // Switch to weekly - should default to Monday
+        const select = screen.getByRole("combobox", { name: /frequency/i });
+        await user.selectOptions(select, "weekly");
+
+        await waitFor(() => {
+            const mondayButton = screen.getByRole("button", { name: /mon/i });
+            expect(mondayButton).toHaveClass("selected");
+        });
+    });
+
+    it("should work without onErrorChange callback", async () => {
+        const user = userEvent.setup();
+        render(
+            <DaysPatternInput
+                onChange={mockOnChange}
+            />
+        );
+
+        const select = screen.getByRole("combobox", { name: /frequency/i });
+        await user.selectOptions(select, "weekly");
+
+        await waitFor(() => {
+            expect(mockOnChange).toHaveBeenCalled();
+        });
+    });
+
+    it("should not display error when error prop is null", () => {
+        render(
+            <DaysPatternInput
+                onChange={mockOnChange}
+                onErrorChange={mockOnErrorChange}
+                error={null}
+            />
+        );
+
+        expect(screen.queryByText(/test error/i)).not.toBeInTheDocument();
+    });
+
+    it("should handle disabled state for all inputs", () => {
+        render(
+            <DaysPatternInput
+                onChange={mockOnChange}
+                onErrorChange={mockOnErrorChange}
+                disabled={true}
+            />
+        );
+
+        const select = screen.getByRole("combobox", { name: /frequency/i });
+        expect(select).toBeDisabled();
+    });
 });
 

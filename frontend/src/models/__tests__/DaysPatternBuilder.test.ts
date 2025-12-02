@@ -264,4 +264,66 @@ describe("DaysPatternBuilder", () => {
       expect(detected).toBe("monthly");
     });
   });
+
+  describe("setPreset with weekly", () => {
+    it("should default to Monday when switching to weekly with empty days", () => {
+      builder.setSelectedDays([]);
+      builder.setPreset("weekly");
+      expect(builder.getSelectedDays()).toEqual([1]);
+    });
+
+    it("should not change selectedDays when switching to weekly with existing days", () => {
+      builder.setSelectedDays([2, 3]); // Tuesday, Wednesday
+      builder.setPreset("weekly");
+      expect(builder.getSelectedDays()).toEqual([2, 3]);
+    });
+  });
+
+  describe("toggleDay", () => {
+    it("should add day when not in selection", () => {
+      builder.setSelectedDays([1, 2]);
+      builder.toggleDay(3);
+      expect(builder.getSelectedDays()).toEqual([1, 2, 3]);
+    });
+
+    it("should remove day when already in selection", () => {
+      builder.setSelectedDays([1, 2, 3]);
+      builder.toggleDay(2);
+      expect(builder.getSelectedDays()).toEqual([1, 3]);
+    });
+  });
+
+  describe("validate error handling", () => {
+    it("should return error message for weekly pattern without days", () => {
+      builder.setPreset("weekly");
+      builder.setSelectedDays([]);
+      const error = builder.validate();
+      expect(error).toBe("Please select at least one day of the week");
+    });
+
+    it("should return null for valid daily pattern", () => {
+      builder.setPreset("daily");
+      expect(builder.validate()).toBeNull();
+    });
+
+    it("should return null for valid weekly pattern", () => {
+      builder.setPreset("weekly");
+      builder.setSelectedDays([1, 3, 5]);
+      expect(builder.validate()).toBeNull();
+    });
+
+    it("should return null for valid monthly pattern", () => {
+      builder.setPreset("monthly");
+      builder.setMonthlyType("day");
+      builder.setMonthlyDay(15);
+      expect(builder.validate()).toBeNull();
+    });
+
+    it("should return null for valid yearly pattern", () => {
+      builder.setPreset("yearly");
+      builder.setYearlyMonth(3);
+      builder.setYearlyDay(15);
+      expect(builder.validate()).toBeNull();
+    });
+  });
 });
