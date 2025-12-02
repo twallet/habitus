@@ -4,12 +4,27 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { TrackingsList } from "../TrackingsList";
 import { TrackingData, TrackingType, DaysPatternType, TrackingState } from "../../models/Tracking";
+import * as useTrackingsModule from "../../hooks/useTrackings";
+
+// Mock the useTrackings hook
+vi.mock("../../hooks/useTrackings", () => ({
+    useTrackings: vi.fn(),
+}));
 
 describe("TrackingsList", () => {
     const mockOnEdit = vi.fn();
+    const mockDeleteTracking = vi.fn().mockResolvedValue(undefined);
+    const mockUpdateTrackingState = vi.fn().mockResolvedValue(undefined);
 
     beforeEach(() => {
         vi.clearAllMocks();
+        // Default mock implementation
+        (useTrackingsModule.useTrackings as any).mockReturnValue({
+            trackings: [],
+            isLoading: false,
+            updateTrackingState: mockUpdateTrackingState,
+            deleteTracking: mockDeleteTracking,
+        });
     });
 
     it("should render empty state when no trackings", () => {
@@ -815,9 +830,8 @@ describe("TrackingsList", () => {
         });
     });
 
-    it("should call onStateChange when delete is confirmed", async () => {
+    it("should call deleteTracking when delete is confirmed", async () => {
         const user = userEvent.setup();
-        const mockOnStateChange = vi.fn().mockResolvedValue(undefined);
         const trackings: TrackingData[] = [
             {
                 id: 1,
@@ -828,11 +842,18 @@ describe("TrackingsList", () => {
             },
         ];
 
+        // Mock useTrackings to return the trackings and deleteTracking function
+        (useTrackingsModule.useTrackings as any).mockReturnValue({
+            trackings: [],
+            isLoading: false,
+            updateTrackingState: mockUpdateTrackingState,
+            deleteTracking: mockDeleteTracking,
+        });
+
         render(
             <TrackingsList
                 trackings={trackings}
                 onEdit={mockOnEdit}
-                onStateChange={mockOnStateChange}
             />
         );
 
@@ -857,9 +878,9 @@ describe("TrackingsList", () => {
         const confirmDeleteButton = screen.getByRole("button", { name: /delete tracking/i });
         await user.click(confirmDeleteButton);
 
-        // onStateChange should be called with DELETED state
+        // deleteTracking should be called with the tracking ID
         await waitFor(() => {
-            expect(mockOnStateChange).toHaveBeenCalledWith(1, TrackingState.DELETED);
+            expect(mockDeleteTracking).toHaveBeenCalledWith(1);
         });
     });
 

@@ -394,7 +394,7 @@ export function TrackingsList({
     onStateChange,
     onStateChangeSuccess,
 }: TrackingsListProps) {
-    const { trackings: hookTrackings, isLoading: hookIsLoading, updateTrackingState: hookUpdateTrackingState } = useTrackings();
+    const { trackings: hookTrackings, isLoading: hookIsLoading, updateTrackingState: hookUpdateTrackingState, deleteTracking: hookDeleteTracking } = useTrackings();
     const [trackingToDelete, setTrackingToDelete] = useState<TrackingData | null>(null);
     const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
     const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right: number } | null>(null);
@@ -442,6 +442,7 @@ export function TrackingsList({
 
     /**
      * Handle confirmed deletion.
+     * Actually deletes the tracking from the database.
      * @internal
      */
     const handleConfirmDelete = async () => {
@@ -451,18 +452,14 @@ export function TrackingsList({
 
         const trackingId = trackingToDelete.id;
         try {
-            // Use callback if provided (from parent), otherwise use hook's function
-            if (onStateChange) {
-                await onStateChange(trackingId, TrackingState.DELETED);
-            } else {
-                await hookUpdateTrackingState(trackingId, TrackingState.DELETED);
-            }
+            // Always use the actual delete function to remove from database
+            await hookDeleteTracking(trackingId);
             // Show success message
             if (onStateChangeSuccess) {
                 onStateChangeSuccess(StateTransitionHelper.getStateChangeMessage(TrackingState.DELETED));
             }
         } catch (error) {
-            // Error handling is done in the hook or parent
+            // Error handling is done in the hook
             throw error;
         }
     };
