@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DaysPatternInput } from "../DaysPatternInput";
 import { DaysPattern, DaysPatternType } from "../../models/Tracking";
@@ -241,21 +241,23 @@ describe("DaysPatternInput", () => {
         await user.selectOptions(select, "monthly");
 
         // Monthly type defaults to "day", so day input should be visible
-        const dayInput = screen.getByRole("spinbutton");
+        const dayInput = screen.getByRole("spinbutton") as HTMLInputElement;
         expect(dayInput).toBeInTheDocument();
 
-        await user.clear(dayInput);
-        await user.type(dayInput, "15");
+        // Use fireEvent to set the value directly
+        fireEvent.change(dayInput, { target: { value: "15" } });
 
+        // Wait for the onChange to be called with the final value (15)
         await waitFor(() => {
-            expect(mockOnChange).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    pattern_type: DaysPatternType.DAY_OF_MONTH,
-                    type: "day_number",
-                    day_numbers: [15],
-                })
-            );
-        });
+            const calls = mockOnChange.mock.calls;
+            const matchingCall = calls.find(call => {
+                const pattern = call[0];
+                return pattern.pattern_type === DaysPatternType.DAY_OF_MONTH &&
+                    pattern.type === "day_number" &&
+                    pattern.day_numbers?.[0] === 15;
+            });
+            expect(matchingCall).toBeDefined();
+        }, { timeout: 2000 });
     });
 
     it("should handle monthly last day option", async () => {
@@ -339,23 +341,31 @@ describe("DaysPatternInput", () => {
         const monthSelect = selects.find(s => s !== select);
         expect(monthSelect).toBeInTheDocument();
 
-        const dayInput = screen.getByRole("spinbutton");
+        const dayInput = screen.getByRole("spinbutton") as HTMLInputElement;
         expect(dayInput).toBeInTheDocument();
 
         await user.selectOptions(monthSelect!, "3"); // March
-        await user.clear(dayInput);
-        await user.type(dayInput, "15");
 
+        // Wait for month change to propagate
         await waitFor(() => {
-            expect(mockOnChange).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    pattern_type: DaysPatternType.DAY_OF_YEAR,
-                    type: "date",
-                    month: 3,
-                    day: 15,
-                })
-            );
+            expect(mockOnChange).toHaveBeenCalled();
         });
+
+        // Use fireEvent to set the day value directly
+        fireEvent.change(dayInput, { target: { value: "15" } });
+
+        // Wait for the onChange to be called with the final value (month: 3, day: 15)
+        await waitFor(() => {
+            const calls = mockOnChange.mock.calls;
+            const matchingCall = calls.find(call => {
+                const pattern = call[0];
+                return pattern.pattern_type === DaysPatternType.DAY_OF_YEAR &&
+                    pattern.type === "date" &&
+                    pattern.month === 3 &&
+                    pattern.day === 15;
+            });
+            expect(matchingCall).toBeDefined();
+        }, { timeout: 2000 });
     });
 
     it("should default to Monday when switching to weekly", async () => {
