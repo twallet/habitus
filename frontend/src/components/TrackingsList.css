@@ -1,143 +1,144 @@
 .trackings-list {
   width: 100%;
+  overflow-x: auto;
 }
 
-.trackings-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
+.trackings-table {
+  width: 100%;
+  border-collapse: collapse;
   margin-top: 20px;
-}
-
-.tracking-card {
   background: var(--bg-primary);
-  border: 1px solid var(--border-color);
   border-radius: var(--radius);
-  padding: 20px;
+  overflow: hidden;
   box-shadow: var(--shadow-sm);
-  transition: var(--transition);
-  display: flex;
-  flex-direction: column;
 }
 
-.tracking-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
+.trackings-table thead {
+  background: var(--bg-secondary);
 }
 
-.tracking-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 16px;
-  gap: 12px;
-}
-
-.tracking-question {
-  font-size: 1.1rem;
+.trackings-table th {
+  padding: 16px 12px;
+  text-align: left;
   font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-  flex: 1;
-  line-height: 1.4;
-}
-
-.tracking-type {
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
   text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.trackings-table th.col-icon {
+  width: 60px;
+  text-align: center;
+}
+
+.trackings-table th.col-question {
+  min-width: 200px;
+}
+
+.trackings-table th.col-type {
+  width: 60px;
+  text-align: center;
+}
+
+.trackings-table th.col-times {
+  width: 100px;
+}
+
+.trackings-table th.col-frequency {
+  min-width: 150px;
+}
+
+.trackings-table th.col-notes {
+  width: 60px;
+  text-align: center;
+}
+
+.trackings-table th.col-actions {
+  width: 80px;
+  text-align: center;
+}
+
+.tracking-row {
+  border-bottom: 1px solid var(--border-color);
+  transition: var(--transition);
+}
+
+.tracking-row:hover {
+  background: var(--bg-secondary);
+}
+
+.trackings-table td {
+  padding: 16px 12px;
+  vertical-align: middle;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+}
+
+.cell-icon {
+  text-align: center;
+}
+
+.tracking-icon {
+  font-size: 1.5rem;
+  display: inline-block;
+  line-height: 1;
+}
+
+.cell-question {
+  font-weight: 500;
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.tracking-type-true_false {
-  background-color: #dbeafe;
-  color: #1e40af;
+.cell-type {
+  text-align: center;
+  font-size: 1.2rem;
 }
 
-.tracking-type-register {
-  background-color: #d1fae5;
-  color: #065f46;
-}
-
-.tracking-body {
-  flex: 1;
-  margin-bottom: 16px;
-}
-
-.tracking-info {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.tracking-info-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.tracking-label {
-  font-size: 0.875rem;
+.cell-times {
+  font-family: monospace;
   color: var(--text-secondary);
-  font-weight: 500;
 }
 
-.tracking-value {
-  font-size: 0.875rem;
-  color: var(--text-primary);
+.cell-frequency {
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
 }
 
-.tracking-notes {
-  margin-top: 8px;
+.cell-notes {
+  text-align: center;
+  font-size: 1.2rem;
 }
 
-.tracking-notes-content {
-  font-size: 0.875rem;
-  color: var(--text-primary);
-  line-height: 1.5;
-  margin-top: 4px;
-  padding: 8px;
-  background: var(--bg-secondary);
-  border-radius: 4px;
+.cell-actions {
+  text-align: center;
 }
 
-.tracking-actions {
-  display: flex;
-  gap: 8px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border-color);
-}
-
-.btn-edit,
-.btn-delete {
-  flex: 1;
-  padding: 8px 16px;
+.btn-edit-icon {
+  background: none;
   border: none;
-  border-radius: var(--radius);
-  font-size: 0.875rem;
-  font-weight: 500;
+  padding: 8px;
   cursor: pointer;
+  font-size: 1.2rem;
+  border-radius: var(--radius);
   transition: var(--transition);
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.btn-edit {
-  background-color: var(--primary-color);
-  color: white;
+.btn-edit-icon:hover {
+  background: var(--bg-secondary);
+  transform: scale(1.1);
 }
 
-.btn-edit:hover {
-  background-color: var(--primary-hover);
-}
-
-.btn-delete {
-  background-color: var(--error-color);
-  color: white;
-}
-
-.btn-delete:hover {
-  background-color: #dc2626;
+.btn-edit-icon:active {
+  transform: scale(0.95);
 }
 
 .empty-state {
@@ -173,8 +174,31 @@
   border-radius: 2px;
 }
 
+.loading {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+}
+
 @media (max-width: 768px) {
-  .trackings-grid {
-    grid-template-columns: 1fr;
+  .trackings-table {
+    font-size: 0.8125rem;
+  }
+
+  .trackings-table th,
+  .trackings-table td {
+    padding: 12px 8px;
+  }
+
+  .cell-question {
+    max-width: 150px;
+  }
+
+  .cell-frequency {
+    display: none;
+  }
+
+  .trackings-table th.col-frequency {
+    display: none;
   }
 }

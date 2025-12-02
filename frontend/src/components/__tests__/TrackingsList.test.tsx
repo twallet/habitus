@@ -61,8 +61,8 @@ describe("TrackingsList", () => {
 
         expect(screen.getByText("Did I exercise today?")).toBeInTheDocument();
         expect(screen.getByText("Did I meditate?")).toBeInTheDocument();
-        expect(screen.getByText("🔘 Yes/No")).toBeInTheDocument();
-        expect(screen.getByText("🖊️ Text")).toBeInTheDocument();
+        expect(screen.getByText("🔘")).toBeInTheDocument();
+        expect(screen.getByText("🖊️")).toBeInTheDocument();
     });
 
     it("should call onEdit when edit button is clicked", () => {
@@ -107,7 +107,7 @@ describe("TrackingsList", () => {
             />
         );
 
-        expect(screen.getByText("Notes:")).toBeInTheDocument();
+        expect(screen.getByText("📝")).toBeInTheDocument();
     });
 
     it("should not display notes section when notes are absent", () => {
@@ -127,7 +127,7 @@ describe("TrackingsList", () => {
             />
         );
 
-        expect(screen.queryByText("Notes:")).not.toBeInTheDocument();
+        expect(screen.queryByText("📝")).not.toBeInTheDocument();
     });
 });
 
