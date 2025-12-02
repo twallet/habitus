@@ -302,8 +302,7 @@ export function TrackingsList({
             <table className="trackings-table">
                 <thead>
                     <tr>
-                        <th className="col-icon">Icon</th>
-                        <th className="col-question">Question</th>
+                        <th className="col-tracking">Tracking</th>
                         <th className="col-type">Type</th>
                         <th className="col-times">Times</th>
                         <th className="col-frequency">Frequency</th>
@@ -314,15 +313,18 @@ export function TrackingsList({
                 <tbody>
                     {trackings.map((tracking) => (
                         <tr key={tracking.id} className="tracking-row">
-                            <td className="cell-icon">
-                                {tracking.icon && (
-                                    <span className="tracking-icon" title={tracking.icon}>
-                                        {tracking.icon}
-                                    </span>
+                            <td className="cell-tracking" title={tracking.question}>
+                                {tracking.icon ? (
+                                    <>
+                                        <span className="tracking-icon" title={tracking.icon}>
+                                            {tracking.icon}
+                                        </span>
+                                        {" "}
+                                        {TrackingFormatter.truncateText(tracking.question, 50)}
+                                    </>
+                                ) : (
+                                    TrackingFormatter.truncateText(tracking.question, 50)
                                 )}
-                            </td>
-                            <td className="cell-question" title={tracking.question}>
-                                {TrackingFormatter.truncateText(tracking.question, 50)}
                             </td>
                             <td className="cell-type" title={TrackingFormatter.getFullTypeLabel(tracking.type)}>
                                 {TrackingFormatter.getTypeEmoji(tracking.type)}

@@ -131,7 +131,7 @@ describe("TrackingsList", () => {
         expect(screen.queryByText("📝")).not.toBeInTheDocument();
     });
 
-    it("should display icon when present", () => {
+    it("should display icon with question when icon is present", () => {
         const trackings: TrackingData[] = [
             {
                 id: 1,
@@ -150,9 +150,13 @@ describe("TrackingsList", () => {
         );
 
         expect(screen.getByText("💪")).toBeInTheDocument();
+        expect(screen.getByText("Did I exercise?")).toBeInTheDocument();
+        const trackingCell = screen.getByText("Did I exercise?").closest(".cell-tracking");
+        expect(trackingCell?.textContent).toContain("💪");
+        expect(trackingCell?.textContent).toContain("Did I exercise?");
     });
 
-    it("should not display icon when absent", () => {
+    it("should display only question when icon is absent", () => {
         const trackings: TrackingData[] = [
             {
                 id: 1,
@@ -169,8 +173,10 @@ describe("TrackingsList", () => {
             />
         );
 
-        const iconCell = screen.getByText("Did I exercise?").closest("tr")?.querySelector(".cell-icon");
-        expect(iconCell?.textContent).toBe("");
+        expect(screen.getByText("Did I exercise?")).toBeInTheDocument();
+        const trackingCell = screen.getByText("Did I exercise?").closest(".cell-tracking");
+        expect(trackingCell?.textContent).toBe("Did I exercise?");
+        expect(trackingCell?.textContent).not.toContain("💪");
     });
 
     it("should display single schedule time", () => {
@@ -495,8 +501,7 @@ describe("TrackingsList", () => {
             />
         );
 
-        expect(screen.getByText("Icon")).toBeInTheDocument();
-        expect(screen.getByText("Question")).toBeInTheDocument();
+        expect(screen.getByText("Tracking")).toBeInTheDocument();
         expect(screen.getByText("Type")).toBeInTheDocument();
         expect(screen.getByText("Times")).toBeInTheDocument();
         expect(screen.getByText("Frequency")).toBeInTheDocument();
@@ -564,6 +569,9 @@ describe("TrackingsList", () => {
 
         expect(screen.getByText("🏋️")).toBeInTheDocument();
         expect(screen.getByText("Did I exercise today?")).toBeInTheDocument();
+        const trackingCell = screen.getByText("Did I exercise today?").closest(".cell-tracking");
+        expect(trackingCell?.textContent).toContain("🏋️");
+        expect(trackingCell?.textContent).toContain("Did I exercise today?");
         expect(screen.getByText("🖊️")).toBeInTheDocument();
         expect(screen.getByText(/09:00 \+1/)).toBeInTheDocument();
         expect(screen.getByText("Mon, Wed, Fri")).toBeInTheDocument();
