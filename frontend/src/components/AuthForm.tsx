@@ -1,4 +1,5 @@
 import { useState, FormEvent, useRef } from "react";
+import { User } from "../models/User";
 
 interface AuthFormProps {
   onRequestLoginMagicLink: (
@@ -239,7 +240,19 @@ export function AuthForm({
         {!isLoginMode && (
           <>
             <div className="form-group">
-              <label htmlFor="name">Name *</label>
+              <div className="form-label-row">
+                <label htmlFor="name">
+                  Name <span className="required-asterisk">*</span>{" "}
+                  <button
+                    type="button"
+                    className="field-help"
+                    aria-label="Name help"
+                    title={`Your display name (max ${User.MAX_NAME_LENGTH} characters)`}
+                  >
+                    ?
+                  </button>
+                </label>
+              </div>
               <input
                 type="text"
                 id="name"
@@ -250,12 +263,24 @@ export function AuthForm({
                 required
                 autoComplete="name"
                 disabled={isSubmitting}
-                maxLength={30}
+                maxLength={User.MAX_NAME_LENGTH}
               />
             </div>
 
             <div className="form-group">
-              <label htmlFor="email">Email *</label>
+              <div className="form-label-row">
+                <label htmlFor="email">
+                  Email <span className="required-asterisk">*</span>{" "}
+                  <button
+                    type="button"
+                    className="field-help"
+                    aria-label="Email help"
+                    title="Your email address. A verification link will be sent to this address."
+                  >
+                    ?
+                  </button>
+                </label>
+              </div>
               <input
                 type="email"
                 id="email"
@@ -270,7 +295,19 @@ export function AuthForm({
             </div>
 
             <div className="form-group">
-              <label htmlFor="profilePicture">Profile picture</label>
+              <div className="form-label-row">
+                <label htmlFor="profilePicture">
+                  Profile picture{" "}
+                  <button
+                    type="button"
+                    className="field-help"
+                    aria-label="Profile Picture help"
+                    title="Upload an image file (max 5MB). JPG, PNG, or GIF formats are supported."
+                  >
+                    ?
+                  </button>
+                </label>
+              </div>
               <div className="file-input-wrapper">
                 <input
                   ref={fileInputRef}
@@ -323,7 +360,19 @@ export function AuthForm({
 
         {isLoginMode && (
           <div className="form-group">
-            <label htmlFor="email">Email *</label>
+            <div className="form-label-row">
+              <label htmlFor="email">
+                Email <span className="required-asterisk">*</span>{" "}
+                <button
+                  type="button"
+                  className="field-help"
+                  aria-label="Email help"
+                  title="Enter your email address. A login link will be sent to this address."
+                >
+                  ?
+                </button>
+              </label>
+            </div>
             <input
               type="email"
               id="email"

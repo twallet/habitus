@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 import { vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { TrackingsList } from "../TrackingsList";
-import { TrackingData, TrackingType, DaysPatternType } from "../../models/Tracking";
+import { TrackingData, TrackingType, DaysPatternType, TrackingState } from "../../models/Tracking";
 
 describe("TrackingsList", () => {
     const mockOnEdit = vi.fn();
@@ -742,6 +742,181 @@ describe("TrackingsList", () => {
 
         const notesCell = screen.getByText("Did I exercise?").closest("tr")?.querySelector(".cell-notes");
         expect(notesCell).toHaveAttribute("title", "");
+    });
+
+    it("should show delete confirmation modal when delete button is clicked for archived tracking", async () => {
+        const user = userEvent.setup();
+        const trackings: TrackingData[] = [
+            {
+                id: 1,
+                user_id: 1,
+                question: "Did I exercise?",
+                type: TrackingType.TRUE_FALSE,
+                state: TrackingState.ARCHIVED,
+            },
+        ];
+
+        render(
+            <TrackingsList
+                trackings={trackings}
+                onEdit={mockOnEdit}
+            />
+        );
+
+        // Find the delete button (🗑️ icon)
+        const deleteButton = screen.getByRole("button", { name: /change state to deleted/i });
+        await user.click(deleteButton);
+
+        // Modal should appear
+        await waitFor(() => {
+            expect(screen.getByRole("heading", { name: /delete tracking/i })).toBeInTheDocument();
+        });
+        expect(screen.getByText(/are you sure you want to delete the tracking/i)).toBeInTheDocument();
+        expect(screen.getByText(/"Did I exercise\?"/)).toBeInTheDocument();
+    });
+
+    it("should not show delete confirmation modal for non-delete state changes", async () => {
+        const user = userEvent.setup();
+        const mockOnStateChange = vi.fn().mockResolvedValue(undefined);
+        const trackings: TrackingData[] = [
+            {
+                id: 1,
+                user_id: 1,
+                question: "Did I exercise?",
+                type: TrackingType.TRUE_FALSE,
+                state: TrackingState.PAUSED,
+            },
+        ];
+
+        render(
+            <TrackingsList
+                trackings={trackings}
+                onEdit={mockOnEdit}
+                onStateChange={mockOnStateChange}
+            />
+        );
+
+        // Find the resume button (▶️ icon) for Paused -> Running transition
+        const resumeButton = screen.getByRole("button", { name: /change state to running/i });
+        await user.click(resumeButton);
+
+        // Modal should NOT appear, state change should happen immediately
+        expect(screen.queryByRole("heading", { name: /delete tracking/i })).not.toBeInTheDocument();
+        await waitFor(() => {
+            expect(mockOnStateChange).toHaveBeenCalledWith(1, TrackingState.RUNNING);
+        });
+    });
+
+    it("should call onStateChange when delete is confirmed", async () => {
+        const user = userEvent.setup();
+        const mockOnStateChange = vi.fn().mockResolvedValue(undefined);
+        const trackings: TrackingData[] = [
+            {
+                id: 1,
+                user_id: 1,
+                question: "Did I exercise?",
+                type: TrackingType.TRUE_FALSE,
+                state: TrackingState.ARCHIVED,
+            },
+        ];
+
+        render(
+            <TrackingsList
+                trackings={trackings}
+                onEdit={mockOnEdit}
+                onStateChange={mockOnStateChange}
+            />
+        );
+
+        // Click delete button
+        const deleteButton = screen.getByRole("button", { name: /change state to deleted/i });
+        await user.click(deleteButton);
+
+        // Wait for modal to appear
+        await waitFor(() => {
+            expect(screen.getByRole("heading", { name: /delete tracking/i })).toBeInTheDocument();
+        });
+
+        // Type DELETE to confirm
+        const confirmationInput = screen.getByPlaceholderText("DELETE");
+        await user.type(confirmationInput, "DELETE");
+
+        // Click delete button in modal
+        const confirmDeleteButton = screen.getByRole("button", { name: /delete tracking/i });
+        await user.click(confirmDeleteButton);
+
+        // onStateChange should be called with DELETED state
+        await waitFor(() => {
+            expect(mockOnStateChange).toHaveBeenCalledWith(1, TrackingState.DELETED);
+        });
+    });
+
+    it("should close modal when cancel is clicked", async () => {
+        const user = userEvent.setup();
+        const trackings: TrackingData[] = [
+            {
+                id: 1,
+                user_id: 1,
+                question: "Did I exercise?",
+                type: TrackingType.TRUE_FALSE,
+                state: TrackingState.ARCHIVED,
+            },
+        ];
+
+        render(
+            <TrackingsList
+                trackings={trackings}
+                onEdit={mockOnEdit}
+            />
+        );
+
+        // Click delete button
+        const deleteButton = screen.getByRole("button", { name: /change state to deleted/i });
+        await user.click(deleteButton);
+
+        // Wait for modal to appear
+        await waitFor(() => {
+            expect(screen.getByRole("heading", { name: /delete tracking/i })).toBeInTheDocument();
+        });
+
+        // Click cancel button
+        const cancelButton = screen.getByRole("button", { name: /cancel/i });
+        await user.click(cancelButton);
+
+        // Modal should disappear
+        await waitFor(() => {
+            expect(screen.queryByRole("heading", { name: /delete tracking/i })).not.toBeInTheDocument();
+        });
+    });
+
+    it("should filter out deleted trackings from display", () => {
+        const trackings: TrackingData[] = [
+            {
+                id: 1,
+                user_id: 1,
+                question: "Did I exercise?",
+                type: TrackingType.TRUE_FALSE,
+                state: TrackingState.RUNNING,
+            },
+            {
+                id: 2,
+                user_id: 1,
+                question: "Did I meditate?",
+                type: TrackingType.TRUE_FALSE,
+                state: TrackingState.DELETED,
+            },
+        ];
+
+        render(
+            <TrackingsList
+                trackings={trackings}
+                onEdit={mockOnEdit}
+            />
+        );
+
+        // Only the running tracking should be visible
+        expect(screen.getByText("Did I exercise?")).toBeInTheDocument();
+        expect(screen.queryByText("Did I meditate?")).not.toBeInTheDocument();
     });
 });
 

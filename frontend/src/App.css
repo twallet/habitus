@@ -133,11 +133,41 @@ header h1 {
 }
 
 .form-group label {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-weight: 500;
   color: var(--text-primary);
   margin-bottom: 8px;
   font-size: 0.95rem;
+}
+
+.form-label-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.required-asterisk {
+  color: var(--error-color);
+  font-weight: 600;
+}
+
+.field-help {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+  padding: 0;
+  margin: 0;
+  font-weight: normal;
 }
 
 .form-group input {
