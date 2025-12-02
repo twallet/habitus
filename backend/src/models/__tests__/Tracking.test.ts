@@ -1372,7 +1372,7 @@ describe("Tracking Model", () => {
   });
 
   describe("State transitions", () => {
-    it("should allow valid transitions from Running to Paused", () => {
+    it("should allow transition from Running to Paused", () => {
       expect(() =>
         Tracking.validateStateTransition(
           TrackingState.RUNNING,
@@ -1381,7 +1381,25 @@ describe("Tracking Model", () => {
       ).not.toThrow();
     });
 
-    it("should allow valid transitions from Paused to Running", () => {
+    it("should allow transition from Running to Archived", () => {
+      expect(() =>
+        Tracking.validateStateTransition(
+          TrackingState.RUNNING,
+          TrackingState.ARCHIVED
+        )
+      ).not.toThrow();
+    });
+
+    it("should allow transition from Running to Deleted", () => {
+      expect(() =>
+        Tracking.validateStateTransition(
+          TrackingState.RUNNING,
+          TrackingState.DELETED
+        )
+      ).not.toThrow();
+    });
+
+    it("should allow transition from Paused to Running", () => {
       expect(() =>
         Tracking.validateStateTransition(
           TrackingState.PAUSED,
@@ -1390,7 +1408,7 @@ describe("Tracking Model", () => {
       ).not.toThrow();
     });
 
-    it("should allow valid transitions from Paused to Archived", () => {
+    it("should allow transition from Paused to Archived", () => {
       expect(() =>
         Tracking.validateStateTransition(
           TrackingState.PAUSED,
@@ -1399,56 +1417,59 @@ describe("Tracking Model", () => {
       ).not.toThrow();
     });
 
-    it("should allow valid transitions from Archived to Running", () => {
-      expect(() =>
-        Tracking.validateStateTransition(
-          TrackingState.ARCHIVED,
-          TrackingState.RUNNING
-        )
-      ).not.toThrow();
-    });
-
-    it("should allow valid transitions from Archived to Deleted", () => {
-      expect(() =>
-        Tracking.validateStateTransition(
-          TrackingState.ARCHIVED,
-          TrackingState.DELETED
-        )
-      ).not.toThrow();
-    });
-
-    it("should allow same state transition", () => {
-      expect(() =>
-        Tracking.validateStateTransition(
-          TrackingState.RUNNING,
-          TrackingState.RUNNING
-        )
-      ).not.toThrow();
-    });
-
-    it("should throw TypeError for invalid transition from Running to Archived", () => {
-      expect(() =>
-        Tracking.validateStateTransition(
-          TrackingState.RUNNING,
-          TrackingState.ARCHIVED
-        )
-      ).toThrow(TypeError);
-    });
-
-    it("should throw TypeError for invalid transition from Running to Deleted", () => {
-      expect(() =>
-        Tracking.validateStateTransition(
-          TrackingState.RUNNING,
-          TrackingState.DELETED
-        )
-      ).toThrow(TypeError);
-    });
-
-    it("should throw TypeError for invalid transition from Paused to Deleted", () => {
+    it("should allow transition from Paused to Deleted", () => {
       expect(() =>
         Tracking.validateStateTransition(
           TrackingState.PAUSED,
           TrackingState.DELETED
+        )
+      ).not.toThrow();
+    });
+
+    it("should allow transition from Archived to Running", () => {
+      expect(() =>
+        Tracking.validateStateTransition(
+          TrackingState.ARCHIVED,
+          TrackingState.RUNNING
+        )
+      ).not.toThrow();
+    });
+
+    it("should allow transition from Archived to Paused", () => {
+      expect(() =>
+        Tracking.validateStateTransition(
+          TrackingState.ARCHIVED,
+          TrackingState.PAUSED
+        )
+      ).not.toThrow();
+    });
+
+    it("should allow transition from Archived to Deleted", () => {
+      expect(() =>
+        Tracking.validateStateTransition(
+          TrackingState.ARCHIVED,
+          TrackingState.DELETED
+        )
+      ).not.toThrow();
+    });
+
+    it("should throw TypeError for same state transition", () => {
+      expect(() =>
+        Tracking.validateStateTransition(
+          TrackingState.RUNNING,
+          TrackingState.RUNNING
+        )
+      ).toThrow(TypeError);
+      expect(() =>
+        Tracking.validateStateTransition(
+          TrackingState.PAUSED,
+          TrackingState.PAUSED
+        )
+      ).toThrow(TypeError);
+      expect(() =>
+        Tracking.validateStateTransition(
+          TrackingState.ARCHIVED,
+          TrackingState.ARCHIVED
         )
       ).toThrow(TypeError);
     });
@@ -1466,26 +1487,35 @@ describe("Tracking Model", () => {
           TrackingState.PAUSED
         )
       ).toThrow(TypeError);
+      expect(() =>
+        Tracking.validateStateTransition(
+          TrackingState.DELETED,
+          TrackingState.ARCHIVED
+        )
+      ).toThrow(TypeError);
     });
 
-    it("should include error message in TypeError for invalid transitions", () => {
-      expect(() => {
-        Tracking.validateStateTransition(
-          TrackingState.RUNNING,
-          TrackingState.ARCHIVED
-        );
-      }).toThrow(TypeError);
-
+    it("should include error message in TypeError for same state transition", () => {
       try {
         Tracking.validateStateTransition(
           TrackingState.RUNNING,
-          TrackingState.ARCHIVED
+          TrackingState.RUNNING
         );
       } catch (error) {
         expect(error).toBeInstanceOf(TypeError);
-        expect((error as Error).message).toContain("Invalid state transition");
-        expect((error as Error).message).toContain("Running");
-        expect((error as Error).message).toContain("Archived");
+        expect((error as Error).message).toContain("same state");
+      }
+    });
+
+    it("should include error message in TypeError for transition from Deleted", () => {
+      try {
+        Tracking.validateStateTransition(
+          TrackingState.DELETED,
+          TrackingState.RUNNING
+        );
+      } catch (error) {
+        expect(error).toBeInstanceOf(TypeError);
+        expect((error as Error).message).toContain("Deleted state");
       }
     });
   });

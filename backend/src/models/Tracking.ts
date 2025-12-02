@@ -571,11 +571,9 @@ export class Tracking {
 
   /**
    * Validates a state transition is allowed.
-   * Transition rules:
-   * - Running → Paused
-   * - Paused → Running or Archived
-   * - Archived → Running or Deleted
-   * - Deleted → (no transitions allowed)
+   * Allows any transition from any state to any other state, except:
+   * - Cannot transition to the same state
+   * - Cannot transition from DELETED state
    * @param currentState - The current state
    * @param newState - The new state to transition to
    * @throws {@link TypeError} If the transition is not allowed
@@ -586,26 +584,14 @@ export class Tracking {
     newState: TrackingState
   ): void {
     if (currentState === newState) {
-      return; // Same state is always allowed
+      throw new TypeError(
+        "Cannot transition to the same state. The tracking is already in this state."
+      );
     }
 
     if (currentState === TrackingState.DELETED) {
       throw new TypeError(
         "Cannot transition from Deleted state. Deleted trackings cannot be changed."
-      );
-    }
-
-    const validTransitions: Record<TrackingState, TrackingState[]> = {
-      [TrackingState.RUNNING]: [TrackingState.PAUSED],
-      [TrackingState.PAUSED]: [TrackingState.RUNNING, TrackingState.ARCHIVED],
-      [TrackingState.ARCHIVED]: [TrackingState.RUNNING, TrackingState.DELETED],
-      [TrackingState.DELETED]: [],
-    };
-
-    const allowedStates = validTransitions[currentState];
-    if (!allowedStates || !allowedStates.includes(newState)) {
-      throw new TypeError(
-        `Invalid state transition from "${currentState}" to "${newState}". Valid transitions from "${currentState}" are: ${allowedStates.join(", ")}`
       );
     }
   }

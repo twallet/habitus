@@ -457,7 +457,7 @@ describe("TrackingService", () => {
       expect(updated.state).toBe(TrackingState.DELETED);
     });
 
-    it("should throw error for invalid state transition", async () => {
+    it("should throw error for same state transition", async () => {
       const result = await testDb.run(
         "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
         [testUserId, "Test Question", TrackingType.TRUE_FALSE, "Running"]
@@ -465,7 +465,7 @@ describe("TrackingService", () => {
       const trackingId = result.lastID;
 
       await expect(
-        trackingService.updateTrackingState(trackingId, testUserId, "Archived")
+        trackingService.updateTrackingState(trackingId, testUserId, "Running")
       ).rejects.toThrow(TypeError);
     });
 

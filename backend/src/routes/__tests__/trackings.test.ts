@@ -465,7 +465,7 @@ describe("Trackings Routes", () => {
       expect(response.body.state).toBe("Deleted");
     });
 
-    it("should return 400 for invalid state transition", async () => {
+    it("should return 400 for same state transition", async () => {
       const result = await testDb.run(
         "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
         [testUserId, "Test Question", "true_false", "Running"]
@@ -475,10 +475,10 @@ describe("Trackings Routes", () => {
       const response = await request(app)
         .patch(`/api/trackings/${trackingId}/state`)
         .set("Authorization", "Bearer test-token")
-        .send({ state: "Archived" });
+        .send({ state: "Running" });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toContain("Invalid state transition");
+      expect(response.body.error).toContain("same state");
     });
 
     it("should return 400 when state is missing", async () => {
