@@ -10,6 +10,7 @@ interface TrackingsListProps {
     onCreate?: () => void;
     isLoading?: boolean;
     onStateChange?: (trackingId: number, newState: TrackingState) => Promise<TrackingData | void>;
+    onStateChangeSuccess?: (message: string) => void;
 }
 
 /**
@@ -299,6 +300,26 @@ class StateTransitionHelper {
     static getStateLabel(state: TrackingState): string {
         return state;
     }
+
+    /**
+     * Get success message for a state transition.
+     * @param newState - The new state
+     * @returns Success message string
+     */
+    static getStateChangeMessage(newState: TrackingState): string {
+        switch (newState) {
+            case TrackingState.PAUSED:
+                return 'Tracking paused successfully';
+            case TrackingState.RUNNING:
+                return 'Tracking resumed successfully';
+            case TrackingState.ARCHIVED:
+                return 'Tracking archived successfully';
+            case TrackingState.DELETED:
+                return 'Tracking deleted successfully';
+            default:
+                return 'Tracking state updated successfully';
+        }
+    }
 }
 
 /**
@@ -317,6 +338,7 @@ export function TrackingsList({
     onCreate,
     isLoading: propIsLoading,
     onStateChange,
+    onStateChangeSuccess,
 }: TrackingsListProps) {
     const { trackings: hookTrackings, isLoading: hookIsLoading, updateTrackingState: hookUpdateTrackingState } = useTrackings();
     const [trackingToDelete, setTrackingToDelete] = useState<TrackingData | null>(null);
@@ -340,11 +362,20 @@ export function TrackingsList({
         }
 
         const trackingId = trackingToDelete.id;
-        // Use callback if provided (from parent), otherwise use hook's function
-        if (onStateChange) {
-            await onStateChange(trackingId, TrackingState.DELETED);
-        } else {
-            await hookUpdateTrackingState(trackingId, TrackingState.DELETED);
+        try {
+            // Use callback if provided (from parent), otherwise use hook's function
+            if (onStateChange) {
+                await onStateChange(trackingId, TrackingState.DELETED);
+            } else {
+                await hookUpdateTrackingState(trackingId, TrackingState.DELETED);
+            }
+            // Show success message
+            if (onStateChangeSuccess) {
+                onStateChangeSuccess(StateTransitionHelper.getStateChangeMessage(TrackingState.DELETED));
+            }
+        } catch (error) {
+            // Error handling is done in the hook or parent
+            throw error;
         }
     };
 
@@ -398,6 +429,10 @@ export function TrackingsList({
                 await onStateChange(trackingId, newState);
             } else {
                 await hookUpdateTrackingState(trackingId, newState);
+            }
+            // Show success message
+            if (onStateChangeSuccess) {
+                onStateChangeSuccess(StateTransitionHelper.getStateChangeMessage(newState));
             }
             // State update will automatically refresh the list
         } catch (error) {
@@ -462,18 +497,26 @@ export function TrackingsList({
 
                         return (
                             <tr key={tracking.id} className="tracking-row">
-                                <td className="cell-tracking" title={tracking.question}>
-                                    {tracking.icon ? (
-                                        <>
-                                            <span className="tracking-icon" title={tracking.icon}>
-                                                {tracking.icon}
-                                            </span>
-                                            {" "}
-                                            {TrackingFormatter.truncateText(tracking.question, 50)}
-                                        </>
-                                    ) : (
-                                        TrackingFormatter.truncateText(tracking.question, 50)
-                                    )}
+                                <td className="cell-tracking">
+                                    <button
+                                        type="button"
+                                        className="tracking-name-link"
+                                        onClick={() => onEdit(tracking)}
+                                        aria-label={`Edit tracking: ${tracking.question}`}
+                                        title={`${tracking.question}. Click to edit`}
+                                    >
+                                        {tracking.icon ? (
+                                            <>
+                                                <span className="tracking-icon">
+                                                    {tracking.icon}
+                                                </span>
+                                                {" "}
+                                                {TrackingFormatter.truncateText(tracking.question, 50)}
+                                            </>
+                                        ) : (
+                                            TrackingFormatter.truncateText(tracking.question, 50)
+                                        )}
+                                    </button>
                                 </td>
                                 <td className="cell-type" title={TrackingFormatter.getFullTypeLabel(tracking.type)}>
                                     {TrackingFormatter.getTypeEmoji(tracking.type)}
@@ -488,15 +531,6 @@ export function TrackingsList({
                                     {tracking.notes ? "📝" : ""}
                                 </td>
                                 <td className="cell-actions">
-                                    <button
-                                        type="button"
-                                        className="btn-edit-icon"
-                                        onClick={() => onEdit(tracking)}
-                                        aria-label={`Edit tracking: ${tracking.question}`}
-                                        title="Edit tracking"
-                                    >
-                                        ✏️
-                                    </button>
                                     {validTransitions.map((targetState) => (
                                         <button
                                             key={targetState}

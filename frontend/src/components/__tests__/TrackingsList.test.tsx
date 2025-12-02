@@ -66,7 +66,7 @@ describe("TrackingsList", () => {
         expect(screen.getByText("🖊️")).toBeInTheDocument();
     });
 
-    it("should call onEdit when edit button is clicked", () => {
+    it("should call onEdit when tracking name is clicked", () => {
         const trackings: TrackingData[] = [
             {
                 id: 1,
@@ -83,8 +83,8 @@ describe("TrackingsList", () => {
             />
         );
 
-        const editButton = screen.getByRole("button", { name: /edit/i });
-        fireEvent.click(editButton);
+        const trackingNameButton = screen.getByRole("button", { name: /edit tracking: did i exercise\?/i });
+        fireEvent.click(trackingNameButton);
 
         expect(mockOnEdit).toHaveBeenCalledWith(trackings[0]);
         expect(mockOnEdit).toHaveBeenCalledTimes(1);
@@ -270,7 +270,7 @@ describe("TrackingsList", () => {
             />
         );
 
-        const trackingCell = screen.getByTitle(longQuestion);
+        const trackingCell = screen.getByTitle(`${longQuestion}. Click to edit`);
         expect(trackingCell.textContent).toBe(longQuestion.substring(0, 50) + "...");
     });
 
@@ -293,7 +293,7 @@ describe("TrackingsList", () => {
             />
         );
 
-        const trackingCell = screen.getByTitle(longQuestion);
+        const trackingCell = screen.getByTitle(`${longQuestion}. Click to edit`);
         expect(trackingCell.textContent).toContain("💪");
         expect(trackingCell.textContent).toContain(longQuestion.substring(0, 50) + "...");
     });
@@ -316,8 +316,8 @@ describe("TrackingsList", () => {
             />
         );
 
-        const questionCell = screen.getByTitle(longQuestion);
-        expect(questionCell).toHaveAttribute("title", longQuestion);
+        const questionCell = screen.getByTitle(`${longQuestion}. Click to edit`);
+        expect(questionCell).toHaveAttribute("title", `${longQuestion}. Click to edit`);
     });
 
     it("should display frequency for daily pattern", () => {

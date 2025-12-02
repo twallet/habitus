@@ -478,13 +478,6 @@ function App() {
             <img src="/assets/images/te-verde.png" alt="🌱" style={{ height: '1em', width: 'auto', verticalAlign: 'baseline', marginRight: '0.4em', display: 'inline-block' }} />
             Habitus
           </h1>
-          {message && message.type === 'success' && (
-            <Message
-              text={message.text}
-              type={message.type}
-              onHide={handleHideMessage}
-            />
-          )}
         </div>
         {user && (
           <UserMenu
@@ -498,7 +491,7 @@ function App() {
       </header>
 
       <main>
-        {message && message.type === 'error' && (
+        {message && (
           <Message
             text={message.text}
             type={message.type}
@@ -513,6 +506,12 @@ function App() {
             onCreate={() => setShowTrackingForm(true)}
             isLoading={trackingsLoading}
             onStateChange={updateTrackingState}
+            onStateChangeSuccess={(message) => {
+              setMessage({
+                text: message,
+                type: 'success',
+              });
+            }}
           />
         </div>
       </main>
