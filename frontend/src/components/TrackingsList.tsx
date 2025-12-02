@@ -862,160 +862,146 @@ export function TrackingsList({
         );
     }
 
-    // Filter panel and controls (shown even when no trackings)
-    const filterControls = (
-        <>
-            <div className="filters-controls">
-                <button
-                    type="button"
-                    className="filter-toggle-button"
-                    onClick={toggleFilters}
-                    aria-label={showFilters ? "Hide filters" : "Show filters"}
-                    aria-expanded={showFilters}
-                    title={showFilters ? "Hide filters" : "Show filters"}
-                >
-                    <span className="filter-toggle-icon">🔍</span>
-                </button>
-            </div>
-            {showFilters && (
-                <div className="filter-panel">
-                    <div className="filter-panel-content">
-                        <div className="filter-row">
-                            <label htmlFor="filter-tracking" className="filter-label">
-                                Tracking:
-                            </label>
+    // Filter panel (shown even when no trackings)
+    const filterPanel = showFilters ? (
+        <div className="filter-panel">
+            <div className="filter-panel-content">
+                <div className="filter-row">
+                    <label htmlFor="filter-tracking" className="filter-label">
+                        Tracking:
+                    </label>
+                    <input
+                        type="text"
+                        id="filter-tracking"
+                        className="filter-input"
+                        placeholder="Filter by question..."
+                        value={filterState.tracking}
+                        onChange={(e) => handleFilterChange('tracking', e.target.value)}
+                        aria-label="Filter by tracking"
+                    />
+                </div>
+                <div className="filter-row">
+                    <div className="filter-label">Type:</div>
+                    <div className="filter-checkbox-group">
+                        <label className="filter-checkbox-label">
                             <input
-                                type="text"
-                                id="filter-tracking"
-                                className="filter-input"
-                                placeholder="Filter by question..."
-                                value={filterState.tracking}
-                                onChange={(e) => handleFilterChange('tracking', e.target.value)}
-                                aria-label="Filter by tracking"
+                                type="checkbox"
+                                checked={filterState.type.includes("Yes/No")}
+                                onChange={() => handleCheckboxChange('type', "Yes/No")}
+                                aria-label="Filter by type: Yes/No"
                             />
-                        </div>
-                        <div className="filter-row">
-                            <div className="filter-label">Type:</div>
-                            <div className="filter-checkbox-group">
-                                <label className="filter-checkbox-label">
-                                    <input
-                                        type="checkbox"
-                                        checked={filterState.type.includes("Yes/No")}
-                                        onChange={() => handleCheckboxChange('type', "Yes/No")}
-                                        aria-label="Filter by type: Yes/No"
-                                    />
-                                    <span>Yes/No</span>
-                                </label>
-                                <label className="filter-checkbox-label">
-                                    <input
-                                        type="checkbox"
-                                        checked={filterState.type.includes("Text")}
-                                        onChange={() => handleCheckboxChange('type', "Text")}
-                                        aria-label="Filter by type: Text"
-                                    />
-                                    <span>Text</span>
-                                </label>
-                            </div>
-                        </div>
-                        <div className="filter-row">
-                            <label htmlFor="filter-times" className="filter-label">
-                                Times:
-                            </label>
+                            <span>Yes/No</span>
+                        </label>
+                        <label className="filter-checkbox-label">
                             <input
-                                type="text"
-                                id="filter-times"
-                                className="filter-input"
-                                placeholder="Filter by times..."
-                                value={filterState.times}
-                                onChange={(e) => handleFilterChange('times', e.target.value)}
-                                aria-label="Filter by times"
+                                type="checkbox"
+                                checked={filterState.type.includes("Text")}
+                                onChange={() => handleCheckboxChange('type', "Text")}
+                                aria-label="Filter by type: Text"
                             />
-                        </div>
-                        <div className="filter-row">
-                            <label htmlFor="filter-frequency" className="filter-label">
-                                Frequency:
-                            </label>
-                            <input
-                                type="text"
-                                id="filter-frequency"
-                                className="filter-input"
-                                placeholder="Filter by frequency..."
-                                value={filterState.frequency}
-                                onChange={(e) => handleFilterChange('frequency', e.target.value)}
-                                aria-label="Filter by frequency"
-                            />
-                        </div>
-                        <div className="filter-row">
-                            <div className="filter-label">Status:</div>
-                            <div className="filter-checkbox-group">
-                                <label className="filter-checkbox-label">
-                                    <input
-                                        type="checkbox"
-                                        checked={filterState.status.includes(TrackingState.RUNNING)}
-                                        onChange={() => handleCheckboxChange('status', TrackingState.RUNNING)}
-                                        aria-label="Filter by status: Running"
-                                    />
-                                    <span>Running</span>
-                                </label>
-                                <label className="filter-checkbox-label">
-                                    <input
-                                        type="checkbox"
-                                        checked={filterState.status.includes(TrackingState.PAUSED)}
-                                        onChange={() => handleCheckboxChange('status', TrackingState.PAUSED)}
-                                        aria-label="Filter by status: Paused"
-                                    />
-                                    <span>Paused</span>
-                                </label>
-                                <label className="filter-checkbox-label">
-                                    <input
-                                        type="checkbox"
-                                        checked={filterState.status.includes(TrackingState.ARCHIVED)}
-                                        onChange={() => handleCheckboxChange('status', TrackingState.ARCHIVED)}
-                                        aria-label="Filter by status: Archived"
-                                    />
-                                    <span>Archived</span>
-                                </label>
-                            </div>
-                        </div>
-                        <div className="filter-actions">
-                            <button
-                                type="button"
-                                className="filter-reset-button"
-                                onClick={handleResetFilters}
-                                aria-label="Reset all filters"
-                            >
-                                Reset Filters
-                            </button>
-                        </div>
+                            <span>Text</span>
+                        </label>
                     </div>
                 </div>
-            )}
-        </>
-    );
+                <div className="filter-row">
+                    <label htmlFor="filter-times" className="filter-label">
+                        Times:
+                    </label>
+                    <input
+                        type="text"
+                        id="filter-times"
+                        className="filter-input"
+                        placeholder="Filter by times..."
+                        value={filterState.times}
+                        onChange={(e) => handleFilterChange('times', e.target.value)}
+                        aria-label="Filter by times"
+                    />
+                </div>
+                <div className="filter-row">
+                    <label htmlFor="filter-frequency" className="filter-label">
+                        Frequency:
+                    </label>
+                    <input
+                        type="text"
+                        id="filter-frequency"
+                        className="filter-input"
+                        placeholder="Filter by frequency..."
+                        value={filterState.frequency}
+                        onChange={(e) => handleFilterChange('frequency', e.target.value)}
+                        aria-label="Filter by frequency"
+                    />
+                </div>
+                <div className="filter-row">
+                    <div className="filter-label">Status:</div>
+                    <div className="filter-checkbox-group">
+                        <label className="filter-checkbox-label">
+                            <input
+                                type="checkbox"
+                                checked={filterState.status.includes(TrackingState.RUNNING)}
+                                onChange={() => handleCheckboxChange('status', TrackingState.RUNNING)}
+                                aria-label="Filter by status: Running"
+                            />
+                            <span>Running</span>
+                        </label>
+                        <label className="filter-checkbox-label">
+                            <input
+                                type="checkbox"
+                                checked={filterState.status.includes(TrackingState.PAUSED)}
+                                onChange={() => handleCheckboxChange('status', TrackingState.PAUSED)}
+                                aria-label="Filter by status: Paused"
+                            />
+                            <span>Paused</span>
+                        </label>
+                        <label className="filter-checkbox-label">
+                            <input
+                                type="checkbox"
+                                checked={filterState.status.includes(TrackingState.ARCHIVED)}
+                                onChange={() => handleCheckboxChange('status', TrackingState.ARCHIVED)}
+                                aria-label="Filter by status: Archived"
+                            />
+                            <span>Archived</span>
+                        </label>
+                    </div>
+                </div>
+                <div className="filter-actions">
+                    <button
+                        type="button"
+                        className="filter-reset-button"
+                        onClick={handleResetFilters}
+                        aria-label="Reset all filters"
+                    >
+                        Reset Filters
+                    </button>
+                </div>
+            </div>
+        </div>
+    ) : null;
 
     if (visibleTrackings.length === 0) {
         return (
             <div className="trackings-list">
-                {filterControls}
-                <div className="empty-state">
-                    <p>
-                        No trackings yet.{" "}
-                        {onCreate ? (
-                            <>
-                                <button
-                                    type="button"
-                                    className="link-button"
-                                    onClick={onCreate}
-                                    aria-label="Create your first tracking"
-                                >
-                                    Create your first tracking
-                                </button>{" "}
-                                to get started!
-                            </>
-                        ) : (
-                            "Create your first tracking to get started!"
-                        )}
-                    </p>
+                <div className="trackings-list-content">
+                    {filterPanel}
+                    <div className="empty-state">
+                        <p>
+                            No trackings yet.{" "}
+                            {onCreate ? (
+                                <>
+                                    <button
+                                        type="button"
+                                        className="link-button"
+                                        onClick={onCreate}
+                                        aria-label="Create your first tracking"
+                                    >
+                                        Create your first tracking
+                                    </button>{" "}
+                                    to get started!
+                                </>
+                            ) : (
+                                "Create your first tracking to get started!"
+                            )}
+                        </p>
+                    </div>
                 </div>
             </div>
         );
@@ -1024,9 +1010,11 @@ export function TrackingsList({
     if (filteredAndSortedTrackings.length === 0) {
         return (
             <div className="trackings-list">
-                {filterControls}
-                <div className="empty-state">
-                    <p>No trackings match the current filters.</p>
+                <div className="trackings-list-content">
+                    {filterPanel}
+                    <div className="empty-state">
+                        <p>No trackings match the current filters.</p>
+                    </div>
                 </div>
             </div>
         );
@@ -1034,182 +1022,194 @@ export function TrackingsList({
 
     return (
         <div className="trackings-list">
-            {filterControls}
-            <table className="trackings-table">
-                <thead>
-                    <tr>
-                        <th className="col-tracking">
-                            <button
-                                type="button"
-                                className="sortable-header"
-                                onClick={() => handleSortClick('tracking')}
-                                aria-label="Sort by tracking"
-                            >
-                                Tracking
-                                {sortColumn === 'tracking' && (
-                                    <span className="sort-indicator">
-                                        {sortDirection === 'asc' ? '↑' : '↓'}
-                                    </span>
-                                )}
-                            </button>
-                        </th>
-                        <th className="col-type">
-                            <button
-                                type="button"
-                                className="sortable-header"
-                                onClick={() => handleSortClick('type')}
-                                aria-label="Sort by type"
-                            >
-                                Type
-                                {sortColumn === 'type' && (
-                                    <span className="sort-indicator">
-                                        {sortDirection === 'asc' ? '↑' : '↓'}
-                                    </span>
-                                )}
-                            </button>
-                        </th>
-                        <th className="col-times">
-                            <button
-                                type="button"
-                                className="sortable-header"
-                                onClick={() => handleSortClick('times')}
-                                aria-label="Sort by times"
-                            >
-                                Times
-                                {sortColumn === 'times' && (
-                                    <span className="sort-indicator">
-                                        {sortDirection === 'asc' ? '↑' : '↓'}
-                                    </span>
-                                )}
-                            </button>
-                        </th>
-                        <th className="col-frequency">
-                            <button
-                                type="button"
-                                className="sortable-header"
-                                onClick={() => handleSortClick('frequency')}
-                                aria-label="Sort by frequency"
-                            >
-                                Frequency
-                                {sortColumn === 'frequency' && (
-                                    <span className="sort-indicator">
-                                        {sortDirection === 'asc' ? '↑' : '↓'}
-                                    </span>
-                                )}
-                            </button>
-                        </th>
-                        <th className="col-status">
-                            <button
-                                type="button"
-                                className="sortable-header"
-                                onClick={() => handleSortClick('status')}
-                                aria-label="Sort by status"
-                            >
-                                Status
-                                {sortColumn === 'status' && (
-                                    <span className="sort-indicator">
-                                        {sortDirection === 'asc' ? '↑' : '↓'}
-                                    </span>
-                                )}
-                            </button>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {filteredAndSortedTrackings.map((tracking) => {
-                        const currentState = tracking.state || TrackingState.RUNNING;
-                        const validTransitions = StateTransitionHelper.getValidTransitions(currentState);
-                        const stateLabel = StateTransitionHelper.getStateLabel(currentState);
-                        const isDropdownOpen = openDropdownId === tracking.id;
-                        const stateColorClass = StateTransitionHelper.getStateColorClass(currentState);
+            <div className="trackings-list-content">
+                {filterPanel}
+                <table className="trackings-table">
+                    <thead>
+                        <tr>
+                            <th className="col-tracking">
+                                <button
+                                    type="button"
+                                    className="filter-toggle-button"
+                                    onClick={toggleFilters}
+                                    aria-label={showFilters ? "Hide filters" : "Show filters"}
+                                    aria-expanded={showFilters}
+                                    title={showFilters ? "Hide filters" : "Show filters"}
+                                >
+                                    <span className="filter-toggle-icon">🔍</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    className="sortable-header"
+                                    onClick={() => handleSortClick('tracking')}
+                                    aria-label="Sort by tracking"
+                                >
+                                    Tracking
+                                    {sortColumn === 'tracking' && (
+                                        <span className="sort-indicator">
+                                            {sortDirection === 'asc' ? '↑' : '↓'}
+                                        </span>
+                                    )}
+                                </button>
+                            </th>
+                            <th className="col-type">
+                                <button
+                                    type="button"
+                                    className="sortable-header"
+                                    onClick={() => handleSortClick('type')}
+                                    aria-label="Sort by type"
+                                >
+                                    Type
+                                    {sortColumn === 'type' && (
+                                        <span className="sort-indicator">
+                                            {sortDirection === 'asc' ? '↑' : '↓'}
+                                        </span>
+                                    )}
+                                </button>
+                            </th>
+                            <th className="col-times">
+                                <button
+                                    type="button"
+                                    className="sortable-header"
+                                    onClick={() => handleSortClick('times')}
+                                    aria-label="Sort by times"
+                                >
+                                    Times
+                                    {sortColumn === 'times' && (
+                                        <span className="sort-indicator">
+                                            {sortDirection === 'asc' ? '↑' : '↓'}
+                                        </span>
+                                    )}
+                                </button>
+                            </th>
+                            <th className="col-frequency">
+                                <button
+                                    type="button"
+                                    className="sortable-header"
+                                    onClick={() => handleSortClick('frequency')}
+                                    aria-label="Sort by frequency"
+                                >
+                                    Frequency
+                                    {sortColumn === 'frequency' && (
+                                        <span className="sort-indicator">
+                                            {sortDirection === 'asc' ? '↑' : '↓'}
+                                        </span>
+                                    )}
+                                </button>
+                            </th>
+                            <th className="col-status">
+                                <button
+                                    type="button"
+                                    className="sortable-header"
+                                    onClick={() => handleSortClick('status')}
+                                    aria-label="Sort by status"
+                                >
+                                    Status
+                                    {sortColumn === 'status' && (
+                                        <span className="sort-indicator">
+                                            {sortDirection === 'asc' ? '↑' : '↓'}
+                                        </span>
+                                    )}
+                                </button>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filteredAndSortedTrackings.map((tracking) => {
+                            const currentState = tracking.state || TrackingState.RUNNING;
+                            const validTransitions = StateTransitionHelper.getValidTransitions(currentState);
+                            const stateLabel = StateTransitionHelper.getStateLabel(currentState);
+                            const isDropdownOpen = openDropdownId === tracking.id;
+                            const stateColorClass = StateTransitionHelper.getStateColorClass(currentState);
 
-                        return (
-                            <tr key={tracking.id} className="tracking-row">
-                                <td className="cell-tracking">
-                                    <button
-                                        type="button"
-                                        className="tracking-name-link"
-                                        onClick={() => onEdit(tracking)}
-                                        aria-label={`Edit tracking: ${tracking.question}`}
-                                        title={`${tracking.question}. Click to edit`}
-                                    >
-                                        {tracking.icon ? (
-                                            <>
-                                                <span className="tracking-icon">
-                                                    {tracking.icon}
-                                                </span>
-                                                {TrackingFormatter.truncateText(tracking.question, 50)}
-                                            </>
-                                        ) : (
-                                            TrackingFormatter.truncateText(tracking.question, 50)
-                                        )}
-                                    </button>
-                                </td>
-                                <td className="cell-type" title={TrackingFormatter.getFullTypeLabel(tracking.type)}>
-                                    {TrackingFormatter.getTypeEmoji(tracking.type)}
-                                </td>
-                                <td className="cell-times" title={TrackingFormatter.formatAllTimes(tracking.schedules)}>
-                                    {TrackingFormatter.formatTimesDisplay(tracking.schedules)}
-                                </td>
-                                <td className="cell-frequency" title={TrackingFormatter.formatFullFrequency(tracking.days)}>
-                                    {TrackingFormatter.formatFrequency(tracking.days)}
-                                </td>
-                                <td className="cell-status">
-                                    <div
-                                        className="status-dropdown-container"
-                                        ref={(el) => {
-                                            dropdownRefs.current[tracking.id] = el;
-                                        }}
-                                    >
+                            return (
+                                <tr key={tracking.id} className="tracking-row">
+                                    <td className="cell-tracking">
                                         <button
                                             type="button"
-                                            className={`status-badge ${stateColorClass} ${isDropdownOpen ? "open" : ""}`}
-                                            onClick={() => toggleDropdown(tracking.id)}
-                                            aria-label={`Current status: ${stateLabel}. Click to change status`}
-                                            aria-expanded={isDropdownOpen}
+                                            className="tracking-name-link"
+                                            onClick={() => onEdit(tracking)}
+                                            aria-label={`Edit tracking: ${tracking.question}`}
+                                            title={`${tracking.question}. Click to edit`}
                                         >
-                                            <span className="status-badge-text">{stateLabel}</span>
-                                            <span className="status-badge-arrow">▼</span>
+                                            {tracking.icon ? (
+                                                <>
+                                                    <span className="tracking-icon">
+                                                        {tracking.icon}
+                                                    </span>
+                                                    {TrackingFormatter.truncateText(tracking.question, 50)}
+                                                </>
+                                            ) : (
+                                                TrackingFormatter.truncateText(tracking.question, 50)
+                                            )}
                                         </button>
-                                        {isDropdownOpen && dropdownPosition && (
-                                            <div
-                                                className="status-dropdown-menu"
-                                                ref={(el) => {
-                                                    dropdownMenuRefs.current[tracking.id] = el;
-                                                }}
-                                                style={{
-                                                    top: `${dropdownPosition.top}px`,
-                                                    right: `${dropdownPosition.right}px`,
-                                                }}
+                                    </td>
+                                    <td className="cell-type" title={TrackingFormatter.getFullTypeLabel(tracking.type)}>
+                                        {TrackingFormatter.getTypeEmoji(tracking.type)}
+                                    </td>
+                                    <td className="cell-times" title={TrackingFormatter.formatAllTimes(tracking.schedules)}>
+                                        {TrackingFormatter.formatTimesDisplay(tracking.schedules)}
+                                    </td>
+                                    <td className="cell-frequency" title={TrackingFormatter.formatFullFrequency(tracking.days)}>
+                                        {TrackingFormatter.formatFrequency(tracking.days)}
+                                    </td>
+                                    <td className="cell-status">
+                                        <div
+                                            className="status-dropdown-container"
+                                            ref={(el) => {
+                                                dropdownRefs.current[tracking.id] = el;
+                                            }}
+                                        >
+                                            <button
+                                                type="button"
+                                                className={`status-badge ${stateColorClass} ${isDropdownOpen ? "open" : ""}`}
+                                                onClick={() => toggleDropdown(tracking.id)}
+                                                aria-label={`Current status: ${stateLabel}. Click to change status`}
+                                                aria-expanded={isDropdownOpen}
                                             >
-                                                {validTransitions
-                                                    .filter((targetState) => targetState !== currentState)
-                                                    .map((targetState) => {
-                                                        const actionVerb = StateTransitionHelper.getActionVerb(targetState);
-                                                        const targetIcon = StateTransitionHelper.getTransitionIcon(targetState);
-                                                        const targetLabel = StateTransitionHelper.getStateLabel(targetState);
-                                                        return (
-                                                            <button
-                                                                key={targetState}
-                                                                type="button"
-                                                                className="status-dropdown-item"
-                                                                onClick={() => handleStateChange(tracking.id, targetState)}
-                                                                aria-label={`Change state to ${targetLabel}`}
-                                                            >
-                                                                <span className="status-dropdown-icon">{targetIcon}</span>
-                                                                <span className="status-dropdown-label">{actionVerb}</span>
-                                                            </button>
-                                                        );
-                                                    })}
-                                            </div>
-                                        )}
-                                    </div>
-                                </td>
-                            </tr>
-                        );
-                    })}
-                </tbody>
-            </table>
+                                                <span className="status-badge-text">{stateLabel}</span>
+                                                <span className="status-badge-arrow">▼</span>
+                                            </button>
+                                            {isDropdownOpen && dropdownPosition && (
+                                                <div
+                                                    className="status-dropdown-menu"
+                                                    ref={(el) => {
+                                                        dropdownMenuRefs.current[tracking.id] = el;
+                                                    }}
+                                                    style={{
+                                                        top: `${dropdownPosition.top}px`,
+                                                        right: `${dropdownPosition.right}px`,
+                                                    }}
+                                                >
+                                                    {validTransitions
+                                                        .filter((targetState) => targetState !== currentState)
+                                                        .map((targetState) => {
+                                                            const actionVerb = StateTransitionHelper.getActionVerb(targetState);
+                                                            const targetIcon = StateTransitionHelper.getTransitionIcon(targetState);
+                                                            const targetLabel = StateTransitionHelper.getStateLabel(targetState);
+                                                            return (
+                                                                <button
+                                                                    key={targetState}
+                                                                    type="button"
+                                                                    className="status-dropdown-item"
+                                                                    onClick={() => handleStateChange(tracking.id, targetState)}
+                                                                    aria-label={`Change state to ${targetLabel}`}
+                                                                >
+                                                                    <span className="status-dropdown-icon">{targetIcon}</span>
+                                                                    <span className="status-dropdown-label">{actionVerb}</span>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
             {trackingToDelete && (
                 <DeleteTrackingConfirmationModal
                     tracking={trackingToDelete}
