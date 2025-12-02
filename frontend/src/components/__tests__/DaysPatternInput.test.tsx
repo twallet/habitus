@@ -358,9 +358,9 @@ describe("DaysPatternInput", () => {
         });
     });
 
-    it("should default to Monday when switching to weekly with empty days", async () => {
+    it("should default to Monday when switching to weekly", async () => {
         const user = userEvent.setup();
-        const { rerender } = render(
+        render(
             <DaysPatternInput
                 value={{
                     pattern_type: DaysPatternType.INTERVAL,
