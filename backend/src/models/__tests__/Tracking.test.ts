@@ -4,6 +4,7 @@ import {
   TrackingType,
   TrackingState,
   TrackingData,
+  DaysPatternType,
 } from "../Tracking.js";
 import { Database } from "../../db/database.js";
 import sqlite3 from "sqlite3";
@@ -565,7 +566,7 @@ describe("Tracking Model", () => {
   describe("validateDays", () => {
     it("should accept valid INTERVAL pattern", () => {
       const days = {
-        pattern_type: "interval" as const,
+        pattern_type: DaysPatternType.INTERVAL,
         interval_value: 2,
         interval_unit: "days" as const,
       };
@@ -574,7 +575,7 @@ describe("Tracking Model", () => {
 
     it("should accept valid DAY_OF_WEEK pattern", () => {
       const days = {
-        pattern_type: "day_of_week" as const,
+        pattern_type: DaysPatternType.DAY_OF_WEEK,
         days: [0, 1, 2],
       };
       expect(Tracking.validateDays(days)).toEqual(days);
@@ -582,7 +583,7 @@ describe("Tracking Model", () => {
 
     it("should accept valid DAY_OF_MONTH pattern with day_number", () => {
       const days = {
-        pattern_type: "day_of_month" as const,
+        pattern_type: DaysPatternType.DAY_OF_MONTH,
         type: "day_number" as const,
         day_numbers: [1, 15, 30],
       };
@@ -591,7 +592,7 @@ describe("Tracking Model", () => {
 
     it("should accept valid DAY_OF_MONTH pattern with last_day", () => {
       const days = {
-        pattern_type: "day_of_month" as const,
+        pattern_type: DaysPatternType.DAY_OF_MONTH,
         type: "last_day" as const,
       };
       expect(Tracking.validateDays(days)).toEqual(days);
@@ -599,7 +600,7 @@ describe("Tracking Model", () => {
 
     it("should accept valid DAY_OF_MONTH pattern with weekday_ordinal", () => {
       const days = {
-        pattern_type: "day_of_month" as const,
+        pattern_type: DaysPatternType.DAY_OF_MONTH,
         type: "weekday_ordinal" as const,
         weekday: 1,
         ordinal: 2,
@@ -609,21 +610,21 @@ describe("Tracking Model", () => {
 
     it("should accept valid DAY_OF_YEAR pattern with date", () => {
       const days = {
-        pattern_type: "day_of_year" as const,
+        pattern_type: DaysPatternType.DAY_OF_YEAR,
         type: "date" as const,
         month: 12,
         day: 25,
-      };
+      } as any;
       expect(Tracking.validateDays(days)).toEqual(days);
     });
 
     it("should accept valid DAY_OF_YEAR pattern with weekday_ordinal", () => {
       const days = {
-        pattern_type: "day_of_year" as const,
+        pattern_type: DaysPatternType.DAY_OF_YEAR,
         type: "weekday_ordinal" as const,
         weekday: 0,
         ordinal: 4,
-      };
+      } as any;
       expect(Tracking.validateDays(days)).toEqual(days);
     });
 
@@ -651,7 +652,7 @@ describe("Tracking Model", () => {
     it("should throw TypeError for INTERVAL pattern missing interval_value", () => {
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "interval",
+          pattern_type: DaysPatternType.INTERVAL,
           interval_unit: "days",
         } as any)
       ).toThrow(TypeError);
@@ -660,21 +661,21 @@ describe("Tracking Model", () => {
     it("should throw TypeError for INTERVAL pattern with invalid interval_value", () => {
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "interval",
+          pattern_type: DaysPatternType.INTERVAL,
           interval_value: -1,
           interval_unit: "days",
         } as any)
       ).toThrow(TypeError);
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "interval",
+          pattern_type: DaysPatternType.INTERVAL,
           interval_value: 0,
           interval_unit: "days",
         } as any)
       ).toThrow(TypeError);
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "interval",
+          pattern_type: DaysPatternType.INTERVAL,
           interval_value: 1.5,
           interval_unit: "days",
         } as any)
@@ -684,7 +685,7 @@ describe("Tracking Model", () => {
     it("should throw TypeError for INTERVAL pattern missing interval_unit", () => {
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "interval",
+          pattern_type: DaysPatternType.INTERVAL,
           interval_value: 2,
         } as any)
       ).toThrow(TypeError);
@@ -693,7 +694,7 @@ describe("Tracking Model", () => {
     it("should throw TypeError for INTERVAL pattern with invalid interval_unit", () => {
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "interval",
+          pattern_type: DaysPatternType.INTERVAL,
           interval_value: 2,
           interval_unit: "invalid",
         } as any)
@@ -703,7 +704,7 @@ describe("Tracking Model", () => {
     it("should throw TypeError for DAY_OF_WEEK pattern missing days array", () => {
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "day_of_week",
+          pattern_type: DaysPatternType.DAY_OF_WEEK,
         } as any)
       ).toThrow(TypeError);
     });
@@ -711,7 +712,7 @@ describe("Tracking Model", () => {
     it("should throw TypeError for DAY_OF_WEEK pattern with empty days array", () => {
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "day_of_week",
+          pattern_type: DaysPatternType.DAY_OF_WEEK,
           days: [],
         } as any)
       ).toThrow(TypeError);
@@ -720,19 +721,19 @@ describe("Tracking Model", () => {
     it("should throw TypeError for DAY_OF_WEEK pattern with invalid day values", () => {
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "day_of_week",
+          pattern_type: DaysPatternType.DAY_OF_WEEK,
           days: [-1],
         } as any)
       ).toThrow(TypeError);
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "day_of_week",
+          pattern_type: DaysPatternType.DAY_OF_WEEK,
           days: [7],
         } as any)
       ).toThrow(TypeError);
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "day_of_week",
+          pattern_type: DaysPatternType.DAY_OF_WEEK,
           days: [1.5],
         } as any)
       ).toThrow(TypeError);
@@ -741,7 +742,7 @@ describe("Tracking Model", () => {
     it("should throw TypeError for DAY_OF_WEEK pattern with duplicate days", () => {
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "day_of_week",
+          pattern_type: DaysPatternType.DAY_OF_WEEK,
           days: [0, 1, 0],
         } as any)
       ).toThrow(TypeError);
@@ -750,7 +751,7 @@ describe("Tracking Model", () => {
     it("should throw TypeError for DAY_OF_MONTH pattern missing type", () => {
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "day_of_month",
+          pattern_type: DaysPatternType.DAY_OF_MONTH,
         } as any)
       ).toThrow(TypeError);
     });
@@ -758,7 +759,7 @@ describe("Tracking Model", () => {
     it("should throw TypeError for DAY_OF_MONTH pattern with invalid type", () => {
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "day_of_month",
+          pattern_type: DaysPatternType.DAY_OF_MONTH,
           type: "invalid",
         } as any)
       ).toThrow(TypeError);
@@ -767,7 +768,7 @@ describe("Tracking Model", () => {
     it("should throw TypeError for DAY_OF_MONTH pattern day_number missing day_numbers", () => {
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "day_of_month",
+          pattern_type: DaysPatternType.DAY_OF_MONTH,
           type: "day_number",
         } as any)
       ).toThrow(TypeError);
@@ -776,14 +777,14 @@ describe("Tracking Model", () => {
     it("should throw TypeError for DAY_OF_MONTH pattern day_number with invalid day_numbers", () => {
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "day_of_month",
+          pattern_type: DaysPatternType.DAY_OF_MONTH,
           type: "day_number",
           day_numbers: [0],
         } as any)
       ).toThrow(TypeError);
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "day_of_month",
+          pattern_type: DaysPatternType.DAY_OF_MONTH,
           type: "day_number",
           day_numbers: [32],
         } as any)
@@ -793,7 +794,7 @@ describe("Tracking Model", () => {
     it("should throw TypeError for DAY_OF_MONTH pattern weekday_ordinal missing weekday", () => {
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "day_of_month",
+          pattern_type: DaysPatternType.DAY_OF_MONTH,
           type: "weekday_ordinal",
           ordinal: 1,
         } as any)
@@ -803,7 +804,7 @@ describe("Tracking Model", () => {
     it("should throw TypeError for DAY_OF_MONTH pattern weekday_ordinal with invalid weekday", () => {
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "day_of_month",
+          pattern_type: DaysPatternType.DAY_OF_MONTH,
           type: "weekday_ordinal",
           weekday: -1,
           ordinal: 1,
@@ -811,7 +812,7 @@ describe("Tracking Model", () => {
       ).toThrow(TypeError);
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "day_of_month",
+          pattern_type: DaysPatternType.DAY_OF_MONTH,
           type: "weekday_ordinal",
           weekday: 7,
           ordinal: 1,
@@ -822,7 +823,7 @@ describe("Tracking Model", () => {
     it("should throw TypeError for DAY_OF_MONTH pattern weekday_ordinal missing ordinal", () => {
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "day_of_month",
+          pattern_type: DaysPatternType.DAY_OF_MONTH,
           type: "weekday_ordinal",
           weekday: 1,
         } as any)
@@ -832,7 +833,7 @@ describe("Tracking Model", () => {
     it("should throw TypeError for DAY_OF_MONTH pattern weekday_ordinal with invalid ordinal", () => {
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "day_of_month",
+          pattern_type: DaysPatternType.DAY_OF_MONTH,
           type: "weekday_ordinal",
           weekday: 1,
           ordinal: 0,
@@ -840,7 +841,7 @@ describe("Tracking Model", () => {
       ).toThrow(TypeError);
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "day_of_month",
+          pattern_type: DaysPatternType.DAY_OF_MONTH,
           type: "weekday_ordinal",
           weekday: 1,
           ordinal: 6,
@@ -851,7 +852,7 @@ describe("Tracking Model", () => {
     it("should throw TypeError for DAY_OF_YEAR pattern missing type", () => {
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "day_of_year",
+          pattern_type: DaysPatternType.DAY_OF_YEAR,
         } as any)
       ).toThrow(TypeError);
     });
@@ -859,7 +860,7 @@ describe("Tracking Model", () => {
     it("should throw TypeError for DAY_OF_YEAR pattern with invalid type", () => {
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "day_of_year",
+          pattern_type: DaysPatternType.DAY_OF_YEAR,
           type: "invalid",
         } as any)
       ).toThrow(TypeError);
@@ -868,7 +869,7 @@ describe("Tracking Model", () => {
     it("should throw TypeError for DAY_OF_YEAR pattern date missing month", () => {
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "day_of_year",
+          pattern_type: DaysPatternType.DAY_OF_YEAR,
           type: "date",
           day: 25,
         } as any)
@@ -878,7 +879,7 @@ describe("Tracking Model", () => {
     it("should throw TypeError for DAY_OF_YEAR pattern date with invalid month", () => {
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "day_of_year",
+          pattern_type: DaysPatternType.DAY_OF_YEAR,
           type: "date",
           month: 0,
           day: 25,
@@ -886,7 +887,7 @@ describe("Tracking Model", () => {
       ).toThrow(TypeError);
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "day_of_year",
+          pattern_type: DaysPatternType.DAY_OF_YEAR,
           type: "date",
           month: 13,
           day: 25,
@@ -897,7 +898,7 @@ describe("Tracking Model", () => {
     it("should throw TypeError for DAY_OF_YEAR pattern date missing day", () => {
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "day_of_year",
+          pattern_type: DaysPatternType.DAY_OF_YEAR,
           type: "date",
           month: 12,
         } as any)
@@ -907,7 +908,7 @@ describe("Tracking Model", () => {
     it("should throw TypeError for DAY_OF_YEAR pattern date with invalid day", () => {
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "day_of_year",
+          pattern_type: DaysPatternType.DAY_OF_YEAR,
           type: "date",
           month: 12,
           day: 0,
@@ -915,7 +916,7 @@ describe("Tracking Model", () => {
       ).toThrow(TypeError);
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "day_of_year",
+          pattern_type: DaysPatternType.DAY_OF_YEAR,
           type: "date",
           month: 12,
           day: 32,
@@ -926,7 +927,7 @@ describe("Tracking Model", () => {
     it("should throw TypeError for DAY_OF_YEAR pattern weekday_ordinal missing weekday", () => {
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "day_of_year",
+          pattern_type: DaysPatternType.DAY_OF_YEAR,
           type: "weekday_ordinal",
           ordinal: 1,
         } as any)
@@ -936,7 +937,7 @@ describe("Tracking Model", () => {
     it("should throw TypeError for DAY_OF_YEAR pattern weekday_ordinal with invalid weekday", () => {
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "day_of_year",
+          pattern_type: DaysPatternType.DAY_OF_YEAR,
           type: "weekday_ordinal",
           weekday: -1,
           ordinal: 1,
@@ -947,7 +948,7 @@ describe("Tracking Model", () => {
     it("should throw TypeError for DAY_OF_YEAR pattern weekday_ordinal missing ordinal", () => {
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "day_of_year",
+          pattern_type: DaysPatternType.DAY_OF_YEAR,
           type: "weekday_ordinal",
           weekday: 1,
         } as any)
@@ -957,7 +958,7 @@ describe("Tracking Model", () => {
     it("should throw TypeError for DAY_OF_YEAR pattern weekday_ordinal with invalid ordinal", () => {
       expect(() =>
         Tracking.validateDays({
-          pattern_type: "day_of_year",
+          pattern_type: DaysPatternType.DAY_OF_YEAR,
           type: "weekday_ordinal",
           weekday: 1,
           ordinal: 0,
@@ -987,7 +988,7 @@ describe("Tracking Model", () => {
         question: "Did I exercise?",
         type: TrackingType.TRUE_FALSE,
         days: {
-          pattern_type: "interval",
+          pattern_type: DaysPatternType.INTERVAL,
           interval_value: 2,
           interval_unit: "days",
         },
@@ -1020,7 +1021,7 @@ describe("Tracking Model", () => {
         question: "Did I exercise?",
         type: TrackingType.TRUE_FALSE,
         days: {
-          pattern_type: "interval",
+          pattern_type: DaysPatternType.INTERVAL,
         } as any,
       });
 
@@ -1038,7 +1039,7 @@ describe("Tracking Model", () => {
         notes: "Some notes",
         icon: "🏃",
         days: {
-          pattern_type: "interval",
+          pattern_type: DaysPatternType.INTERVAL,
           interval_value: 2,
           interval_unit: "days",
         },
@@ -1071,7 +1072,7 @@ describe("Tracking Model", () => {
         notes: "Updated notes",
         icon: "✅",
         days: {
-          pattern_type: "day_of_week",
+          pattern_type: DaysPatternType.DAY_OF_WEEK,
           days: [0, 1, 2],
         },
       });
@@ -1097,7 +1098,7 @@ describe("Tracking Model", () => {
           "Original notes",
           "🏃",
           JSON.stringify({
-            pattern_type: "interval",
+            pattern_type: DaysPatternType.INTERVAL,
             interval_value: 1,
             interval_unit: "days",
           }),
@@ -1159,7 +1160,7 @@ describe("Tracking Model", () => {
       });
 
       const daysPattern = {
-        pattern_type: "day_of_week" as const,
+        pattern_type: DaysPatternType.DAY_OF_WEEK,
         days: [0, 6],
       };
 
@@ -1205,7 +1206,7 @@ describe("Tracking Model", () => {
       });
 
       const daysPattern = {
-        pattern_type: "interval" as const,
+        pattern_type: DaysPatternType.INTERVAL,
         interval_value: 3,
         interval_unit: "weeks" as const,
       };
