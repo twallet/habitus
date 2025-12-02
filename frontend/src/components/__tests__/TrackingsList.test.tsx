@@ -15,6 +15,12 @@ describe("TrackingsList", () => {
     const mockOnEdit = vi.fn();
     const mockDeleteTracking = vi.fn().mockResolvedValue(undefined);
     const mockUpdateTrackingState = vi.fn().mockResolvedValue(undefined);
+    const mockCreateTracking = vi.fn().mockResolvedValue({
+        id: 1,
+        user_id: 1,
+        question: "Test question",
+        type: TrackingType.TRUE_FALSE,
+    });
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -24,6 +30,7 @@ describe("TrackingsList", () => {
             isLoading: false,
             updateTrackingState: mockUpdateTrackingState,
             deleteTracking: mockDeleteTracking,
+            createTracking: mockCreateTracking,
         });
     });
 
@@ -105,46 +112,6 @@ describe("TrackingsList", () => {
         expect(mockOnEdit).toHaveBeenCalledTimes(1);
     });
 
-    it("should display notes when present", () => {
-        const trackings: TrackingData[] = [
-            {
-                id: 1,
-                user_id: 1,
-                question: "Did I exercise?",
-                type: TrackingType.TRUE_FALSE,
-                notes: "<p>Some notes</p>",
-            },
-        ];
-
-        render(
-            <TrackingsList
-                trackings={trackings}
-                onEdit={mockOnEdit}
-            />
-        );
-
-        expect(screen.getByText("📝")).toBeInTheDocument();
-    });
-
-    it("should not display notes section when notes are absent", () => {
-        const trackings: TrackingData[] = [
-            {
-                id: 1,
-                user_id: 1,
-                question: "Did I exercise?",
-                type: TrackingType.TRUE_FALSE,
-            },
-        ];
-
-        render(
-            <TrackingsList
-                trackings={trackings}
-                onEdit={mockOnEdit}
-            />
-        );
-
-        expect(screen.queryByText("📝")).not.toBeInTheDocument();
-    });
 
     it("should display icon with question when icon is present", () => {
         const trackings: TrackingData[] = [
@@ -501,27 +468,6 @@ describe("TrackingsList", () => {
         expect(typeCell).toHaveAttribute("title", "Yes/No");
     });
 
-    it("should display stripped HTML notes in tooltip", () => {
-        const trackings: TrackingData[] = [
-            {
-                id: 1,
-                user_id: 1,
-                question: "Did I exercise?",
-                type: TrackingType.TRUE_FALSE,
-                notes: "<p>Some <strong>notes</strong></p>",
-            },
-        ];
-
-        render(
-            <TrackingsList
-                trackings={trackings}
-                onEdit={mockOnEdit}
-            />
-        );
-
-        const notesCell = screen.getByText("📝");
-        expect(notesCell).toHaveAttribute("title", "Some notes");
-    });
 
     it("should display table headers", () => {
         const trackings: TrackingData[] = [
@@ -544,7 +490,6 @@ describe("TrackingsList", () => {
         expect(screen.getByText("Type")).toBeInTheDocument();
         expect(screen.getByText("Times")).toBeInTheDocument();
         expect(screen.getByText("Frequency")).toBeInTheDocument();
-        expect(screen.getByText("Notes")).toBeInTheDocument();
         expect(screen.getByText("Status")).toBeInTheDocument();
     });
 
@@ -614,7 +559,6 @@ describe("TrackingsList", () => {
         expect(screen.getByText("🖊️")).toBeInTheDocument();
         expect(screen.getByText(/09:00 \+1/)).toBeInTheDocument();
         expect(screen.getByText("Mon, Wed, Fri")).toBeInTheDocument();
-        expect(screen.getByText("📝")).toBeInTheDocument();
     });
 
     it("should handle trackings with no schedules", () => {
@@ -738,26 +682,6 @@ describe("TrackingsList", () => {
         expect(screen.getByText("Daily")).toBeInTheDocument();
     });
 
-    it("should handle empty notes tooltip", () => {
-        const trackings: TrackingData[] = [
-            {
-                id: 1,
-                user_id: 1,
-                question: "Did I exercise?",
-                type: TrackingType.TRUE_FALSE,
-            },
-        ];
-
-        render(
-            <TrackingsList
-                trackings={trackings}
-                onEdit={mockOnEdit}
-            />
-        );
-
-        const notesCell = screen.getByText("Did I exercise?").closest("tr")?.querySelector(".cell-notes");
-        expect(notesCell).toHaveAttribute("title", "");
-    });
 
     it("should show delete confirmation modal when delete button is clicked for archived tracking", async () => {
         const user = userEvent.setup();
@@ -954,6 +878,33 @@ describe("TrackingsList", () => {
         // Only the running tracking should be visible
         expect(screen.getByText("Did I exercise?")).toBeInTheDocument();
         expect(screen.queryByText("Did I meditate?")).not.toBeInTheDocument();
+    });
+
+    it("should call onCreateTracking callback with createTracking function", () => {
+        const mockOnCreateTracking = vi.fn();
+
+        render(
+            <TrackingsList
+                onEdit={mockOnEdit}
+                onCreateTracking={mockOnCreateTracking}
+            />
+        );
+
+        // The callback should be called with the createTracking function from the hook
+        expect(mockOnCreateTracking).toHaveBeenCalledWith(mockCreateTracking);
+    });
+
+    it("should not call onCreateTracking if prop is not provided", () => {
+        const mockOnCreateTracking = vi.fn();
+
+        render(
+            <TrackingsList
+                onEdit={mockOnEdit}
+            />
+        );
+
+        // The callback should not be called if prop is not provided
+        expect(mockOnCreateTracking).not.toHaveBeenCalled();
     });
 });
 

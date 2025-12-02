@@ -239,17 +239,6 @@ class TrackingFormatter {
         }
         return text.substring(0, maxLength) + "...";
     }
-
-    /**
-     * Strip HTML tags from text for plain text display in tooltip.
-     * @param html - HTML string
-     * @returns Plain text
-     */
-    static stripHtml(html: string): string {
-        const tmp = document.createElement("DIV");
-        tmp.innerHTML = html;
-        return tmp.textContent || tmp.innerText || "";
-    }
 }
 
 /**
@@ -587,7 +576,6 @@ export function TrackingsList({
                         <th className="col-type">Type</th>
                         <th className="col-times">Times</th>
                         <th className="col-frequency">Frequency</th>
-                        <th className="col-notes">Notes</th>
                         <th className="col-status">Status</th>
                     </tr>
                 </thead>
@@ -630,9 +618,6 @@ export function TrackingsList({
                                 </td>
                                 <td className="cell-frequency" title={TrackingFormatter.formatFullFrequency(tracking.days)}>
                                     {TrackingFormatter.formatFrequency(tracking.days)}
-                                </td>
-                                <td className="cell-notes" title={tracking.notes ? TrackingFormatter.stripHtml(tracking.notes) : ""}>
-                                    {tracking.notes ? "📝" : ""}
                                 </td>
                                 <td className="cell-status">
                                     <div
