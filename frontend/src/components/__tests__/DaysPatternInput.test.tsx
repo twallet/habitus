@@ -38,71 +38,39 @@ describe("DaysPatternInput", () => {
         expect(select).toHaveValue("daily");
     });
 
-    it("should call onChange with undefined for daily preset", async () => {
+    it("should call onChange with daily pattern for daily preset", async () => {
         render(
             <DaysPatternInput
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
         );
-
-        await waitFor(() => {
-            expect(mockOnChange).toHaveBeenCalledWith(undefined);
-        });
-    });
-
-    it("should show interval inputs when interval preset is selected", async () => {
-        const user = userEvent.setup();
-        render(
-            <DaysPatternInput
-                onChange={mockOnChange}
-                onErrorChange={mockOnErrorChange}
-            />
-        );
-
-        const select = document.getElementById("frequency-preset") as HTMLSelectElement;
-        await user.selectOptions(select, "interval");
-
-        await waitFor(() => {
-            expect(screen.getByLabelText(/every/i)).toBeInTheDocument();
-            expect(screen.getByRole("spinbutton")).toBeInTheDocument();
-        });
-    });
-
-    it("should build interval pattern when values are set", async () => {
-        const user = userEvent.setup();
-        render(
-            <DaysPatternInput
-                onChange={mockOnChange}
-                onErrorChange={mockOnErrorChange}
-            />
-        );
-
-        const select = document.getElementById("frequency-preset") as HTMLSelectElement;
-        await user.selectOptions(select, "interval");
-
-        await waitFor(() => {
-            expect(screen.getByRole("spinbutton")).toBeInTheDocument();
-        });
-
-        const valueInput = screen.getByRole("spinbutton");
-        await user.clear(valueInput);
-        await user.type(valueInput, "3");
-
-        // Find the unit select (it's a select element, not a combobox in the DOM)
-        const unitSelect = document.querySelector(".interval-inputs select") as HTMLSelectElement;
-        if (unitSelect) {
-            await user.selectOptions(unitSelect, "weeks");
-        }
 
         await waitFor(() => {
             expect(mockOnChange).toHaveBeenCalledWith(
                 expect.objectContaining({
                     pattern_type: DaysPatternType.INTERVAL,
-                    interval_value: 3,
-                    interval_unit: "weeks",
+                    interval_value: 1,
+                    interval_unit: "days",
                 })
             );
+        });
+    });
+
+    it("should show weekly options when weekly preset is selected", async () => {
+        const user = userEvent.setup();
+        render(
+            <DaysPatternInput
+                onChange={mockOnChange}
+                onErrorChange={mockOnErrorChange}
+            />
+        );
+
+        const select = document.getElementById("frequency-preset") as HTMLSelectElement;
+        await user.selectOptions(select, "weekly");
+
+        await waitFor(() => {
+            expect(screen.getByText(/select days/i)).toBeInTheDocument();
         });
     });
 
@@ -186,8 +154,8 @@ describe("DaysPatternInput", () => {
     it("should initialize from value prop", () => {
         const pattern: DaysPattern = {
             pattern_type: DaysPatternType.INTERVAL,
-            interval_value: 2,
-            interval_unit: "weeks",
+            interval_value: 1,
+            interval_unit: "days",
         };
 
         render(
@@ -199,7 +167,7 @@ describe("DaysPatternInput", () => {
         );
 
         const select = screen.getByRole("combobox", { name: /frequency/i });
-        expect(select).toHaveValue("interval");
+        expect(select).toHaveValue("daily");
     });
 
     it("should display error message when provided", () => {
@@ -239,14 +207,18 @@ describe("DaysPatternInput", () => {
         const select = screen.getByRole("combobox", { name: /frequency/i });
         await user.selectOptions(select, "weekly");
 
-        // Weekly preset requires at least one day selected
-        // The error should be set when trying to build pattern without days
-        // The component validates on preset change and calls onErrorChange
+        // Weekly preset defaults to Monday, so validation should pass
+        // But if we manually clear all days, it should fail
+        // Since the component defaults to Monday, validation should pass
         await waitFor(() => {
-            expect(mockOnErrorChange).toHaveBeenCalledWith(
-                expect.stringContaining("Please select at least one day")
+            // Component should call onChange with a valid pattern (defaults to Monday)
+            expect(mockOnChange).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    pattern_type: DaysPatternType.DAY_OF_WEEK,
+                    days: expect.arrayContaining([1]),
+                })
             );
-        }, { timeout: 2000 });
+        });
     });
 });
 

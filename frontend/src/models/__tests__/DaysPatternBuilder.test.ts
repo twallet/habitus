@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { DaysPatternBuilder, FrequencyPreset } from "../DaysPatternBuilder";
+import { DaysPatternBuilder } from "../DaysPatternBuilder";
 import { DaysPattern, DaysPatternType } from "../Tracking";
 
 describe("DaysPatternBuilder", () => {
