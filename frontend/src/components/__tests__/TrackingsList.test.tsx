@@ -908,11 +908,33 @@ describe("TrackingsList", () => {
     });
 
     describe("Filtering", () => {
-        it("should show filter panel when toggle button is clicked", async () => {
-            const user = userEvent.setup();
+        it("should not show filter button when there are no trackings", () => {
             render(
                 <TrackingsList
                     trackings={[]}
+                    onEdit={mockOnEdit}
+                />
+            );
+
+            expect(screen.queryByRole("button", { name: /show filters/i })).not.toBeInTheDocument();
+            expect(screen.queryByRole("button", { name: /hide filters/i })).not.toBeInTheDocument();
+        });
+
+        it("should show filter panel when toggle button is clicked", async () => {
+            const user = userEvent.setup();
+            const trackings: TrackingData[] = [
+                {
+                    id: 1,
+                    user_id: 1,
+                    question: "Test question",
+                    type: TrackingType.TRUE_FALSE,
+                    state: TrackingState.RUNNING,
+                },
+            ];
+
+            render(
+                <TrackingsList
+                    trackings={trackings}
                     onEdit={mockOnEdit}
                 />
             );
@@ -927,9 +949,19 @@ describe("TrackingsList", () => {
 
         it("should hide filter panel when toggle button is clicked again", async () => {
             const user = userEvent.setup();
+            const trackings: TrackingData[] = [
+                {
+                    id: 1,
+                    user_id: 1,
+                    question: "Test question",
+                    type: TrackingType.TRUE_FALSE,
+                    state: TrackingState.RUNNING,
+                },
+            ];
+
             render(
                 <TrackingsList
-                    trackings={[]}
+                    trackings={trackings}
                     onEdit={mockOnEdit}
                 />
             );

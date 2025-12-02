@@ -862,6 +862,20 @@ export function TrackingsList({
         );
     }
 
+    // Filter toggle button (reusable)
+    const filterToggleButton = (
+        <button
+            type="button"
+            className="filter-toggle-button"
+            onClick={toggleFilters}
+            aria-label={showFilters ? "Hide filters" : "Show filters"}
+            aria-expanded={showFilters}
+            title={showFilters ? "Hide filters" : "Show filters"}
+        >
+            <span className="filter-toggle-icon">🔍</span>
+        </button>
+    );
+
     // Filter panel (shown even when no trackings)
     const filterPanel = showFilters ? (
         <div className="filter-panel">
@@ -981,7 +995,6 @@ export function TrackingsList({
         return (
             <div className="trackings-list">
                 <div className="trackings-list-content">
-                    {filterPanel}
                     <div className="empty-state">
                         <p>
                             No trackings yet.{" "}
@@ -1011,6 +1024,9 @@ export function TrackingsList({
         return (
             <div className="trackings-list">
                 <div className="trackings-list-content">
+                    <div className="filter-toggle-container">
+                        {filterToggleButton}
+                    </div>
                     {filterPanel}
                     <div className="empty-state">
                         <p>No trackings match the current filters.</p>
@@ -1029,16 +1045,7 @@ export function TrackingsList({
                         <tr>
                             <th className="col-tracking">
                                 <div className="header-with-filter">
-                                    <button
-                                        type="button"
-                                        className="filter-toggle-button"
-                                        onClick={toggleFilters}
-                                        aria-label={showFilters ? "Hide filters" : "Show filters"}
-                                        aria-expanded={showFilters}
-                                        title={showFilters ? "Hide filters" : "Show filters"}
-                                    >
-                                        <span className="filter-toggle-icon">🔍</span>
-                                    </button>
+                                    {filterToggleButton}
                                     <button
                                         type="button"
                                         className="sortable-header"
