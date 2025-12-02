@@ -1230,3 +1230,6 @@ export function TrackingsList({
     );
 }
 
+// Default export for compatibility
+export default TrackingsList;
+
