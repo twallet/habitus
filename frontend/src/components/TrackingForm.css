@@ -253,6 +253,7 @@
   gap: 12px;
   align-items: center;
   flex-shrink: 0;
+  align-self: flex-start;
 }
 
 .schedule-time-inputs input[type="time"] {
@@ -301,6 +302,7 @@
   width: max-content !important;
   min-width: unset !important;
   max-width: fit-content !important;
+  align-self: flex-start;
 }
 
 .schedule-add-button:hover:not(:disabled) {
@@ -345,8 +347,12 @@
   flex-wrap: wrap;
   gap: 8px;
   align-items: flex-start;
-  margin: 0;
   align-content: flex-start;
+  margin: 0;
+  margin-top: 0;
+  padding-top: 0;
+  align-self: flex-start;
+  min-height: 0;
 }
 
 .schedule-item {
