@@ -183,6 +183,11 @@ export class DaysPatternBuilder {
    */
   setYearlyMonth(month: number): void {
     this.yearlyMonth = month;
+    // Adjust day if it's invalid for the new month
+    const maxDays = this.getMaxDaysInMonth(month);
+    if (this.yearlyDay > maxDays) {
+      this.yearlyDay = maxDays;
+    }
   }
 
   /**
@@ -200,7 +205,28 @@ export class DaysPatternBuilder {
    * @public
    */
   setYearlyDay(day: number): void {
-    this.yearlyDay = day;
+    const maxDays = this.getMaxDaysInMonth(this.yearlyMonth);
+    // Clamp day to valid range for the current month
+    this.yearlyDay = Math.min(Math.max(day, 1), maxDays);
+  }
+
+  /**
+   * Get the maximum number of days in a given month.
+   * @param month - Month number (1-12)
+   * @returns Maximum number of days in the month
+   * @private
+   */
+  private getMaxDaysInMonth(month: number): number {
+    // Months with 31 days: January, March, May, July, August, October, December
+    if ([1, 3, 5, 7, 8, 10, 12].includes(month)) {
+      return 31;
+    }
+    // Months with 30 days: April, June, September, November
+    if ([4, 6, 9, 11].includes(month)) {
+      return 30;
+    }
+    // February: 28 days (not handling leap years for simplicity)
+    return 28;
   }
 
   /**
@@ -306,6 +332,13 @@ export class DaysPatternBuilder {
    */
   validate(): string | null {
     try {
+      // Validate yearly day/month combination
+      if (this.preset === "yearly") {
+        const maxDays = this.getMaxDaysInMonth(this.yearlyMonth);
+        if (this.yearlyDay > maxDays || this.yearlyDay < 1) {
+          return `Day ${this.yearlyDay} is not valid for the selected month`;
+        }
+      }
       this.buildPattern();
       return null;
     } catch (error) {

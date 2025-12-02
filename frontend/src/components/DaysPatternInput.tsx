@@ -85,6 +85,25 @@ export function DaysPatternInput({
     ];
 
     /**
+     * Get the maximum number of days in a given month.
+     * @param month - Month number (1-12)
+     * @returns Maximum number of days in the month
+     * @internal
+     */
+    const getMaxDaysInMonth = (month: number): number => {
+        // Months with 31 days: January, March, May, July, August, October, December
+        if ([1, 3, 5, 7, 8, 10, 12].includes(month)) {
+            return 31;
+        }
+        // Months with 30 days: April, June, September, November
+        if ([4, 6, 9, 11].includes(month)) {
+            return 30;
+        }
+        // February: 28 days (not handling leap years for simplicity)
+        return 28;
+    };
+
+    /**
      * Update builder with current state and build pattern.
      * @internal
      */
@@ -329,39 +348,48 @@ export function DaysPatternInput({
                     </>
                 )}
 
-                {preset === "yearly" && (
-                    <>
-                        <select
-                            value={yearlyMonth}
-                            onChange={(e) => {
-                                const month = parseInt(e.target.value, 10);
-                                setYearlyMonth(month);
-                                builderRef.current.setYearlyMonth(month);
-                            }}
-                            disabled={disabled}
-                        >
-                            {months.map((m) => (
-                                <option key={m.value} value={m.value}>
-                                    {m.label}
-                                </option>
-                            ))}
-                        </select>
-                        <input
-                            type="number"
-                            min="1"
-                            max="31"
-                            value={yearlyDay}
-                            onChange={(e) => {
-                                const day = parseInt(e.target.value, 10) || 1;
-                                setYearlyDay(day);
-                                builderRef.current.setYearlyDay(day);
-                            }}
-                            disabled={disabled}
-                            className="day-input"
-                            placeholder="Day (1-31)"
-                        />
-                    </>
-                )}
+                {preset === "yearly" && (() => {
+                    const maxDays = getMaxDaysInMonth(yearlyMonth);
+                    return (
+                        <>
+                            <select
+                                value={yearlyMonth}
+                                onChange={(e) => {
+                                    const month = parseInt(e.target.value, 10);
+                                    const maxDaysForMonth = getMaxDaysInMonth(month);
+                                    // Adjust day if it's invalid for the new month
+                                    const adjustedDay = yearlyDay > maxDaysForMonth ? maxDaysForMonth : yearlyDay;
+                                    setYearlyMonth(month);
+                                    setYearlyDay(adjustedDay);
+                                    builderRef.current.setYearlyMonth(month);
+                                    builderRef.current.setYearlyDay(adjustedDay);
+                                }}
+                                disabled={disabled}
+                            >
+                                {months.map((m) => (
+                                    <option key={m.value} value={m.value}>
+                                        {m.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <input
+                                type="number"
+                                min="1"
+                                max={maxDays}
+                                value={yearlyDay}
+                                onChange={(e) => {
+                                    const day = parseInt(e.target.value, 10) || 1;
+                                    const clampedDay = Math.min(Math.max(day, 1), maxDays);
+                                    setYearlyDay(clampedDay);
+                                    builderRef.current.setYearlyDay(clampedDay);
+                                }}
+                                disabled={disabled}
+                                className="day-input"
+                                placeholder={`Day (1-${maxDays})`}
+                            />
+                        </>
+                    );
+                })()}
             </div>
 
             {error && (
