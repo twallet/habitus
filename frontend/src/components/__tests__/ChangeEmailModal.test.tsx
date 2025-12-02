@@ -98,7 +98,7 @@ describe('ChangeEmailModal', () => {
     expect(newEmailInput).toHaveValue('newemail@example.com');
   });
 
-  it('should show error for empty email', async () => {
+  it('should disable button and prevent submission for empty email', async () => {
     const user = userEvent.setup();
     render(
       <ChangeEmailModal
@@ -109,14 +109,14 @@ describe('ChangeEmailModal', () => {
     );
 
     const submitButton = screen.getByRole('button', { name: /change email/i });
-    await user.click(submitButton);
+    expect(submitButton).toBeDisabled();
 
-    await waitFor(() => {
-      expect(screen.getByText(/email is required/i)).toBeInTheDocument();
-    });
+    // Button is disabled, so clicking should not trigger submission
+    await user.click(submitButton);
+    expect(mockOnRequestEmailChange).not.toHaveBeenCalled();
   });
 
-  it('should show error for invalid email format', async () => {
+  it('should disable button and prevent submission for invalid email format', async () => {
     const user = userEvent.setup();
     render(
       <ChangeEmailModal
@@ -130,14 +130,14 @@ describe('ChangeEmailModal', () => {
     await user.type(newEmailInput, 'invalid-email');
 
     const submitButton = screen.getByRole('button', { name: /change email/i });
-    await user.click(submitButton);
+    expect(submitButton).toBeDisabled();
 
-    await waitFor(() => {
-      expect(screen.getByText(/please enter a valid email address/i)).toBeInTheDocument();
-    });
+    // Button is disabled, so clicking should not trigger submission
+    await user.click(submitButton);
+    expect(mockOnRequestEmailChange).not.toHaveBeenCalled();
   });
 
-  it('should show error when new email is same as current', async () => {
+  it('should disable button and prevent submission when email is same as current', async () => {
     const user = userEvent.setup();
     render(
       <ChangeEmailModal
@@ -151,13 +151,11 @@ describe('ChangeEmailModal', () => {
     await user.type(newEmailInput, 'john@example.com');
 
     const submitButton = screen.getByRole('button', { name: /change email/i });
-    await user.click(submitButton);
+    expect(submitButton).toBeDisabled();
 
-    await waitFor(() => {
-      expect(
-        screen.getByText(/new email must be different from current email/i)
-      ).toBeInTheDocument();
-    });
+    // Button is disabled, so clicking should not trigger submission
+    await user.click(submitButton);
+    expect(mockOnRequestEmailChange).not.toHaveBeenCalled();
   });
 
   it('should submit form with valid new email', async () => {
