@@ -608,7 +608,6 @@ export function TrackingsList({
                                                 <span className="tracking-icon">
                                                     {tracking.icon}
                                                 </span>
-                                                {" "}
                                                 {TrackingFormatter.truncateText(tracking.question, 50)}
                                             </>
                                         ) : (

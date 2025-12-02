@@ -135,6 +135,7 @@
 .status-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   padding: 6px 12px;
   border: 1px solid var(--border-color);
@@ -146,6 +147,8 @@
   font-weight: 500;
   white-space: nowrap;
   user-select: none;
+  min-width: 90px;
+  width: 90px;
 }
 
 .status-badge:hover {
@@ -185,14 +188,15 @@
 }
 
 .state-badge-paused {
-  color: #f59e0b;
-  border-color: #f59e0b;
+  color: #b45309;
+  border-color: #d97706;
   background: #fef3c7;
 }
 
 .state-badge-paused:hover {
   background: #fde68a;
-  border-color: #d97706;
+  border-color: #b45309;
+  color: #92400e;
 }
 
 .state-badge-archived {
