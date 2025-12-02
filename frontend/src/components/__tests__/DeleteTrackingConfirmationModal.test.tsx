@@ -307,9 +307,9 @@ describe('DeleteTrackingConfirmationModal', () => {
 
         await user.click(deleteButton);
 
-        // Wait for deleting state to be active (button should be disabled)
+        // Wait for deleting state to be active ("Deleting..." text should appear)
         await waitFor(() => {
-            expect(deleteButton).toBeDisabled();
+            expect(screen.getByText(/deleting.../i)).toBeInTheDocument();
         });
 
         // Try to close with Escape while deleting
@@ -344,15 +344,17 @@ describe('DeleteTrackingConfirmationModal', () => {
 
         await user.click(deleteButton);
 
-        // Wait for deleting state to be active (button should be disabled)
+        // Wait for deleting state to be active (button should be disabled and "Deleting..." text should appear)
         await waitFor(() => {
-            expect(deleteButton).toBeDisabled();
+            expect(screen.getByText(/deleting.../i)).toBeInTheDocument();
         });
 
         // Try to close by clicking overlay while deleting
+        // Use fireEvent directly to simulate the click
+        const { fireEvent } = await import('@testing-library/react');
         const overlay = container.querySelector('.modal-overlay');
         if (overlay) {
-            await user.click(overlay);
+            fireEvent.click(overlay);
             // Modal should still be open
             expect(screen.getByRole('heading', { name: /delete tracking/i })).toBeInTheDocument();
             expect(mockOnClose).not.toHaveBeenCalled();

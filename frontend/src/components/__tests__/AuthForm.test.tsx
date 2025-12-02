@@ -28,7 +28,7 @@ describe('AuthForm', () => {
             );
 
             expect(screen.getByRole('heading', { name: /login/i })).toBeInTheDocument();
-            expect(screen.getByRole('textbox', { name: /email/i })).toBeInTheDocument();
+            expect(screen.getByPlaceholderText('Enter your email')).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /send login link/i })).toBeInTheDocument();
         });
 
@@ -44,7 +44,7 @@ describe('AuthForm', () => {
                 />
             );
 
-            const emailInput = screen.getByRole('textbox', { name: /email/i });
+            const emailInput = screen.getByPlaceholderText('Enter your email');
             await user.type(emailInput, 'test@example.com');
             await user.click(screen.getByRole('button', { name: /send login link/i }));
 
@@ -65,7 +65,7 @@ describe('AuthForm', () => {
                 />
             );
 
-            const emailInput = screen.getByRole('textbox', { name: /email/i });
+            const emailInput = screen.getByPlaceholderText('Enter your email');
             await user.type(emailInput, 'test@example.com');
             await user.click(screen.getByRole('button', { name: /send login link/i }));
 
@@ -88,7 +88,7 @@ describe('AuthForm', () => {
                 />
             );
 
-            const emailInput = screen.getByRole('textbox', { name: /email/i });
+            const emailInput = screen.getByPlaceholderText('Enter your email');
             await user.type(emailInput, 'test@example.com');
             await user.click(screen.getByRole('button', { name: /send login link/i }));
 
@@ -152,7 +152,7 @@ describe('AuthForm', () => {
             await user.click(screen.getByRole('button', { name: /don't have an account\? register/i }));
 
             expect(screen.getByText(/register/i)).toBeInTheDocument();
-            expect(screen.getByRole('textbox', { name: /^name \*$/i })).toBeInTheDocument();
+            expect(screen.getByPlaceholderText('Enter your name')).toBeInTheDocument();
         });
 
         it('should request registration magic link', async () => {
@@ -169,8 +169,8 @@ describe('AuthForm', () => {
 
             await user.click(screen.getByRole('button', { name: /don't have an account\? register/i }));
 
-            const nameInput = screen.getByRole('textbox', { name: /^name \*$/i });
-            const emailInput = screen.getByRole('textbox', { name: /email/i });
+            const nameInput = screen.getByPlaceholderText('Enter your name');
+            const emailInput = screen.getByPlaceholderText('Enter your email');
             await user.type(nameInput, 'John Doe');
             await user.type(emailInput, 'john@example.com');
             await user.click(screen.getByRole('button', { name: /send registration link/i }));
@@ -198,8 +198,8 @@ describe('AuthForm', () => {
 
             await user.click(screen.getByRole('button', { name: /don't have an account\? register/i }));
 
-            const nameInput = screen.getByRole('textbox', { name: /^name \*$/i });
-            const emailInput = screen.getByRole('textbox', { name: /email/i });
+            const nameInput = screen.getByPlaceholderText('Enter your name');
+            const emailInput = screen.getByPlaceholderText('Enter your email');
 
             await user.type(nameInput, 'John Doe');
             await user.type(emailInput, 'john@example.com');
@@ -237,11 +237,11 @@ describe('AuthForm', () => {
             await user.click(screen.getByRole('button', { name: /don't have an account\? register/i }));
 
             await waitFor(() => {
-                expect(screen.getByRole('textbox', { name: /^name \*$/i })).toBeInTheDocument();
+                expect(screen.getByPlaceholderText('Enter your name')).toBeInTheDocument();
             });
 
-            const nameInput = screen.getByRole('textbox', { name: /^name \*$/i });
-            const emailInput = screen.getByRole('textbox', { name: /email/i });
+            const nameInput = screen.getByPlaceholderText('Enter your name');
+            const emailInput = screen.getByPlaceholderText('Enter your email');
 
             // Type email but leave name empty
             await user.type(emailInput, 'john@example.com');
@@ -472,8 +472,8 @@ describe('AuthForm', () => {
 
             await user.click(screen.getByRole('button', { name: /don't have an account\? register/i }));
 
-            const nameInput = screen.getByRole('textbox', { name: /^name \*$/i });
-            const emailInput = screen.getByRole('textbox', { name: /email/i });
+            const nameInput = screen.getByPlaceholderText('Enter your name');
+            const emailInput = screen.getByPlaceholderText('Enter your email');
             await user.type(nameInput, 'John Doe');
             await user.type(emailInput, 'john@example.com');
             await user.click(screen.getByRole('button', { name: /send registration link/i }));
@@ -497,8 +497,8 @@ describe('AuthForm', () => {
 
             await user.click(screen.getByRole('button', { name: /don't have an account\? register/i }));
 
-            const nameInput = screen.getByRole('textbox', { name: /^name \*$/i });
-            const emailInput = screen.getByRole('textbox', { name: /email/i });
+            const nameInput = screen.getByPlaceholderText('Enter your name');
+            const emailInput = screen.getByPlaceholderText('Enter your email');
             await user.type(nameInput, 'John Doe');
             await user.type(emailInput, 'john@example.com');
             await user.click(screen.getByRole('button', { name: /send registration link/i }));
@@ -540,7 +540,7 @@ describe('AuthForm', () => {
                 />
             );
 
-            const emailInput = screen.getByRole('textbox', { name: /email/i });
+            const emailInput = screen.getByPlaceholderText('Enter your email');
             const submitButton = screen.getByRole('button', { name: /send login link/i });
 
             await user.type(emailInput, 'test@example.com');
