@@ -530,7 +530,7 @@ describe("TrackingsList", () => {
         expect(screen.getByText("Times")).toBeInTheDocument();
         expect(screen.getByText("Frequency")).toBeInTheDocument();
         expect(screen.getByText("Notes")).toBeInTheDocument();
-        expect(screen.getByText("Actions")).toBeInTheDocument();
+        expect(screen.getByText("Status")).toBeInTheDocument();
     });
 
     it("should call onCreate when create button is clicked in empty state", async () => {
@@ -763,8 +763,12 @@ describe("TrackingsList", () => {
             />
         );
 
-        // Find the delete button (🗑️ icon)
-        const deleteButton = screen.getByRole("button", { name: /change state to deleted/i });
+        // Find the status badge and open dropdown
+        const statusBadge = screen.getByRole("button", { name: /current status: archived/i });
+        await user.click(statusBadge);
+
+        // Find the delete button in the dropdown
+        const deleteButton = await screen.findByRole("button", { name: /change state to deleted/i });
         await user.click(deleteButton);
 
         // Modal should appear
@@ -796,8 +800,12 @@ describe("TrackingsList", () => {
             />
         );
 
-        // Find the resume button (▶️ icon) for Paused -> Running transition
-        const resumeButton = screen.getByRole("button", { name: /change state to running/i });
+        // Find the status badge and open dropdown
+        const statusBadge = screen.getByRole("button", { name: /current status: paused/i });
+        await user.click(statusBadge);
+
+        // Find the resume button in the dropdown
+        const resumeButton = await screen.findByRole("button", { name: /change state to running/i });
         await user.click(resumeButton);
 
         // Modal should NOT appear, state change should happen immediately
@@ -828,8 +836,12 @@ describe("TrackingsList", () => {
             />
         );
 
-        // Click delete button
-        const deleteButton = screen.getByRole("button", { name: /change state to deleted/i });
+        // Find the status badge and open dropdown
+        const statusBadge = screen.getByRole("button", { name: /current status: archived/i });
+        await user.click(statusBadge);
+
+        // Click delete button in dropdown
+        const deleteButton = await screen.findByRole("button", { name: /change state to deleted/i });
         await user.click(deleteButton);
 
         // Wait for modal to appear
@@ -870,8 +882,12 @@ describe("TrackingsList", () => {
             />
         );
 
-        // Click delete button
-        const deleteButton = screen.getByRole("button", { name: /change state to deleted/i });
+        // Find the status badge and open dropdown
+        const statusBadge = screen.getByRole("button", { name: /current status: archived/i });
+        await user.click(statusBadge);
+
+        // Click delete button in dropdown
+        const deleteButton = await screen.findByRole("button", { name: /change state to deleted/i });
         await user.click(deleteButton);
 
         // Wait for modal to appear

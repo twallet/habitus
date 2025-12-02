@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { TrackingData, TrackingType, TrackingState, DaysPattern, DaysPatternType } from "../models/Tracking";
 import { useTrackings } from "../hooks/useTrackings";
 import { DeleteTrackingConfirmationModal } from "./DeleteTrackingConfirmationModal";
@@ -259,17 +259,22 @@ class TrackingFormatter {
 class StateTransitionHelper {
     /**
      * Get valid state transitions for a given current state.
+     * All states can be reached from any state (except from DELETED).
      * @param currentState - The current tracking state
      * @returns Array of valid target states
      */
     static getValidTransitions(currentState: TrackingState): TrackingState[] {
-        const validTransitions: Record<TrackingState, TrackingState[]> = {
-            [TrackingState.RUNNING]: [TrackingState.PAUSED],
-            [TrackingState.PAUSED]: [TrackingState.RUNNING, TrackingState.ARCHIVED],
-            [TrackingState.ARCHIVED]: [TrackingState.RUNNING, TrackingState.DELETED],
-            [TrackingState.DELETED]: [],
-        };
-        return validTransitions[currentState] || [];
+        // Cannot transition from DELETED state
+        if (currentState === TrackingState.DELETED) {
+            return [];
+        }
+        // All other states can transition to any state (except DELETED requires confirmation)
+        return [
+            TrackingState.RUNNING,
+            TrackingState.PAUSED,
+            TrackingState.ARCHIVED,
+            TrackingState.DELETED,
+        ];
     }
 
     /**
@@ -320,6 +325,26 @@ class StateTransitionHelper {
                 return 'Tracking state updated successfully';
         }
     }
+
+    /**
+     * Get color class for a state badge.
+     * @param state - The tracking state
+     * @returns CSS class name for the state color
+     */
+    static getStateColorClass(state: TrackingState): string {
+        switch (state) {
+            case TrackingState.RUNNING:
+                return 'state-badge-running';
+            case TrackingState.PAUSED:
+                return 'state-badge-paused';
+            case TrackingState.ARCHIVED:
+                return 'state-badge-archived';
+            case TrackingState.DELETED:
+                return 'state-badge-deleted';
+            default:
+                return 'state-badge-default';
+        }
+    }
 }
 
 /**
@@ -342,6 +367,8 @@ export function TrackingsList({
 }: TrackingsListProps) {
     const { trackings: hookTrackings, isLoading: hookIsLoading, updateTrackingState: hookUpdateTrackingState } = useTrackings();
     const [trackingToDelete, setTrackingToDelete] = useState<TrackingData | null>(null);
+    const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
+    const dropdownRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
     // Use props if provided, otherwise use hook data
     const trackings = propTrackings ?? hookTrackings;
@@ -351,6 +378,28 @@ export function TrackingsList({
     const visibleTrackings = trackings.filter(
         (tracking) => tracking.state !== TrackingState.DELETED
     );
+
+    /**
+     * Handle click outside dropdown to close it.
+     * @internal
+     */
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (openDropdownId !== null) {
+                const dropdownElement = dropdownRefs.current[openDropdownId];
+                if (dropdownElement && !dropdownElement.contains(event.target as Node)) {
+                    setOpenDropdownId(null);
+                }
+            }
+        };
+
+        if (openDropdownId !== null) {
+            document.addEventListener("mousedown", handleClickOutside);
+            return () => {
+                document.removeEventListener("mousedown", handleClickOutside);
+            };
+        }
+    }, [openDropdownId]);
 
     /**
      * Handle confirmed deletion.
@@ -380,8 +429,16 @@ export function TrackingsList({
     };
 
     /**
+     * Toggle dropdown for a specific tracking.
+     * @param trackingId - The tracking ID
+     * @internal
+     */
+    const toggleDropdown = (trackingId: number) => {
+        setOpenDropdownId(openDropdownId === trackingId ? null : trackingId);
+    };
+
+    /**
      * Handle state transition click.
-     * Validates the transition is allowed before making the API call.
      * Shows confirmation modal for deletion.
      * @param trackingId - The tracking ID
      * @param newState - The new state to transition to
@@ -395,16 +452,8 @@ export function TrackingsList({
             return;
         }
 
-        const currentState = tracking.state || TrackingState.RUNNING;
-
-        // Validate transition is allowed (client-side check)
-        const validTransitions = StateTransitionHelper.getValidTransitions(currentState);
-        if (!validTransitions.includes(newState)) {
-            console.error(
-                `Invalid state transition from "${currentState}" to "${newState}". Valid transitions: ${validTransitions.join(", ")}`
-            );
-            return;
-        }
+        // Close dropdown
+        setOpenDropdownId(null);
 
         // Show confirmation modal for deletion
         if (newState === TrackingState.DELETED) {
@@ -486,7 +535,7 @@ export function TrackingsList({
                         <th className="col-times">Times</th>
                         <th className="col-frequency">Frequency</th>
                         <th className="col-notes">Notes</th>
-                        <th className="col-actions">Actions</th>
+                        <th className="col-status">Status</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -494,6 +543,8 @@ export function TrackingsList({
                         const currentState = tracking.state || TrackingState.RUNNING;
                         const validTransitions = StateTransitionHelper.getValidTransitions(currentState);
                         const stateLabel = StateTransitionHelper.getStateLabel(currentState);
+                        const isDropdownOpen = openDropdownId === tracking.id;
+                        const stateColorClass = StateTransitionHelper.getStateColorClass(currentState);
 
                         return (
                             <tr key={tracking.id} className="tracking-row">
@@ -530,19 +581,47 @@ export function TrackingsList({
                                 <td className="cell-notes" title={tracking.notes ? TrackingFormatter.stripHtml(tracking.notes) : ""}>
                                     {tracking.notes ? "📝" : ""}
                                 </td>
-                                <td className="cell-actions">
-                                    {validTransitions.map((targetState) => (
+                                <td className="cell-status">
+                                    <div
+                                        className="status-dropdown-container"
+                                        ref={(el) => {
+                                            dropdownRefs.current[tracking.id] = el;
+                                        }}
+                                    >
                                         <button
-                                            key={targetState}
                                             type="button"
-                                            className="btn-edit-icon"
-                                            onClick={() => handleStateChange(tracking.id, targetState)}
-                                            aria-label={`Change state to ${StateTransitionHelper.getStateLabel(targetState)}`}
-                                            title={`Current State: ${stateLabel}. Click to change to ${StateTransitionHelper.getStateLabel(targetState)}`}
+                                            className={`status-badge ${stateColorClass} ${isDropdownOpen ? "open" : ""}`}
+                                            onClick={() => toggleDropdown(tracking.id)}
+                                            aria-label={`Current status: ${stateLabel}. Click to change status`}
+                                            aria-expanded={isDropdownOpen}
                                         >
-                                            {StateTransitionHelper.getTransitionIcon(targetState)}
+                                            <span className="status-badge-text">{stateLabel}</span>
+                                            <span className="status-badge-arrow">▼</span>
                                         </button>
-                                    ))}
+                                        {isDropdownOpen && (
+                                            <div className="status-dropdown-menu">
+                                                {validTransitions.map((targetState) => {
+                                                    const targetLabel = StateTransitionHelper.getStateLabel(targetState);
+                                                    const targetIcon = StateTransitionHelper.getTransitionIcon(targetState);
+                                                    const isCurrentState = targetState === currentState;
+                                                    return (
+                                                        <button
+                                                            key={targetState}
+                                                            type="button"
+                                                            className={`status-dropdown-item ${isCurrentState ? "current" : ""}`}
+                                                            onClick={() => handleStateChange(tracking.id, targetState)}
+                                                            aria-label={`Change state to ${targetLabel}`}
+                                                            disabled={isCurrentState}
+                                                        >
+                                                            <span className="status-dropdown-icon">{targetIcon}</span>
+                                                            <span className="status-dropdown-label">{targetLabel}</span>
+                                                            {isCurrentState && <span className="status-dropdown-current">(current)</span>}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
                                 </td>
                             </tr>
                         );
