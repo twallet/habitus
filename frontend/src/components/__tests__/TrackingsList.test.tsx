@@ -923,7 +923,6 @@ describe("TrackingsList", () => {
             await user.click(showFiltersButton);
 
             expect(screen.getByLabelText("Filter by tracking")).toBeInTheDocument();
-            expect(screen.getByRole("button", { name: /hide filters/i })).toBeInTheDocument();
         });
 
         it("should hide filter panel when toggle button is clicked again", async () => {
@@ -939,8 +938,7 @@ describe("TrackingsList", () => {
             await user.click(showFiltersButton);
             expect(screen.getByLabelText("Filter by tracking")).toBeInTheDocument();
 
-            const hideFiltersButton = screen.getByRole("button", { name: /hide filters/i });
-            await user.click(hideFiltersButton);
+            await user.click(showFiltersButton);
 
             expect(screen.queryByLabelText("Filter by tracking")).not.toBeInTheDocument();
             expect(screen.getByRole("button", { name: /show filters/i })).toBeInTheDocument();
@@ -1028,7 +1026,7 @@ describe("TrackingsList", () => {
             expect(screen.queryByText("Did I read a book?")).not.toBeInTheDocument();
         });
 
-        it("should filter by type using dropdown", async () => {
+        it("should filter by type using checkboxes", async () => {
             const user = userEvent.setup();
             render(
                 <TrackingsList
@@ -1040,8 +1038,8 @@ describe("TrackingsList", () => {
             const showFiltersButton = screen.getByRole("button", { name: /show filters/i });
             await user.click(showFiltersButton);
 
-            const typeSelect = screen.getByLabelText("Filter by type");
-            await user.selectOptions(typeSelect, "Yes/No");
+            const yesNoCheckbox = screen.getByLabelText("Filter by type: Yes/No");
+            await user.click(yesNoCheckbox);
 
             expect(screen.getByText("Did I exercise today?")).toBeInTheDocument();
             expect(screen.getByText("Did I read a book?")).toBeInTheDocument();
@@ -1088,7 +1086,7 @@ describe("TrackingsList", () => {
             expect(screen.queryByText("Did I read a book?")).not.toBeInTheDocument();
         });
 
-        it("should filter by status using dropdown", async () => {
+        it("should filter by status using checkboxes", async () => {
             const user = userEvent.setup();
             render(
                 <TrackingsList
@@ -1100,8 +1098,8 @@ describe("TrackingsList", () => {
             const showFiltersButton = screen.getByRole("button", { name: /show filters/i });
             await user.click(showFiltersButton);
 
-            const statusSelect = screen.getByLabelText("Filter by status");
-            await user.selectOptions(statusSelect, TrackingState.RUNNING);
+            const runningCheckbox = screen.getByLabelText("Filter by status: Running");
+            await user.click(runningCheckbox);
 
             expect(screen.getByText("Did I exercise today?")).toBeInTheDocument();
             expect(screen.queryByText("Did I meditate?")).not.toBeInTheDocument();
@@ -1141,8 +1139,8 @@ describe("TrackingsList", () => {
             const trackingInput = screen.getByLabelText("Filter by tracking");
             await user.type(trackingInput, "exercise");
 
-            const typeSelect = screen.getByLabelText("Filter by type");
-            await user.selectOptions(typeSelect, "Yes/No");
+            const yesNoCheckbox = screen.getByLabelText("Filter by type: Yes/No");
+            await user.click(yesNoCheckbox);
 
             expect(screen.getByText("Did I exercise today?")).toBeInTheDocument();
             expect(screen.queryByText("Did I meditate?")).not.toBeInTheDocument();

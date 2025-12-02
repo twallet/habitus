@@ -248,10 +248,10 @@ class TrackingFormatter {
  */
 interface FilterState {
     tracking: string;
-    type: string;
+    type: string[]; // Multiple choice for type
     times: string;
     frequency: string;
-    status: string;
+    status: string[]; // Multiple choice for status
 }
 
 /**
@@ -276,20 +276,15 @@ class TrackingFilter {
     /**
      * Filter tracking by type.
      * @param tracking - Tracking data to filter
-     * @param filterValue - Filter value ("All", "Yes/No", or "Text")
+     * @param filterValues - Array of selected type values
      * @returns True if tracking matches filter
      */
-    static filterByType(tracking: TrackingData, filterValue: string): boolean {
-        if (!filterValue || filterValue === "All") {
+    static filterByType(tracking: TrackingData, filterValues: string[]): boolean {
+        if (!filterValues || filterValues.length === 0) {
             return true;
         }
-        if (filterValue === "Yes/No") {
-            return tracking.type === TrackingType.TRUE_FALSE;
-        }
-        if (filterValue === "Text") {
-            return tracking.type === TrackingType.REGISTER;
-        }
-        return true;
+        const typeLabel = tracking.type === TrackingType.TRUE_FALSE ? "Yes/No" : "Text";
+        return filterValues.includes(typeLabel);
     }
 
     /**
@@ -323,15 +318,15 @@ class TrackingFilter {
     /**
      * Filter tracking by status.
      * @param tracking - Tracking data to filter
-     * @param filterValue - Filter value ("All", "Running", "Paused", or "Archived")
+     * @param filterValues - Array of selected status values
      * @returns True if tracking matches filter
      */
-    static filterByStatus(tracking: TrackingData, filterValue: string): boolean {
-        if (!filterValue || filterValue === "All") {
+    static filterByStatus(tracking: TrackingData, filterValues: string[]): boolean {
+        if (!filterValues || filterValues.length === 0) {
             return true;
         }
         const currentState = tracking.state || TrackingState.RUNNING;
-        return currentState === filterValue;
+        return filterValues.includes(currentState);
     }
 
     /**
@@ -617,10 +612,10 @@ export function TrackingsList({
     // Filter and sort state
     const [filterState, setFilterState] = useState<FilterState>({
         tracking: '',
-        type: 'All',
+        type: [],
         times: '',
         frequency: '',
-        status: 'All',
+        status: [],
     });
     const [sortColumn, setSortColumn] = useState<string | null>(null);
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>(null);
@@ -649,14 +644,33 @@ export function TrackingsList({
     /**
      * Handle filter change.
      * @param column - Column name
-     * @param value - Filter value
+     * @param value - Filter value (string for text inputs, string[] for checkboxes)
      * @internal
      */
-    const handleFilterChange = (column: keyof FilterState, value: string) => {
+    const handleFilterChange = (column: keyof FilterState, value: string | string[]) => {
         setFilterState((prev) => ({
             ...prev,
             [column]: value,
         }));
+    };
+
+    /**
+     * Handle checkbox filter change (toggle selection).
+     * @param column - Column name ('type' or 'status')
+     * @param value - Value to toggle
+     * @internal
+     */
+    const handleCheckboxChange = (column: 'type' | 'status', value: string) => {
+        setFilterState((prev) => {
+            const currentValues = prev[column] as string[];
+            const newValues = currentValues.includes(value)
+                ? currentValues.filter((v) => v !== value)
+                : [...currentValues, value];
+            return {
+                ...prev,
+                [column]: newValues,
+            };
+        });
     };
 
     /**
@@ -666,10 +680,10 @@ export function TrackingsList({
     const handleResetFilters = () => {
         setFilterState({
             tracking: '',
-            type: 'All',
+            type: [],
             times: '',
             frequency: '',
-            status: 'All',
+            status: [],
         });
     };
 
@@ -858,9 +872,9 @@ export function TrackingsList({
                     onClick={toggleFilters}
                     aria-label={showFilters ? "Hide filters" : "Show filters"}
                     aria-expanded={showFilters}
+                    title={showFilters ? "Hide filters" : "Show filters"}
                 >
-                    <span className="filter-toggle-icon">{showFilters ? "▼" : "▶"}</span>
-                    <span>{showFilters ? "Hide Filters" : "Show Filters"}</span>
+                    <span className="filter-toggle-icon">🔍</span>
                 </button>
             </div>
             {showFilters && (
@@ -881,20 +895,27 @@ export function TrackingsList({
                             />
                         </div>
                         <div className="filter-row">
-                            <label htmlFor="filter-type" className="filter-label">
-                                Type:
-                            </label>
-                            <select
-                                id="filter-type"
-                                className="filter-select"
-                                value={filterState.type}
-                                onChange={(e) => handleFilterChange('type', e.target.value)}
-                                aria-label="Filter by type"
-                            >
-                                <option value="All">All</option>
-                                <option value="Yes/No">Yes/No</option>
-                                <option value="Text">Text</option>
-                            </select>
+                            <div className="filter-label">Type:</div>
+                            <div className="filter-checkbox-group">
+                                <label className="filter-checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        checked={filterState.type.includes("Yes/No")}
+                                        onChange={() => handleCheckboxChange('type', "Yes/No")}
+                                        aria-label="Filter by type: Yes/No"
+                                    />
+                                    <span>Yes/No</span>
+                                </label>
+                                <label className="filter-checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        checked={filterState.type.includes("Text")}
+                                        onChange={() => handleCheckboxChange('type', "Text")}
+                                        aria-label="Filter by type: Text"
+                                    />
+                                    <span>Text</span>
+                                </label>
+                            </div>
                         </div>
                         <div className="filter-row">
                             <label htmlFor="filter-times" className="filter-label">
@@ -925,21 +946,36 @@ export function TrackingsList({
                             />
                         </div>
                         <div className="filter-row">
-                            <label htmlFor="filter-status" className="filter-label">
-                                Status:
-                            </label>
-                            <select
-                                id="filter-status"
-                                className="filter-select"
-                                value={filterState.status}
-                                onChange={(e) => handleFilterChange('status', e.target.value)}
-                                aria-label="Filter by status"
-                            >
-                                <option value="All">All</option>
-                                <option value={TrackingState.RUNNING}>Running</option>
-                                <option value={TrackingState.PAUSED}>Paused</option>
-                                <option value={TrackingState.ARCHIVED}>Archived</option>
-                            </select>
+                            <div className="filter-label">Status:</div>
+                            <div className="filter-checkbox-group">
+                                <label className="filter-checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        checked={filterState.status.includes(TrackingState.RUNNING)}
+                                        onChange={() => handleCheckboxChange('status', TrackingState.RUNNING)}
+                                        aria-label="Filter by status: Running"
+                                    />
+                                    <span>Running</span>
+                                </label>
+                                <label className="filter-checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        checked={filterState.status.includes(TrackingState.PAUSED)}
+                                        onChange={() => handleCheckboxChange('status', TrackingState.PAUSED)}
+                                        aria-label="Filter by status: Paused"
+                                    />
+                                    <span>Paused</span>
+                                </label>
+                                <label className="filter-checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        checked={filterState.status.includes(TrackingState.ARCHIVED)}
+                                        onChange={() => handleCheckboxChange('status', TrackingState.ARCHIVED)}
+                                        aria-label="Filter by status: Archived"
+                                    />
+                                    <span>Archived</span>
+                                </label>
+                            </div>
                         </div>
                         <div className="filter-actions">
                             <button
@@ -988,6 +1024,7 @@ export function TrackingsList({
     if (filteredAndSortedTrackings.length === 0) {
         return (
             <div className="trackings-list">
+                {filterControls}
                 <div className="empty-state">
                     <p>No trackings match the current filters.</p>
                 </div>
