@@ -270,8 +270,32 @@ describe("TrackingsList", () => {
             />
         );
 
-        const questionCell = screen.getByTitle(longQuestion);
-        expect(questionCell.textContent).toBe(longQuestion.substring(0, 50) + "...");
+        const trackingCell = screen.getByTitle(longQuestion);
+        expect(trackingCell.textContent).toBe(longQuestion.substring(0, 50) + "...");
+    });
+
+    it("should truncate long questions with icon", () => {
+        const longQuestion = "A".repeat(60);
+        const trackings: TrackingData[] = [
+            {
+                id: 1,
+                user_id: 1,
+                question: longQuestion,
+                type: TrackingType.TRUE_FALSE,
+                icon: "💪",
+            },
+        ];
+
+        render(
+            <TrackingsList
+                trackings={trackings}
+                onEdit={mockOnEdit}
+            />
+        );
+
+        const trackingCell = screen.getByTitle(longQuestion);
+        expect(trackingCell.textContent).toContain("💪");
+        expect(trackingCell.textContent).toContain(longQuestion.substring(0, 50) + "...");
     });
 
     it("should display full question in tooltip even when truncated", () => {
