@@ -103,15 +103,22 @@ describe("DaysPatternInput", () => {
         const select = screen.getByRole("combobox", { name: /frequency/i });
         await user.selectOptions(select, "weekly");
 
+        // Monday is already selected by default when switching to weekly
         const mondayButton = screen.getByRole("button", { name: /mon/i });
-        await user.click(mondayButton);
-
         await waitFor(() => {
             expect(mondayButton).toHaveClass("selected");
+        });
+
+        // Click Tuesday to add it to selection
+        const tuesdayButton = screen.getByRole("button", { name: /tue/i });
+        await user.click(tuesdayButton);
+
+        await waitFor(() => {
+            expect(tuesdayButton).toHaveClass("selected");
             expect(mockOnChange).toHaveBeenCalledWith(
                 expect.objectContaining({
                     pattern_type: DaysPatternType.DAY_OF_WEEK,
-                    days: expect.arrayContaining([1]),
+                    days: expect.arrayContaining([1, 2]), // Monday and Tuesday
                 })
             );
         });

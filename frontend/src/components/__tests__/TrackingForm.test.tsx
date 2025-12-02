@@ -71,7 +71,11 @@ describe("TrackingForm", () => {
                 undefined,
                 undefined,
                 [{ hour: 9, minutes: 0 }],
-                undefined
+                expect.objectContaining({
+                    pattern_type: DaysPatternType.INTERVAL,
+                    interval_value: 1,
+                    interval_unit: "days",
+                })
             );
         });
     });
