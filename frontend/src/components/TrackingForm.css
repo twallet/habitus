@@ -242,7 +242,7 @@
 .schedule-input-row {
   display: flex;
   gap: 12px;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 12px;
   width: 100%;
   box-sizing: border-box;
@@ -344,8 +344,9 @@
   flex-direction: row;
   flex-wrap: wrap;
   gap: 8px;
-  align-items: center;
+  align-items: flex-start;
   margin: 0;
+  align-content: flex-start;
 }
 
 .schedule-item {

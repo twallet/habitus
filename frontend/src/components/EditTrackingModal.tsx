@@ -442,7 +442,7 @@ export function EditTrackingModal({
                                     name="edit-schedule-time"
                                     value={scheduleTime}
                                     onChange={(e) => setScheduleTime(e.target.value)}
-                                    disabled={isSubmitting}
+                                    disabled={isSubmitting || schedules.length >= 5}
                                 />
                             </div>
                             <button
