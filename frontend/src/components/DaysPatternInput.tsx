@@ -212,7 +212,7 @@ export function DaysPatternInput({
         <div className="days-pattern-input">
             <div className="form-label-row">
                 <label htmlFor="frequency-preset">
-                    Frequency <span className="required">*</span>
+                    Frequency <span className="required-asterisk">*</span>
                     <button
                         type="button"
                         className="field-help"
