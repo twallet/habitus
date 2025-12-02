@@ -22,6 +22,17 @@ export enum DaysPatternType {
 }
 
 /**
+ * Tracking state enumeration.
+ * @public
+ */
+export enum TrackingState {
+  RUNNING = "Running",
+  PAUSED = "Paused",
+  ARCHIVED = "Archived",
+  DELETED = "Deleted",
+}
+
+/**
  * Days pattern interface for reminder frequency.
  * @public
  */
@@ -54,6 +65,7 @@ export interface TrackingData {
   notes?: string;
   icon?: string;
   days?: DaysPattern;
+  state?: TrackingState;
   schedules?: TrackingScheduleData[];
   created_at?: string;
   updated_at?: string;
@@ -113,6 +125,12 @@ export class Tracking {
   days?: DaysPattern;
 
   /**
+   * Tracking state.
+   * @public
+   */
+  state: TrackingState;
+
+  /**
    * Creation timestamp (optional).
    * @public
    */
@@ -137,6 +155,7 @@ export class Tracking {
     this.notes = data.notes;
     this.icon = data.icon;
     this.days = data.days;
+    this.state = data.state || TrackingState.RUNNING;
     this.created_at = data.created_at;
     this.updated_at = data.updated_at;
   }
@@ -161,6 +180,7 @@ export class Tracking {
     if (this.days !== undefined) {
       this.days = Tracking.validateDays(this.days);
     }
+    this.state = Tracking.validateState(this.state);
     return this;
   }
 
@@ -201,6 +221,11 @@ export class Tracking {
         values.push(this.days ? JSON.stringify(this.days) : null);
       }
 
+      if (this.state !== undefined) {
+        updates.push("state = ?");
+        values.push(this.state);
+      }
+
       updates.push("updated_at = CURRENT_TIMESTAMP");
       values.push(this.id, this.user_id);
 
@@ -215,7 +240,7 @@ export class Tracking {
     } else {
       // Create new tracking
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question, type, notes, icon, days) VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO trackings (user_id, question, type, notes, icon, days, state) VALUES (?, ?, ?, ?, ?, ?, ?)",
         [
           this.user_id,
           this.question,
@@ -223,6 +248,7 @@ export class Tracking {
           this.notes || null,
           this.icon || null,
           this.days ? JSON.stringify(this.days) : null,
+          this.state || TrackingState.RUNNING,
         ]
       );
 
@@ -306,6 +332,7 @@ export class Tracking {
       notes: this.notes,
       icon: this.icon,
       days: this.days,
+      state: this.state,
       schedules: (this as any).schedules,
       created_at: this.created_at,
       updated_at: this.updated_at,
@@ -333,10 +360,11 @@ export class Tracking {
       notes: string | null;
       icon: string | null;
       days: string | null;
+      state: string;
       created_at: string;
       updated_at: string;
     }>(
-      "SELECT id, user_id, question, type, notes, icon, days, created_at, updated_at FROM trackings WHERE id = ? AND user_id = ?",
+      "SELECT id, user_id, question, type, notes, icon, days, state, created_at, updated_at FROM trackings WHERE id = ? AND user_id = ?",
       [id, userId]
     );
 
@@ -364,6 +392,7 @@ export class Tracking {
       notes: row.notes || undefined,
       icon: row.icon || undefined,
       days: daysPattern,
+      state: (row.state as TrackingState) || TrackingState.RUNNING,
       created_at: row.created_at,
       updated_at: row.updated_at,
     });
@@ -391,10 +420,11 @@ export class Tracking {
       notes: string | null;
       icon: string | null;
       days: string | null;
+      state: string;
       created_at: string;
       updated_at: string;
     }>(
-      "SELECT id, user_id, question, type, notes, icon, days, created_at, updated_at FROM trackings WHERE user_id = ? ORDER BY created_at DESC",
+      "SELECT id, user_id, question, type, notes, icon, days, state, created_at, updated_at FROM trackings WHERE user_id = ? AND state != 'Deleted' ORDER BY created_at DESC",
       [userId]
     );
 
@@ -422,6 +452,7 @@ export class Tracking {
           notes: row.notes || undefined,
           icon: row.icon || undefined,
           days: daysPattern,
+          state: (row.state as TrackingState) || TrackingState.RUNNING,
           created_at: row.created_at,
           updated_at: row.updated_at,
         });
@@ -509,6 +540,74 @@ export class Tracking {
     }
 
     return trimmedNotes;
+  }
+
+  /**
+   * Validates a tracking state.
+   * @param state - The state to validate
+   * @returns The validated tracking state
+   * @throws {@link TypeError} If the state is invalid
+   * @public
+   */
+  static validateState(state: string | TrackingState): TrackingState {
+    if (typeof state !== "string") {
+      throw new TypeError("State must be a string");
+    }
+
+    const normalizedState = state.trim();
+    if (
+      normalizedState !== TrackingState.RUNNING &&
+      normalizedState !== TrackingState.PAUSED &&
+      normalizedState !== TrackingState.ARCHIVED &&
+      normalizedState !== TrackingState.DELETED
+    ) {
+      throw new TypeError(
+        `State must be one of: "${TrackingState.RUNNING}", "${TrackingState.PAUSED}", "${TrackingState.ARCHIVED}", "${TrackingState.DELETED}"`
+      );
+    }
+
+    return normalizedState as TrackingState;
+  }
+
+  /**
+   * Validates a state transition is allowed.
+   * Transition rules:
+   * - Running → Paused
+   * - Paused → Running or Archived
+   * - Archived → Running or Deleted
+   * - Deleted → (no transitions allowed)
+   * @param currentState - The current state
+   * @param newState - The new state to transition to
+   * @throws {@link TypeError} If the transition is not allowed
+   * @public
+   */
+  static validateStateTransition(
+    currentState: TrackingState,
+    newState: TrackingState
+  ): void {
+    if (currentState === newState) {
+      return; // Same state is always allowed
+    }
+
+    if (currentState === TrackingState.DELETED) {
+      throw new TypeError(
+        "Cannot transition from Deleted state. Deleted trackings cannot be changed."
+      );
+    }
+
+    const validTransitions: Record<TrackingState, TrackingState[]> = {
+      [TrackingState.RUNNING]: [TrackingState.PAUSED],
+      [TrackingState.PAUSED]: [TrackingState.RUNNING, TrackingState.ARCHIVED],
+      [TrackingState.ARCHIVED]: [TrackingState.RUNNING, TrackingState.DELETED],
+      [TrackingState.DELETED]: [],
+    };
+
+    const allowedStates = validTransitions[currentState];
+    if (!allowedStates || !allowedStates.includes(newState)) {
+      throw new TypeError(
+        `Invalid state transition from "${currentState}" to "${newState}". Valid transitions from "${currentState}" are: ${allowedStates.join(", ")}`
+      );
+    }
   }
 
   /**

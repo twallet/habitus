@@ -191,6 +191,55 @@ router.put(
 );
 
 /**
+ * PATCH /api/trackings/:id/state
+ * Update tracking state.
+ * @route PATCH /api/trackings/:id/state
+ * @header {string} Authorization - Bearer token
+ * @param {number} id - The tracking ID
+ * @body {string} state - The new state (Running, Paused, Archived, Deleted)
+ * @returns {TrackingData} Updated tracking data
+ */
+router.patch(
+  "/:id/state",
+  authenticateToken,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const trackingId = parseInt(req.params.id, 10);
+      const userId = req.userId!;
+      const { state } = req.body;
+
+      if (isNaN(trackingId)) {
+        return res.status(400).json({ error: "Invalid tracking ID" });
+      }
+
+      if (!state || typeof state !== "string") {
+        return res.status(400).json({ error: "State is required" });
+      }
+
+      const tracking = await getTrackingServiceInstance().updateTrackingState(
+        trackingId,
+        userId,
+        state
+      );
+
+      res.json(tracking);
+    } catch (error) {
+      if (error instanceof TypeError) {
+        return res.status(400).json({ error: error.message });
+      }
+      if (error instanceof Error && error.message === "Tracking not found") {
+        return res.status(404).json({ error: error.message });
+      }
+      console.error(
+        `[${new Date().toISOString()}] TRACKING_ROUTE | Error updating tracking state:`,
+        error
+      );
+      res.status(500).json({ error: "Error updating tracking state" });
+    }
+  }
+);
+
+/**
  * DELETE /api/trackings/:id
  * Delete a tracking.
  * @route DELETE /api/trackings/:id

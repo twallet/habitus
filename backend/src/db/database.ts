@@ -163,6 +163,7 @@ export class Database {
               notes TEXT,
               icon TEXT,
               days TEXT,
+              state TEXT NOT NULL DEFAULT 'Running' CHECK(state IN ('Running', 'Paused', 'Archived', 'Deleted')),
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -212,7 +213,45 @@ export class Database {
                         `[${new Date().toISOString()}] DATABASE | Added days column to trackings table`
                       );
                     }
-                    resolve();
+
+                    // Migrate: Add state column to trackings table if it doesn't exist
+                    this.db!.run(
+                      `ALTER TABLE trackings ADD COLUMN state TEXT NOT NULL DEFAULT 'Running' CHECK(state IN ('Running', 'Paused', 'Archived', 'Deleted'))`,
+                      (stateMigrationErr) => {
+                        // Ignore error if column already exists
+                        if (
+                          stateMigrationErr &&
+                          !stateMigrationErr.message.includes("duplicate column name")
+                        ) {
+                          console.error(
+                            `[${new Date().toISOString()}] DATABASE | Failed to add state column:`,
+                            stateMigrationErr
+                          );
+                        } else if (!stateMigrationErr) {
+                          console.log(
+                            `[${new Date().toISOString()}] DATABASE | Added state column to trackings table`
+                          );
+                        }
+
+                        // Update existing records to have 'Running' state if state is NULL
+                        this.db!.run(
+                          `UPDATE trackings SET state = 'Running' WHERE state IS NULL`,
+                          (updateErr) => {
+                            if (updateErr) {
+                              console.error(
+                                `[${new Date().toISOString()}] DATABASE | Failed to update existing records with state:`,
+                                updateErr
+                              );
+                            } else {
+                              console.log(
+                                `[${new Date().toISOString()}] DATABASE | Updated existing records with Running state`
+                              );
+                            }
+                            resolve();
+                          }
+                        );
+                      }
+                    );
                   }
                 );
               }

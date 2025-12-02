@@ -19,6 +19,17 @@ export enum DaysPatternType {
 }
 
 /**
+ * Tracking state enumeration.
+ * @public
+ */
+export enum TrackingState {
+  RUNNING = "Running",
+  PAUSED = "Paused",
+  ARCHIVED = "Archived",
+  DELETED = "Deleted",
+}
+
+/**
  * Days pattern interface for reminder frequency.
  * @public
  */
@@ -249,6 +260,7 @@ export interface TrackingData {
   notes?: string;
   icon?: string;
   days?: DaysPattern;
+  state?: TrackingState;
   schedules?: TrackingScheduleData[];
   created_at?: string;
   updated_at?: string;

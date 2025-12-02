@@ -1,5 +1,5 @@
 import { UserData } from "../models/User.js";
-import { TrackingData, TrackingType, DaysPattern } from "../models/Tracking.js";
+import { TrackingData, TrackingType, TrackingState, DaysPattern } from "../models/Tracking.js";
 
 /**
  * Get Vite environment variables.
@@ -302,6 +302,32 @@ export class ApiClient {
   }
 
   /**
+   * Make a PATCH request.
+   * @param url - Request URL (relative or absolute)
+   * @param body - Request body (will be JSON stringified)
+   * @param options - Optional fetch options
+   * @returns Promise resolving to the response JSON
+   * @throws Error if request fails
+   * @private
+   */
+  private async patch<T>(
+    url: string,
+    body?: any,
+    options?: RequestInit
+  ): Promise<T> {
+    const response = await this.request(url, {
+      ...options,
+      method: "PATCH",
+      body: body ? JSON.stringify(body) : undefined,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+      },
+    });
+    return response.json();
+  }
+
+  /**
    * Make a DELETE request.
    * @param url - Request URL (relative or absolute)
    * @param options - Optional fetch options
@@ -577,6 +603,23 @@ export class ApiClient {
       icon,
       schedules,
       days,
+    });
+  }
+
+  /**
+   * Update tracking state.
+   * @param trackingId - The tracking ID
+   * @param state - The new state (Running, Paused, Archived, Deleted)
+   * @returns Promise resolving to updated tracking data
+   * @throws Error if request fails
+   * @public
+   */
+  async updateTrackingState(
+    trackingId: number,
+    state: TrackingState
+  ): Promise<TrackingData> {
+    return this.patch<TrackingData>(`${API_ENDPOINTS.trackings}/${trackingId}/state`, {
+      state,
     });
   }
 

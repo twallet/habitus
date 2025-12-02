@@ -1,8 +1,9 @@
-import { TrackingData, TrackingType, DaysPattern, DaysPatternType } from "../models/Tracking";
+import { TrackingData, TrackingType, TrackingState, DaysPattern, DaysPatternType } from "../models/Tracking";
+import { useTrackings } from "../hooks/useTrackings";
 import "./TrackingsList.css";
 
 interface TrackingsListProps {
-    trackings: TrackingData[];
+    trackings?: TrackingData[];
     onEdit: (tracking: TrackingData) => void;
     onCreate?: () => void;
     isLoading?: boolean;
@@ -247,6 +248,57 @@ class TrackingFormatter {
 }
 
 /**
+ * Utility class for managing tracking state transitions.
+ * Follows OOP principles by organizing related state transition methods.
+ * @internal
+ */
+class StateTransitionHelper {
+    /**
+     * Get valid state transitions for a given current state.
+     * @param currentState - The current tracking state
+     * @returns Array of valid target states
+     */
+    static getValidTransitions(currentState: TrackingState): TrackingState[] {
+        const validTransitions: Record<TrackingState, TrackingState[]> = {
+            [TrackingState.RUNNING]: [TrackingState.PAUSED],
+            [TrackingState.PAUSED]: [TrackingState.RUNNING, TrackingState.ARCHIVED],
+            [TrackingState.ARCHIVED]: [TrackingState.RUNNING, TrackingState.DELETED],
+            [TrackingState.DELETED]: [],
+        };
+        return validTransitions[currentState] || [];
+    }
+
+    /**
+     * Get icon for a state transition.
+     * @param targetState - The target state for the transition
+     * @returns Icon emoji string
+     */
+    static getTransitionIcon(targetState: TrackingState): string {
+        switch (targetState) {
+            case TrackingState.PAUSED:
+                return "⏸️";
+            case TrackingState.RUNNING:
+                return "▶️";
+            case TrackingState.ARCHIVED:
+                return "📦";
+            case TrackingState.DELETED:
+                return "🗑️";
+            default:
+                return "";
+        }
+    }
+
+    /**
+     * Get human-readable label for a state.
+     * @param state - The tracking state
+     * @returns State label string
+     */
+    static getStateLabel(state: TrackingState): string {
+        return state;
+    }
+}
+
+/**
  * Component for displaying a list of trackings.
  * Shows tracking table with icon, question, type, times, frequency, notes, and edit action.
  * @param props - Component props
@@ -257,11 +309,37 @@ class TrackingFormatter {
  * @public
  */
 export function TrackingsList({
-    trackings,
+    trackings: propTrackings,
     onEdit,
     onCreate,
-    isLoading,
+    isLoading: propIsLoading,
 }: TrackingsListProps) {
+    const { trackings: hookTrackings, isLoading: hookIsLoading, updateTrackingState } = useTrackings();
+    
+    // Use props if provided, otherwise use hook data
+    const trackings = propTrackings ?? hookTrackings;
+    const isLoading = propIsLoading ?? hookIsLoading;
+
+    // Filter out Deleted trackings
+    const visibleTrackings = trackings.filter(
+        (tracking) => tracking.state !== TrackingState.DELETED
+    );
+
+    /**
+     * Handle state transition click.
+     * @param trackingId - The tracking ID
+     * @param newState - The new state to transition to
+     * @internal
+     */
+    const handleStateChange = async (trackingId: number, newState: TrackingState) => {
+        try {
+            await updateTrackingState(trackingId, newState);
+        } catch (error) {
+            console.error("Error updating tracking state:", error);
+            // Error handling is done in the hook
+        }
+    };
+
     if (isLoading) {
         return (
             <div className="trackings-list">
@@ -270,7 +348,7 @@ export function TrackingsList({
         );
     }
 
-    if (trackings.length === 0) {
+    if (visibleTrackings.length === 0) {
         return (
             <div className="trackings-list">
                 <div className="empty-state">
@@ -311,46 +389,64 @@ export function TrackingsList({
                     </tr>
                 </thead>
                 <tbody>
-                    {trackings.map((tracking) => (
-                        <tr key={tracking.id} className="tracking-row">
-                            <td className="cell-tracking" title={tracking.question}>
-                                {tracking.icon ? (
-                                    <>
-                                        <span className="tracking-icon" title={tracking.icon}>
-                                            {tracking.icon}
-                                        </span>
-                                        {" "}
-                                        {TrackingFormatter.truncateText(tracking.question, 50)}
-                                    </>
-                                ) : (
-                                    TrackingFormatter.truncateText(tracking.question, 50)
-                                )}
-                            </td>
-                            <td className="cell-type" title={TrackingFormatter.getFullTypeLabel(tracking.type)}>
-                                {TrackingFormatter.getTypeEmoji(tracking.type)}
-                            </td>
-                            <td className="cell-times" title={TrackingFormatter.formatAllTimes(tracking.schedules)}>
-                                {TrackingFormatter.formatTimesDisplay(tracking.schedules)}
-                            </td>
-                            <td className="cell-frequency" title={TrackingFormatter.formatFullFrequency(tracking.days)}>
-                                {TrackingFormatter.formatFrequency(tracking.days)}
-                            </td>
-                            <td className="cell-notes" title={tracking.notes ? TrackingFormatter.stripHtml(tracking.notes) : ""}>
-                                {tracking.notes ? "📝" : ""}
-                            </td>
-                            <td className="cell-actions">
-                                <button
-                                    type="button"
-                                    className="btn-edit-icon"
-                                    onClick={() => onEdit(tracking)}
-                                    aria-label={`Edit tracking: ${tracking.question}`}
-                                    title="Edit tracking"
-                                >
-                                    ✏️
-                                </button>
-                            </td>
-                        </tr>
-                    ))}
+                    {visibleTrackings.map((tracking) => {
+                        const currentState = tracking.state || TrackingState.RUNNING;
+                        const validTransitions = StateTransitionHelper.getValidTransitions(currentState);
+                        const stateLabel = StateTransitionHelper.getStateLabel(currentState);
+
+                        return (
+                            <tr key={tracking.id} className="tracking-row">
+                                <td className="cell-tracking" title={tracking.question}>
+                                    {tracking.icon ? (
+                                        <>
+                                            <span className="tracking-icon" title={tracking.icon}>
+                                                {tracking.icon}
+                                            </span>
+                                            {" "}
+                                            {TrackingFormatter.truncateText(tracking.question, 50)}
+                                        </>
+                                    ) : (
+                                        TrackingFormatter.truncateText(tracking.question, 50)
+                                    )}
+                                </td>
+                                <td className="cell-type" title={TrackingFormatter.getFullTypeLabel(tracking.type)}>
+                                    {TrackingFormatter.getTypeEmoji(tracking.type)}
+                                </td>
+                                <td className="cell-times" title={TrackingFormatter.formatAllTimes(tracking.schedules)}>
+                                    {TrackingFormatter.formatTimesDisplay(tracking.schedules)}
+                                </td>
+                                <td className="cell-frequency" title={TrackingFormatter.formatFullFrequency(tracking.days)}>
+                                    {TrackingFormatter.formatFrequency(tracking.days)}
+                                </td>
+                                <td className="cell-notes" title={tracking.notes ? TrackingFormatter.stripHtml(tracking.notes) : ""}>
+                                    {tracking.notes ? "📝" : ""}
+                                </td>
+                                <td className="cell-actions">
+                                    <button
+                                        type="button"
+                                        className="btn-edit-icon"
+                                        onClick={() => onEdit(tracking)}
+                                        aria-label={`Edit tracking: ${tracking.question}`}
+                                        title="Edit tracking"
+                                    >
+                                        ✏️
+                                    </button>
+                                    {validTransitions.map((targetState) => (
+                                        <button
+                                            key={targetState}
+                                            type="button"
+                                            className="btn-edit-icon"
+                                            onClick={() => handleStateChange(tracking.id, targetState)}
+                                            aria-label={`Change state to ${StateTransitionHelper.getStateLabel(targetState)}`}
+                                            title={`Current State: ${stateLabel}. Click to change to ${StateTransitionHelper.getStateLabel(targetState)}`}
+                                        >
+                                            {StateTransitionHelper.getTransitionIcon(targetState)}
+                                        </button>
+                                    ))}
+                                </td>
+                            </tr>
+                        );
+                    })}
                 </tbody>
             </table>
         </div>

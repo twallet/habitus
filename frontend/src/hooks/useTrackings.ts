@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { TrackingData, TrackingType, DaysPattern } from "../models/Tracking";
+import { TrackingData, TrackingType, TrackingState, DaysPattern } from "../models/Tracking";
 import { ApiClient } from "../config/api";
 
 /**
@@ -195,6 +195,49 @@ export function useTrackings() {
   };
 
   /**
+   * Update tracking state via API.
+   * @param trackingId - The tracking ID
+   * @param state - The new state (Running, Paused, Archived, Deleted)
+   * @returns Promise resolving to updated tracking data
+   * @throws Error if API request fails
+   * @public
+   */
+  const updateTrackingState = async (
+    trackingId: number,
+    state: TrackingState
+  ): Promise<TrackingData> => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) {
+      throw new Error("Not authenticated");
+    }
+
+    // Sync token with apiClient before making the request
+    apiClient.setToken(token);
+
+    console.log(
+      `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Updating tracking state ID: ${trackingId} to state: ${state}`
+    );
+
+    try {
+      const trackingData = await apiClient.updateTrackingState(trackingId, state);
+      console.log(
+        `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Tracking state updated successfully: ID ${trackingId} to state ${state}`
+      );
+      // Update local state with the new tracking data
+      setTrackings((prevTrackings) =>
+        prevTrackings.map((t) => (t.id === trackingId ? trackingData : t))
+      );
+      return trackingData;
+    } catch (error) {
+      console.error(
+        `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Error updating tracking state:`,
+        error
+      );
+      throw error;
+    }
+  };
+
+  /**
    * Delete a tracking via API.
    * @param trackingId - The tracking ID to delete
    * @returns Promise resolving when tracking is deleted
@@ -236,6 +279,7 @@ export function useTrackings() {
     isLoading,
     createTracking,
     updateTracking,
+    updateTrackingState,
     deleteTracking,
   };
 }

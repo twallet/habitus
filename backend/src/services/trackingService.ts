@@ -3,6 +3,7 @@ import {
   Tracking,
   TrackingData,
   TrackingType,
+  TrackingState,
   DaysPattern,
 } from "../models/Tracking.js";
 import {
@@ -121,9 +122,9 @@ export class TrackingService {
     }
     const validatedSchedules = TrackingSchedule.validateSchedules(schedules, 0); // trackingId will be set after creation
 
-    // Insert tracking
+    // Insert tracking with Running state by default
     const result = await this.db.run(
-      "INSERT INTO trackings (user_id, question, type, notes, icon, days) VALUES (?, ?, ?, ?, ?, ?)",
+      "INSERT INTO trackings (user_id, question, type, notes, icon, days, state) VALUES (?, ?, ?, ?, ?, ?, ?)",
       [
         validatedUserId,
         validatedQuestion,
@@ -131,6 +132,7 @@ export class TrackingService {
         validatedNotes || null,
         validatedIcon || null,
         validatedDays ? JSON.stringify(validatedDays) : null,
+        "Running",
       ]
     );
 
@@ -304,6 +306,63 @@ export class TrackingService {
       `[${new Date().toISOString()}] TRACKING | Tracking updated successfully: ID ${
         tracking.id
       }`
+    );
+
+    return tracking;
+  }
+
+  /**
+   * Update tracking state.
+   * Validates state transition and updates only the state field.
+   * @param trackingId - The tracking ID
+   * @param userId - The user ID (for authorization)
+   * @param newState - The new state to transition to
+   * @returns Promise resolving to updated tracking data
+   * @throws Error if tracking not found or transition is invalid
+   * @public
+   */
+  async updateTrackingState(
+    trackingId: number,
+    userId: number,
+    newState: string
+  ): Promise<TrackingData> {
+    console.log(
+      `[${new Date().toISOString()}] TRACKING | Updating tracking state ID: ${trackingId} for userId: ${userId} to state: ${newState}`
+    );
+
+    // Verify tracking exists and belongs to user
+    const existingTracking = await this.getTrackingById(trackingId, userId);
+    if (!existingTracking) {
+      console.warn(
+        `[${new Date().toISOString()}] TRACKING | Update state failed: tracking not found for ID: ${trackingId} and userId: ${userId}`
+      );
+      throw new Error("Tracking not found");
+    }
+
+    // Validate new state
+    const validatedNewState = Tracking.validateState(newState);
+
+    // Validate state transition
+    const currentState = existingTracking.state || TrackingState.RUNNING;
+    Tracking.validateStateTransition(currentState as TrackingState, validatedNewState);
+
+    // Update state in database
+    await this.db.run(
+      "UPDATE trackings SET state = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?",
+      [validatedNewState, trackingId, userId]
+    );
+
+    // Retrieve updated tracking
+    const tracking = await this.getTrackingById(trackingId, userId);
+    if (!tracking) {
+      console.error(
+        `[${new Date().toISOString()}] TRACKING | Failed to retrieve updated tracking for ID: ${trackingId}`
+      );
+      throw new Error("Failed to retrieve updated tracking");
+    }
+
+    console.log(
+      `[${new Date().toISOString()}] TRACKING | Tracking state updated successfully: ID ${trackingId} to state ${validatedNewState}`
     );
 
     return tracking;
