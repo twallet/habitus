@@ -243,6 +243,235 @@ class TrackingFormatter {
 }
 
 /**
+ * Filter state interface for tracking filters.
+ * @internal
+ */
+interface FilterState {
+    tracking: string;
+    type: string;
+    times: string;
+    frequency: string;
+    status: string;
+}
+
+/**
+ * Utility class for filtering tracking data.
+ * Follows OOP principles by organizing related filtering methods.
+ * @internal
+ */
+class TrackingFilter {
+    /**
+     * Filter tracking by question text (case-insensitive contains).
+     * @param tracking - Tracking data to filter
+     * @param filterValue - Filter text value
+     * @returns True if tracking matches filter
+     */
+    static filterByTracking(tracking: TrackingData, filterValue: string): boolean {
+        if (!filterValue.trim()) {
+            return true;
+        }
+        return tracking.question.toLowerCase().includes(filterValue.toLowerCase());
+    }
+
+    /**
+     * Filter tracking by type.
+     * @param tracking - Tracking data to filter
+     * @param filterValue - Filter value ("All", "Yes/No", or "Text")
+     * @returns True if tracking matches filter
+     */
+    static filterByType(tracking: TrackingData, filterValue: string): boolean {
+        if (!filterValue || filterValue === "All") {
+            return true;
+        }
+        if (filterValue === "Yes/No") {
+            return tracking.type === TrackingType.TRUE_FALSE;
+        }
+        if (filterValue === "Text") {
+            return tracking.type === TrackingType.REGISTER;
+        }
+        return true;
+    }
+
+    /**
+     * Filter tracking by times display.
+     * @param tracking - Tracking data to filter
+     * @param filterValue - Filter text value
+     * @returns True if tracking matches filter
+     */
+    static filterByTimes(tracking: TrackingData, filterValue: string): boolean {
+        if (!filterValue.trim()) {
+            return true;
+        }
+        const timesDisplay = TrackingFormatter.formatTimesDisplay(tracking.schedules);
+        return timesDisplay.toLowerCase().includes(filterValue.toLowerCase());
+    }
+
+    /**
+     * Filter tracking by frequency display.
+     * @param tracking - Tracking data to filter
+     * @param filterValue - Filter text value
+     * @returns True if tracking matches filter
+     */
+    static filterByFrequency(tracking: TrackingData, filterValue: string): boolean {
+        if (!filterValue.trim()) {
+            return true;
+        }
+        const frequencyDisplay = TrackingFormatter.formatFrequency(tracking.days);
+        return frequencyDisplay.toLowerCase().includes(filterValue.toLowerCase());
+    }
+
+    /**
+     * Filter tracking by status.
+     * @param tracking - Tracking data to filter
+     * @param filterValue - Filter value ("All", "Running", "Paused", or "Archived")
+     * @returns True if tracking matches filter
+     */
+    static filterByStatus(tracking: TrackingData, filterValue: string): boolean {
+        if (!filterValue || filterValue === "All") {
+            return true;
+        }
+        const currentState = tracking.state || TrackingState.RUNNING;
+        return currentState === filterValue;
+    }
+
+    /**
+     * Apply all active filters to trackings array.
+     * @param trackings - Array of tracking data to filter
+     * @param filters - Filter state object
+     * @returns Filtered array of trackings
+     */
+    static applyFilters(trackings: TrackingData[], filters: FilterState): TrackingData[] {
+        return trackings.filter((tracking) => {
+            return (
+                TrackingFilter.filterByTracking(tracking, filters.tracking) &&
+                TrackingFilter.filterByType(tracking, filters.type) &&
+                TrackingFilter.filterByTimes(tracking, filters.times) &&
+                TrackingFilter.filterByFrequency(tracking, filters.frequency) &&
+                TrackingFilter.filterByStatus(tracking, filters.status)
+            );
+        });
+    }
+}
+
+/**
+ * Utility class for sorting tracking data.
+ * Follows OOP principles by organizing related sorting methods.
+ * @internal
+ */
+class TrackingSorter {
+    /**
+     * Compare two trackings by question text.
+     * @param a - First tracking
+     * @param b - Second tracking
+     * @returns Comparison result (-1, 0, or 1)
+     */
+    static compareTracking(a: TrackingData, b: TrackingData): number {
+        return a.question.localeCompare(b.question);
+    }
+
+    /**
+     * Compare two trackings by type.
+     * @param a - First tracking
+     * @param b - Second tracking
+     * @returns Comparison result (-1, 0, or 1)
+     */
+    static compareType(a: TrackingData, b: TrackingData): number {
+        return a.type.localeCompare(b.type);
+    }
+
+    /**
+     * Compare two trackings by first schedule time.
+     * @param a - First tracking
+     * @param b - Second tracking
+     * @returns Comparison result (-1, 0, or 1)
+     */
+    static compareTimes(a: TrackingData, b: TrackingData): number {
+        const getFirstTime = (tracking: TrackingData): number => {
+            if (!tracking.schedules || tracking.schedules.length === 0) {
+                return 9999; // No times sort to end
+            }
+            const sorted = [...tracking.schedules].sort((s1, s2) => {
+                if (s1.hour !== s2.hour) return s1.hour - s2.hour;
+                return s1.minutes - s2.minutes;
+            });
+            return sorted[0].hour * 60 + sorted[0].minutes;
+        };
+        return getFirstTime(a) - getFirstTime(b);
+    }
+
+    /**
+     * Compare two trackings by frequency display string.
+     * @param a - First tracking
+     * @param b - Second tracking
+     * @returns Comparison result (-1, 0, or 1)
+     */
+    static compareFrequency(a: TrackingData, b: TrackingData): number {
+        const freqA = TrackingFormatter.formatFrequency(a.days);
+        const freqB = TrackingFormatter.formatFrequency(b.days);
+        return freqA.localeCompare(freqB);
+    }
+
+    /**
+     * Compare two trackings by status.
+     * @param a - First tracking
+     * @param b - Second tracking
+     * @returns Comparison result (-1, 0, or 1)
+     */
+    static compareStatus(a: TrackingData, b: TrackingData): number {
+        const stateA = a.state || TrackingState.RUNNING;
+        const stateB = b.state || TrackingState.RUNNING;
+        return stateA.localeCompare(stateB);
+    }
+
+    /**
+     * Sort trackings array by column and direction.
+     * @param trackings - Array of tracking data to sort
+     * @param column - Column name to sort by (or null for no sorting)
+     * @param direction - Sort direction ('asc', 'desc', or null)
+     * @returns Sorted array of trackings
+     */
+    static sortTrackings(
+        trackings: TrackingData[],
+        column: string | null,
+        direction: 'asc' | 'desc' | null
+    ): TrackingData[] {
+        if (!column || !direction) {
+            return [...trackings];
+        }
+
+        const sorted = [...trackings];
+        let compareFn: (a: TrackingData, b: TrackingData) => number;
+
+        switch (column) {
+            case 'tracking':
+                compareFn = TrackingSorter.compareTracking;
+                break;
+            case 'type':
+                compareFn = TrackingSorter.compareType;
+                break;
+            case 'times':
+                compareFn = TrackingSorter.compareTimes;
+                break;
+            case 'frequency':
+                compareFn = TrackingSorter.compareFrequency;
+                break;
+            case 'status':
+                compareFn = TrackingSorter.compareStatus;
+                break;
+            default:
+                return sorted;
+        }
+
+        sorted.sort((a, b) => {
+            const result = compareFn(a, b);
+            return direction === 'asc' ? result : -result;
+        });
+
+        return sorted;
+    }
+}
+
+/**
  * Utility class for managing tracking state transitions.
  * Follows OOP principles by organizing related state transition methods.
  * @internal
@@ -385,6 +614,18 @@ export function TrackingsList({
     const dropdownRefs = useRef<Record<number, HTMLDivElement | null>>({});
     const dropdownMenuRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
+    // Filter and sort state
+    const [filterState, setFilterState] = useState<FilterState>({
+        tracking: '',
+        type: 'All',
+        times: '',
+        frequency: '',
+        status: 'All',
+    });
+    const [sortColumn, setSortColumn] = useState<string | null>(null);
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>(null);
+    const [showFilters, setShowFilters] = useState<boolean>(false);
+
     // Expose createTracking function to parent via callback
     useEffect(() => {
         if (onCreateTracking) {
@@ -400,6 +641,67 @@ export function TrackingsList({
     const visibleTrackings = trackings.filter(
         (tracking) => tracking.state !== TrackingState.DELETED
     );
+
+    // Apply filters and sorting
+    const filteredTrackings = TrackingFilter.applyFilters(visibleTrackings, filterState);
+    const filteredAndSortedTrackings = TrackingSorter.sortTrackings(filteredTrackings, sortColumn, sortDirection);
+
+    /**
+     * Handle filter change.
+     * @param column - Column name
+     * @param value - Filter value
+     * @internal
+     */
+    const handleFilterChange = (column: keyof FilterState, value: string) => {
+        setFilterState((prev) => ({
+            ...prev,
+            [column]: value,
+        }));
+    };
+
+    /**
+     * Reset all filters to default values.
+     * @internal
+     */
+    const handleResetFilters = () => {
+        setFilterState({
+            tracking: '',
+            type: 'All',
+            times: '',
+            frequency: '',
+            status: 'All',
+        });
+    };
+
+    /**
+     * Toggle filter panel visibility.
+     * @internal
+     */
+    const toggleFilters = () => {
+        setShowFilters((prev) => !prev);
+    };
+
+    /**
+     * Handle sort column click.
+     * Cycles through: none → asc → desc → none
+     * @param column - Column name to sort by
+     * @internal
+     */
+    const handleSortClick = (column: string) => {
+        if (sortColumn === column) {
+            // Cycle: asc → desc → none
+            if (sortDirection === 'asc') {
+                setSortDirection('desc');
+            } else if (sortDirection === 'desc') {
+                setSortColumn(null);
+                setSortDirection(null);
+            }
+        } else {
+            // New column, start with asc
+            setSortColumn(column);
+            setSortDirection('asc');
+        }
+    };
 
     /**
      * Handle click outside dropdown to close it.
@@ -546,9 +848,119 @@ export function TrackingsList({
         );
     }
 
+    // Filter panel and controls (shown even when no trackings)
+    const filterControls = (
+        <>
+            <div className="filters-controls">
+                <button
+                    type="button"
+                    className="filter-toggle-button"
+                    onClick={toggleFilters}
+                    aria-label={showFilters ? "Hide filters" : "Show filters"}
+                    aria-expanded={showFilters}
+                >
+                    <span className="filter-toggle-icon">{showFilters ? "▼" : "▶"}</span>
+                    <span>{showFilters ? "Hide Filters" : "Show Filters"}</span>
+                </button>
+            </div>
+            {showFilters && (
+                <div className="filter-panel">
+                    <div className="filter-panel-content">
+                        <div className="filter-row">
+                            <label htmlFor="filter-tracking" className="filter-label">
+                                Tracking:
+                            </label>
+                            <input
+                                type="text"
+                                id="filter-tracking"
+                                className="filter-input"
+                                placeholder="Filter by question..."
+                                value={filterState.tracking}
+                                onChange={(e) => handleFilterChange('tracking', e.target.value)}
+                                aria-label="Filter by tracking"
+                            />
+                        </div>
+                        <div className="filter-row">
+                            <label htmlFor="filter-type" className="filter-label">
+                                Type:
+                            </label>
+                            <select
+                                id="filter-type"
+                                className="filter-select"
+                                value={filterState.type}
+                                onChange={(e) => handleFilterChange('type', e.target.value)}
+                                aria-label="Filter by type"
+                            >
+                                <option value="All">All</option>
+                                <option value="Yes/No">Yes/No</option>
+                                <option value="Text">Text</option>
+                            </select>
+                        </div>
+                        <div className="filter-row">
+                            <label htmlFor="filter-times" className="filter-label">
+                                Times:
+                            </label>
+                            <input
+                                type="text"
+                                id="filter-times"
+                                className="filter-input"
+                                placeholder="Filter by times..."
+                                value={filterState.times}
+                                onChange={(e) => handleFilterChange('times', e.target.value)}
+                                aria-label="Filter by times"
+                            />
+                        </div>
+                        <div className="filter-row">
+                            <label htmlFor="filter-frequency" className="filter-label">
+                                Frequency:
+                            </label>
+                            <input
+                                type="text"
+                                id="filter-frequency"
+                                className="filter-input"
+                                placeholder="Filter by frequency..."
+                                value={filterState.frequency}
+                                onChange={(e) => handleFilterChange('frequency', e.target.value)}
+                                aria-label="Filter by frequency"
+                            />
+                        </div>
+                        <div className="filter-row">
+                            <label htmlFor="filter-status" className="filter-label">
+                                Status:
+                            </label>
+                            <select
+                                id="filter-status"
+                                className="filter-select"
+                                value={filterState.status}
+                                onChange={(e) => handleFilterChange('status', e.target.value)}
+                                aria-label="Filter by status"
+                            >
+                                <option value="All">All</option>
+                                <option value={TrackingState.RUNNING}>Running</option>
+                                <option value={TrackingState.PAUSED}>Paused</option>
+                                <option value={TrackingState.ARCHIVED}>Archived</option>
+                            </select>
+                        </div>
+                        <div className="filter-actions">
+                            <button
+                                type="button"
+                                className="filter-reset-button"
+                                onClick={handleResetFilters}
+                                aria-label="Reset all filters"
+                            >
+                                Reset Filters
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
+    );
+
     if (visibleTrackings.length === 0) {
         return (
             <div className="trackings-list">
+                {filterControls}
                 <div className="empty-state">
                     <p>
                         No trackings yet.{" "}
@@ -573,20 +985,101 @@ export function TrackingsList({
         );
     }
 
+    if (filteredAndSortedTrackings.length === 0) {
+        return (
+            <div className="trackings-list">
+                <div className="empty-state">
+                    <p>No trackings match the current filters.</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="trackings-list">
+            {filterControls}
             <table className="trackings-table">
                 <thead>
                     <tr>
-                        <th className="col-tracking">Tracking</th>
-                        <th className="col-type">Type</th>
-                        <th className="col-times">Times</th>
-                        <th className="col-frequency">Frequency</th>
-                        <th className="col-status">Status</th>
+                        <th className="col-tracking">
+                            <button
+                                type="button"
+                                className="sortable-header"
+                                onClick={() => handleSortClick('tracking')}
+                                aria-label="Sort by tracking"
+                            >
+                                Tracking
+                                {sortColumn === 'tracking' && (
+                                    <span className="sort-indicator">
+                                        {sortDirection === 'asc' ? '↑' : '↓'}
+                                    </span>
+                                )}
+                            </button>
+                        </th>
+                        <th className="col-type">
+                            <button
+                                type="button"
+                                className="sortable-header"
+                                onClick={() => handleSortClick('type')}
+                                aria-label="Sort by type"
+                            >
+                                Type
+                                {sortColumn === 'type' && (
+                                    <span className="sort-indicator">
+                                        {sortDirection === 'asc' ? '↑' : '↓'}
+                                    </span>
+                                )}
+                            </button>
+                        </th>
+                        <th className="col-times">
+                            <button
+                                type="button"
+                                className="sortable-header"
+                                onClick={() => handleSortClick('times')}
+                                aria-label="Sort by times"
+                            >
+                                Times
+                                {sortColumn === 'times' && (
+                                    <span className="sort-indicator">
+                                        {sortDirection === 'asc' ? '↑' : '↓'}
+                                    </span>
+                                )}
+                            </button>
+                        </th>
+                        <th className="col-frequency">
+                            <button
+                                type="button"
+                                className="sortable-header"
+                                onClick={() => handleSortClick('frequency')}
+                                aria-label="Sort by frequency"
+                            >
+                                Frequency
+                                {sortColumn === 'frequency' && (
+                                    <span className="sort-indicator">
+                                        {sortDirection === 'asc' ? '↑' : '↓'}
+                                    </span>
+                                )}
+                            </button>
+                        </th>
+                        <th className="col-status">
+                            <button
+                                type="button"
+                                className="sortable-header"
+                                onClick={() => handleSortClick('status')}
+                                aria-label="Sort by status"
+                            >
+                                Status
+                                {sortColumn === 'status' && (
+                                    <span className="sort-indicator">
+                                        {sortDirection === 'asc' ? '↑' : '↓'}
+                                    </span>
+                                )}
+                            </button>
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
-                    {visibleTrackings.map((tracking) => {
+                    {filteredAndSortedTrackings.map((tracking) => {
                         const currentState = tracking.state || TrackingState.RUNNING;
                         const validTransitions = StateTransitionHelper.getValidTransitions(currentState);
                         const stateLabel = StateTransitionHelper.getStateLabel(currentState);

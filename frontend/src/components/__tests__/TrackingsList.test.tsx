@@ -906,5 +906,502 @@ describe("TrackingsList", () => {
         // The callback should not be called if prop is not provided
         expect(mockOnCreateTracking).not.toHaveBeenCalled();
     });
+
+    describe("Filtering", () => {
+        it("should show filter panel when toggle button is clicked", async () => {
+            const user = userEvent.setup();
+            render(
+                <TrackingsList
+                    trackings={[]}
+                    onEdit={mockOnEdit}
+                />
+            );
+
+            const showFiltersButton = screen.getByRole("button", { name: /show filters/i });
+            expect(screen.queryByLabelText("Filter by tracking")).not.toBeInTheDocument();
+
+            await user.click(showFiltersButton);
+
+            expect(screen.getByLabelText("Filter by tracking")).toBeInTheDocument();
+            expect(screen.getByRole("button", { name: /hide filters/i })).toBeInTheDocument();
+        });
+
+        it("should hide filter panel when toggle button is clicked again", async () => {
+            const user = userEvent.setup();
+            render(
+                <TrackingsList
+                    trackings={[]}
+                    onEdit={mockOnEdit}
+                />
+            );
+
+            const showFiltersButton = screen.getByRole("button", { name: /show filters/i });
+            await user.click(showFiltersButton);
+            expect(screen.getByLabelText("Filter by tracking")).toBeInTheDocument();
+
+            const hideFiltersButton = screen.getByRole("button", { name: /hide filters/i });
+            await user.click(hideFiltersButton);
+
+            expect(screen.queryByLabelText("Filter by tracking")).not.toBeInTheDocument();
+            expect(screen.getByRole("button", { name: /show filters/i })).toBeInTheDocument();
+        });
+
+        it("should reset all filters when reset button is clicked", async () => {
+            const user = userEvent.setup();
+            const trackings: TrackingData[] = [
+                {
+                    id: 1,
+                    user_id: 1,
+                    question: "Test question",
+                    type: TrackingType.TRUE_FALSE,
+                    state: TrackingState.RUNNING,
+                },
+            ];
+
+            render(
+                <TrackingsList
+                    trackings={trackings}
+                    onEdit={mockOnEdit}
+                />
+            );
+
+            const showFiltersButton = screen.getByRole("button", { name: /show filters/i });
+            await user.click(showFiltersButton);
+
+            const filterInput = screen.getByLabelText("Filter by tracking");
+            await user.type(filterInput, "test");
+            expect(filterInput).toHaveValue("test");
+
+            const resetButton = screen.getByRole("button", { name: /reset all filters/i });
+            await user.click(resetButton);
+
+            expect(filterInput).toHaveValue("");
+        });
+
+        const trackings: TrackingData[] = [
+            {
+                id: 1,
+                user_id: 1,
+                question: "Did I exercise today?",
+                type: TrackingType.TRUE_FALSE,
+                state: TrackingState.RUNNING,
+                schedules: [{ id: 1, tracking_id: 1, hour: 8, minutes: 0 }],
+                days: { pattern_type: DaysPatternType.INTERVAL, interval_value: 1, interval_unit: "days" },
+            },
+            {
+                id: 2,
+                user_id: 1,
+                question: "Did I meditate?",
+                type: TrackingType.REGISTER,
+                state: TrackingState.PAUSED,
+                schedules: [{ id: 2, tracking_id: 2, hour: 9, minutes: 30 }],
+                days: { pattern_type: DaysPatternType.DAY_OF_WEEK, days: [1, 3, 5] },
+            },
+            {
+                id: 3,
+                user_id: 1,
+                question: "Did I read a book?",
+                type: TrackingType.TRUE_FALSE,
+                state: TrackingState.ARCHIVED,
+                schedules: [{ id: 3, tracking_id: 3, hour: 20, minutes: 0 }],
+                days: { pattern_type: DaysPatternType.INTERVAL, interval_value: 1, interval_unit: "days" },
+            },
+        ];
+
+        it("should filter by tracking question text", async () => {
+            const user = userEvent.setup();
+            render(
+                <TrackingsList
+                    trackings={trackings}
+                    onEdit={mockOnEdit}
+                />
+            );
+
+            const showFiltersButton = screen.getByRole("button", { name: /show filters/i });
+            await user.click(showFiltersButton);
+
+            const filterInput = screen.getByLabelText("Filter by tracking");
+            await user.type(filterInput, "exercise");
+
+            expect(screen.getByText("Did I exercise today?")).toBeInTheDocument();
+            expect(screen.queryByText("Did I meditate?")).not.toBeInTheDocument();
+            expect(screen.queryByText("Did I read a book?")).not.toBeInTheDocument();
+        });
+
+        it("should filter by type using dropdown", async () => {
+            const user = userEvent.setup();
+            render(
+                <TrackingsList
+                    trackings={trackings}
+                    onEdit={mockOnEdit}
+                />
+            );
+
+            const showFiltersButton = screen.getByRole("button", { name: /show filters/i });
+            await user.click(showFiltersButton);
+
+            const typeSelect = screen.getByLabelText("Filter by type");
+            await user.selectOptions(typeSelect, "Yes/No");
+
+            expect(screen.getByText("Did I exercise today?")).toBeInTheDocument();
+            expect(screen.getByText("Did I read a book?")).toBeInTheDocument();
+            expect(screen.queryByText("Did I meditate?")).not.toBeInTheDocument();
+        });
+
+        it("should filter by times", async () => {
+            const user = userEvent.setup();
+            render(
+                <TrackingsList
+                    trackings={trackings}
+                    onEdit={mockOnEdit}
+                />
+            );
+
+            const showFiltersButton = screen.getByRole("button", { name: /show filters/i });
+            await user.click(showFiltersButton);
+
+            const timesInput = screen.getByLabelText("Filter by times");
+            await user.type(timesInput, "08:00");
+
+            expect(screen.getByText("Did I exercise today?")).toBeInTheDocument();
+            expect(screen.queryByText("Did I meditate?")).not.toBeInTheDocument();
+            expect(screen.queryByText("Did I read a book?")).not.toBeInTheDocument();
+        });
+
+        it("should filter by frequency", async () => {
+            const user = userEvent.setup();
+            render(
+                <TrackingsList
+                    trackings={trackings}
+                    onEdit={mockOnEdit}
+                />
+            );
+
+            const showFiltersButton = screen.getByRole("button", { name: /show filters/i });
+            await user.click(showFiltersButton);
+
+            const frequencyInput = screen.getByLabelText("Filter by frequency");
+            await user.type(frequencyInput, "Mon");
+
+            expect(screen.getByText("Did I meditate?")).toBeInTheDocument();
+            expect(screen.queryByText("Did I exercise today?")).not.toBeInTheDocument();
+            expect(screen.queryByText("Did I read a book?")).not.toBeInTheDocument();
+        });
+
+        it("should filter by status using dropdown", async () => {
+            const user = userEvent.setup();
+            render(
+                <TrackingsList
+                    trackings={trackings}
+                    onEdit={mockOnEdit}
+                />
+            );
+
+            const showFiltersButton = screen.getByRole("button", { name: /show filters/i });
+            await user.click(showFiltersButton);
+
+            const statusSelect = screen.getByLabelText("Filter by status");
+            await user.selectOptions(statusSelect, TrackingState.RUNNING);
+
+            expect(screen.getByText("Did I exercise today?")).toBeInTheDocument();
+            expect(screen.queryByText("Did I meditate?")).not.toBeInTheDocument();
+            expect(screen.queryByText("Did I read a book?")).not.toBeInTheDocument();
+        });
+
+        it("should show empty message when no trackings match filters", async () => {
+            const user = userEvent.setup();
+            render(
+                <TrackingsList
+                    trackings={trackings}
+                    onEdit={mockOnEdit}
+                />
+            );
+
+            const showFiltersButton = screen.getByRole("button", { name: /show filters/i });
+            await user.click(showFiltersButton);
+
+            const filterInput = screen.getByLabelText("Filter by tracking");
+            await user.type(filterInput, "nonexistent");
+
+            expect(screen.getByText(/no trackings match the current filters/i)).toBeInTheDocument();
+        });
+
+        it("should apply multiple filters simultaneously", async () => {
+            const user = userEvent.setup();
+            render(
+                <TrackingsList
+                    trackings={trackings}
+                    onEdit={mockOnEdit}
+                />
+            );
+
+            const showFiltersButton = screen.getByRole("button", { name: /show filters/i });
+            await user.click(showFiltersButton);
+
+            const trackingInput = screen.getByLabelText("Filter by tracking");
+            await user.type(trackingInput, "exercise");
+
+            const typeSelect = screen.getByLabelText("Filter by type");
+            await user.selectOptions(typeSelect, "Yes/No");
+
+            expect(screen.getByText("Did I exercise today?")).toBeInTheDocument();
+            expect(screen.queryByText("Did I meditate?")).not.toBeInTheDocument();
+            expect(screen.queryByText("Did I read a book?")).not.toBeInTheDocument();
+        });
+
+        it("should be case-insensitive when filtering by text", async () => {
+            const user = userEvent.setup();
+            render(
+                <TrackingsList
+                    trackings={trackings}
+                    onEdit={mockOnEdit}
+                />
+            );
+
+            const showFiltersButton = screen.getByRole("button", { name: /show filters/i });
+            await user.click(showFiltersButton);
+
+            const filterInput = screen.getByLabelText("Filter by tracking");
+            await user.type(filterInput, "EXERCISE");
+
+            expect(screen.getByText("Did I exercise today?")).toBeInTheDocument();
+        });
+    });
+
+    describe("Sorting", () => {
+        const trackings: TrackingData[] = [
+            {
+                id: 1,
+                user_id: 1,
+                question: "Zebra question",
+                type: TrackingType.REGISTER,
+                state: TrackingState.ARCHIVED,
+                schedules: [{ id: 1, tracking_id: 1, hour: 10, minutes: 0 }],
+            },
+            {
+                id: 2,
+                user_id: 1,
+                question: "Apple question",
+                type: TrackingType.TRUE_FALSE,
+                state: TrackingState.RUNNING,
+                schedules: [{ id: 2, tracking_id: 2, hour: 8, minutes: 0 }],
+            },
+            {
+                id: 3,
+                user_id: 1,
+                question: "Banana question",
+                type: TrackingType.TRUE_FALSE,
+                state: TrackingState.PAUSED,
+                schedules: [{ id: 3, tracking_id: 3, hour: 9, minutes: 30 }],
+            },
+        ];
+
+        it("should sort by tracking question ascending", async () => {
+            const user = userEvent.setup();
+            render(
+                <TrackingsList
+                    trackings={trackings}
+                    onEdit={mockOnEdit}
+                />
+            );
+
+            const trackingHeader = screen.getByLabelText("Sort by tracking");
+            await user.click(trackingHeader);
+
+            const rows = screen.getAllByRole("row");
+            // Skip header row
+            const dataRows = rows.slice(1);
+            expect(dataRows[0]).toHaveTextContent("Apple question");
+            expect(dataRows[1]).toHaveTextContent("Banana question");
+            expect(dataRows[2]).toHaveTextContent("Zebra question");
+        });
+
+        it("should sort by tracking question descending", async () => {
+            const user = userEvent.setup();
+            render(
+                <TrackingsList
+                    trackings={trackings}
+                    onEdit={mockOnEdit}
+                />
+            );
+
+            const trackingHeader = screen.getByLabelText("Sort by tracking");
+            await user.click(trackingHeader); // First click: asc
+            await user.click(trackingHeader); // Second click: desc
+
+            const rows = screen.getAllByRole("row");
+            const dataRows = rows.slice(1);
+            expect(dataRows[0]).toHaveTextContent("Zebra question");
+            expect(dataRows[1]).toHaveTextContent("Banana question");
+            expect(dataRows[2]).toHaveTextContent("Apple question");
+        });
+
+        it("should sort by type", async () => {
+            const user = userEvent.setup();
+            render(
+                <TrackingsList
+                    trackings={trackings}
+                    onEdit={mockOnEdit}
+                />
+            );
+
+            const typeHeader = screen.getByLabelText("Sort by type");
+            await user.click(typeHeader);
+
+            const rows = screen.getAllByRole("row");
+            const dataRows = rows.slice(1);
+            // "register" comes before "true_false" alphabetically
+            expect(dataRows[0]).toHaveTextContent("Zebra question");
+            expect(dataRows[1]).toHaveTextContent("Apple question");
+            expect(dataRows[2]).toHaveTextContent("Banana question");
+        });
+
+        it("should sort by times", async () => {
+            const user = userEvent.setup();
+            render(
+                <TrackingsList
+                    trackings={trackings}
+                    onEdit={mockOnEdit}
+                />
+            );
+
+            const timesHeader = screen.getByLabelText("Sort by times");
+            await user.click(timesHeader);
+
+            const rows = screen.getAllByRole("row");
+            const dataRows = rows.slice(1);
+            // 8:00, 9:30, 10:00
+            expect(dataRows[0]).toHaveTextContent("Apple question");
+            expect(dataRows[1]).toHaveTextContent("Banana question");
+            expect(dataRows[2]).toHaveTextContent("Zebra question");
+        });
+
+        it("should sort by status", async () => {
+            const user = userEvent.setup();
+            render(
+                <TrackingsList
+                    trackings={trackings}
+                    onEdit={mockOnEdit}
+                />
+            );
+
+            const statusHeader = screen.getByLabelText("Sort by status");
+            await user.click(statusHeader);
+
+            const rows = screen.getAllByRole("row");
+            const dataRows = rows.slice(1);
+            // ARCHIVED, PAUSED, RUNNING alphabetically
+            expect(dataRows[0]).toHaveTextContent("Zebra question");
+            expect(dataRows[1]).toHaveTextContent("Banana question");
+            expect(dataRows[2]).toHaveTextContent("Apple question");
+        });
+
+        it("should remove sort when clicking same column three times", async () => {
+            const user = userEvent.setup();
+            render(
+                <TrackingsList
+                    trackings={trackings}
+                    onEdit={mockOnEdit}
+                />
+            );
+
+            const trackingHeader = screen.getByLabelText("Sort by tracking");
+            await user.click(trackingHeader); // asc
+            await user.click(trackingHeader); // desc
+            await user.click(trackingHeader); // none
+
+            // Should show original order (by ID)
+            const rows = screen.getAllByRole("row");
+            const dataRows = rows.slice(1);
+            expect(dataRows[0]).toHaveTextContent("Zebra question");
+            expect(dataRows[1]).toHaveTextContent("Apple question");
+            expect(dataRows[2]).toHaveTextContent("Banana question");
+        });
+
+        it("should show sort indicator when sorted", async () => {
+            const user = userEvent.setup();
+            render(
+                <TrackingsList
+                    trackings={trackings}
+                    onEdit={mockOnEdit}
+                />
+            );
+
+            const trackingHeader = screen.getByLabelText("Sort by tracking");
+            await user.click(trackingHeader);
+
+            expect(screen.getByText("↑")).toBeInTheDocument();
+        });
+
+        it("should change sort indicator direction", async () => {
+            const user = userEvent.setup();
+            render(
+                <TrackingsList
+                    trackings={trackings}
+                    onEdit={mockOnEdit}
+                />
+            );
+
+            const trackingHeader = screen.getByLabelText("Sort by tracking");
+            await user.click(trackingHeader);
+            expect(screen.getByText("↑")).toBeInTheDocument();
+
+            await user.click(trackingHeader);
+            expect(screen.getByText("↓")).toBeInTheDocument();
+        });
+    });
+
+    describe("Filtering and Sorting Combined", () => {
+        const trackings: TrackingData[] = [
+            {
+                id: 1,
+                user_id: 1,
+                question: "Alpha exercise",
+                type: TrackingType.TRUE_FALSE,
+                state: TrackingState.RUNNING,
+            },
+            {
+                id: 2,
+                user_id: 1,
+                question: "Beta exercise",
+                type: TrackingType.TRUE_FALSE,
+                state: TrackingState.RUNNING,
+            },
+            {
+                id: 3,
+                user_id: 1,
+                question: "Gamma meditation",
+                type: TrackingType.REGISTER,
+                state: TrackingState.RUNNING,
+            },
+        ];
+
+        it("should apply filters and then sort", async () => {
+            const user = userEvent.setup();
+            render(
+                <TrackingsList
+                    trackings={trackings}
+                    onEdit={mockOnEdit}
+                />
+            );
+
+            const showFiltersButton = screen.getByRole("button", { name: /show filters/i });
+            await user.click(showFiltersButton);
+
+            // Filter by "exercise"
+            const filterInput = screen.getByLabelText("Filter by tracking");
+            await user.type(filterInput, "exercise");
+
+            // Sort by tracking
+            const trackingHeader = screen.getByLabelText("Sort by tracking");
+            await user.click(trackingHeader);
+
+            const rows = screen.getAllByRole("row");
+            const dataRows = rows.slice(1);
+            expect(dataRows).toHaveLength(2);
+            expect(dataRows[0]).toHaveTextContent("Alpha exercise");
+            expect(dataRows[1]).toHaveTextContent("Beta exercise");
+        });
+    });
 });
 
