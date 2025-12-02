@@ -29,3 +29,16 @@
   width: auto;
   display: inline-block;
 }
+
+.required-asterisk {
+  color: var(--error-color);
+  font-weight: 600;
+}
+
+.field-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-style: italic;
+}

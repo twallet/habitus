@@ -44,6 +44,7 @@ function App() {
     isLoading: trackingsLoading,
     createTracking,
     updateTracking,
+    updateTrackingState,
   } = useTrackings();
 
   /**
@@ -511,6 +512,7 @@ function App() {
             onEdit={handleEditTracking}
             onCreate={() => setShowTrackingForm(true)}
             isLoading={trackingsLoading}
+            onStateChange={updateTrackingState}
           />
         </div>
       </main>

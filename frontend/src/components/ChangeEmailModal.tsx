@@ -147,10 +147,15 @@ export function ChangeEmailModal({
                                 disabled
                                 className="disabled-input"
                             />
+                            <span className="field-hint">
+                                ? Your current email address (read-only)
+                            </span>
                         </div>
 
                         <div className="form-group">
-                            <label htmlFor="new-email">New Email *</label>
+                            <label htmlFor="new-email">
+                                New Email <span className="required-asterisk">*</span>
+                            </label>
                             <input
                                 type="email"
                                 id="new-email"
@@ -162,6 +167,9 @@ export function ChangeEmailModal({
                                 disabled={isSubmitting}
                                 autoComplete="email"
                             />
+                            <span className="field-hint">
+                                ? Enter a valid email address. A verification link will be sent to this address.
+                            </span>
                         </div>
 
                         <div className="modal-actions">

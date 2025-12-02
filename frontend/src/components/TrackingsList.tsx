@@ -7,6 +7,7 @@ interface TrackingsListProps {
     onEdit: (tracking: TrackingData) => void;
     onCreate?: () => void;
     isLoading?: boolean;
+    onStateChange?: (trackingId: number, newState: TrackingState) => Promise<TrackingData | void>;
 }
 
 /**
@@ -313,8 +314,9 @@ export function TrackingsList({
     onEdit,
     onCreate,
     isLoading: propIsLoading,
+    onStateChange,
 }: TrackingsListProps) {
-    const { trackings: hookTrackings, isLoading: hookIsLoading, updateTrackingState } = useTrackings();
+    const { trackings: hookTrackings, isLoading: hookIsLoading, updateTrackingState: hookUpdateTrackingState } = useTrackings();
 
     // Use props if provided, otherwise use hook data
     const trackings = propTrackings ?? hookTrackings;
@@ -327,16 +329,43 @@ export function TrackingsList({
 
     /**
      * Handle state transition click.
+     * Validates the transition is allowed before making the API call.
      * @param trackingId - The tracking ID
      * @param newState - The new state to transition to
      * @internal
      */
     const handleStateChange = async (trackingId: number, newState: TrackingState) => {
+        // Find the tracking to get its current state
+        const tracking = trackings.find((t) => t.id === trackingId);
+        if (!tracking) {
+            console.error("Tracking not found for state change");
+            return;
+        }
+
+        const currentState = tracking.state || TrackingState.RUNNING;
+
+        // Validate transition is allowed (client-side check)
+        const validTransitions = StateTransitionHelper.getValidTransitions(currentState);
+        if (!validTransitions.includes(newState)) {
+            console.error(
+                `Invalid state transition from "${currentState}" to "${newState}". Valid transitions: ${validTransitions.join(", ")}`
+            );
+            // Could show user-friendly error message here
+            return;
+        }
+
         try {
-            await updateTrackingState(trackingId, newState);
+            // Use callback if provided (from parent), otherwise use hook's function
+            if (onStateChange) {
+                await onStateChange(trackingId, newState);
+            } else {
+                await hookUpdateTrackingState(trackingId, newState);
+            }
+            // State update will automatically refresh the list
         } catch (error) {
             console.error("Error updating tracking state:", error);
-            // Error handling is done in the hook
+            // Error handling is done in the hook or parent
+            // Backend will also validate, but this provides immediate feedback
         }
     };
 

@@ -165,7 +165,9 @@ export function EditProfileModal({
                         </div>
                     )}
                     <div className="form-group">
-                        <label htmlFor="edit-name">Name *</label>
+                        <label htmlFor="edit-name">
+                            Name <span className="required-asterisk">*</span>
+                        </label>
                         <input
                             type="text"
                             id="edit-name"
@@ -177,6 +179,9 @@ export function EditProfileModal({
                             disabled={isSubmitting}
                             maxLength={User.MAX_NAME_LENGTH}
                         />
+                        <span className="field-hint">
+                            ? Your display name (max {User.MAX_NAME_LENGTH} characters)
+                        </span>
                         <span className="char-count">
                             {name.length}/{User.MAX_NAME_LENGTH}
                         </span>
@@ -224,6 +229,9 @@ export function EditProfileModal({
                                 </button>
                             </div>
                         )}
+                        <span className="field-hint">
+                            ? Upload an image file (max 5MB). JPG, PNG, or GIF formats are supported.
+                        </span>
                     </div>
 
                     <div className="modal-actions">
