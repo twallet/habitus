@@ -13,30 +13,26 @@ describe("DaysPatternBuilder", () => {
     it("should initialize with default values when no pattern provided", () => {
       const newBuilder = new DaysPatternBuilder();
       expect(newBuilder.getPreset()).toBe("daily");
-      expect(newBuilder.getIntervalValue()).toBe(1);
-      expect(newBuilder.getIntervalUnit()).toBe("days");
-      expect(newBuilder.getSelectedDays()).toEqual([]);
+      expect(newBuilder.getSelectedDays()).toEqual([1]); // Default to Monday for weekly
     });
 
-    it("should initialize from existing pattern", () => {
+    it("should initialize from existing daily pattern", () => {
       const pattern: DaysPattern = {
         pattern_type: DaysPatternType.INTERVAL,
-        interval_value: 3,
-        interval_unit: "weeks",
+        interval_value: 1,
+        interval_unit: "days",
       };
       const newBuilder = new DaysPatternBuilder(pattern);
-      expect(newBuilder.getPreset()).toBe("interval");
-      expect(newBuilder.getIntervalValue()).toBe(3);
-      expect(newBuilder.getIntervalUnit()).toBe("weeks");
+      expect(newBuilder.getPreset()).toBe("daily");
     });
 
-    it("should detect weekdays preset from pattern", () => {
+    it("should detect weekly preset from day-of-week pattern", () => {
       const pattern: DaysPattern = {
         pattern_type: DaysPatternType.DAY_OF_WEEK,
         days: [1, 2, 3, 4, 5], // Monday to Friday
       };
       const newBuilder = new DaysPatternBuilder(pattern);
-      expect(newBuilder.getPreset()).toBe("weekdays");
+      expect(newBuilder.getPreset()).toBe("weekly");
     });
 
     it("should detect weekly preset from pattern", () => {
@@ -72,51 +68,8 @@ describe("DaysPatternBuilder", () => {
 
   describe("preset management", () => {
     it("should get and set preset", () => {
-      builder.setPreset("interval");
-      expect(builder.getPreset()).toBe("interval");
-    });
-  });
-
-  describe("interval pattern", () => {
-    it("should get and set interval value", () => {
-      builder.setIntervalValue(5);
-      expect(builder.getIntervalValue()).toBe(5);
-    });
-
-    it("should get and set interval unit", () => {
-      builder.setIntervalUnit("months");
-      expect(builder.getIntervalUnit()).toBe("months");
-    });
-
-    it("should build interval pattern", () => {
-      builder.setPreset("interval");
-      builder.setIntervalValue(3);
-      builder.setIntervalUnit("weeks");
-      const pattern = builder.buildPattern();
-      expect(pattern).toEqual({
-        pattern_type: DaysPatternType.INTERVAL,
-        interval_value: 3,
-        interval_unit: "weeks",
-      });
-    });
-
-    it("should throw error for invalid interval value", () => {
-      builder.setPreset("interval");
-      builder.setIntervalValue(0);
-      expect(() => builder.buildPattern()).toThrow(
-        "Interval value must be at least 1"
-      );
-    });
-  });
-
-  describe("weekdays pattern", () => {
-    it("should build weekdays pattern", () => {
-      builder.setPreset("weekdays");
-      const pattern = builder.buildPattern();
-      expect(pattern).toEqual({
-        pattern_type: DaysPatternType.DAY_OF_WEEK,
-        days: [1, 2, 3, 4, 5], // Monday to Friday
-      });
+      builder.setPreset("weekly");
+      expect(builder.getPreset()).toBe("weekly");
     });
   });
 
@@ -227,38 +180,29 @@ describe("DaysPatternBuilder", () => {
   });
 
   describe("daily pattern", () => {
-    it("should return undefined for daily preset", () => {
+    it("should return daily interval pattern for daily preset", () => {
       builder.setPreset("daily");
       const pattern = builder.buildPattern();
-      expect(pattern).toBeUndefined();
-    });
-  });
-
-  describe("custom pattern", () => {
-    it("should preserve original pattern for custom preset", () => {
-      const originalPattern: DaysPattern = {
-        pattern_type: DaysPatternType.DAY_OF_MONTH,
-        type: "day_number",
-        day_numbers: [1, 15, 30],
-      };
-      builder.setPreset("custom");
-      const pattern = builder.buildPattern(originalPattern);
-      expect(pattern).toEqual(originalPattern);
+      expect(pattern).toEqual({
+        pattern_type: DaysPatternType.INTERVAL,
+        interval_value: 1,
+        interval_unit: "days",
+      });
     });
   });
 
   describe("validation", () => {
     it("should return null for valid pattern", () => {
-      builder.setPreset("interval");
-      builder.setIntervalValue(3);
-      builder.setIntervalUnit("days");
+      builder.setPreset("daily");
       expect(builder.validate()).toBeNull();
     });
 
     it("should return error message for invalid pattern", () => {
-      builder.setPreset("interval");
-      builder.setIntervalValue(0);
-      expect(builder.validate()).toBe("Interval value must be at least 1");
+      builder.setPreset("weekly");
+      builder.setSelectedDays([]);
+      expect(builder.validate()).toBe(
+        "Please select at least one day of the week"
+      );
     });
 
     it("should return error message for weekly pattern without days", () => {
@@ -281,23 +225,24 @@ describe("DaysPatternBuilder", () => {
       expect(detected).toBe("daily");
     });
 
-    it("should detect interval from interval pattern", () => {
+    it("should detect daily from any interval pattern (simplified UI)", () => {
       const pattern: DaysPattern = {
         pattern_type: DaysPatternType.INTERVAL,
         interval_value: 3,
         interval_unit: "weeks",
       };
       const detected = builder.detectPresetFromPattern(pattern);
-      expect(detected).toBe("interval");
+      // Simplified UI maps all intervals to daily
+      expect(detected).toBe("daily");
     });
 
-    it("should detect weekdays from Monday-Friday pattern", () => {
+    it("should detect weekly from day-of-week pattern", () => {
       const pattern: DaysPattern = {
         pattern_type: DaysPatternType.DAY_OF_WEEK,
         days: [1, 2, 3, 4, 5],
       };
       const detected = builder.detectPresetFromPattern(pattern);
-      expect(detected).toBe("weekdays");
+      expect(detected).toBe("weekly");
     });
 
     it("should detect weekly from other day-of-week patterns", () => {
@@ -309,15 +254,13 @@ describe("DaysPatternBuilder", () => {
       expect(detected).toBe("weekly");
     });
 
-    it("should detect custom for unrecognized patterns", () => {
+    it("should detect monthly from day-of-month pattern", () => {
       const pattern: DaysPattern = {
         pattern_type: DaysPatternType.DAY_OF_MONTH,
         type: "day_number",
-        day_numbers: [1, 15, 30], // Multiple days - not a standard preset
+        day_numbers: [1, 15, 30], // Multiple days
       };
       const detected = builder.detectPresetFromPattern(pattern);
-      // This should still be "monthly" since it's a DAY_OF_MONTH pattern
-      // But our current implementation returns "monthly" for any DAY_OF_MONTH
       expect(detected).toBe("monthly");
     });
   });
