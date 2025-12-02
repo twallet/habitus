@@ -37,11 +37,11 @@ function App() {
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [editingTracking, setEditingTracking] = useState<TrackingData | null>(null);
   const [showTrackingForm, setShowTrackingForm] = useState(false);
+  const [createTrackingFn, setCreateTrackingFn] = useState<((question: string, type: TrackingType, notes: string | undefined, icon: string | undefined, schedules: Array<{ hour: number; minutes: number }>, days: import("./models/Tracking").DaysPattern) => Promise<TrackingData>) | null>(null);
   const verificationAttempted = useRef(false);
 
   const {
     isLoading: trackingsLoading,
-    createTracking,
     updateTracking,
     updateTrackingState,
   } = useTrackings();
@@ -349,9 +349,12 @@ function App() {
     schedules: Array<{ hour: number; minutes: number }>,
     days: import("./models/Tracking").DaysPattern
   ) => {
+    if (!createTrackingFn) {
+      throw new Error("Create tracking function not available");
+    }
     console.log(`[${new Date().toISOString()}] FRONTEND_APP | Creating tracking`);
     try {
-      await createTracking(question, type, notes, icon, schedules, days);
+      await createTrackingFn(question, type, notes, icon, schedules, days);
       setShowTrackingForm(false);
       setMessage({
         text: 'Tracking created successfully',
@@ -502,6 +505,7 @@ function App() {
           <TrackingsList
             onEdit={handleEditTracking}
             onCreate={() => setShowTrackingForm(true)}
+            onCreateTracking={setCreateTrackingFn}
             isLoading={trackingsLoading}
             onStateChange={updateTrackingState}
             onStateChangeSuccess={(message) => {

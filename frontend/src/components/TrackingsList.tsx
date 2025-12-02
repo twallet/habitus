@@ -8,6 +8,7 @@ interface TrackingsListProps {
     trackings?: TrackingData[];
     onEdit: (tracking: TrackingData) => void;
     onCreate?: () => void;
+    onCreateTracking?: (createFn: (question: string, type: TrackingType, notes: string | undefined, icon: string | undefined, schedules: Array<{ hour: number; minutes: number }>, days: DaysPattern) => Promise<TrackingData>) => void;
     isLoading?: boolean;
     onStateChange?: (trackingId: number, newState: TrackingState) => Promise<TrackingData | void>;
     onStateChangeSuccess?: (message: string) => void;
@@ -381,16 +382,24 @@ export function TrackingsList({
     trackings: propTrackings,
     onEdit,
     onCreate,
+    onCreateTracking,
     isLoading: propIsLoading,
     onStateChange,
     onStateChangeSuccess,
 }: TrackingsListProps) {
-    const { trackings: hookTrackings, isLoading: hookIsLoading, updateTrackingState: hookUpdateTrackingState, deleteTracking: hookDeleteTracking } = useTrackings();
+    const { trackings: hookTrackings, isLoading: hookIsLoading, updateTrackingState: hookUpdateTrackingState, deleteTracking: hookDeleteTracking, createTracking: hookCreateTracking } = useTrackings();
     const [trackingToDelete, setTrackingToDelete] = useState<TrackingData | null>(null);
     const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
     const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right: number } | null>(null);
     const dropdownRefs = useRef<Record<number, HTMLDivElement | null>>({});
     const dropdownMenuRefs = useRef<Record<number, HTMLDivElement | null>>({});
+
+    // Expose createTracking function to parent via callback
+    useEffect(() => {
+        if (onCreateTracking) {
+            onCreateTracking(hookCreateTracking);
+        }
+    }, [hookCreateTracking, onCreateTracking]);
 
     // Use props if provided, otherwise use hook data
     const trackings = propTrackings ?? hookTrackings;
