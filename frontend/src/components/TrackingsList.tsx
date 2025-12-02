@@ -298,12 +298,41 @@ class StateTransitionHelper {
     }
 
     /**
+     * Get icon for a state (same as transition icon).
+     * @param state - The tracking state
+     * @returns Icon emoji string
+     */
+    static getStateIcon(state: TrackingState): string {
+        return StateTransitionHelper.getTransitionIcon(state);
+    }
+
+    /**
      * Get human-readable label for a state.
      * @param state - The tracking state
      * @returns State label string
      */
     static getStateLabel(state: TrackingState): string {
         return state;
+    }
+
+    /**
+     * Get action verb for a state transition (e.g., "Pause" instead of "Paused").
+     * @param targetState - The target state for the transition
+     * @returns Action verb string
+     */
+    static getActionVerb(targetState: TrackingState): string {
+        switch (targetState) {
+            case TrackingState.PAUSED:
+                return "Pause";
+            case TrackingState.RUNNING:
+                return "Resume";
+            case TrackingState.ARCHIVED:
+                return "Archive";
+            case TrackingState.DELETED:
+                return "Delete";
+            default:
+                return targetState;
+        }
     }
 
     /**
@@ -368,7 +397,9 @@ export function TrackingsList({
     const { trackings: hookTrackings, isLoading: hookIsLoading, updateTrackingState: hookUpdateTrackingState } = useTrackings();
     const [trackingToDelete, setTrackingToDelete] = useState<TrackingData | null>(null);
     const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
+    const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right: number } | null>(null);
     const dropdownRefs = useRef<Record<number, HTMLDivElement | null>>({});
+    const dropdownMenuRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
     // Use props if provided, otherwise use hook data
     const trackings = propTrackings ?? hookTrackings;
@@ -387,8 +418,16 @@ export function TrackingsList({
         const handleClickOutside = (event: MouseEvent) => {
             if (openDropdownId !== null) {
                 const dropdownElement = dropdownRefs.current[openDropdownId];
-                if (dropdownElement && !dropdownElement.contains(event.target as Node)) {
+                const dropdownMenuElement = dropdownMenuRefs.current[openDropdownId];
+                const target = event.target as Node;
+                if (
+                    dropdownElement &&
+                    !dropdownElement.contains(target) &&
+                    dropdownMenuElement &&
+                    !dropdownMenuElement.contains(target)
+                ) {
                     setOpenDropdownId(null);
+                    setDropdownPosition(null);
                 }
             }
         };
@@ -434,7 +473,23 @@ export function TrackingsList({
      * @internal
      */
     const toggleDropdown = (trackingId: number) => {
-        setOpenDropdownId(openDropdownId === trackingId ? null : trackingId);
+        if (openDropdownId === trackingId) {
+            setOpenDropdownId(null);
+            setDropdownPosition(null);
+        } else {
+            setOpenDropdownId(trackingId);
+            // Calculate position after state update
+            setTimeout(() => {
+                const container = dropdownRefs.current[trackingId];
+                if (container) {
+                    const rect = container.getBoundingClientRect();
+                    setDropdownPosition({
+                        top: rect.bottom + 4,
+                        right: window.innerWidth - rect.right,
+                    });
+                }
+            }, 0);
+        }
     };
 
     /**
@@ -454,6 +509,7 @@ export function TrackingsList({
 
         // Close dropdown
         setOpenDropdownId(null);
+        setDropdownPosition(null);
 
         // Show confirmation modal for deletion
         if (newState === TrackingState.DELETED) {
@@ -598,27 +654,36 @@ export function TrackingsList({
                                             <span className="status-badge-text">{stateLabel}</span>
                                             <span className="status-badge-arrow">▼</span>
                                         </button>
-                                        {isDropdownOpen && (
-                                            <div className="status-dropdown-menu">
-                                                {validTransitions.map((targetState) => {
-                                                    const targetLabel = StateTransitionHelper.getStateLabel(targetState);
-                                                    const targetIcon = StateTransitionHelper.getTransitionIcon(targetState);
-                                                    const isCurrentState = targetState === currentState;
-                                                    return (
-                                                        <button
-                                                            key={targetState}
-                                                            type="button"
-                                                            className={`status-dropdown-item ${isCurrentState ? "current" : ""}`}
-                                                            onClick={() => handleStateChange(tracking.id, targetState)}
-                                                            aria-label={`Change state to ${targetLabel}`}
-                                                            disabled={isCurrentState}
-                                                        >
-                                                            <span className="status-dropdown-icon">{targetIcon}</span>
-                                                            <span className="status-dropdown-label">{targetLabel}</span>
-                                                            {isCurrentState && <span className="status-dropdown-current">(current)</span>}
-                                                        </button>
-                                                    );
-                                                })}
+                                        {isDropdownOpen && dropdownPosition && (
+                                            <div
+                                                className="status-dropdown-menu"
+                                                ref={(el) => {
+                                                    dropdownMenuRefs.current[tracking.id] = el;
+                                                }}
+                                                style={{
+                                                    top: `${dropdownPosition.top}px`,
+                                                    right: `${dropdownPosition.right}px`,
+                                                }}
+                                            >
+                                                {validTransitions
+                                                    .filter((targetState) => targetState !== currentState)
+                                                    .map((targetState) => {
+                                                        const actionVerb = StateTransitionHelper.getActionVerb(targetState);
+                                                        const targetIcon = StateTransitionHelper.getTransitionIcon(targetState);
+                                                        const targetLabel = StateTransitionHelper.getStateLabel(targetState);
+                                                        return (
+                                                            <button
+                                                                key={targetState}
+                                                                type="button"
+                                                                className="status-dropdown-item"
+                                                                onClick={() => handleStateChange(tracking.id, targetState)}
+                                                                aria-label={`Change state to ${targetLabel}`}
+                                                            >
+                                                                <span className="status-dropdown-icon">{targetIcon}</span>
+                                                                <span className="status-dropdown-label">{actionVerb}</span>
+                                                            </button>
+                                                        );
+                                                    })}
                                             </div>
                                         )}
                                     </div>

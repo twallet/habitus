@@ -219,9 +219,7 @@
 }
 
 .status-dropdown-menu {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
+  position: fixed;
   min-width: 160px;
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
