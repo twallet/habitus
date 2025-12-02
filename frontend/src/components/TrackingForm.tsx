@@ -258,7 +258,7 @@ export function TrackingForm({
                         required
                         disabled={isSubmitting}
                         maxLength={100}
-                        rows={2}
+                        rows={1}
                     />
                 </div>
 

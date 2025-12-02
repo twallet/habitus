@@ -76,6 +76,7 @@
 .question-field-wrapper textarea {
   width: fit-content;
   min-width: 45ch;
+  min-height: auto;
 }
 
 .form-group select {

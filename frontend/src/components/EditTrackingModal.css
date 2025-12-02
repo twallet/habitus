@@ -154,6 +154,10 @@
   min-height: 80px;
 }
 
+.question-field-wrapper textarea {
+  min-height: auto;
+}
+
 .modal-actions {
   display: flex;
   gap: 12px;
