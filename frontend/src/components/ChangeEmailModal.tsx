@@ -72,6 +72,36 @@ export function ChangeEmailModal({
     };
 
     /**
+     * Check if the change email button should be enabled.
+     * Button is enabled only when there's a valid new email that's different from current email.
+     * @returns True if button should be enabled
+     * @internal
+     */
+    const isButtonEnabled = () => {
+        if (isSubmitting) {
+            return false;
+        }
+
+        const trimmedEmail = newEmail.trim();
+        if (!trimmedEmail) {
+            return false;
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(trimmedEmail)) {
+            return false;
+        }
+
+        // Check if email is different from current
+        if (trimmedEmail === user.email) {
+            return false;
+        }
+
+        return true;
+    };
+
+    /**
      * Handle escape key to close modal.
      * @internal
      */
@@ -200,7 +230,7 @@ export function ChangeEmailModal({
                             <button
                                 type="submit"
                                 className="btn-primary"
-                                disabled={isSubmitting}
+                                disabled={!isButtonEnabled()}
                             >
                                 {isSubmitting ? 'Sending...' : 'Change Email'}
                             </button>

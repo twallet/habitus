@@ -302,5 +302,69 @@ describe('ChangeEmailModal', () => {
       expect(mockOnRequestEmailChange).toHaveBeenCalledWith('newemail@example.com');
     });
   });
+
+  it('should disable Change Email button when no email is entered', () => {
+    render(
+      <ChangeEmailModal
+        user={mockUser}
+        onClose={mockOnClose}
+        onRequestEmailChange={mockOnRequestEmailChange}
+      />
+    );
+
+    const submitButton = screen.getByRole('button', { name: /change email/i });
+    expect(submitButton).toBeDisabled();
+  });
+
+  it('should disable Change Email button when email is invalid', async () => {
+    const user = userEvent.setup();
+    render(
+      <ChangeEmailModal
+        user={mockUser}
+        onClose={mockOnClose}
+        onRequestEmailChange={mockOnRequestEmailChange}
+      />
+    );
+
+    const newEmailInput = screen.getByPlaceholderText('Enter your new email');
+    await user.type(newEmailInput, 'invalid-email');
+
+    const submitButton = screen.getByRole('button', { name: /change email/i });
+    expect(submitButton).toBeDisabled();
+  });
+
+  it('should disable Change Email button when email is same as current', async () => {
+    const user = userEvent.setup();
+    render(
+      <ChangeEmailModal
+        user={mockUser}
+        onClose={mockOnClose}
+        onRequestEmailChange={mockOnRequestEmailChange}
+      />
+    );
+
+    const newEmailInput = screen.getByPlaceholderText('Enter your new email');
+    await user.type(newEmailInput, 'john@example.com');
+
+    const submitButton = screen.getByRole('button', { name: /change email/i });
+    expect(submitButton).toBeDisabled();
+  });
+
+  it('should enable Change Email button when valid different email is entered', async () => {
+    const user = userEvent.setup();
+    render(
+      <ChangeEmailModal
+        user={mockUser}
+        onClose={mockOnClose}
+        onRequestEmailChange={mockOnRequestEmailChange}
+      />
+    );
+
+    const newEmailInput = screen.getByPlaceholderText('Enter your new email');
+    await user.type(newEmailInput, 'newemail@example.com');
+
+    const submitButton = screen.getByRole('button', { name: /change email/i });
+    expect(submitButton).not.toBeDisabled();
+  });
 });
 
