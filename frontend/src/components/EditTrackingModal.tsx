@@ -237,13 +237,20 @@ export function EditTrackingModal({
             );
 
         try {
+            // Check if icon has changed - need to handle empty string to clear icon
+            const trimmedIcon = icon.trim();
+            const originalIcon = tracking.icon || "";
+            const iconChanged = trimmedIcon !== originalIcon;
+            // When icon changed: pass empty string to clear, or the trimmed value; when unchanged: pass undefined to skip update
+            const iconValue = iconChanged ? (trimmedIcon || "") : undefined;
+
             await onSave(
                 tracking.id,
                 days, // Always pass days (mandatory field)
                 question.trim() !== tracking.question ? question.trim() : undefined,
                 type !== tracking.type ? type : undefined,
                 notes.trim() !== (tracking.notes || "") ? notes.trim() || undefined : undefined,
-                icon.trim() !== (tracking.icon || "") ? icon.trim() || undefined : undefined,
+                iconValue,
                 schedulesChanged ? sortedNewSchedules : undefined
             );
             if (!hasSaveErrorRef.current) {

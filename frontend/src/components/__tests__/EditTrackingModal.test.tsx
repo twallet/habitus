@@ -405,6 +405,75 @@ describe('EditTrackingModal', () => {
     expect(notesInput).toHaveValue('');
   });
 
+  it('should clear icon when icon is deleted', async () => {
+    const user = userEvent.setup();
+    const trackingWithIcon: TrackingData = {
+      ...mockTracking,
+      icon: '💪',
+    };
+
+    render(
+      <EditTrackingModal
+        tracking={trackingWithIcon}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+      />
+    );
+
+    const iconInput = screen.getByRole('textbox', { name: /^icon/i });
+    await user.clear(iconInput);
+
+    const saveButton = screen.getByRole('button', { name: /save changes/i });
+    await user.click(saveButton);
+
+    await waitFor(() => {
+      expect(mockOnSave).toHaveBeenCalledWith(
+        1,
+        defaultDaysPattern,
+        undefined,
+        undefined,
+        undefined,
+        '', // Empty string to clear the icon
+        undefined,
+      );
+    });
+  });
+
+  it('should update icon when icon is changed', async () => {
+    const user = userEvent.setup();
+    const trackingWithIcon: TrackingData = {
+      ...mockTracking,
+      icon: '💪',
+    };
+
+    render(
+      <EditTrackingModal
+        tracking={trackingWithIcon}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+      />
+    );
+
+    const iconInput = screen.getByRole('textbox', { name: /^icon/i });
+    await user.clear(iconInput);
+    await user.type(iconInput, '🏋️');
+
+    const saveButton = screen.getByRole('button', { name: /save changes/i });
+    await user.click(saveButton);
+
+    await waitFor(() => {
+      expect(mockOnSave).toHaveBeenCalledWith(
+        1,
+        defaultDaysPattern,
+        undefined,
+        undefined,
+        undefined,
+        '🏋️',
+        undefined,
+      );
+    });
+  });
+
   it('should show error when submitting without schedules', async () => {
     const trackingWithoutSchedules: TrackingData = {
       ...mockTracking,
