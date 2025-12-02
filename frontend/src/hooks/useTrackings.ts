@@ -147,12 +147,12 @@ export function useTrackings() {
    */
   const updateTracking = async (
     trackingId: number,
+    days: DaysPattern,
     question?: string,
     type?: TrackingType,
     notes?: string,
     icon?: string,
-    schedules?: Array<{ hour: number; minutes: number }>,
-    days?: DaysPattern
+    schedules?: Array<{ hour: number; minutes: number }>
   ): Promise<TrackingData> => {
     const token = localStorage.getItem(TOKEN_KEY);
     if (!token) {
@@ -169,12 +169,12 @@ export function useTrackings() {
     try {
       const trackingData = await apiClient.updateTracking(
         trackingId,
+        days,
         question,
         type,
         notes,
         icon,
-        schedules,
-        days
+        schedules
       );
       console.log(
         `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Tracking updated successfully: ID ${

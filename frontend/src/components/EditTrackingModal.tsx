@@ -10,12 +10,12 @@ interface EditTrackingModalProps {
     onClose: () => void;
     onSave: (
         trackingId: number,
+        days: DaysPattern,
         question?: string,
         type?: TrackingType,
         notes?: string,
         icon?: string,
-        schedules?: Array<{ hour: number; minutes: number }>,
-        days?: DaysPattern
+        schedules?: Array<{ hour: number; minutes: number }>
     ) => Promise<void>;
 }
 
@@ -236,18 +236,15 @@ export function EditTrackingModal({
                     s.minutes !== sortedOriginalSchedules[i]?.minutes
             );
 
-        // Check if days changed
-        const daysChanged = JSON.stringify(days) !== JSON.stringify(tracking.days);
-
         try {
             await onSave(
                 tracking.id,
+                days, // Always pass days (mandatory field)
                 question.trim() !== tracking.question ? question.trim() : undefined,
                 type !== tracking.type ? type : undefined,
                 notes.trim() !== (tracking.notes || "") ? notes.trim() || undefined : undefined,
                 icon.trim() !== (tracking.icon || "") ? icon.trim() || undefined : undefined,
-                schedulesChanged ? sortedNewSchedules : undefined,
-                daysChanged ? days : undefined
+                schedulesChanged ? sortedNewSchedules : undefined
             );
             if (!hasSaveErrorRef.current) {
                 onClose();

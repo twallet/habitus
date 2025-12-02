@@ -381,16 +381,16 @@ function App() {
    */
   const handleSaveTracking = async (
     trackingId: number,
+    days: import("./models/Tracking").DaysPattern,
     question?: string,
     type?: TrackingType,
     notes?: string,
     icon?: string,
-    schedules?: Array<{ hour: number; minutes: number }>,
-    days?: import("./models/Tracking").DaysPattern
+    schedules?: Array<{ hour: number; minutes: number }>
   ) => {
     console.log(`[${new Date().toISOString()}] FRONTEND_APP | Updating tracking ID: ${trackingId}`);
     try {
-      await updateTracking(trackingId, question, type, notes, icon, schedules, days);
+      await updateTracking(trackingId, days, question, type, notes, icon, schedules);
       setEditingTracking(null);
       setMessage({
         text: 'Tracking updated successfully',

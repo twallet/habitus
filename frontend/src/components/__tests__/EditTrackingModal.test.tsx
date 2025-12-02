@@ -3,9 +3,15 @@ import { vi } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { EditTrackingModal } from '../EditTrackingModal';
-import { TrackingData, TrackingType } from '../../models/Tracking';
+import { TrackingData, TrackingType, DaysPatternType } from '../../models/Tracking';
 
 describe('EditTrackingModal', () => {
+  const defaultDaysPattern = {
+    pattern_type: DaysPatternType.INTERVAL,
+    interval_value: 1,
+    interval_unit: "days" as const,
+  };
+
   const mockTracking: TrackingData = {
     id: 1,
     question: 'Did I exercise today?',
@@ -13,6 +19,7 @@ describe('EditTrackingModal', () => {
     notes: 'Some notes',
     user_id: 1,
     schedules: [{ id: 1, tracking_id: 1, hour: 9, minutes: 0 }],
+    days: defaultDaysPattern,
   };
 
   const mockOnClose = vi.fn();
@@ -195,8 +202,8 @@ describe('EditTrackingModal', () => {
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith(
         1,
+        defaultDaysPattern,
         'New question?',
-        undefined,
         undefined,
         undefined,
         undefined,
@@ -225,9 +232,9 @@ describe('EditTrackingModal', () => {
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith(
         1,
+        defaultDaysPattern,
         undefined,
         TrackingType.REGISTER,
-        undefined,
         undefined,
         undefined,
         undefined,

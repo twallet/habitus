@@ -160,10 +160,12 @@ export function DaysPatternInput({
 
     /**
      * Update pattern when state changes.
+     * Always provides a valid pattern (mandatory field).
      * @internal
      */
     useEffect(() => {
         const pattern = buildPattern();
+        // Always call onChange with a valid pattern (field is mandatory)
         onChange(pattern);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
@@ -179,6 +181,7 @@ export function DaysPatternInput({
 
     /**
      * Initialize from value prop.
+     * Always ensures a valid pattern is set (mandatory field).
      * @internal
      */
     useEffect(() => {
@@ -194,9 +197,13 @@ export function DaysPatternInput({
             setYearlyMonth(builderRef.current.getYearlyMonth());
             setYearlyDay(builderRef.current.getYearlyDay());
         } else {
+            // Initialize with default daily pattern (mandatory field)
             builderRef.current = new DaysPatternBuilder();
             setPreset("daily");
             setSelectedDays([1]);
+            // Immediately provide default pattern
+            const defaultPattern = builderRef.current.buildPattern();
+            onChange(defaultPattern);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);

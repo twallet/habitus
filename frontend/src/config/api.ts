@@ -563,12 +563,12 @@ export class ApiClient {
    */
   async updateTracking(
     trackingId: number,
+    days: DaysPattern,
     question?: string,
     type?: TrackingType,
     notes?: string,
     icon?: string,
-    schedules?: Array<{ hour: number; minutes: number }>,
-    days?: DaysPattern
+    schedules?: Array<{ hour: number; minutes: number }>
   ): Promise<TrackingData> {
     return this.put<TrackingData>(`${API_ENDPOINTS.trackings}/${trackingId}`, {
       question,

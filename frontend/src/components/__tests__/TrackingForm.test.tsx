@@ -3,7 +3,7 @@ import { vi } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { TrackingForm } from "../TrackingForm";
-import { TrackingType } from "../../models/Tracking";
+import { TrackingType, DaysPatternType } from "../../models/Tracking";
 
 describe("TrackingForm", () => {
     const mockOnSubmit = vi.fn().mockResolvedValue(undefined);
@@ -99,7 +99,11 @@ describe("TrackingForm", () => {
                 "Exercise notes",
                 undefined,
                 [{ hour: 9, minutes: 0 }],
-                undefined // No days pattern set (defaults to daily)
+                expect.objectContaining({
+                    pattern_type: DaysPatternType.INTERVAL,
+                    interval_value: 1,
+                    interval_unit: "days",
+                })
             );
         });
     });
