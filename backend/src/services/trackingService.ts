@@ -2,14 +2,10 @@ import { Database } from "../db/database.js";
 import {
   Tracking,
   TrackingData,
-  TrackingType,
   TrackingState,
   DaysPattern,
 } from "../models/Tracking.js";
-import {
-  TrackingSchedule,
-  TrackingScheduleData,
-} from "../models/TrackingSchedule.js";
+import { TrackingSchedule } from "../models/TrackingSchedule.js";
 
 /**
  * Service for tracking-related database operations.
