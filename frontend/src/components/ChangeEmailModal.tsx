@@ -138,7 +138,19 @@ export function ChangeEmailModal({
                         )}
 
                         <div className="form-group">
-                            <label htmlFor="current-email">Current Email</label>
+                            <div className="form-label-row">
+                                <label htmlFor="current-email">
+                                    Current Email{" "}
+                                    <button
+                                        type="button"
+                                        className="field-help"
+                                        aria-label="Current Email help"
+                                        title="Your current email address (read-only)"
+                                    >
+                                        ?
+                                    </button>
+                                </label>
+                            </div>
                             <input
                                 type="email"
                                 id="current-email"
@@ -147,15 +159,22 @@ export function ChangeEmailModal({
                                 disabled
                                 className="disabled-input"
                             />
-                            <span className="field-hint">
-                                ? Your current email address (read-only)
-                            </span>
                         </div>
 
                         <div className="form-group">
-                            <label htmlFor="new-email">
-                                New Email <span className="required-asterisk">*</span>
-                            </label>
+                            <div className="form-label-row">
+                                <label htmlFor="new-email">
+                                    New Email <span className="required-asterisk">*</span>{" "}
+                                    <button
+                                        type="button"
+                                        className="field-help"
+                                        aria-label="New Email help"
+                                        title="Enter a valid email address. A verification link will be sent to this address."
+                                    >
+                                        ?
+                                    </button>
+                                </label>
+                            </div>
                             <input
                                 type="email"
                                 id="new-email"
@@ -167,9 +186,6 @@ export function ChangeEmailModal({
                                 disabled={isSubmitting}
                                 autoComplete="email"
                             />
-                            <span className="field-hint">
-                                ? Enter a valid email address. A verification link will be sent to this address.
-                            </span>
                         </div>
 
                         <div className="modal-actions">

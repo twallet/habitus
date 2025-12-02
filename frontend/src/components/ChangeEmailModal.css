@@ -2,6 +2,20 @@
   padding: 24px;
 }
 
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
 .change-email-sent {
   padding: 24px;
   text-align: center;
@@ -35,10 +49,25 @@
   font-weight: 600;
 }
 
-.field-hint {
-  display: block;
-  margin-top: 6px;
-  font-size: 0.875rem;
+.form-label-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.field-help {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
   color: var(--text-secondary);
-  font-style: italic;
+  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+  padding: 0;
+  margin: 0;
+  font-weight: normal;
 }

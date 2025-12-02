@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { TrackingData, TrackingType, TrackingState, DaysPattern, DaysPatternType } from "../models/Tracking";
 import { useTrackings } from "../hooks/useTrackings";
+import { DeleteTrackingConfirmationModal } from "./DeleteTrackingConfirmationModal";
 import "./TrackingsList.css";
 
 interface TrackingsListProps {
@@ -317,6 +319,7 @@ export function TrackingsList({
     onStateChange,
 }: TrackingsListProps) {
     const { trackings: hookTrackings, isLoading: hookIsLoading, updateTrackingState: hookUpdateTrackingState } = useTrackings();
+    const [trackingToDelete, setTrackingToDelete] = useState<TrackingData | null>(null);
 
     // Use props if provided, otherwise use hook data
     const trackings = propTrackings ?? hookTrackings;
@@ -328,13 +331,32 @@ export function TrackingsList({
     );
 
     /**
+     * Handle confirmed deletion.
+     * @internal
+     */
+    const handleConfirmDelete = async () => {
+        if (!trackingToDelete) {
+            return;
+        }
+
+        const trackingId = trackingToDelete.id;
+        // Use callback if provided (from parent), otherwise use hook's function
+        if (onStateChange) {
+            await onStateChange(trackingId, TrackingState.DELETED);
+        } else {
+            await hookUpdateTrackingState(trackingId, TrackingState.DELETED);
+        }
+    };
+
+    /**
      * Handle state transition click.
      * Validates the transition is allowed before making the API call.
+     * Shows confirmation modal for deletion.
      * @param trackingId - The tracking ID
      * @param newState - The new state to transition to
      * @internal
      */
-    const handleStateChange = async (trackingId: number, newState: TrackingState) => {
+    const handleStateChange = (trackingId: number, newState: TrackingState) => {
         // Find the tracking to get its current state
         const tracking = trackings.find((t) => t.id === trackingId);
         if (!tracking) {
@@ -350,10 +372,26 @@ export function TrackingsList({
             console.error(
                 `Invalid state transition from "${currentState}" to "${newState}". Valid transitions: ${validTransitions.join(", ")}`
             );
-            // Could show user-friendly error message here
             return;
         }
 
+        // Show confirmation modal for deletion
+        if (newState === TrackingState.DELETED) {
+            setTrackingToDelete(tracking);
+            return;
+        }
+
+        // For non-deletion state changes, proceed immediately
+        handleStateChangeImmediate(trackingId, newState);
+    };
+
+    /**
+     * Handle immediate state change (non-deletion).
+     * @param trackingId - The tracking ID
+     * @param newState - The new state to transition to
+     * @internal
+     */
+    const handleStateChangeImmediate = async (trackingId: number, newState: TrackingState) => {
         try {
             // Use callback if provided (from parent), otherwise use hook's function
             if (onStateChange) {
@@ -365,7 +403,6 @@ export function TrackingsList({
         } catch (error) {
             console.error("Error updating tracking state:", error);
             // Error handling is done in the hook or parent
-            // Backend will also validate, but this provides immediate feedback
         }
     };
 
@@ -478,6 +515,13 @@ export function TrackingsList({
                     })}
                 </tbody>
             </table>
+            {trackingToDelete && (
+                <DeleteTrackingConfirmationModal
+                    tracking={trackingToDelete}
+                    onClose={() => setTrackingToDelete(null)}
+                    onConfirm={handleConfirmDelete}
+                />
+            )}
         </div>
     );
 }
