@@ -12,6 +12,7 @@ interface TrackingsListProps {
     isLoading?: boolean;
     onStateChange?: (trackingId: number, newState: TrackingState) => Promise<TrackingData | void>;
     onStateChangeSuccess?: (message: string) => void;
+    onDelete?: (trackingId: number) => Promise<void>;
 }
 
 /**
@@ -375,6 +376,7 @@ export function TrackingsList({
     isLoading: propIsLoading,
     onStateChange,
     onStateChangeSuccess,
+    onDelete,
 }: TrackingsListProps) {
     const { trackings: hookTrackings, isLoading: hookIsLoading, updateTrackingState: hookUpdateTrackingState, deleteTracking: hookDeleteTracking, createTracking: hookCreateTracking } = useTrackings();
     const [trackingToDelete, setTrackingToDelete] = useState<TrackingData | null>(null);
@@ -441,14 +443,18 @@ export function TrackingsList({
 
         const trackingId = trackingToDelete.id;
         try {
-            // Always use the actual delete function to remove from database
-            await hookDeleteTracking(trackingId);
+            // Use callback if provided (from parent), otherwise use hook's function
+            if (onDelete) {
+                await onDelete(trackingId);
+            } else {
+                await hookDeleteTracking(trackingId);
+            }
             // Show success message
             if (onStateChangeSuccess) {
                 onStateChangeSuccess(StateTransitionHelper.getStateChangeMessage(TrackingState.DELETED));
             }
         } catch (error) {
-            // Error handling is done in the hook
+            // Error handling is done in the hook or parent
             throw error;
         }
     };

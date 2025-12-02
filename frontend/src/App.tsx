@@ -40,10 +40,12 @@ function App() {
   const verificationAttempted = useRef(false);
 
   const {
+    trackings,
     isLoading: trackingsLoading,
     createTracking,
     updateTracking,
     updateTrackingState,
+    deleteTracking,
   } = useTrackings();
 
   /**
@@ -500,10 +502,12 @@ function App() {
 
         <div className="trackings-view">
           <TrackingsList
+            trackings={trackings}
             onEdit={handleEditTracking}
             onCreate={() => setShowTrackingForm(true)}
             isLoading={trackingsLoading}
             onStateChange={updateTrackingState}
+            onDelete={deleteTracking}
             onStateChangeSuccess={(message) => {
               setMessage({
                 text: message,
