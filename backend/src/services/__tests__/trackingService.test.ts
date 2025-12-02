@@ -1,7 +1,7 @@
 import { vi } from "vitest";
 import sqlite3 from "sqlite3";
 import { TrackingService } from "../trackingService.js";
-import { TrackingType } from "../../models/Tracking.js";
+import { TrackingType, TrackingState } from "../../models/Tracking.js";
 import { Database } from "../../db/database.js";
 
 /**
@@ -49,6 +49,7 @@ async function createTestDatabase(): Promise<Database> {
               notes TEXT,
               icon TEXT,
               days TEXT,
+              state TEXT NOT NULL DEFAULT 'Running' CHECK(state IN ('Running', 'Paused', 'Archived', 'Deleted')),
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -387,6 +388,125 @@ describe("TrackingService", () => {
       await expect(
         trackingService.deleteTracking(trackingId, testUserId)
       ).rejects.toThrow("Tracking not found");
+    });
+  });
+
+  describe("updateTrackingState", () => {
+    it("should update tracking state from Running to Paused", async () => {
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
+        [testUserId, "Test Question", TrackingType.TRUE_FALSE, "Running"]
+      );
+      const trackingId = result.lastID;
+
+      const updated = await trackingService.updateTrackingState(
+        trackingId,
+        testUserId,
+        "Paused"
+      );
+
+      expect(updated.state).toBe(TrackingState.PAUSED);
+      expect(updated.id).toBe(trackingId);
+    });
+
+    it("should update tracking state from Paused to Running", async () => {
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
+        [testUserId, "Test Question", TrackingType.TRUE_FALSE, "Paused"]
+      );
+      const trackingId = result.lastID;
+
+      const updated = await trackingService.updateTrackingState(
+        trackingId,
+        testUserId,
+        "Running"
+      );
+
+      expect(updated.state).toBe(TrackingState.RUNNING);
+    });
+
+    it("should update tracking state from Paused to Archived", async () => {
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
+        [testUserId, "Test Question", TrackingType.TRUE_FALSE, "Paused"]
+      );
+      const trackingId = result.lastID;
+
+      const updated = await trackingService.updateTrackingState(
+        trackingId,
+        testUserId,
+        "Archived"
+      );
+
+      expect(updated.state).toBe(TrackingState.ARCHIVED);
+    });
+
+    it("should update tracking state from Archived to Deleted", async () => {
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
+        [testUserId, "Test Question", TrackingType.TRUE_FALSE, "Archived"]
+      );
+      const trackingId = result.lastID;
+
+      const updated = await trackingService.updateTrackingState(
+        trackingId,
+        testUserId,
+        "Deleted"
+      );
+
+      expect(updated.state).toBe(TrackingState.DELETED);
+    });
+
+    it("should throw error for invalid state transition", async () => {
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
+        [testUserId, "Test Question", TrackingType.TRUE_FALSE, "Running"]
+      );
+      const trackingId = result.lastID;
+
+      await expect(
+        trackingService.updateTrackingState(trackingId, testUserId, "Archived")
+      ).rejects.toThrow(TypeError);
+    });
+
+    it("should throw error when tracking not found", async () => {
+      await expect(
+        trackingService.updateTrackingState(999, testUserId, "Paused")
+      ).rejects.toThrow("Tracking not found");
+    });
+
+    it("should throw error for tracking belonging to different user", async () => {
+      const otherUserId = testUserId + 1;
+      await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
+        "Other User",
+        "other@example.com",
+      ]);
+
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
+        [otherUserId, "Other Question", TrackingType.TRUE_FALSE, "Running"]
+      );
+      const trackingId = result.lastID;
+
+      await expect(
+        trackingService.updateTrackingState(trackingId, testUserId, "Paused")
+      ).rejects.toThrow("Tracking not found");
+    });
+
+    it("should throw error for invalid state value", async () => {
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
+        [testUserId, "Test Question", TrackingType.TRUE_FALSE, "Running"]
+      );
+      const trackingId = result.lastID;
+
+      await expect(
+        trackingService.updateTrackingState(
+          trackingId,
+          testUserId,
+          "InvalidState"
+        )
+      ).rejects.toThrow(TypeError);
     });
   });
 });

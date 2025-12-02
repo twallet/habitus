@@ -221,7 +221,9 @@ export class Database {
                         // Ignore error if column already exists
                         if (
                           stateMigrationErr &&
-                          !stateMigrationErr.message.includes("duplicate column name")
+                          !stateMigrationErr.message.includes(
+                            "duplicate column name"
+                          )
                         ) {
                           console.error(
                             `[${new Date().toISOString()}] DATABASE | Failed to add state column:`,

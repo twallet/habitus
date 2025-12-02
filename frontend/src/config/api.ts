@@ -1,5 +1,10 @@
 import { UserData } from "../models/User.js";
-import { TrackingData, TrackingType, TrackingState, DaysPattern } from "../models/Tracking.js";
+import {
+  TrackingData,
+  TrackingType,
+  TrackingState,
+  DaysPattern,
+} from "../models/Tracking.js";
 
 /**
  * Get Vite environment variables.
@@ -618,9 +623,12 @@ export class ApiClient {
     trackingId: number,
     state: TrackingState
   ): Promise<TrackingData> {
-    return this.patch<TrackingData>(`${API_ENDPOINTS.trackings}/${trackingId}/state`, {
-      state,
-    });
+    return this.patch<TrackingData>(
+      `${API_ENDPOINTS.trackings}/${trackingId}/state`,
+      {
+        state,
+      }
+    );
   }
 
   /**

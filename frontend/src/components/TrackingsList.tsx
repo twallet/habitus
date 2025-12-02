@@ -315,7 +315,7 @@ export function TrackingsList({
     isLoading: propIsLoading,
 }: TrackingsListProps) {
     const { trackings: hookTrackings, isLoading: hookIsLoading, updateTrackingState } = useTrackings();
-    
+
     // Use props if provided, otherwise use hook data
     const trackings = propTrackings ?? hookTrackings;
     const isLoading = propIsLoading ?? hookIsLoading;

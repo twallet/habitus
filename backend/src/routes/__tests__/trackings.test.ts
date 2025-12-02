@@ -4,7 +4,7 @@ import express from "express";
 import sqlite3 from "sqlite3";
 import { Database } from "../../db/database.js";
 import { TrackingService } from "../../services/trackingService.js";
-import { TrackingType } from "../../models/Tracking.js";
+import { TrackingType, TrackingState } from "../../models/Tracking.js";
 import * as authMiddlewareModule from "../../middleware/authMiddleware.js";
 import * as servicesModule from "../../services/index.js";
 
@@ -74,6 +74,7 @@ async function createTestDatabase(): Promise<Database> {
               notes TEXT,
               icon TEXT,
               days TEXT,
+              state TEXT NOT NULL DEFAULT 'Running' CHECK(state IN ('Running', 'Paused', 'Archived', 'Deleted')),
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -395,6 +396,140 @@ describe("Trackings Routes", () => {
 
       expect(response.status).toBe(404);
       expect(response.body.error).toContain("not found");
+    });
+  });
+
+  describe("PATCH /api/trackings/:id/state", () => {
+    it("should update tracking state from Running to Paused", async () => {
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
+        [testUserId, "Test Question", "true_false", "Running"]
+      );
+      const trackingId = result.lastID;
+
+      const response = await request(app)
+        .patch(`/api/trackings/${trackingId}/state`)
+        .set("Authorization", "Bearer test-token")
+        .send({ state: "Paused" });
+
+      expect(response.status).toBe(200);
+      expect(response.body.state).toBe("Paused");
+      expect(response.body.id).toBe(trackingId);
+    });
+
+    it("should update tracking state from Paused to Running", async () => {
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
+        [testUserId, "Test Question", "true_false", "Paused"]
+      );
+      const trackingId = result.lastID;
+
+      const response = await request(app)
+        .patch(`/api/trackings/${trackingId}/state`)
+        .set("Authorization", "Bearer test-token")
+        .send({ state: "Running" });
+
+      expect(response.status).toBe(200);
+      expect(response.body.state).toBe("Running");
+    });
+
+    it("should update tracking state from Paused to Archived", async () => {
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
+        [testUserId, "Test Question", "true_false", "Paused"]
+      );
+      const trackingId = result.lastID;
+
+      const response = await request(app)
+        .patch(`/api/trackings/${trackingId}/state`)
+        .set("Authorization", "Bearer test-token")
+        .send({ state: "Archived" });
+
+      expect(response.status).toBe(200);
+      expect(response.body.state).toBe("Archived");
+    });
+
+    it("should update tracking state from Archived to Deleted", async () => {
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
+        [testUserId, "Test Question", "true_false", "Archived"]
+      );
+      const trackingId = result.lastID;
+
+      const response = await request(app)
+        .patch(`/api/trackings/${trackingId}/state`)
+        .set("Authorization", "Bearer test-token")
+        .send({ state: "Deleted" });
+
+      expect(response.status).toBe(200);
+      expect(response.body.state).toBe("Deleted");
+    });
+
+    it("should return 400 for invalid state transition", async () => {
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
+        [testUserId, "Test Question", "true_false", "Running"]
+      );
+      const trackingId = result.lastID;
+
+      const response = await request(app)
+        .patch(`/api/trackings/${trackingId}/state`)
+        .set("Authorization", "Bearer test-token")
+        .send({ state: "Archived" });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain("Invalid state transition");
+    });
+
+    it("should return 400 when state is missing", async () => {
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
+        [testUserId, "Test Question", "true_false", "Running"]
+      );
+      const trackingId = result.lastID;
+
+      const response = await request(app)
+        .patch(`/api/trackings/${trackingId}/state`)
+        .set("Authorization", "Bearer test-token")
+        .send({});
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain("State is required");
+    });
+
+    it("should return 400 for invalid state value", async () => {
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
+        [testUserId, "Test Question", "true_false", "Running"]
+      );
+      const trackingId = result.lastID;
+
+      const response = await request(app)
+        .patch(`/api/trackings/${trackingId}/state`)
+        .set("Authorization", "Bearer test-token")
+        .send({ state: "InvalidState" });
+
+      expect(response.status).toBe(400);
+    });
+
+    it("should return 404 for non-existent tracking", async () => {
+      const response = await request(app)
+        .patch("/api/trackings/999/state")
+        .set("Authorization", "Bearer test-token")
+        .send({ state: "Paused" });
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toContain("not found");
+    });
+
+    it("should return 400 for invalid tracking ID", async () => {
+      const response = await request(app)
+        .patch("/api/trackings/invalid/state")
+        .set("Authorization", "Bearer test-token")
+        .send({ state: "Paused" });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain("Invalid tracking ID");
     });
   });
 });

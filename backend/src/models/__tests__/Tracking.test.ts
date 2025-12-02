@@ -1,5 +1,10 @@
 import { vi } from "vitest";
-import { Tracking, TrackingType, TrackingData } from "../Tracking.js";
+import {
+  Tracking,
+  TrackingType,
+  TrackingState,
+  TrackingData,
+} from "../Tracking.js";
 import { Database } from "../../db/database.js";
 import sqlite3 from "sqlite3";
 
@@ -42,6 +47,7 @@ async function createTestDatabase(): Promise<Database> {
               notes TEXT,
               icon TEXT,
               days TEXT,
+              state TEXT NOT NULL DEFAULT 'Running' CHECK(state IN ('Running', 'Paused', 'Archived', 'Deleted')),
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -328,6 +334,7 @@ describe("Tracking Model", () => {
         question: "Did I exercise?",
         type: TrackingType.TRUE_FALSE,
         notes: "Some notes",
+        state: TrackingState.RUNNING,
         created_at: "2024-01-01T00:00:00Z",
         updated_at: "2024-01-01T00:00:00Z",
       });
@@ -1340,6 +1347,176 @@ describe("Tracking Model", () => {
       expect(consoleErrorSpy).toHaveBeenCalled();
 
       consoleErrorSpy.mockRestore();
+    });
+  });
+
+  describe("State validation", () => {
+    it("should validate valid state values", () => {
+      expect(Tracking.validateState("Running")).toBe(TrackingState.RUNNING);
+      expect(Tracking.validateState("Paused")).toBe(TrackingState.PAUSED);
+      expect(Tracking.validateState("Archived")).toBe(TrackingState.ARCHIVED);
+      expect(Tracking.validateState("Deleted")).toBe(TrackingState.DELETED);
+    });
+
+    it("should throw TypeError for invalid state", () => {
+      expect(() => Tracking.validateState("Invalid")).toThrow(TypeError);
+      expect(() => Tracking.validateState("")).toThrow(TypeError);
+      expect(() => Tracking.validateState("running")).toThrow(TypeError);
+    });
+
+    it("should throw TypeError for non-string state", () => {
+      expect(() => Tracking.validateState(123 as any)).toThrow(TypeError);
+      expect(() => Tracking.validateState(null as any)).toThrow(TypeError);
+      expect(() => Tracking.validateState(undefined as any)).toThrow(TypeError);
+    });
+  });
+
+  describe("State transitions", () => {
+    it("should allow valid transitions from Running to Paused", () => {
+      expect(() =>
+        Tracking.validateStateTransition(
+          TrackingState.RUNNING,
+          TrackingState.PAUSED
+        )
+      ).not.toThrow();
+    });
+
+    it("should allow valid transitions from Paused to Running", () => {
+      expect(() =>
+        Tracking.validateStateTransition(
+          TrackingState.PAUSED,
+          TrackingState.RUNNING
+        )
+      ).not.toThrow();
+    });
+
+    it("should allow valid transitions from Paused to Archived", () => {
+      expect(() =>
+        Tracking.validateStateTransition(
+          TrackingState.PAUSED,
+          TrackingState.ARCHIVED
+        )
+      ).not.toThrow();
+    });
+
+    it("should allow valid transitions from Archived to Running", () => {
+      expect(() =>
+        Tracking.validateStateTransition(
+          TrackingState.ARCHIVED,
+          TrackingState.RUNNING
+        )
+      ).not.toThrow();
+    });
+
+    it("should allow valid transitions from Archived to Deleted", () => {
+      expect(() =>
+        Tracking.validateStateTransition(
+          TrackingState.ARCHIVED,
+          TrackingState.DELETED
+        )
+      ).not.toThrow();
+    });
+
+    it("should allow same state transition", () => {
+      expect(() =>
+        Tracking.validateStateTransition(
+          TrackingState.RUNNING,
+          TrackingState.RUNNING
+        )
+      ).not.toThrow();
+    });
+
+    it("should throw TypeError for invalid transition from Running to Archived", () => {
+      expect(() =>
+        Tracking.validateStateTransition(
+          TrackingState.RUNNING,
+          TrackingState.ARCHIVED
+        )
+      ).toThrow(TypeError);
+    });
+
+    it("should throw TypeError for invalid transition from Running to Deleted", () => {
+      expect(() =>
+        Tracking.validateStateTransition(
+          TrackingState.RUNNING,
+          TrackingState.DELETED
+        )
+      ).toThrow(TypeError);
+    });
+
+    it("should throw TypeError for invalid transition from Paused to Deleted", () => {
+      expect(() =>
+        Tracking.validateStateTransition(
+          TrackingState.PAUSED,
+          TrackingState.DELETED
+        )
+      ).toThrow(TypeError);
+    });
+
+    it("should throw TypeError for any transition from Deleted", () => {
+      expect(() =>
+        Tracking.validateStateTransition(
+          TrackingState.DELETED,
+          TrackingState.RUNNING
+        )
+      ).toThrow(TypeError);
+      expect(() =>
+        Tracking.validateStateTransition(
+          TrackingState.DELETED,
+          TrackingState.PAUSED
+        )
+      ).toThrow(TypeError);
+    });
+
+    it("should include error message in TypeError for invalid transitions", () => {
+      expect(() => {
+        Tracking.validateStateTransition(
+          TrackingState.RUNNING,
+          TrackingState.ARCHIVED
+        );
+      }).toThrow(TypeError);
+
+      try {
+        Tracking.validateStateTransition(
+          TrackingState.RUNNING,
+          TrackingState.ARCHIVED
+        );
+      } catch (error) {
+        expect(error).toBeInstanceOf(TypeError);
+        expect((error as Error).message).toContain("Invalid state transition");
+        expect((error as Error).message).toContain("Running");
+        expect((error as Error).message).toContain("Archived");
+      }
+    });
+  });
+
+  describe("loadByUserId filtering", () => {
+    it("should filter out Deleted trackings", async () => {
+      await db.run(
+        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
+        [userId, "Running tracking", TrackingType.TRUE_FALSE, "Running"]
+      );
+      await db.run(
+        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
+        [userId, "Paused tracking", TrackingType.TRUE_FALSE, "Paused"]
+      );
+      await db.run(
+        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
+        [userId, "Deleted tracking", TrackingType.TRUE_FALSE, "Deleted"]
+      );
+
+      const trackings = await Tracking.loadByUserId(userId, db);
+
+      expect(trackings).toHaveLength(2);
+      expect(trackings.some((t) => t.question === "Deleted tracking")).toBe(
+        false
+      );
+      expect(trackings.some((t) => t.question === "Running tracking")).toBe(
+        true
+      );
+      expect(trackings.some((t) => t.question === "Paused tracking")).toBe(
+        true
+      );
     });
   });
 });

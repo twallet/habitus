@@ -344,7 +344,10 @@ export class TrackingService {
 
     // Validate state transition
     const currentState = existingTracking.state || TrackingState.RUNNING;
-    Tracking.validateStateTransition(currentState as TrackingState, validatedNewState);
+    Tracking.validateStateTransition(
+      currentState as TrackingState,
+      validatedNewState
+    );
 
     // Update state in database
     await this.db.run(

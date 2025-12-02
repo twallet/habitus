@@ -1,5 +1,10 @@
 import { useState, useEffect } from "react";
-import { TrackingData, TrackingType, TrackingState, DaysPattern } from "../models/Tracking";
+import {
+  TrackingData,
+  TrackingType,
+  TrackingState,
+  DaysPattern,
+} from "../models/Tracking";
 import { ApiClient } from "../config/api";
 
 /**
@@ -219,7 +224,10 @@ export function useTrackings() {
     );
 
     try {
-      const trackingData = await apiClient.updateTrackingState(trackingId, state);
+      const trackingData = await apiClient.updateTrackingState(
+        trackingId,
+        state
+      );
       console.log(
         `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Tracking state updated successfully: ID ${trackingId} to state ${state}`
       );
