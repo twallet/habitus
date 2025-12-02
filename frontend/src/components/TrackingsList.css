@@ -89,7 +89,7 @@
   text-align: left;
   cursor: pointer;
   text-decoration: underline;
-  text-decoration-color: transparent;
+  text-decoration-color: #00c8ff;
   transition: var(--transition);
   width: 100%;
   display: inline-block;
