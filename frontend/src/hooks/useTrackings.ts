@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   TrackingData,
   TrackingType,
@@ -31,17 +31,23 @@ export function useTrackings() {
     }
     return client;
   });
+  // Track token to detect authentication state changes
+  const [currentToken, setCurrentToken] = useState<string | null>(() =>
+    localStorage.getItem(TOKEN_KEY)
+  );
 
   /**
    * Load trackings from API.
    * @internal
    */
-  const loadTrackings = async () => {
+  const loadTrackings = useCallback(async () => {
     const token = localStorage.getItem(TOKEN_KEY);
     if (!token) {
       console.warn(
-        `[${new Date().toISOString()}] FRONTEND_TRACKINGS | No auth token found, cannot load trackings`
+        `[${new Date().toISOString()}] FRONTEND_TRACKINGS | No auth token found, clearing trackings`
       );
+      setTrackings([]);
+      setCurrentToken(null);
       return;
     }
 
@@ -61,24 +67,57 @@ export function useTrackings() {
         } trackings from API`
       );
       setTrackings(loadedTrackings);
+      setCurrentToken(token);
     } catch (error) {
       console.error(
         `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Error loading trackings:`,
         error
       );
       setTrackings([]);
+      setCurrentToken(null);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [apiClient]);
 
   /**
-   * Load trackings on mount.
+   * Load trackings on mount and when token changes.
    * @internal
    */
   useEffect(() => {
     loadTrackings();
-  }, [apiClient]);
+  }, [loadTrackings]);
+
+  /**
+   * Watch for token changes in localStorage (login/logout).
+   * Polls localStorage to detect changes in the same tab.
+   * @internal
+   */
+  useEffect(() => {
+    const checkTokenChange = () => {
+      const token = localStorage.getItem(TOKEN_KEY);
+      if (token !== currentToken) {
+        // Token changed, reload trackings
+        loadTrackings();
+      }
+    };
+
+    // Check for token changes periodically (handles same-tab login/logout)
+    const interval = setInterval(checkTokenChange, 500);
+
+    // Also listen for storage events (handles cross-tab changes)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === TOKEN_KEY) {
+        loadTrackings();
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, [currentToken, loadTrackings]);
 
   /**
    * Create a new tracking via API.
