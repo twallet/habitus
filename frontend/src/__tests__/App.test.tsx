@@ -996,7 +996,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
+      expect(screen.getByText(/did you exercise/i)).toBeInTheDocument();
     });
 
     const editButton = screen.getByRole('button', { name: /edit/i });
@@ -1055,7 +1055,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
+      expect(screen.getByText(/did you exercise/i)).toBeInTheDocument();
     });
 
     const editButton = screen.getByRole('button', { name: /edit/i });
@@ -1423,7 +1423,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
+      expect(screen.getByText(/did you exercise/i)).toBeInTheDocument();
     });
 
     const editButton = screen.getByRole('button', { name: /edit/i });
