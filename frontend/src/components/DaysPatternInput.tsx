@@ -255,11 +255,9 @@ export function DaysPatternInput({
                         ))}
                     </div>
                 )}
-            </div>
 
-            {preset === "monthly" && (
-                <div className="frequency-options">
-                    <div className="monthly-options">
+                {preset === "monthly" && (
+                    <>
                         <select
                             value={monthlyType}
                             onChange={(e) => {
@@ -268,6 +266,7 @@ export function DaysPatternInput({
                                 builderRef.current.setMonthlyType(type);
                             }}
                             disabled={disabled}
+                            className={monthlyType === "weekday" ? "monthly-weekday-select" : ""}
                         >
                             <option value="day">On day</option>
                             <option value="last">On last day</option>
@@ -292,7 +291,7 @@ export function DaysPatternInput({
                         )}
 
                         {monthlyType === "weekday" && (
-                            <div className="weekday-ordinal-inputs">
+                            <>
                                 <select
                                     value={ordinal}
                                     onChange={(e) => {
@@ -301,6 +300,7 @@ export function DaysPatternInput({
                                         builderRef.current.setOrdinal(ord);
                                     }}
                                     disabled={disabled}
+                                    className="monthly-weekday-select"
                                 >
                                     {ordinalLabels.map((ord) => (
                                         <option key={ord.value} value={ord.value}>
@@ -316,6 +316,7 @@ export function DaysPatternInput({
                                         builderRef.current.setWeekday(wd);
                                     }}
                                     disabled={disabled}
+                                    className="monthly-weekday-select"
                                 >
                                     {weekdays.map((wd) => (
                                         <option key={wd.value} value={wd.value}>
@@ -323,15 +324,13 @@ export function DaysPatternInput({
                                         </option>
                                     ))}
                                 </select>
-                            </div>
+                            </>
                         )}
-                    </div>
-                </div>
-            )}
+                    </>
+                )}
 
-            {preset === "yearly" && (
-                <div className="frequency-options">
-                    <div className="yearly-options">
+                {preset === "yearly" && (
+                    <>
                         <select
                             value={yearlyMonth}
                             onChange={(e) => {
@@ -361,9 +360,9 @@ export function DaysPatternInput({
                             className="day-input"
                             placeholder="Day (1-31)"
                         />
-                    </div>
-                </div>
-            )}
+                    </>
+                )}
+            </div>
 
             {error && (
                 <div className="days-pattern-error">{error}</div>
