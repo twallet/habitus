@@ -70,7 +70,7 @@ describe("DaysPatternInput", () => {
         await user.selectOptions(select, "weekly");
 
         await waitFor(() => {
-            expect(screen.getByText(/select days/i)).toBeInTheDocument();
+            expect(screen.getByRole("button", { name: /mo/i })).toBeInTheDocument();
         });
     });
 
@@ -86,9 +86,8 @@ describe("DaysPatternInput", () => {
         const select = screen.getByRole("combobox", { name: /frequency/i });
         await user.selectOptions(select, "weekly");
 
-        expect(screen.getByText(/select days/i)).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: /mon/i })).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: /tue/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /mo/i })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /tu/i })).toBeInTheDocument();
     });
 
     it("should toggle weekday selection", async () => {
@@ -104,13 +103,13 @@ describe("DaysPatternInput", () => {
         await user.selectOptions(select, "weekly");
 
         // Monday is already selected by default when switching to weekly
-        const mondayButton = screen.getByRole("button", { name: /mon/i });
+        const mondayButton = screen.getByRole("button", { name: /mo/i });
         await waitFor(() => {
             expect(mondayButton).toHaveClass("selected");
         });
 
         // Click Tuesday to add it to selection
-        const tuesdayButton = screen.getByRole("button", { name: /tue/i });
+        const tuesdayButton = screen.getByRole("button", { name: /tu/i });
         await user.click(tuesdayButton);
 
         await waitFor(() => {
@@ -387,7 +386,7 @@ describe("DaysPatternInput", () => {
         await user.selectOptions(select, "weekly");
 
         await waitFor(() => {
-            const mondayButton = screen.getByRole("button", { name: /mon/i });
+            const mondayButton = screen.getByRole("button", { name: /mo/i });
             expect(mondayButton).toHaveClass("selected");
         });
     });

@@ -52,13 +52,13 @@ export function DaysPatternInput({
     );
 
     const weekdays = [
-        { value: 1, label: "Monday", short: "Mon" },
-        { value: 2, label: "Tuesday", short: "Tue" },
-        { value: 3, label: "Wednesday", short: "Wed" },
-        { value: 4, label: "Thursday", short: "Thu" },
-        { value: 5, label: "Friday", short: "Fri" },
-        { value: 6, label: "Saturday", short: "Sat" },
-        { value: 0, label: "Sunday", short: "Sun" },
+        { value: 1, label: "Monday", short: "Mon", twoLetter: "Mo" },
+        { value: 2, label: "Tuesday", short: "Tue", twoLetter: "Tu" },
+        { value: 3, label: "Wednesday", short: "Wed", twoLetter: "We" },
+        { value: 4, label: "Thursday", short: "Thu", twoLetter: "Th" },
+        { value: 5, label: "Friday", short: "Fri", twoLetter: "Fr" },
+        { value: 6, label: "Saturday", short: "Sat", twoLetter: "Sa" },
+        { value: 0, label: "Sunday", short: "Sun", twoLetter: "Su" },
     ];
 
     const ordinalLabels = [
@@ -224,41 +224,38 @@ export function DaysPatternInput({
                 </label>
             </div>
 
-            <select
-                id="frequency-preset"
-                value={preset}
-                onChange={(e) => handlePresetChange(e.target.value as FrequencyPreset)}
-                disabled={disabled}
-                className="frequency-preset-select"
-                required
-            >
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-                <option value="yearly">Yearly</option>
-            </select>
+            <div className="frequency-field-row">
+                <select
+                    id="frequency-preset"
+                    value={preset}
+                    onChange={(e) => handlePresetChange(e.target.value as FrequencyPreset)}
+                    disabled={disabled}
+                    className="frequency-preset-select"
+                    required
+                >
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
+                </select>
 
-            {preset === "weekly" && (
-                <div className="frequency-options">
-                    <div className="days-of-week-selector">
-                        <label>Select days:</label>
-                        <div className="weekday-buttons">
-                            {weekdays.map((wd) => (
-                                <button
-                                    key={wd.value}
-                                    type="button"
-                                    className={`weekday-button ${selectedDays.includes(wd.value) ? "selected" : ""}`}
-                                    onClick={() => handleDayToggle(wd.value)}
-                                    disabled={disabled}
-                                    aria-pressed={selectedDays.includes(wd.value)}
-                                >
-                                    {wd.short}
-                                </button>
-                            ))}
-                        </div>
+                {preset === "weekly" && (
+                    <div className="weekday-buttons">
+                        {weekdays.map((wd) => (
+                            <button
+                                key={wd.value}
+                                type="button"
+                                className={`weekday-button ${selectedDays.includes(wd.value) ? "selected" : ""}`}
+                                onClick={() => handleDayToggle(wd.value)}
+                                disabled={disabled}
+                                aria-pressed={selectedDays.includes(wd.value)}
+                            >
+                                {wd.twoLetter}
+                            </button>
+                        ))}
                     </div>
-                </div>
-            )}
+                )}
+            </div>
 
             {preset === "monthly" && (
                 <div className="frequency-options">
