@@ -70,7 +70,7 @@ describe('EditProfileModal', () => {
       <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={mockOnSave} />
     );
 
-    const nameInput = screen.getByLabelText(/name \*/i);
+    const nameInput = screen.getByPlaceholderText('Enter your name');
     await user.clear(nameInput);
     await user.type(nameInput, 'Jane Smith');
 
@@ -91,7 +91,7 @@ describe('EditProfileModal', () => {
       <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={mockOnSave} />
     );
 
-    const nameInput = screen.getByLabelText(/name \*/i);
+    const nameInput = screen.getByPlaceholderText('Enter your name');
     await user.clear(nameInput);
     await user.type(nameInput, 'Jane Smith');
 
@@ -112,7 +112,7 @@ describe('EditProfileModal', () => {
       <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={mockOnSave} />
     );
 
-    const fileInput = screen.getByLabelText(/profile picture/i) as HTMLInputElement;
+    const fileInput = document.getElementById('edit-profile-picture') as HTMLInputElement;
     await user.upload(fileInput, file);
 
     await waitFor(() => {
@@ -127,7 +127,7 @@ describe('EditProfileModal', () => {
       <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={mockOnSave} />
     );
 
-    const fileInput = screen.getByLabelText(/profile picture/i) as HTMLInputElement;
+    const fileInput = document.getElementById('edit-profile-picture') as HTMLInputElement;
 
     // Create a FileList-like object and assign it to the input
     Object.defineProperty(fileInput, 'files', {
@@ -153,7 +153,7 @@ describe('EditProfileModal', () => {
       <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={mockOnSave} />
     );
 
-    const fileInput = screen.getByLabelText(/profile picture/i) as HTMLInputElement;
+    const fileInput = document.getElementById('edit-profile-picture') as HTMLInputElement;
     await user.upload(fileInput, largeFile);
 
     await waitFor(() => {

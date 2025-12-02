@@ -31,7 +31,8 @@ describe('ChangeEmailModal', () => {
 
     expect(screen.getByRole('heading', { name: 'Change Email' })).toBeInTheDocument();
     expect(screen.getByDisplayValue('john@example.com')).toBeInTheDocument();
-    expect(screen.getByLabelText(/current email/i)).toBeDisabled();
+    const currentEmailInput = screen.getByDisplayValue('john@example.com');
+    expect(currentEmailInput).toBeDisabled();
   });
 
   it('should close modal when close button is clicked', async () => {
@@ -91,7 +92,7 @@ describe('ChangeEmailModal', () => {
       />
     );
 
-    const newEmailInput = screen.getByLabelText(/new email \*/i);
+    const newEmailInput = screen.getByPlaceholderText('Enter your new email');
     await user.type(newEmailInput, 'newemail@example.com');
 
     expect(newEmailInput).toHaveValue('newemail@example.com');
@@ -125,7 +126,7 @@ describe('ChangeEmailModal', () => {
       />
     );
 
-    const newEmailInput = screen.getByLabelText(/new email \*/i);
+    const newEmailInput = screen.getByPlaceholderText('Enter your new email');
     await user.type(newEmailInput, 'invalid-email');
 
     const submitButton = screen.getByRole('button', { name: /change email/i });
@@ -146,7 +147,7 @@ describe('ChangeEmailModal', () => {
       />
     );
 
-    const newEmailInput = screen.getByLabelText(/new email \*/i);
+    const newEmailInput = screen.getByPlaceholderText('Enter your new email');
     await user.type(newEmailInput, 'john@example.com');
 
     const submitButton = screen.getByRole('button', { name: /change email/i });
@@ -169,7 +170,7 @@ describe('ChangeEmailModal', () => {
       />
     );
 
-    const newEmailInput = screen.getByLabelText(/new email \*/i);
+    const newEmailInput = screen.getByPlaceholderText('Enter your new email');
     await user.type(newEmailInput, 'newemail@example.com');
 
     const submitButton = screen.getByRole('button', { name: /change email/i });
@@ -190,7 +191,7 @@ describe('ChangeEmailModal', () => {
       />
     );
 
-    const newEmailInput = screen.getByLabelText(/new email \*/i);
+    const newEmailInput = screen.getByPlaceholderText('Enter your new email');
     await user.type(newEmailInput, 'newemail@example.com');
 
     const submitButton = screen.getByRole('button', { name: /change email/i });
@@ -218,7 +219,7 @@ describe('ChangeEmailModal', () => {
       />
     );
 
-    const newEmailInput = screen.getByLabelText(/new email \*/i);
+    const newEmailInput = screen.getByPlaceholderText('Enter your new email');
     await user.type(newEmailInput, 'newemail@example.com');
 
     const submitButton = screen.getByRole('button', { name: /change email/i });
@@ -240,7 +241,7 @@ describe('ChangeEmailModal', () => {
       />
     );
 
-    const newEmailInput = screen.getByLabelText(/new email \*/i);
+    const newEmailInput = screen.getByPlaceholderText('Enter your new email');
     await user.type(newEmailInput, 'newemail@example.com');
 
     const submitButton = screen.getByRole('button', { name: /change email/i });
@@ -263,7 +264,7 @@ describe('ChangeEmailModal', () => {
       />
     );
 
-    const newEmailInput = screen.getByLabelText(/new email \*/i);
+    const newEmailInput = screen.getByPlaceholderText('Enter your new email');
     await user.type(newEmailInput, 'newemail@example.com');
 
     const submitButton = screen.getByRole('button', { name: /change email/i });
@@ -291,7 +292,7 @@ describe('ChangeEmailModal', () => {
       />
     );
 
-    const newEmailInput = screen.getByLabelText(/new email \*/i);
+    const newEmailInput = screen.getByPlaceholderText('Enter your new email');
     await user.type(newEmailInput, '  newemail@example.com  ');
 
     const submitButton = screen.getByRole('button', { name: /change email/i });

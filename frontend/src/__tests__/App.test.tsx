@@ -91,7 +91,7 @@ describe('App', () => {
     // Loading state might be too fast to catch, so we just verify the component renders
     // and moves to the auth form quickly
     await waitFor(() => {
-      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Enter your email')).toBeInTheDocument();
     }, { timeout: 3000 });
   });
 
@@ -99,7 +99,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Enter your email')).toBeInTheDocument();
     });
     expect(screen.getByRole('button', { name: /send login link/i })).toBeInTheDocument();
   });
@@ -119,10 +119,10 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Enter your email')).toBeInTheDocument();
     });
 
-    const emailInput = screen.getByLabelText(/email/i);
+    const emailInput = screen.getByPlaceholderText('Enter your email');
     await user.type(emailInput, 'test@example.com');
     await user.click(screen.getByRole('button', { name: /send login link/i }));
 
@@ -152,18 +152,18 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Enter your email')).toBeInTheDocument();
     });
 
     // Switch to register mode
     await user.click(screen.getByRole('button', { name: /don't have an account\? register/i }));
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/^name \*$/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Enter your name')).toBeInTheDocument();
     });
 
-    const nameInput = screen.getByLabelText(/^name \*$/i);
-    const emailInput = screen.getByLabelText(/email/i);
+    const nameInput = screen.getByPlaceholderText('Enter your name');
+    const emailInput = screen.getByPlaceholderText('Enter your email');
     await user.type(nameInput, 'John Doe');
     await user.type(emailInput, 'john@example.com');
     await user.click(screen.getByRole('button', { name: /send registration link/i }));
@@ -226,10 +226,10 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Enter your email')).toBeInTheDocument();
     });
 
-    const emailInput = screen.getByLabelText(/email/i);
+    const emailInput = screen.getByPlaceholderText('Enter your email');
     await user.type(emailInput, 'invalid-email');
     await user.click(screen.getByRole('button', { name: /send login link/i }));
 
@@ -406,10 +406,10 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Enter your email')).toBeInTheDocument();
     });
 
-    const emailInput = screen.getByLabelText(/email/i);
+    const emailInput = screen.getByPlaceholderText('Enter your email');
     await user.type(emailInput, 'test@example.com');
     await user.click(screen.getByRole('button', { name: /send login link/i }));
 
@@ -440,17 +440,17 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Enter your email')).toBeInTheDocument();
     });
 
     await user.click(screen.getByRole('button', { name: /don't have an account\? register/i }));
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/^name \*$/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Enter your name')).toBeInTheDocument();
     });
 
-    const nameInput = screen.getByLabelText(/^name \*$/i);
-    const emailInput = screen.getByLabelText(/email/i);
+    const nameInput = screen.getByPlaceholderText('Enter your name');
+    const emailInput = screen.getByPlaceholderText('Enter your email');
     await user.type(nameInput, 'John Doe');
     await user.type(emailInput, 'existing@example.com');
     await user.click(screen.getByRole('button', { name: /send registration link/i }));
@@ -512,11 +512,11 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Enter your email')).toBeInTheDocument();
     });
 
     // This will trigger form validation error
-    const emailInput = screen.getByLabelText(/email/i);
+    const emailInput = screen.getByPlaceholderText('Enter your email');
     await user.clear(emailInput);
     await user.click(screen.getByRole('button', { name: /send login link/i }));
 
@@ -683,10 +683,10 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Enter your email')).toBeInTheDocument();
     });
 
-    const emailInput = screen.getByLabelText(/email/i);
+    const emailInput = screen.getByPlaceholderText('Enter your email');
     await user.type(emailInput, 'test@example.com');
     await user.click(screen.getByRole('button', { name: /send login link/i }));
 
@@ -821,7 +821,7 @@ describe('App', () => {
       expect(screen.getByText(/edit profile/i)).toBeInTheDocument();
     });
 
-    const nameInput = screen.getByLabelText(/^name \*$/i);
+    const nameInput = screen.getByPlaceholderText('Enter your name');
     await userEvent.clear(nameInput);
     await userEvent.type(nameInput, 'Jane Doe');
 
@@ -1180,7 +1180,7 @@ describe('App', () => {
       expect(changeEmailElements.length).toBeGreaterThan(0);
     });
 
-    const emailInput = screen.getByLabelText(/new email/i);
+    const emailInput = screen.getByPlaceholderText('Enter your new email');
     const submitButton = screen.getByRole('button', { name: /change email/i });
     await userEvent.type(emailInput, 'newemail@example.com');
     await userEvent.click(submitButton);
