@@ -237,8 +237,37 @@
   font-family: inherit;
 }
 
-.status-dropdown-item:hover:not(:disabled) {
-  background: var(--bg-secondary);
+/* Pastel background colors for state dropdown items */
+.status-dropdown-item-running {
+  background: #d1fae5;
+}
+
+.status-dropdown-item-running:hover:not(:disabled) {
+  background: #a7f3d0;
+}
+
+.status-dropdown-item-paused {
+  background: #fef3c7;
+}
+
+.status-dropdown-item-paused:hover:not(:disabled) {
+  background: #fde68a;
+}
+
+.status-dropdown-item-archived {
+  background: #f3f4f6;
+}
+
+.status-dropdown-item-archived:hover:not(:disabled) {
+  background: #e5e7eb;
+}
+
+.status-dropdown-item-deleted {
+  background: #fee2e2;
+}
+
+.status-dropdown-item-deleted:hover:not(:disabled) {
+  background: #fecaca;
 }
 
 .status-dropdown-item:disabled {

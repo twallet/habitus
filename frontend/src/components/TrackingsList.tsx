@@ -663,7 +663,7 @@ export function TrackingsList({
                                                             <button
                                                                 key={targetState}
                                                                 type="button"
-                                                                className="status-dropdown-item"
+                                                                className={`status-dropdown-item status-dropdown-item-${targetState.toLowerCase()}`}
                                                                 onClick={() => handleStateChange(tracking.id, targetState)}
                                                                 aria-label={`Change state to ${targetLabel}`}
                                                             >
