@@ -28,15 +28,6 @@ export function DeleteTrackingConfirmationModal({
     const isDeletingRef = useRef(isDeleting);
     const errorRef = useRef(error);
 
-    // Keep refs in sync with state
-    useEffect(() => {
-        isDeletingRef.current = isDeleting;
-    }, [isDeleting]);
-
-    useEffect(() => {
-        errorRef.current = error;
-    }, [error]);
-
     const isConfirmEnabled = confirmationText === 'DELETE';
 
     /**
@@ -52,15 +43,20 @@ export function DeleteTrackingConfirmationModal({
         }
 
         setIsDeleting(true);
+        isDeletingRef.current = true;
         setError(null);
+        errorRef.current = null;
 
         try {
             await onConfirm();
             onClose();
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Error deleting tracking');
+            const errorMessage = err instanceof Error ? err.message : 'Error deleting tracking';
+            setError(errorMessage);
+            errorRef.current = errorMessage;
         } finally {
             setIsDeleting(false);
+            isDeletingRef.current = false;
         }
     };
 
@@ -139,7 +135,10 @@ export function DeleteTrackingConfirmationModal({
                             <button
                                 type="button"
                                 className="message-close"
-                                onClick={() => setError(null)}
+                                onClick={() => {
+                                    setError(null);
+                                    errorRef.current = null;
+                                }}
                                 aria-label="Close"
                             >
                                 ×
