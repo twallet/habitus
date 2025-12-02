@@ -940,7 +940,7 @@ describe('App', () => {
     if (!timeInput) {
       throw new Error("Time input not found");
     }
-    const scheduleButton = screen.getByRole('button', { name: /^schedule$/i });
+    const scheduleButton = screen.getByRole('button', { name: /^add$/i });
     await userEvent.clear(timeInput);
     await userEvent.type(timeInput, '09:00');
     await userEvent.click(scheduleButton);
@@ -1362,7 +1362,7 @@ describe('App', () => {
     if (!timeInput) {
       throw new Error("Time input not found");
     }
-    const scheduleButton = screen.getByRole('button', { name: /^schedule$/i });
+    const scheduleButton = screen.getByRole('button', { name: /^add$/i });
     await userEvent.clear(timeInput);
     await userEvent.type(timeInput, '09:00');
     await userEvent.click(scheduleButton);

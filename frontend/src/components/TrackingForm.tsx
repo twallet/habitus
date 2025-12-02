@@ -363,45 +363,42 @@ export function TrackingForm({
                             isSubmitting || schedules.length >= 5
                         }
                     >
-                        Schedule
+                        Add
                     </button>
-                    <span className="schedule-count">
-                        {schedules.length}/5 times
-                    </span>
-                </div>
-                {schedules.length > 0 && (
-                    <div className="schedules-list">
-                        {sortSchedules(schedules).map((schedule) => {
-                            const originalIndex = schedules.findIndex(
-                                (s) =>
-                                    s.hour === schedule.hour &&
-                                    s.minutes === schedule.minutes
-                            );
-                            return (
-                                <div
-                                    key={`${schedule.hour}-${schedule.minutes}-${originalIndex}`}
-                                    className="schedule-item"
-                                >
-                                    <span className="schedule-time">
-                                        {String(schedule.hour).padStart(2, "0")}:
-                                        {String(schedule.minutes).padStart(2, "0")}
-                                    </span>
-                                    <button
-                                        type="button"
-                                        className="btn-icon"
-                                        onClick={() =>
-                                            handleDeleteSchedule(originalIndex)
-                                        }
-                                        disabled={isSubmitting}
-                                        aria-label="Delete schedule"
+                    {schedules.length > 0 && (
+                        <div className="schedules-list">
+                            {sortSchedules(schedules).map((schedule) => {
+                                const originalIndex = schedules.findIndex(
+                                    (s) =>
+                                        s.hour === schedule.hour &&
+                                        s.minutes === schedule.minutes
+                                );
+                                return (
+                                    <div
+                                        key={`${schedule.hour}-${schedule.minutes}-${originalIndex}`}
+                                        className="schedule-item"
                                     >
-                                        ×
-                                    </button>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
+                                        <span className="schedule-time">
+                                            {String(schedule.hour).padStart(2, "0")}:
+                                            {String(schedule.minutes).padStart(2, "0")}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            className="btn-icon"
+                                            onClick={() =>
+                                                handleDeleteSchedule(originalIndex)
+                                            }
+                                            disabled={isSubmitting}
+                                            aria-label="Delete schedule"
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
             </div>
 
             <div className="form-group">

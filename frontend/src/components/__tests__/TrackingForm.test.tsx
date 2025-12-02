@@ -27,8 +27,8 @@ describe("TrackingForm", () => {
         if (!timeInput) {
             throw new Error("Time input not found");
         }
-        const buttons = screen.getAllByRole("button", { name: /^schedule$/i });
-        const addButton = buttons.find(btn => btn.getAttribute("type") === "button" && btn.textContent === "Schedule") as HTMLButtonElement;
+        const buttons = screen.getAllByRole("button", { name: /^add$/i });
+        const addButton = buttons.find(btn => btn.getAttribute("type") === "button" && btn.textContent === "Add") as HTMLButtonElement;
 
         const timeValue = `${String(hour).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
         await user.clear(timeInput);

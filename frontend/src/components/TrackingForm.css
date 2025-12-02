@@ -239,13 +239,6 @@
   border: 0;
 }
 
-.schedule-count {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
 .schedule-input-row {
   display: flex;
   gap: 12px;
@@ -347,12 +340,12 @@
 }
 
 .schedules-list {
-  margin-top: 12px;
-  margin-bottom: 12px;
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
   gap: 8px;
+  align-items: center;
+  margin: 0;
 }
 
 .schedule-item {
