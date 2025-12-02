@@ -298,15 +298,6 @@ class StateTransitionHelper {
     }
 
     /**
-     * Get icon for a state (same as transition icon).
-     * @param state - The tracking state
-     * @returns Icon emoji string
-     */
-    static getStateIcon(state: TrackingState): string {
-        return StateTransitionHelper.getTransitionIcon(state);
-    }
-
-    /**
      * Get human-readable label for a state.
      * @param state - The tracking state
      * @returns State label string
