@@ -506,7 +506,6 @@ function App() {
         )}
 
         <div className="trackings-view">
-          {!trackingsLoading && trackings.length > 0 && <h2>Your trackings</h2>}
           <TrackingsList
             trackings={trackings}
             onEdit={handleEditTracking}

@@ -208,7 +208,7 @@ describe('App', () => {
 
     // Wait for the authenticated state to render
     await waitFor(() => {
-      expect(screen.getByText(/your trackings/i)).toBeInTheDocument();
+      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
     // Verify user menu is present
@@ -489,7 +489,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/your trackings/i)).toBeInTheDocument();
+      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
     // Open user menu
@@ -721,7 +721,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/your trackings/i)).toBeInTheDocument();
+      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
     const userMenuButton = screen.getByRole('button', { name: /user menu/i });
@@ -761,7 +761,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/your trackings/i)).toBeInTheDocument();
+      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
     const userMenuButton = screen.getByRole('button', { name: /user menu/i });
@@ -808,7 +808,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/your trackings/i)).toBeInTheDocument();
+      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
     const userMenuButton = screen.getByRole('button', { name: /user menu/i });
@@ -860,7 +860,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/your trackings/i)).toBeInTheDocument();
+      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
     const userMenuButton = screen.getByRole('button', { name: /user menu/i });
@@ -917,7 +917,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/your trackings/i)).toBeInTheDocument();
+      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
     const fabButton = screen.getByRole('button', { name: /create tracking/i });
@@ -996,7 +996,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/your trackings/i)).toBeInTheDocument();
+      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
     const editButton = screen.getByRole('button', { name: /edit/i });
@@ -1055,7 +1055,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/your trackings/i)).toBeInTheDocument();
+      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
     const editButton = screen.getByRole('button', { name: /edit/i });
@@ -1109,7 +1109,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/your trackings/i)).toBeInTheDocument();
+      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
     const userMenuButton = screen.getByRole('button', { name: /user menu/i });
@@ -1165,7 +1165,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/your trackings/i)).toBeInTheDocument();
+      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
     const userMenuButton = screen.getByRole('button', { name: /user menu/i });
@@ -1218,7 +1218,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/your trackings/i)).toBeInTheDocument();
+      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
     const userMenuButton = screen.getByRole('button', { name: /user menu/i });
@@ -1273,7 +1273,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/your trackings/i)).toBeInTheDocument();
+      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
     const userMenuButton = screen.getByRole('button', { name: /user menu/i });
@@ -1339,7 +1339,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/your trackings/i)).toBeInTheDocument();
+      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
     const fabButton = screen.getByRole('button', { name: /create tracking/i });
@@ -1423,7 +1423,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/your trackings/i)).toBeInTheDocument();
+      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
     const editButton = screen.getByRole('button', { name: /edit/i });
