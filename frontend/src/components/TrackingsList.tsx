@@ -890,7 +890,7 @@ export function TrackingsList({
                                 onChange={() => handleCheckboxChange('type', "Yes/No")}
                                 aria-label="Filter by type: Yes/No"
                             />
-                            <span>Yes/No</span>
+                            <span>{TrackingFormatter.getTypeEmoji(TrackingType.TRUE_FALSE)} Yes/No</span>
                         </label>
                         <label className="filter-checkbox-label">
                             <input
@@ -899,7 +899,7 @@ export function TrackingsList({
                                 onChange={() => handleCheckboxChange('type', "Text")}
                                 aria-label="Filter by type: Text"
                             />
-                            <span>Text</span>
+                            <span>{TrackingFormatter.getTypeEmoji(TrackingType.REGISTER)} Text</span>
                         </label>
                     </div>
                 </div>
@@ -1028,29 +1028,31 @@ export function TrackingsList({
                     <thead>
                         <tr>
                             <th className="col-tracking">
-                                <button
-                                    type="button"
-                                    className="filter-toggle-button"
-                                    onClick={toggleFilters}
-                                    aria-label={showFilters ? "Hide filters" : "Show filters"}
-                                    aria-expanded={showFilters}
-                                    title={showFilters ? "Hide filters" : "Show filters"}
-                                >
-                                    <span className="filter-toggle-icon">🔍</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    className="sortable-header"
-                                    onClick={() => handleSortClick('tracking')}
-                                    aria-label="Sort by tracking"
-                                >
-                                    Tracking
-                                    {sortColumn === 'tracking' && (
-                                        <span className="sort-indicator">
-                                            {sortDirection === 'asc' ? '↑' : '↓'}
-                                        </span>
-                                    )}
-                                </button>
+                                <div className="header-with-filter">
+                                    <button
+                                        type="button"
+                                        className="filter-toggle-button"
+                                        onClick={toggleFilters}
+                                        aria-label={showFilters ? "Hide filters" : "Show filters"}
+                                        aria-expanded={showFilters}
+                                        title={showFilters ? "Hide filters" : "Show filters"}
+                                    >
+                                        <span className="filter-toggle-icon">🔍</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="sortable-header"
+                                        onClick={() => handleSortClick('tracking')}
+                                        aria-label="Sort by tracking"
+                                    >
+                                        Tracking
+                                        {sortColumn === 'tracking' && (
+                                            <span className="sort-indicator">
+                                                {sortDirection === 'asc' ? '↑' : '↓'}
+                                            </span>
+                                        )}
+                                    </button>
+                                </div>
                             </th>
                             <th className="col-type">
                                 <button

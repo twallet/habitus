@@ -222,11 +222,12 @@
 
 .trackings-table th.col-tracking {
   min-width: 200px;
-  position: relative;
 }
 
-.trackings-table th.col-tracking .sortable-header {
-  display: inline-flex;
+.header-with-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .trackings-table th.col-type {
