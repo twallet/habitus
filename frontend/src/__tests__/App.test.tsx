@@ -1389,9 +1389,11 @@ describe('App', () => {
     // Error message can appear in both the main message area and the modal
     // The error message should be "Failed to create tracking" from the mock
     // But if createTrackingFn is not set, it will show "Create tracking function not available"
+    // We need to check for either error message
     await waitFor(() => {
-      const errorMessages = screen.queryAllByText(/failed to create tracking|create tracking function not available/i);
-      expect(errorMessages.length).toBeGreaterThan(0);
+      const errorMessages1 = screen.queryAllByText(/failed to create tracking/i);
+      const errorMessages2 = screen.queryAllByText(/create tracking function not available/i);
+      expect(errorMessages1.length + errorMessages2.length).toBeGreaterThan(0);
     }, { timeout: 3000 });
   });
 
