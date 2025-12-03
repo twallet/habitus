@@ -8,6 +8,7 @@ import { DeleteUserConfirmationModal } from './components/DeleteUserConfirmation
 import { TrackingsList } from './components/TrackingsList';
 import { TrackingForm } from './components/TrackingForm';
 import { EditTrackingModal } from './components/EditTrackingModal';
+import { RemindersList } from './components/RemindersList';
 import { useAuth } from './hooks/useAuth';
 import { useTrackings } from './hooks/useTrackings';
 import { TrackingData, TrackingType } from './models/Tracking';
@@ -37,6 +38,7 @@ function App() {
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [editingTracking, setEditingTracking] = useState<TrackingData | null>(null);
   const [showTrackingForm, setShowTrackingForm] = useState(false);
+  const [activeTab, setActiveTab] = useState<'trackings' | 'reminders'>('trackings');
   const verificationAttempted = useRef(false);
 
   const {
@@ -500,21 +502,48 @@ function App() {
           />
         )}
 
-        <div className="trackings-view">
-          <TrackingsList
-            trackings={trackings}
-            onEdit={handleEditTracking}
-            onCreate={() => setShowTrackingForm(true)}
-            isLoading={trackingsLoading}
-            onStateChange={updateTrackingState}
-            onDelete={deleteTracking}
-            onStateChangeSuccess={(message) => {
-              setMessage({
-                text: message,
-                type: 'success',
-              });
-            }}
-          />
+        <div className="tabs-container">
+          <div className="tabs-header">
+            <button
+              type="button"
+              className={`tab-button ${activeTab === 'trackings' ? 'active' : ''}`}
+              onClick={() => setActiveTab('trackings')}
+            >
+              Trackings
+            </button>
+            <button
+              type="button"
+              className={`tab-button ${activeTab === 'reminders' ? 'active' : ''}`}
+              onClick={() => setActiveTab('reminders')}
+            >
+              Reminders
+            </button>
+          </div>
+          <div className="tabs-content">
+            {activeTab === 'trackings' && (
+              <div className="trackings-view">
+                <TrackingsList
+                  trackings={trackings}
+                  onEdit={handleEditTracking}
+                  onCreate={() => setShowTrackingForm(true)}
+                  isLoading={trackingsLoading}
+                  onStateChange={updateTrackingState}
+                  onDelete={deleteTracking}
+                  onStateChangeSuccess={(message) => {
+                    setMessage({
+                      text: message,
+                      type: 'success',
+                    });
+                  }}
+                />
+              </div>
+            )}
+            {activeTab === 'reminders' && (
+              <div className="reminders-view">
+                <RemindersList />
+              </div>
+            )}
+          </div>
         </div>
       </main>
 

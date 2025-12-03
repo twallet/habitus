@@ -6,6 +6,7 @@ import {
   DaysPattern,
 } from "../models/Tracking.js";
 import { TrackingSchedule } from "../models/TrackingSchedule.js";
+import { ReminderService } from "./reminderService.js";
 
 /**
  * Service for tracking-related database operations.
@@ -13,6 +14,7 @@ import { TrackingSchedule } from "../models/TrackingSchedule.js";
  */
 export class TrackingService {
   private db: Database;
+  private reminderService: ReminderService;
 
   /**
    * Create a new TrackingService instance.
@@ -21,6 +23,7 @@ export class TrackingService {
    */
   constructor(db: Database) {
     this.db = db;
+    this.reminderService = new ReminderService(db);
   }
 
   /**
@@ -165,6 +168,22 @@ export class TrackingService {
       }`
     );
 
+    // Create initial reminder for the tracking
+    try {
+      await this.reminderService.createNextReminderForTracking(
+        tracking.id,
+        validatedUserId
+      );
+    } catch (error) {
+      // Log error but don't fail tracking creation if reminder creation fails
+      console.error(
+        `[${new Date().toISOString()}] TRACKING | Failed to create reminder for tracking ${
+          tracking.id
+        }:`,
+        error
+      );
+    }
+
     return tracking;
   }
 
@@ -296,6 +315,36 @@ export class TrackingService {
         `[${new Date().toISOString()}] TRACKING | Failed to retrieve updated tracking for ID: ${trackingId}`
       );
       throw new Error("Failed to retrieve updated tracking");
+    }
+
+    // If schedules or days pattern changed, recreate reminder
+    const schedulesChanged = schedules !== undefined;
+    const daysChanged = days !== undefined;
+    if (schedulesChanged || daysChanged) {
+      try {
+        // Delete existing reminder if it exists
+        const { Reminder } = await import("../models/Reminder.js");
+        const existingReminder = await Reminder.loadByTrackingId(
+          trackingId,
+          userId,
+          this.db
+        );
+        if (existingReminder) {
+          await existingReminder.delete(this.db);
+        }
+
+        // Create new reminder with updated schedule/days
+        await this.reminderService.createNextReminderForTracking(
+          trackingId,
+          userId
+        );
+      } catch (error) {
+        // Log error but don't fail tracking update if reminder recreation fails
+        console.error(
+          `[${new Date().toISOString()}] TRACKING | Failed to recreate reminder for tracking ${trackingId}:`,
+          error
+        );
+      }
     }
 
     console.log(

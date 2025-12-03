@@ -1,0 +1,47 @@
+.reminder-answer-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-field-readonly {
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.yes-no-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.yes-no-button {
+  flex: 1;
+  padding: 12px 24px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.yes-no-button:hover {
+  background: var(--bg-secondary);
+  border-color: var(--text-primary);
+}
+
+.yes-no-button.selected {
+  background: var(--bg-secondary);
+  border-color: var(--text-primary);
+  font-weight: 600;
+}
+
+.yes-no-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

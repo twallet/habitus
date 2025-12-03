@@ -18,6 +18,7 @@ import { ServiceManager } from "./services/index.js";
 import usersRouter from "./routes/users.js";
 import authRouter from "./routes/auth.js";
 import trackingsRouter from "./routes/trackings.js";
+import remindersRouter from "./routes/reminders.js";
 import { getUploadsDirectory } from "./middleware/upload.js";
 import { ServerConfig } from "./setup/constants.js";
 import { PathConfig } from "./config/paths.js";
@@ -118,6 +119,7 @@ app.use("/uploads", express.static(getUploadsDirectory()));
 app.use("/api/users", usersRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/trackings", trackingsRouter);
+app.use("/api/reminders", remindersRouter);
 
 /**
  * Health check endpoint.

@@ -1,0 +1,245 @@
+.reminders-list {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.reminders-loading {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.reminders-empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.reminders-table-container {
+  overflow-x: auto;
+}
+
+.reminders-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-primary);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.reminders-table thead {
+  background: var(--bg-secondary);
+}
+
+.reminders-table th {
+  padding: 6px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.reminders-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.875rem;
+}
+
+.reminder-row:hover {
+  background: var(--bg-secondary);
+}
+
+.cell-time {
+  white-space: nowrap;
+}
+
+.cell-tracking {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tracking-icon {
+  font-size: 1.2em;
+}
+
+.cell-answer {
+  max-width: 300px;
+}
+
+.answer-text {
+  cursor: help;
+}
+
+.answer-empty {
+  color: var(--text-secondary);
+}
+
+.cell-notes {
+  text-align: center;
+}
+
+.notes-indicator {
+  cursor: help;
+  font-size: 1.2em;
+}
+
+.notes-empty {
+  color: var(--text-secondary);
+}
+
+.cell-status {
+  position: relative;
+}
+
+.status-dropdown-container {
+  position: relative;
+  display: inline-block;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: var(--transition);
+}
+
+.status-badge:hover {
+  background: var(--bg-secondary);
+}
+
+.status-badge.open {
+  background: var(--bg-secondary);
+}
+
+.status-badge-text {
+  font-weight: 500;
+}
+
+.status-badge-arrow {
+  font-size: 0.75rem;
+  transition: var(--transition);
+}
+
+.status-badge.open .status-badge-arrow {
+  transform: rotate(180deg);
+}
+
+.status-pending {
+  background: #fff3cd;
+  color: #856404;
+  border-color: #ffc107;
+}
+
+.status-answered {
+  background: #d4edda;
+  color: #155724;
+  border-color: #28a745;
+}
+
+.status-snoozed {
+  background: #fff3cd;
+  color: #856404;
+  border-color: #ffc107;
+}
+
+.status-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  z-index: 1000;
+  min-width: 150px;
+  padding: 4px;
+}
+
+.status-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: var(--transition);
+  color: var(--text-primary);
+}
+
+.status-dropdown-item:hover {
+  background: var(--bg-secondary);
+}
+
+.status-dropdown-icon {
+  font-size: 1em;
+}
+
+.status-dropdown-label {
+  flex: 1;
+}
+
+.snooze-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  z-index: 1001;
+  min-width: 120px;
+  padding: 4px;
+}
+
+.snooze-menu-item {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: var(--transition);
+  color: var(--text-primary);
+}
+
+.snooze-menu-item:hover {
+  background: var(--bg-secondary);
+}
+
+.delete-confirmation {
+  max-width: 400px;
+}
+
+.delete-confirmation h3 {
+  margin-top: 0;
+}
+
+.delete-confirmation p {
+  margin-bottom: 1.5rem;
+  color: var(--text-secondary);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}

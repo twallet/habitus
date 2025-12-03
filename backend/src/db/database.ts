@@ -181,6 +181,23 @@ export class Database {
               UNIQUE(tracking_id, hour, minutes)
             );
             CREATE INDEX IF NOT EXISTS idx_tracking_schedules_tracking_id ON tracking_schedules(tracking_id);
+            CREATE TABLE IF NOT EXISTS reminders (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              tracking_id INTEGER NOT NULL,
+              user_id INTEGER NOT NULL,
+              scheduled_time DATETIME NOT NULL,
+              answer TEXT,
+              notes TEXT,
+              status TEXT NOT NULL DEFAULT 'Pending' CHECK(status IN ('Pending', 'Answered', 'Snoozed')),
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              FOREIGN KEY (tracking_id) REFERENCES trackings(id) ON DELETE CASCADE,
+              FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS idx_reminders_user_id ON reminders(user_id);
+            CREATE INDEX IF NOT EXISTS idx_reminders_tracking_id ON reminders(tracking_id);
+            CREATE INDEX IF NOT EXISTS idx_reminders_scheduled_time ON reminders(scheduled_time);
+            CREATE INDEX IF NOT EXISTS idx_reminders_status ON reminders(status);
           `,
               (err) => {
                 if (err) {
@@ -249,7 +266,55 @@ export class Database {
                                 `[${new Date().toISOString()}] DATABASE | Updated existing records with Running state`
                               );
                             }
-                            resolve();
+
+                            // Migrate: Create reminders table if it doesn't exist
+                            this.db!.run(
+                              `CREATE TABLE IF NOT EXISTS reminders (
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                tracking_id INTEGER NOT NULL,
+                                user_id INTEGER NOT NULL,
+                                scheduled_time DATETIME NOT NULL,
+                                answer TEXT,
+                                notes TEXT,
+                                status TEXT NOT NULL DEFAULT 'Pending' CHECK(status IN ('Pending', 'Answered', 'Snoozed')),
+                                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                                FOREIGN KEY (tracking_id) REFERENCES trackings(id) ON DELETE CASCADE,
+                                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                              )`,
+                              (remindersTableErr) => {
+                                if (remindersTableErr) {
+                                  console.error(
+                                    `[${new Date().toISOString()}] DATABASE | Failed to create reminders table:`,
+                                    remindersTableErr
+                                  );
+                                } else {
+                                  console.log(
+                                    `[${new Date().toISOString()}] DATABASE | Reminders table created or already exists`
+                                  );
+                                }
+
+                                // Create indexes for reminders table
+                                this.db!.run(
+                                  `CREATE INDEX IF NOT EXISTS idx_reminders_user_id ON reminders(user_id)`,
+                                  () => {}
+                                );
+                                this.db!.run(
+                                  `CREATE INDEX IF NOT EXISTS idx_reminders_tracking_id ON reminders(tracking_id)`,
+                                  () => {}
+                                );
+                                this.db!.run(
+                                  `CREATE INDEX IF NOT EXISTS idx_reminders_scheduled_time ON reminders(scheduled_time)`,
+                                  () => {}
+                                );
+                                this.db!.run(
+                                  `CREATE INDEX IF NOT EXISTS idx_reminders_status ON reminders(status)`,
+                                  () => {
+                                    resolve();
+                                  }
+                                );
+                              }
+                            );
                           }
                         );
                       }

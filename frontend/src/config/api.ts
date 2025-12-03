@@ -5,6 +5,7 @@ import {
   TrackingState,
   DaysPattern,
 } from "../models/Tracking.js";
+import { ReminderData } from "../models/Reminder.js";
 
 /**
  * Get Vite environment variables.
@@ -161,6 +162,7 @@ type API_ENDPOINTS_TYPE = {
     readonly delete: string;
   };
   readonly trackings: string;
+  readonly reminders: string;
 };
 
 /**
@@ -191,6 +193,7 @@ function getApiEndpointsLazy(): API_ENDPOINTS_TYPE {
         delete: `${baseUrl}/api/users/profile`,
       },
       trackings: `${baseUrl}/api/trackings`,
+      reminders: `${baseUrl}/api/reminders`,
     } as const;
   }
   return cachedApiEndpoints;
@@ -655,5 +658,95 @@ export class ApiClient {
       { question }
     );
     return response.emoji;
+  }
+
+  /**
+   * Get all reminders for the authenticated user.
+   * @returns Promise resolving to array of reminder data
+   * @throws Error if request fails
+   * @public
+   */
+  async getReminders(): Promise<ReminderData[]> {
+    return this.get<ReminderData[]>(API_ENDPOINTS.reminders);
+  }
+
+  /**
+   * Get a reminder by ID.
+   * @param id - The reminder ID
+   * @returns Promise resolving to reminder data
+   * @throws Error if request fails
+   * @public
+   */
+  async getReminder(id: number): Promise<ReminderData> {
+    return this.get<ReminderData>(`${API_ENDPOINTS.reminders}/${id}`);
+  }
+
+  /**
+   * Create a new reminder.
+   * @param trackingId - The tracking ID
+   * @param scheduledTime - The scheduled time (ISO datetime string)
+   * @returns Promise resolving to created reminder data
+   * @throws Error if request fails
+   * @public
+   */
+  async createReminder(
+    trackingId: number,
+    scheduledTime: string
+  ): Promise<ReminderData> {
+    return this.post<ReminderData>(API_ENDPOINTS.reminders, {
+      tracking_id: trackingId,
+      scheduled_time: scheduledTime,
+    });
+  }
+
+  /**
+   * Update a reminder.
+   * @param id - The reminder ID
+   * @param answer - Updated answer (optional)
+   * @param notes - Updated notes (optional)
+   * @param status - Updated status (optional)
+   * @param scheduledTime - Updated scheduled time (optional)
+   * @returns Promise resolving to updated reminder data
+   * @throws Error if request fails
+   * @public
+   */
+  async updateReminder(
+    id: number,
+    answer?: string,
+    notes?: string,
+    status?: string,
+    scheduledTime?: string
+  ): Promise<ReminderData> {
+    return this.put<ReminderData>(`${API_ENDPOINTS.reminders}/${id}`, {
+      answer,
+      notes,
+      status,
+      scheduled_time: scheduledTime,
+    });
+  }
+
+  /**
+   * Snooze a reminder.
+   * @param id - The reminder ID
+   * @param minutes - Minutes to snooze
+   * @returns Promise resolving to updated reminder data
+   * @throws Error if request fails
+   * @public
+   */
+  async snoozeReminder(id: number, minutes: number): Promise<ReminderData> {
+    return this.patch<ReminderData>(`${API_ENDPOINTS.reminders}/${id}/snooze`, {
+      minutes,
+    });
+  }
+
+  /**
+   * Delete a reminder.
+   * @param id - The reminder ID to delete
+   * @returns Promise resolving when reminder is deleted
+   * @throws Error if request fails
+   * @public
+   */
+  async deleteReminder(id: number): Promise<void> {
+    await this.delete(`${API_ENDPOINTS.reminders}/${id}`);
   }
 }

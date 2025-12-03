@@ -4,6 +4,7 @@ import { UserService } from "./userService.js";
 import { TrackingService } from "./trackingService.js";
 import { EmailService } from "./emailService.js";
 import { AiService } from "./aiService.js";
+import { ReminderService } from "./reminderService.js";
 
 /**
  * Service manager class for managing service instances.
@@ -16,6 +17,7 @@ export class ServiceManager {
   private static trackingService: TrackingService | null = null;
   private static emailService: EmailService | null = null;
   private static aiService: AiService | null = null;
+  private static reminderService: ReminderService | null = null;
 
   /**
    * Initialize all service instances.
@@ -29,6 +31,7 @@ export class ServiceManager {
     this.userService = new UserService(db);
     this.trackingService = new TrackingService(db);
     this.aiService = new AiService();
+    this.reminderService = new ReminderService(db);
   }
 
   /**
@@ -104,5 +107,20 @@ export class ServiceManager {
       );
     }
     return this.aiService;
+  }
+
+  /**
+   * Get ReminderService instance.
+   * @returns ReminderService instance
+   * @throws Error if services not initialized
+   * @public
+   */
+  static getReminderService(): ReminderService {
+    if (!this.reminderService) {
+      throw new Error(
+        "Services not initialized. Call ServiceManager.initializeServices() first."
+      );
+    }
+    return this.reminderService;
   }
 }
