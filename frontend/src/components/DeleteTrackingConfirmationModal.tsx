@@ -78,8 +78,8 @@ export function DeleteTrackingConfirmationModal({
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
-                // Use refs to check current state - refs are always up to date
                 // Check refs to prevent closing during deletion or error states
+                // Refs are always current, so this check is reliable
                 if (isDeletingRef.current || errorRef.current) {
                     e.preventDefault();
                     e.stopPropagation();
