@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Message } from './components/Message';
 import { AuthForm } from './components/AuthForm';
 import { UserMenu } from './components/UserMenu';
@@ -11,7 +11,9 @@ import { EditTrackingModal } from './components/EditTrackingModal';
 import { RemindersList } from './components/RemindersList';
 import { useAuth } from './hooks/useAuth';
 import { useTrackings } from './hooks/useTrackings';
+import { useReminders } from './hooks/useReminders';
 import { TrackingData, TrackingType } from './models/Tracking';
+import { ReminderStatus } from './models/Reminder';
 import './App.css';
 
 /**
@@ -52,6 +54,32 @@ function App() {
     updateTrackingState,
     deleteTracking,
   } = useTrackings();
+
+  const { reminders } = useReminders();
+
+  /**
+   * Calculate the number of pending reminders that have reached their scheduled time.
+   * This matches the filtering logic in RemindersList component.
+   * Uses useMemo to ensure recalculation when reminders array changes.
+   * @internal
+   */
+  const pendingRemindersCount = useMemo(() => {
+    const now = new Date();
+    return reminders.filter((reminder) => {
+      // Hide Answered reminders - they should not appear in the reminders table
+      if (reminder.status === ReminderStatus.ANSWERED) {
+        return false;
+      }
+      const scheduledTime = new Date(reminder.scheduled_time);
+      // Hide Snoozed reminders until their scheduled time is reached
+      // When their time is reached, backend will update them to Pending status
+      if (reminder.status === ReminderStatus.SNOOZED) {
+        return scheduledTime <= now;
+      }
+      // For Pending reminders, only count if scheduled time has been reached
+      return reminder.status === ReminderStatus.PENDING && scheduledTime <= now;
+    }).length;
+  }, [reminders]);
 
   /**
    * Update container width and height to match the maximum dimensions between trackings and reminders tables.
@@ -795,6 +823,11 @@ function App() {
               onClick={() => setActiveTab('reminders')}
             >
               Reminders
+              {pendingRemindersCount > 0 && (
+                <span className="tab-badge" aria-label={`${pendingRemindersCount} pending reminders`}>
+                  {pendingRemindersCount}
+                </span>
+              )}
             </button>
           </div>
           <div className="tabs-content">
