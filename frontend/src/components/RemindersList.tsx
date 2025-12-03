@@ -331,7 +331,7 @@ interface RemindersListProps {
  * @param props.onMessage - Optional callback to display success/error messages
  * @public
  */
-export function RemindersList({ onCreate, onMessage }: RemindersListProps = {}) {
+export function RemindersList({ onCreate: _onCreate, onMessage }: RemindersListProps = {}) {
     const { reminders, isLoading, updateReminder, snoozeReminder, deleteReminder, refreshReminders } = useReminders();
     const { trackings } = useTrackings();
     const [editingReminder, setEditingReminder] = useState<ReminderData | null>(null);
@@ -773,24 +773,7 @@ export function RemindersList({ onCreate, onMessage }: RemindersListProps = {}) 
         return (
             <div className="reminders-list">
                 <div className="reminders-empty">
-                    <p>
-                        No reminders yet.{" "}
-                        {onCreate ? (
-                            <>
-                                <button
-                                    type="button"
-                                    className="link-button"
-                                    onClick={onCreate}
-                                    aria-label="Create your first tracking"
-                                >
-                                    Create your first tracking
-                                </button>{" "}
-                                to get started!
-                            </>
-                        ) : (
-                            "Create your first tracking to get started!"
-                        )}
-                    </p>
+                    <p>No pending reminders.</p>
                 </div>
             </div>
         );

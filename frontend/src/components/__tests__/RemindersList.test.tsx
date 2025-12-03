@@ -64,8 +64,7 @@ describe("RemindersList", () => {
     it("should render empty state when no reminders", () => {
         render(<RemindersList />);
 
-        expect(screen.getByText(/no reminders yet/i)).toBeInTheDocument();
-        expect(screen.getByText(/create your first tracking to get started/i)).toBeInTheDocument();
+        expect(screen.getByText(/no pending reminders/i)).toBeInTheDocument();
     });
 
     it("should render empty state with create link when onCreate is provided", async () => {
