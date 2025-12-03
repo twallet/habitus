@@ -12,7 +12,7 @@ import { RemindersList } from './components/RemindersList';
 import { useAuth } from './hooks/useAuth';
 import { useTrackings } from './hooks/useTrackings';
 import { useReminders } from './hooks/useReminders';
-import { TrackingData, TrackingType } from './models/Tracking';
+import { TrackingData, TrackingType, TrackingState } from './models/Tracking';
 import { ReminderStatus } from './models/Reminder';
 import './App.css';
 
@@ -63,6 +63,12 @@ function App() {
    * Uses useMemo to ensure recalculation when reminders array changes.
    * @internal
    */
+  /**
+   * Calculate the number of pending reminders that have reached their scheduled time.
+   * This matches the filtering logic in RemindersList component.
+   * Uses useMemo to ensure recalculation when reminders array changes.
+   * @internal
+   */
   const pendingRemindersCount = useMemo(() => {
     const now = new Date();
     return reminders.filter((reminder) => {
@@ -80,6 +86,15 @@ function App() {
       return reminder.status === ReminderStatus.PENDING && scheduledTime <= now;
     }).length;
   }, [reminders]);
+
+  /**
+   * Calculate the number of running trackings.
+   * Uses useMemo to ensure recalculation when trackings array changes.
+   * @internal
+   */
+  const runningTrackingsCount = useMemo(() => {
+    return trackings.filter((tracking) => tracking.state === TrackingState.RUNNING).length;
+  }, [trackings]);
 
   /**
    * Update container width and height to match the maximum dimensions between trackings and reminders tables.
@@ -816,6 +831,11 @@ function App() {
               onClick={() => setActiveTab('trackings')}
             >
               Trackings
+              {runningTrackingsCount > 0 && (
+                <span className="tab-badge tab-badge-green" aria-label={`${runningTrackingsCount} running trackings`}>
+                  {runningTrackingsCount}
+                </span>
+              )}
             </button>
             <button
               type="button"
