@@ -15,9 +15,9 @@ interface UserMenuProps {
  * Shows circular photo or initials, and dropdown menu on click.
  * @param props - Component props
  * @param props.user - The current user's data
- * @param props.onEditProfile - Callback when Edit Profile is clicked
+ * @param props.onEditProfile - Callback when Account settings is clicked
  * @param props.onLogout - Callback when Logout is clicked
- * @param props.onDeleteUser - Callback when Delete User is clicked
+ * @param props.onDeleteUser - Callback when Delete account is clicked
  * @public
  */
 export function UserMenu({
@@ -87,9 +87,9 @@ export function UserMenu({
                 type="button"
                 className="user-menu-button"
                 onClick={toggleMenu}
-                aria-label="User settings"
+                aria-label="Account settings"
                 aria-expanded={isOpen}
-                title="User settings"
+                title="Account settings"
             >
                 {user.profile_picture_url ? (
                     <img
@@ -109,7 +109,7 @@ export function UserMenu({
                         className="user-menu-item"
                         onClick={() => handleMenuItemClick(onEditProfile)}
                     >
-                        Edit profile
+                        Account settings
                     </button>
                     <button
                         type="button"
@@ -130,7 +130,7 @@ export function UserMenu({
                         className="user-menu-item user-menu-item-danger"
                         onClick={() => handleMenuItemClick(onDeleteUser)}
                     >
-                        Delete user
+                        Delete account
                     </button>
                 </div>
             )}
