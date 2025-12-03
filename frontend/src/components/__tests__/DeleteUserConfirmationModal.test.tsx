@@ -21,7 +21,7 @@ describe('DeleteUserConfirmationModal', () => {
       />
     );
 
-    expect(screen.getByRole('heading', { name: 'Delete Account' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Delete account' })).toBeInTheDocument();
     expect(screen.getByText(/are you sure you want to delete/i)).toBeInTheDocument();
     expect(screen.getByText(/John Doe's/i)).toBeInTheDocument();
   });

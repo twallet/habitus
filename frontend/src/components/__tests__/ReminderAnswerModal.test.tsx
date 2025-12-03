@@ -40,7 +40,7 @@ describe("ReminderAnswerModal", () => {
             />
         );
 
-        expect(screen.getByText("Answer Reminder")).toBeInTheDocument();
+        expect(screen.getByText("Answer reminder")).toBeInTheDocument();
         expect(screen.getByText("Did I exercise?")).toBeInTheDocument();
     });
 

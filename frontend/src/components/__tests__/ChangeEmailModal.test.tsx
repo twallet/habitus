@@ -29,7 +29,7 @@ describe('ChangeEmailModal', () => {
       />
     );
 
-    expect(screen.getByRole('heading', { name: 'Change Email' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Change email' })).toBeInTheDocument();
     expect(screen.getByDisplayValue('john@example.com')).toBeInTheDocument();
     const currentEmailInput = screen.getByDisplayValue('john@example.com');
     expect(currentEmailInput).toBeDisabled();
@@ -272,7 +272,7 @@ describe('ChangeEmailModal', () => {
     });
   });
 
-  it('should disable Change Email button when no email is entered', () => {
+  it('should disable Change email button when no email is entered', () => {
     render(
       <ChangeEmailModal
         user={mockUser}
@@ -285,7 +285,7 @@ describe('ChangeEmailModal', () => {
     expect(submitButton).toBeDisabled();
   });
 
-  it('should disable Change Email button when email is invalid', async () => {
+  it('should disable Change email button when email is invalid', async () => {
     const user = userEvent.setup();
     render(
       <ChangeEmailModal
@@ -302,7 +302,7 @@ describe('ChangeEmailModal', () => {
     expect(submitButton).toBeDisabled();
   });
 
-  it('should disable Change Email button when email is same as current', async () => {
+  it('should disable Change email button when email is same as current', async () => {
     const user = userEvent.setup();
     render(
       <ChangeEmailModal
@@ -319,7 +319,7 @@ describe('ChangeEmailModal', () => {
     expect(submitButton).toBeDisabled();
   });
 
-  it('should enable Change Email button when valid different email is entered', async () => {
+  it('should enable Change email button when valid different email is entered', async () => {
     const user = userEvent.setup();
     render(
       <ChangeEmailModal

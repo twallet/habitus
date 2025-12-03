@@ -28,7 +28,7 @@ describe('DeleteTrackingConfirmationModal', () => {
             />
         );
 
-        expect(screen.getByRole('heading', { name: 'Delete Tracking' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Delete tracking' })).toBeInTheDocument();
         expect(screen.getByText(/are you sure you want to delete the tracking/i)).toBeInTheDocument();
         expect(screen.getByText(/"Did I exercise today\?"/)).toBeInTheDocument();
     });
@@ -227,7 +227,7 @@ describe('DeleteTrackingConfirmationModal', () => {
             />
         );
 
-        expect(screen.getByText(/this tracking will be permanently deleted/i)).toBeInTheDocument();
+        expect(screen.getByText(/this tracking and its data will be permanently deleted/i)).toBeInTheDocument();
         expect(screen.getByText(/this action cannot be undone/i)).toBeInTheDocument();
     });
 

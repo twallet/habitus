@@ -25,7 +25,7 @@ describe('EditProfileModal', () => {
       <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={mockOnSave} />
     );
 
-    expect(screen.getByText('Edit Profile')).toBeInTheDocument();
+    expect(screen.getByText('Edit profile')).toBeInTheDocument();
     expect(screen.getByDisplayValue('John Doe')).toBeInTheDocument();
   });
 
@@ -74,7 +74,7 @@ describe('EditProfileModal', () => {
     await user.clear(nameInput);
     await user.type(nameInput, 'Jane Smith');
 
-    const saveButton = screen.getByRole('button', { name: /save changes/i });
+    const saveButton = screen.getByRole('button', { name: /^save$/i });
     await user.click(saveButton);
 
     await waitFor(() => {
@@ -158,7 +158,7 @@ describe('EditProfileModal', () => {
     const removeButton = screen.getByRole('button', { name: /remove/i });
     await user.click(removeButton);
 
-    const saveButton = screen.getByRole('button', { name: /save changes/i });
+    const saveButton = screen.getByRole('button', { name: /^save$/i });
     await user.click(saveButton);
 
     await waitFor(() => {
@@ -176,7 +176,7 @@ describe('EditProfileModal', () => {
       <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={slowSave} />
     );
 
-    const saveButton = screen.getByRole('button', { name: /save changes/i });
+    const saveButton = screen.getByRole('button', { name: /^save$/i });
     await user.click(saveButton);
 
     expect(screen.getByText(/saving.../i)).toBeInTheDocument();
@@ -196,11 +196,11 @@ describe('EditProfileModal', () => {
 
   //   // Wait for modal to be fully rendered
   //   await waitFor(() => {
-  //     expect(screen.getByText('Edit Profile')).toBeInTheDocument();
+  //     expect(screen.getByText('Edit profile')).toBeInTheDocument();
   //   });
 
   //   // Get the form element
-  //   const form = screen.getByRole('button', { name: /save changes/i }).closest('form') as HTMLFormElement;
+  //   const form = screen.getByRole('button', { name: /^save$/i }).closest('form') as HTMLFormElement;
   //   expect(form).toBeTruthy();
 
   //   // Verify onClose hasn't been called before submitting
@@ -222,14 +222,14 @@ describe('EditProfileModal', () => {
   //     // Verify error message is visible
   //     expect(screen.getByText(/save failed/i)).toBeInTheDocument();
   //     // Verify modal is still open (title should still be visible)
-  //     expect(screen.getByText('Edit Profile')).toBeInTheDocument();
+  //     expect(screen.getByText('Edit profile')).toBeInTheDocument();
   //   });
 
   //   // Give a small delay to ensure all async operations and state updates complete
   //   await new Promise(resolve => setTimeout(resolve, 200));
 
   //   // Verify modal is still open (title should still be visible)
-  //   expect(screen.getByText('Edit Profile')).toBeInTheDocument();
+  //   expect(screen.getByText('Edit profile')).toBeInTheDocument();
   //   // Verify error message is still visible
   //   expect(screen.getByText(/save failed/i)).toBeInTheDocument();
 
@@ -249,7 +249,7 @@ describe('EditProfileModal', () => {
       <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={errorSave} />
     );
 
-    const saveButton = screen.getByRole('button', { name: /save changes/i });
+    const saveButton = screen.getByRole('button', { name: /^save$/i });
     await user.click(saveButton);
 
     await waitFor(() => {
@@ -274,7 +274,7 @@ describe('EditProfileModal', () => {
       <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={slowSave} />
     );
 
-    const saveButton = screen.getByRole('button', { name: /save changes/i });
+    const saveButton = screen.getByRole('button', { name: /^save$/i });
     await user.click(saveButton);
     await user.click(saveButton);
 

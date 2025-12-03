@@ -213,11 +213,11 @@ describe('App', () => {
     });
 
     // Verify user menu is present
-    const userMenuButton = screen.getByRole('button', { name: /user settings/i });
+    const userMenuButton = screen.getByRole('button', { name: /account settings/i });
     expect(userMenuButton).toBeInTheDocument();
 
     // Verify FAB button is present
-    const fabButton = screen.getByRole('button', { name: /add/i });
+    const fabButton = screen.getByRole('button', { name: /create tracking/i });
     expect(fabButton).toBeInTheDocument();
   });
 
@@ -494,7 +494,7 @@ describe('App', () => {
     });
 
     // Open user menu
-    const userMenuButton = screen.getByRole('button', { name: /user settings/i });
+    const userMenuButton = screen.getByRole('button', { name: /account settings/i });
     await userEvent.click(userMenuButton);
 
     // Click logout from menu
@@ -725,10 +725,10 @@ describe('App', () => {
       expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
-    const userMenuButton = screen.getByRole('button', { name: /user settings/i });
+    const userMenuButton = screen.getByRole('button', { name: /account settings/i });
     await userEvent.click(userMenuButton);
 
-    const editProfileMenuItem = screen.getByRole('button', { name: /edit profile/i });
+    const editProfileMenuItem = screen.getAllByRole('button', { name: /account settings/i })[1];
     await userEvent.click(editProfileMenuItem);
 
     await waitFor(() => {
@@ -765,7 +765,7 @@ describe('App', () => {
       expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
-    const userMenuButton = screen.getByRole('button', { name: /user settings/i });
+    const userMenuButton = screen.getByRole('button', { name: /account settings/i });
     await userEvent.click(userMenuButton);
 
     const changeEmailMenuItem = screen.getByRole('button', { name: /change email/i });
@@ -812,10 +812,10 @@ describe('App', () => {
       expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
-    const userMenuButton = screen.getByRole('button', { name: /user settings/i });
+    const userMenuButton = screen.getByRole('button', { name: /account settings/i });
     await userEvent.click(userMenuButton);
 
-    const editProfileMenuItem = screen.getByRole('button', { name: /edit profile/i });
+    const editProfileMenuItem = screen.getAllByRole('button', { name: /account settings/i })[1];
     await userEvent.click(editProfileMenuItem);
 
     await waitFor(() => {
@@ -864,10 +864,10 @@ describe('App', () => {
       expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
-    const userMenuButton = screen.getByRole('button', { name: /user settings/i });
+    const userMenuButton = screen.getByRole('button', { name: /account settings/i });
     await userEvent.click(userMenuButton);
 
-    const deleteUserMenuItem = screen.getByRole('button', { name: /delete user/i });
+    const deleteUserMenuItem = screen.getByRole('button', { name: /delete account/i });
     await userEvent.click(deleteUserMenuItem);
 
     await waitFor(() => {
@@ -922,7 +922,7 @@ describe('App', () => {
       expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
-    const fabButton = screen.getByRole('button', { name: /add/i });
+    const fabButton = screen.getByRole('button', { name: /create tracking/i });
     await userEvent.click(fabButton);
 
     // Wait for the form input to appear (more reliable than waiting for text)
@@ -1120,10 +1120,10 @@ describe('App', () => {
       expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
-    const userMenuButton = screen.getByRole('button', { name: /user settings/i });
+    const userMenuButton = screen.getByRole('button', { name: /account settings/i });
     await userEvent.click(userMenuButton);
 
-    const editProfileMenuItem = screen.getByRole('button', { name: /edit profile/i });
+    const editProfileMenuItem = screen.getAllByRole('button', { name: /account settings/i })[1];
     await userEvent.click(editProfileMenuItem);
 
     await waitFor(() => {
@@ -1176,7 +1176,7 @@ describe('App', () => {
       expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
-    const userMenuButton = screen.getByRole('button', { name: /user settings/i });
+    const userMenuButton = screen.getByRole('button', { name: /account settings/i });
     await userEvent.click(userMenuButton);
 
     const changeEmailMenuItem = screen.getByRole('button', { name: /change email/i });
@@ -1229,10 +1229,10 @@ describe('App', () => {
       expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
-    const userMenuButton = screen.getByRole('button', { name: /user settings/i });
+    const userMenuButton = screen.getByRole('button', { name: /account settings/i });
     await userEvent.click(userMenuButton);
 
-    const deleteUserMenuItem = screen.getByRole('button', { name: /delete user/i });
+    const deleteUserMenuItem = screen.getByRole('button', { name: /delete account/i });
     await userEvent.click(deleteUserMenuItem);
 
     await waitFor(() => {
@@ -1284,10 +1284,10 @@ describe('App', () => {
       expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
-    const userMenuButton = screen.getByRole('button', { name: /user settings/i });
+    const userMenuButton = screen.getByRole('button', { name: /account settings/i });
     await userEvent.click(userMenuButton);
 
-    const deleteUserMenuItem = screen.getByRole('button', { name: /delete user/i });
+    const deleteUserMenuItem = screen.getByRole('button', { name: /delete account/i });
     await userEvent.click(deleteUserMenuItem);
 
     await waitFor(() => {
@@ -1353,7 +1353,7 @@ describe('App', () => {
       expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
-    const fabButton = screen.getByRole('button', { name: /add/i });
+    const fabButton = screen.getByRole('button', { name: /create tracking/i });
     await userEvent.click(fabButton);
 
     // Wait for the form to be fully rendered (all required fields present)

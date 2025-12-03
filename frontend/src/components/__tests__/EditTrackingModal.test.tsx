@@ -38,7 +38,7 @@ describe('EditTrackingModal', () => {
       />
     );
 
-    expect(screen.getByText('Edit Tracking')).toBeInTheDocument();
+    expect(screen.getByText('Edit tracking')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Did I exercise today?')).toBeInTheDocument();
   });
 
@@ -144,7 +144,7 @@ describe('EditTrackingModal', () => {
     const questionInput = screen.getByRole('textbox', { name: /^question \*/i });
     fireEvent.change(questionInput, { target: { value: 'x'.repeat(101) } });
 
-    const saveButton = screen.getByRole('button', { name: /save changes/i });
+    const saveButton = screen.getByRole('button', { name: /^save$/i });
     await user.click(saveButton);
 
     await waitFor(() => {
@@ -167,7 +167,7 @@ describe('EditTrackingModal', () => {
     const questionInput = screen.getByRole('textbox', { name: /^question \*/i });
     fireEvent.change(questionInput, { target: { value: 'New question?' } });
 
-    const saveButton = screen.getByRole('button', { name: /save changes/i });
+    const saveButton = screen.getByRole('button', { name: /^save$/i });
     await user.click(saveButton);
 
     await waitFor(() => {
@@ -197,7 +197,7 @@ describe('EditTrackingModal', () => {
     const typeSelect = screen.getByRole('combobox', { name: /^type \*/i });
     await user.selectOptions(typeSelect, TrackingType.REGISTER);
 
-    const saveButton = screen.getByRole('button', { name: /save changes/i });
+    const saveButton = screen.getByRole('button', { name: /^save$/i });
     await user.click(saveButton);
 
     await waitFor(() => {
@@ -227,7 +227,7 @@ describe('EditTrackingModal', () => {
       />
     );
 
-    const saveButton = screen.getByRole('button', { name: /save changes/i });
+    const saveButton = screen.getByRole('button', { name: /^save$/i });
     await user.click(saveButton);
 
     expect(screen.getByText(/saving.../i)).toBeInTheDocument();
@@ -257,7 +257,7 @@ describe('EditTrackingModal', () => {
     // Get initial call count before clicking save
     const initialCallCount = mockOnClose.mock.calls.length;
 
-    const saveButton = screen.getByRole('button', { name: /save changes/i });
+    const saveButton = screen.getByRole('button', { name: /^save$/i });
     await user.click(saveButton);
 
     // Wait for error to appear
@@ -266,7 +266,7 @@ describe('EditTrackingModal', () => {
     }, { timeout: 2000 });
 
     // Verify modal is still open (title should still be visible)
-    expect(screen.getByText('Edit Tracking')).toBeInTheDocument();
+    expect(screen.getByText('Edit tracking')).toBeInTheDocument();
     expect(screen.getByText(/save failed/i)).toBeInTheDocument();
 
     // Wait a bit more to ensure onClose is not called after error is shown
@@ -394,7 +394,7 @@ describe('EditTrackingModal', () => {
     const iconInput = screen.getByRole('textbox', { name: /^icon/i });
     await user.clear(iconInput);
 
-    const saveButton = screen.getByRole('button', { name: /save changes/i });
+    const saveButton = screen.getByRole('button', { name: /^save$/i });
     await user.click(saveButton);
 
     await waitFor(() => {
@@ -429,7 +429,7 @@ describe('EditTrackingModal', () => {
     await user.clear(iconInput);
     await user.type(iconInput, '🏋️');
 
-    const saveButton = screen.getByRole('button', { name: /save changes/i });
+    const saveButton = screen.getByRole('button', { name: /^save$/i });
     await user.click(saveButton);
 
     await waitFor(() => {
@@ -460,7 +460,7 @@ describe('EditTrackingModal', () => {
     );
 
     // Submit button should be disabled when no schedules
-    const saveButton = screen.getByRole('button', { name: /save changes/i }) as HTMLButtonElement;
+    const saveButton = screen.getByRole('button', { name: /^save$/i }) as HTMLButtonElement;
     expect(saveButton.disabled).toBe(true);
 
     // Try to submit form directly

@@ -198,7 +198,7 @@ describe("RemindersList", () => {
         if (answerButton) {
             await userEvent.click(answerButton);
             await waitFor(() => {
-                expect(screen.getByText("Answer Reminder")).toBeInTheDocument();
+                expect(screen.getByText("Answer reminder")).toBeInTheDocument();
             });
         }
     });
@@ -240,7 +240,7 @@ describe("RemindersList", () => {
         if (skipButton) {
             await userEvent.click(skipButton);
             await waitFor(() => {
-                expect(screen.getByText("Skip Reminder")).toBeInTheDocument();
+                expect(screen.getByText("Skip reminder")).toBeInTheDocument();
             });
         }
     });
@@ -943,7 +943,7 @@ describe("RemindersList", () => {
 
         // Wait for modal and try to save (this will fail)
         await waitFor(() => {
-            expect(screen.getByText("Answer Reminder")).toBeInTheDocument();
+            expect(screen.getByText("Answer reminder")).toBeInTheDocument();
         });
 
         consoleErrorSpy.mockRestore();
@@ -1041,7 +1041,7 @@ describe("RemindersList", () => {
         }
 
         await waitFor(() => {
-            expect(screen.getByText("Skip Reminder")).toBeInTheDocument();
+            expect(screen.getByText("Skip reminder")).toBeInTheDocument();
         });
 
         // Confirm skip
@@ -1158,7 +1158,7 @@ describe("RemindersList", () => {
         }
 
         await waitFor(() => {
-            expect(screen.getByText("Skip Reminder")).toBeInTheDocument();
+            expect(screen.getByText("Skip reminder")).toBeInTheDocument();
         });
 
         // Click Cancel
@@ -1166,7 +1166,7 @@ describe("RemindersList", () => {
         await userEvent.click(cancelButton);
 
         await waitFor(() => {
-            expect(screen.queryByText("Skip Reminder")).not.toBeInTheDocument();
+            expect(screen.queryByText("Skip reminder")).not.toBeInTheDocument();
         });
     });
 });
