@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { TrackingData, TrackingType, TrackingState, DaysPattern, DaysPatternType } from "../models/Tracking";
 import { useTrackings } from "../hooks/useTrackings";
+import { useReminders } from "../hooks/useReminders";
+import { ReminderStatus } from "../models/Reminder";
 import { DeleteTrackingConfirmationModal } from "./DeleteTrackingConfirmationModal";
 import "./TrackingsList.css";
 
@@ -239,6 +241,21 @@ class TrackingFormatter {
             return text;
         }
         return text.substring(0, maxLength) + "...";
+    }
+
+    /**
+     * Format next reminder time for tooltip display.
+     * @param nextReminderTime - ISO datetime string or null
+     * @returns Formatted reminder time string
+     */
+    static formatNextReminderTime(nextReminderTime: string | null): string {
+        if (!nextReminderTime) {
+            return "No upcoming reminder";
+        }
+        const date = new Date(nextReminderTime);
+        const dateStr = date.toLocaleDateString();
+        const timeStr = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        return `Next reminder: ${dateStr} ${timeStr}`;
     }
 }
 
@@ -603,6 +620,7 @@ export function TrackingsList({
     onDelete,
 }: TrackingsListProps) {
     const { trackings: hookTrackings, isLoading: hookIsLoading, updateTrackingState: hookUpdateTrackingState, deleteTracking: hookDeleteTracking, createTracking: hookCreateTracking } = useTrackings();
+    const { reminders } = useReminders();
     const [trackingToDelete, setTrackingToDelete] = useState<TrackingData | null>(null);
     const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
     const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right: number } | null>(null);
@@ -620,6 +638,27 @@ export function TrackingsList({
     const [sortColumn, setSortColumn] = useState<string | null>(null);
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>(null);
     const [showFilters, setShowFilters] = useState<boolean>(false);
+
+    /**
+     * Get the next reminder time for a tracking.
+     * @param trackingId - Tracking ID
+     * @returns Next reminder scheduled time (ISO string) or null if not found
+     * @internal
+     */
+    const getNextReminderTime = (trackingId: number): string | null => {
+        const now = new Date();
+        const upcomingReminders = reminders
+            .filter((reminder) =>
+                reminder.tracking_id === trackingId &&
+                (reminder.status === ReminderStatus.PENDING || reminder.status === ReminderStatus.SNOOZED) &&
+                new Date(reminder.scheduled_time) > now
+            )
+            .sort((a, b) =>
+                new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime()
+            );
+
+        return upcomingReminders.length > 0 ? upcomingReminders[0].scheduled_time : null;
+    };
 
     // Expose createTracking function to parent via callback
     useEffect(() => {
@@ -1155,7 +1194,10 @@ export function TrackingsList({
                                     <td className="cell-times" title={TrackingFormatter.formatAllTimes(tracking.schedules)}>
                                         {TrackingFormatter.formatTimesDisplay(tracking.schedules)}
                                     </td>
-                                    <td className="cell-frequency" title={TrackingFormatter.formatFullFrequency(tracking.days)}>
+                                    <td
+                                        className="cell-frequency"
+                                        title={TrackingFormatter.formatNextReminderTime(getNextReminderTime(tracking.id))}
+                                    >
                                         {TrackingFormatter.formatFrequency(tracking.days)}
                                     </td>
                                     <td className="cell-status">
