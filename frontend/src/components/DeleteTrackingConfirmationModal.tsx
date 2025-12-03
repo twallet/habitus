@@ -76,7 +76,7 @@ export function DeleteTrackingConfirmationModal({
         <div className="modal-overlay">
             <div className="modal-content delete-modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
-                    <h2>Delete Tracking</h2>
+                    <h2>Delete tracking</h2>
                     <button
                         type="button"
                         className="modal-close"
@@ -145,7 +145,7 @@ export function DeleteTrackingConfirmationModal({
                             className="btn-danger"
                             disabled={!isConfirmEnabled || isDeleting}
                         >
-                            {isDeleting ? 'Deleting...' : 'Delete Tracking'}
+                            {isDeleting ? 'Deleting...' : 'Delete tracking'}
                         </button>
                     </div>
                 </form>

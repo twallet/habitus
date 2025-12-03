@@ -58,7 +58,7 @@ export function DeleteUserConfirmationModal({
         <div className="modal-overlay">
             <div className="modal-content delete-modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
-                    <h2>Delete Account</h2>
+                    <h2>Delete account</h2>
                     <button
                         type="button"
                         className="modal-close"
@@ -127,7 +127,7 @@ export function DeleteUserConfirmationModal({
                             className="btn-danger"
                             disabled={!isConfirmEnabled || isDeleting}
                         >
-                            {isDeleting ? 'Deleting...' : 'Delete Account'}
+                            {isDeleting ? 'Deleting...' : 'Delete account'}
                         </button>
                     </div>
                 </form>

@@ -1105,7 +1105,7 @@ export function RemindersList({ onCreate: _onCreate, onMessage }: RemindersListP
             {reminderToDelete && (
                 <div className="modal-overlay" onClick={() => setReminderToDelete(null)}>
                     <div className="modal-content delete-confirmation" onClick={(e) => e.stopPropagation()}>
-                        <h3>Skip Reminder</h3>
+                        <h3>Skip reminder</h3>
                         <p>The current reminder will be deleted and the next one will be created for this tracking.</p>
                         <div className="modal-actions">
                             <button

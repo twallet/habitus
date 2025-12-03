@@ -124,7 +124,7 @@ export function EditProfileModal({
         <div className="modal-overlay">
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
-                    <h2>Edit Profile</h2>
+                    <h2>Edit profile</h2>
                     <button
                         type="button"
                         className="modal-close"
@@ -182,11 +182,11 @@ export function EditProfileModal({
                     <div className="form-group">
                         <div className="form-label-row">
                             <label htmlFor="edit-profile-picture">
-                                Profile Picture{" "}
+                                Profile picture{" "}
                                 <button
                                     type="button"
                                     className="field-help"
-                                    aria-label="Profile Picture help"
+                                    aria-label="Profile picture help"
                                     title="Upload an image file (max 5MB). JPG, PNG, or GIF formats are supported."
                                 >
                                     ?
@@ -210,7 +210,7 @@ export function EditProfileModal({
                                 disabled={isSubmitting}
                                 className="file-input-button"
                             >
-                                Choose File
+                                Choose file
                             </button>
                             <span className="file-input-text">
                                 {profilePicture ? profilePicture.name : user.profile_picture_url ? "Current image" : "No file chosen"}
@@ -249,7 +249,7 @@ export function EditProfileModal({
                             className="btn-primary"
                             disabled={isSubmitting}
                         >
-                            {isSubmitting ? 'Saving...' : 'Save Changes'}
+                            {isSubmitting ? 'Saving...' : 'Save'}
                         </button>
                     </div>
                 </form>

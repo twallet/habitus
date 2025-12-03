@@ -107,7 +107,7 @@ export function ChangeEmailModal({
         <div className="modal-overlay">
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
-                    <h2>Change Email</h2>
+                    <h2>Change email</h2>
                     <button
                         type="button"
                         className="modal-close"
@@ -155,11 +155,11 @@ export function ChangeEmailModal({
                         <div className="form-group">
                             <div className="form-label-row">
                                 <label htmlFor="current-email">
-                                    Current Email{" "}
+                                    Current email{" "}
                                     <button
                                         type="button"
                                         className="field-help"
-                                        aria-label="Current Email help"
+                                        aria-label="Current email help"
                                         title="Your current email address (read-only)"
                                     >
                                         ?
@@ -179,11 +179,11 @@ export function ChangeEmailModal({
                         <div className="form-group">
                             <div className="form-label-row">
                                 <label htmlFor="new-email">
-                                    New Email <span className="required-asterisk">*</span>{" "}
+                                    New email <span className="required-asterisk">*</span>{" "}
                                     <button
                                         type="button"
                                         className="field-help"
-                                        aria-label="New Email help"
+                                        aria-label="New email help"
                                         title="Enter a valid email address. A verification link will be sent to this address."
                                     >
                                         ?
@@ -217,7 +217,7 @@ export function ChangeEmailModal({
                                 className="btn-primary"
                                 disabled={!isButtonEnabled()}
                             >
-                                {isSubmitting ? 'Sending...' : 'Change Email'}
+                                {isSubmitting ? 'Sending...' : 'Change email'}
                             </button>
                         </div>
                     </form>

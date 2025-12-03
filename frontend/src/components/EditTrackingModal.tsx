@@ -272,7 +272,7 @@ export function EditTrackingModal({
         <div className="modal-overlay">
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
-                    <h2>Edit Tracking</h2>
+                    <h2>Edit tracking</h2>
                     <button
                         type="button"
                         className="modal-close"
@@ -532,7 +532,7 @@ export function EditTrackingModal({
                                 schedules.length === 0
                             }
                         >
-                            {isSubmitting ? "Saving..." : "Save Changes"}
+                            {isSubmitting ? "Saving..." : "Save"}
                         </button>
                     </div>
                 </form>

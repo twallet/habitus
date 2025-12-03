@@ -72,7 +72,7 @@ export function ReminderAnswerModal({
         <div className="modal-overlay">
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
-                    <h2>Answer Reminder</h2>
+                    <h2>Answer reminder</h2>
                     <button
                         type="button"
                         className="modal-close"
