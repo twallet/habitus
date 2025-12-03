@@ -82,7 +82,9 @@ describe("useUsers", () => {
 
     expect(newUser!.name).toBe("New User");
     expect(newUser!.id).toBe(1);
-    expect(result.current.users).toHaveLength(1);
+    await waitFor(() => {
+      expect(result.current.users).toHaveLength(1);
+    });
     expect(result.current.users[0].name).toBe("New User");
     expect(result.current.users[0].id).toBe(1);
   });
@@ -116,7 +118,9 @@ describe("useUsers", () => {
         body: JSON.stringify({ name: "Test User" }),
       })
     );
-    expect(result.current.users).toHaveLength(1);
+    await waitFor(() => {
+      expect(result.current.users).toHaveLength(1);
+    });
     expect(result.current.users[0].name).toBe("Test User");
   });
 
@@ -149,7 +153,9 @@ describe("useUsers", () => {
     await result.current.createUser("User 2");
     await result.current.createUser("User 3");
 
-    expect(result.current.users).toHaveLength(3);
+    await waitFor(() => {
+      expect(result.current.users).toHaveLength(3);
+    });
     expect(result.current.users[0].name).toBe("User 1");
     expect(result.current.users[1].name).toBe("User 2");
     expect(result.current.users[2].name).toBe("User 3");

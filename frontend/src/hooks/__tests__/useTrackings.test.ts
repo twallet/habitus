@@ -127,7 +127,9 @@ describe("useTrackings", () => {
 
     expect(newTracking!.question).toBe("Did I exercise?");
     expect(newTracking!.type).toBe(TrackingType.TRUE_FALSE);
-    expect(result.current.trackings).toHaveLength(1);
+    await waitFor(() => {
+      expect(result.current.trackings).toHaveLength(1);
+    });
     expect(result.current.trackings[0].question).toBe("Did I exercise?");
   });
 
@@ -166,7 +168,9 @@ describe("useTrackings", () => {
 
     await result.current.updateTracking(1, defaultDays, "New Question");
 
-    expect(result.current.trackings[0].question).toBe("New Question");
+    await waitFor(() => {
+      expect(result.current.trackings[0].question).toBe("New Question");
+    });
     expect(global.fetch).toHaveBeenCalledWith(`${API_ENDPOINTS.trackings}/1`, {
       method: "PUT",
       headers: {
@@ -206,7 +210,9 @@ describe("useTrackings", () => {
 
     await result.current.deleteTracking(1);
 
-    expect(result.current.trackings).toHaveLength(0);
+    await waitFor(() => {
+      expect(result.current.trackings).toHaveLength(0);
+    });
     expect(global.fetch).toHaveBeenCalledWith(`${API_ENDPOINTS.trackings}/1`, {
       method: "DELETE",
       headers: {

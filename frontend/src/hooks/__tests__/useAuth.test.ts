@@ -516,7 +516,9 @@ describe("useAuth", () => {
       const user = await result.current.verifyMagicLink("magic-token");
       expect(user).toEqual(mockUser);
 
-      expect(result.current.user).toEqual(mockUser);
+      await waitFor(() => {
+        expect(result.current.user).toEqual(mockUser);
+      });
       expect(result.current.token).toBe("new-token");
       expect(result.current.isAuthenticated).toBe(true);
       expect(localStorage.getItem(TOKEN_KEY)).toBe("new-token");
@@ -598,7 +600,9 @@ describe("useAuth", () => {
 
       result.current.logout();
 
-      expect(result.current.user).toBeNull();
+      await waitFor(() => {
+        expect(result.current.user).toBeNull();
+      });
       expect(result.current.token).toBeNull();
       expect(result.current.isAuthenticated).toBe(false);
       expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
@@ -685,7 +689,9 @@ describe("useAuth", () => {
 
       await result.current.setTokenFromCallback("callback-token");
 
-      expect(result.current.user).toEqual(mockUser);
+      await waitFor(() => {
+        expect(result.current.user).toEqual(mockUser);
+      });
       expect(result.current.token).toBe("callback-token");
       expect(result.current.isAuthenticated).toBe(true);
       expect(localStorage.getItem(TOKEN_KEY)).toBe("callback-token");
@@ -996,7 +1002,9 @@ describe("useAuth", () => {
       const user = await result.current.updateProfile("John Updated", null);
       expect(user).toEqual(updatedUser);
 
-      expect(result.current.user).toEqual(updatedUser);
+      await waitFor(() => {
+        expect(result.current.user).toEqual(updatedUser);
+      });
     });
 
     it("should update profile with profile picture", async () => {
@@ -1063,7 +1071,9 @@ describe("useAuth", () => {
       const user = await result.current.updateProfile("John Doe", mockFile);
       expect(user).toEqual(updatedUser);
 
-      expect(result.current.user).toEqual(updatedUser);
+      await waitFor(() => {
+        expect(result.current.user).toEqual(updatedUser);
+      });
     });
 
     it("should throw error when not authenticated", async () => {
@@ -1216,7 +1226,9 @@ describe("useAuth", () => {
 
       await result.current.deleteUser();
 
-      expect(result.current.user).toBeNull();
+      await waitFor(() => {
+        expect(result.current.user).toBeNull();
+      });
       expect(result.current.token).toBeNull();
       expect(result.current.isAuthenticated).toBe(false);
       expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
