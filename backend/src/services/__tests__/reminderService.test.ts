@@ -161,8 +161,8 @@ describe("ReminderService", () => {
 
   describe("getRemindersByUserId", () => {
     it("should get all reminders for a user", async () => {
-      const scheduledTime1 = new Date().toISOString();
-      const scheduledTime2 = new Date(Date.now() + 3600000).toISOString();
+      const scheduledTime1 = new Date(Date.now() - 3600000).toISOString(); // 1 hour ago
+      const scheduledTime2 = new Date(Date.now() - 1800000).toISOString(); // 30 minutes ago
 
       await reminderService.createReminder(
         testTrackingId,
@@ -220,12 +220,19 @@ describe("ReminderService", () => {
         [ReminderStatus.SNOOZED, futureTime, created.id]
       );
 
-      // Fetch reminders - should not update non-expired snoozed reminder
+      // Fetch reminders - future reminders are filtered out, so it won't appear in the list
       const reminders = await reminderService.getRemindersByUserId(testUserId);
-
       const reminder = reminders.find((r) => r.id === created.id);
-      expect(reminder).not.toBeUndefined();
-      expect(reminder!.status).toBe(ReminderStatus.SNOOZED);
+      expect(reminder).toBeUndefined(); // Future reminders are filtered out
+
+      // Verify the reminder still exists in the database with SNOOZED status
+      const reminderFromDb = await Reminder.loadById(
+        created.id,
+        testUserId,
+        testDb
+      );
+      expect(reminderFromDb).not.toBeNull();
+      expect(reminderFromDb!.status).toBe(ReminderStatus.SNOOZED);
     });
   });
 
@@ -344,7 +351,7 @@ describe("ReminderService", () => {
 
   describe("deleteReminder", () => {
     it("should delete reminder and create next one", async () => {
-      const scheduledTime = new Date().toISOString();
+      const scheduledTime = new Date(Date.now() - 3600000).toISOString(); // 1 hour ago
       const created = await reminderService.createReminder(
         testTrackingId,
         testUserId,
@@ -359,10 +366,14 @@ describe("ReminderService", () => {
       );
       expect(deleted).toBeNull();
 
-      // Check that a new reminder was created
-      const reminders = await reminderService.getRemindersByUserId(testUserId);
-      expect(reminders.length).toBe(1);
-      expect(reminders[0].id).not.toBe(created.id);
+      // Check that a new reminder was created (may be in future, so check database directly)
+      const newReminder = await Reminder.loadByTrackingId(
+        testTrackingId,
+        testUserId,
+        testDb
+      );
+      expect(newReminder).not.toBeNull();
+      expect(newReminder!.id).not.toBe(created.id);
     });
 
     it("should throw error if reminder not found", async () => {
@@ -448,7 +459,7 @@ describe("ReminderService", () => {
     });
 
     it("should exclude deleted time when creating next reminder", async () => {
-      const scheduledTime = new Date().toISOString();
+      const scheduledTime = new Date(Date.now() - 3600000).toISOString(); // 1 hour ago
       const created = await reminderService.createReminder(
         testTrackingId,
         testUserId,
@@ -458,9 +469,14 @@ describe("ReminderService", () => {
       await reminderService.deleteReminder(created.id, testUserId);
 
       // The next reminder should not be at the same time as the deleted one
-      const reminders = await reminderService.getRemindersByUserId(testUserId);
-      expect(reminders.length).toBe(1);
-      expect(reminders[0].scheduled_time).not.toBe(scheduledTime);
+      // Check database directly since the new reminder might be in the future
+      const newReminder = await Reminder.loadByTrackingId(
+        testTrackingId,
+        testUserId,
+        testDb
+      );
+      expect(newReminder).not.toBeNull();
+      expect(newReminder!.scheduled_time).not.toBe(scheduledTime);
     });
 
     it("should delete snoozed reminder and create new one when tracking's scheduled time arrives", async () => {
@@ -506,7 +522,9 @@ describe("ReminderService", () => {
 
     it("should keep Pending reminder and not create new one", async () => {
       // Create a Pending reminder for the tracking
-      const pendingTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // Tomorrow
+      const pendingTime = new Date(
+        Date.now() + 24 * 60 * 60 * 1000
+      ).toISOString(); // Tomorrow
       const pendingReminder = new Reminder({
         id: 0,
         tracking_id: testTrackingId,
