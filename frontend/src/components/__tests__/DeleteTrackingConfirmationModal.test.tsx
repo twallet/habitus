@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DeleteTrackingConfirmationModal } from '../DeleteTrackingConfirmationModal';
 import { TrackingData, TrackingType } from '../../models/Tracking';
@@ -312,11 +312,15 @@ describe('DeleteTrackingConfirmationModal', () => {
             expect(screen.getByText(/deleting.../i)).toBeInTheDocument();
         });
 
-        // Small delay to ensure refs are updated and event handlers are set up
-        await new Promise(resolve => setTimeout(resolve, 0));
+        // Wait for React to flush all updates and ensure refs are synchronized
+        await act(async () => {
+            await new Promise(resolve => setTimeout(resolve, 50));
+        });
 
-        // Try to close with Escape while deleting
-        await user.keyboard('{Escape}');
+        // Try to close with Escape while deleting - use fireEvent to ensure it happens after state update
+        act(() => {
+            fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' });
+        });
 
         // Modal should still be open
         expect(screen.getByRole('heading', { name: /delete tracking/i })).toBeInTheDocument();
