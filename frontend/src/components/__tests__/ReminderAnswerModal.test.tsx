@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ReminderAnswerModal } from "../ReminderAnswerModal";
 import { ReminderData, ReminderStatus } from "../../models/Reminder";
