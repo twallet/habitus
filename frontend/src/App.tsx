@@ -76,38 +76,28 @@ function App() {
           }
         }
         // Measure entire view height (including filters, empty states, etc.)
-        // Temporarily make it visible if hidden to get accurate measurement
+        // Temporarily show the view if hidden to get accurate measurement
         const view = trackingsViewRef.current;
-        const wasHidden = view.style.visibility === 'hidden' || view.style.display === 'none';
-        const originalStyles = {
-          display: view.style.display,
-          visibility: view.style.visibility,
-          position: view.style.position,
-          left: view.style.left,
-          top: view.style.top,
-        };
-
+        const wasHidden = view.style.display === 'none';
         if (wasHidden) {
           view.style.display = 'block';
           view.style.visibility = 'hidden';
           view.style.position = 'absolute';
           view.style.left = '-9999px';
-          view.style.top = '0';
+          // Force a reflow to ensure measurement is accurate
+          void view.offsetHeight;
         }
-
-        // Use scrollHeight for more accurate height measurement
-        const viewHeight = view.scrollHeight || view.getBoundingClientRect().height;
+        // Use offsetHeight which includes padding and borders, or scrollHeight for content
+        const viewHeight = Math.max(view.offsetHeight, view.scrollHeight);
         if (viewHeight > 0) {
           maxHeight = Math.max(maxHeight, viewHeight);
         }
-
-        // Restore original styles
+        // Restore original state
         if (wasHidden) {
-          view.style.display = originalStyles.display;
-          view.style.visibility = originalStyles.visibility;
-          view.style.position = originalStyles.position;
-          view.style.left = originalStyles.left;
-          view.style.top = originalStyles.top;
+          view.style.display = 'none';
+          view.style.visibility = '';
+          view.style.position = '';
+          view.style.left = '';
         }
       }
 
@@ -121,38 +111,28 @@ function App() {
           }
         }
         // Measure entire view height (including filters, empty states, etc.)
-        // Temporarily make it visible if hidden to get accurate measurement
+        // Temporarily show the view if hidden to get accurate measurement
         const view = remindersViewRef.current;
-        const wasHidden = view.style.visibility === 'hidden' || view.style.display === 'none';
-        const originalStyles = {
-          display: view.style.display,
-          visibility: view.style.visibility,
-          position: view.style.position,
-          left: view.style.left,
-          top: view.style.top,
-        };
-
+        const wasHidden = view.style.display === 'none';
         if (wasHidden) {
           view.style.display = 'block';
           view.style.visibility = 'hidden';
           view.style.position = 'absolute';
           view.style.left = '-9999px';
-          view.style.top = '0';
+          // Force a reflow to ensure measurement is accurate
+          void view.offsetHeight;
         }
-
-        // Use scrollHeight for more accurate height measurement
-        const viewHeight = view.scrollHeight || view.getBoundingClientRect().height;
+        // Use offsetHeight which includes padding and borders, or scrollHeight for content
+        const viewHeight = Math.max(view.offsetHeight, view.scrollHeight);
         if (viewHeight > 0) {
           maxHeight = Math.max(maxHeight, viewHeight);
         }
-
-        // Restore original styles
+        // Restore original state
         if (wasHidden) {
-          view.style.display = originalStyles.display;
-          view.style.visibility = originalStyles.visibility;
-          view.style.position = originalStyles.position;
-          view.style.left = originalStyles.left;
-          view.style.top = originalStyles.top;
+          view.style.display = 'none';
+          view.style.visibility = '';
+          view.style.position = '';
+          view.style.left = '';
         }
       }
 
@@ -687,11 +667,7 @@ function App() {
               className="trackings-view"
               ref={trackingsViewRef}
               style={{
-                display: activeTab === 'trackings' ? 'block' : 'block',
-                visibility: activeTab === 'trackings' ? 'visible' : 'hidden',
-                position: activeTab === 'trackings' ? 'static' : 'absolute',
-                left: activeTab === 'trackings' ? 'auto' : '-9999px',
-                top: activeTab === 'trackings' ? 'auto' : '0',
+                display: activeTab === 'trackings' ? 'block' : 'none',
               }}
             >
               <TrackingsList
@@ -713,11 +689,7 @@ function App() {
               className="reminders-view"
               ref={remindersViewRef}
               style={{
-                display: activeTab === 'reminders' ? 'block' : 'block',
-                visibility: activeTab === 'reminders' ? 'visible' : 'hidden',
-                position: activeTab === 'reminders' ? 'static' : 'absolute',
-                left: activeTab === 'reminders' ? 'auto' : '-9999px',
-                top: activeTab === 'reminders' ? 'auto' : '0',
+                display: activeTab === 'reminders' ? 'block' : 'none',
               }}
             >
               <RemindersList onCreate={() => setShowTrackingForm(true)} />
