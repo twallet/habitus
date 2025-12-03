@@ -1,4 +1,4 @@
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, FormEvent } from 'react';
 import { UserData } from '../models/User';
 import './ChangeEmailModal.css';
 
@@ -101,25 +101,10 @@ export function ChangeEmailModal({
         return true;
     };
 
-    /**
-     * Handle escape key to close modal.
-     * @internal
-     */
-    useEffect(() => {
-        const handleEscape = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
-                onClose();
-            }
-        };
-
-        document.addEventListener('keydown', handleEscape);
-        return () => {
-            document.removeEventListener('keydown', handleEscape);
-        };
-    }, [onClose]);
+    // Escape key and overlay click to close modal are disabled
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-overlay">
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
                     <h2>Change Email</h2>

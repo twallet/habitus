@@ -64,14 +64,22 @@ $tempScript = Join-Path $env:TEMP "habitus-query-trackings-$(Get-Date -Format 'y
 
 $backendNodeModules = Join-Path $backendRoot "node_modules"
 $projectNodeModules = Join-Path $projectRoot "node_modules"
+
+# Escape paths for JavaScript (replace backslashes with double backslashes, and escape single quotes)
+# Use .Replace() for literal string replacement (not regex)
+# In PowerShell, use backtick to escape backslash in single-quoted strings
+$escapedBackendNodeModules = $backendNodeModules.Replace("`\", "\\").Replace("'", "\'")
+$escapedProjectNodeModules = $projectNodeModules.Replace("`\", "\\").Replace("'", "\'")
+$escapedDbPath = $dbPath.Replace("`\", "\\").Replace("'", "\'")
+
 $nodeScript = @"
 const path = require('path');
 const fs = require('fs');
 
 // Try to require sqlite3 - check multiple possible locations
 let sqlite3;
-const backendNodeModules = '$($backendNodeModules.Replace('\', '\\'))';
-const projectNodeModules = '$($projectNodeModules.Replace('\', '\\'))';
+const backendNodeModules = '$escapedBackendNodeModules';
+const projectNodeModules = '$escapedProjectNodeModules';
 
 // Try direct require first (will work if NODE_PATH is set correctly)
 try {
@@ -92,7 +100,7 @@ try {
   }
 }
 
-const dbPath = '$($dbPath.Replace('\', '\\'))';
+const dbPath = '$escapedDbPath';
 
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
@@ -102,25 +110,25 @@ const db = new sqlite3.Database(dbPath, (err) => {
 });
 
 // Get all trackings (excluding deleted ones)
-db.all(\`
-  SELECT 
-    t.id, 
-    t.user_id, 
-    u.name as user_name,
-    u.email as user_email,
-    t.question, 
-    t.type, 
-    t.notes, 
-    t.icon, 
-    t.days, 
-    t.state, 
-    t.created_at, 
-    t.updated_at
-  FROM trackings t
-  LEFT JOIN users u ON t.user_id = u.id
-  WHERE t.state != 'Deleted'
-  ORDER BY t.user_id, t.created_at DESC
-\`, (err, trackingRows) => {
+db.all(
+  'SELECT ' +
+  '  t.id, ' +
+  '  t.user_id, ' +
+  '  u.name as user_name, ' +
+  '  u.email as user_email, ' +
+  '  t.question, ' +
+  '  t.type, ' +
+  '  t.notes, ' +
+  '  t.icon, ' +
+  '  t.days, ' +
+  '  t.state, ' +
+  '  t.created_at, ' +
+  '  t.updated_at ' +
+  'FROM trackings t ' +
+  'LEFT JOIN users u ON t.user_id = u.id ' +
+  "WHERE t.state != 'Deleted' " +
+  'ORDER BY t.user_id, t.created_at DESC',
+  (err, trackingRows) => {
   if (err) {
     console.error('Error querying trackings:', err.message);
     db.close();
@@ -134,20 +142,20 @@ db.all(\`
   }
 
   // Get all reminders
-  db.all(\`
-    SELECT 
-      r.id,
-      r.tracking_id,
-      r.user_id,
-      r.scheduled_time,
-      r.answer,
-      r.notes,
-      r.status,
-      r.created_at,
-      r.updated_at
-    FROM reminders r
-    ORDER BY r.tracking_id, r.scheduled_time ASC
-  \`, (err, reminderRows) => {
+  db.all(
+    'SELECT ' +
+    '  r.id, ' +
+    '  r.tracking_id, ' +
+    '  r.user_id, ' +
+    '  r.scheduled_time, ' +
+    '  r.answer, ' +
+    '  r.notes, ' +
+    '  r.status, ' +
+    '  r.created_at, ' +
+    '  r.updated_at ' +
+    'FROM reminders r ' +
+    'ORDER BY r.tracking_id, r.scheduled_time ASC',
+    (err, reminderRows) => {
     if (err) {
       console.error('Error querying reminders:', err.message);
       db.close();
@@ -155,14 +163,14 @@ db.all(\`
     }
 
     // Get all tracking schedules
-    db.all(\`
-      SELECT 
-        ts.tracking_id,
-        ts.hour,
-        ts.minutes
-      FROM tracking_schedules ts
-      ORDER BY ts.tracking_id, ts.hour, ts.minutes
-    \`, (err, scheduleRows) => {
+    db.all(
+      'SELECT ' +
+      '  ts.tracking_id, ' +
+      '  ts.hour, ' +
+      '  ts.minutes ' +
+      'FROM tracking_schedules ts ' +
+      'ORDER BY ts.tracking_id, ts.hour, ts.minutes',
+      (err, scheduleRows) => {
       if (err) {
         console.error('Error querying schedules:', err.message);
         db.close();
@@ -328,15 +336,30 @@ try {
             if ($tracking.reminders.Count -gt 0) {
                 Write-Host "  REMINDERS ($($tracking.reminders.Count) total):" -ForegroundColor Green
                 Write-Host ("  " + "-" * 98) -ForegroundColor Green
-                Write-Host ("  {0,-5} {1,-20} {2,-10} {3,-20} {4}" -f "ID", "Scheduled Time", "Status", "Answer", "Notes") -ForegroundColor Green
+                Write-Host ("  {0,-5} {1,-19} {2,-10} {3,-15} {4}" -f "ID", "Scheduled Time", "Status", "Answer", "Notes") -ForegroundColor Green
                 Write-Host ("  " + "-" * 98) -ForegroundColor Green
                 
                 foreach ($reminder in $tracking.reminders) {
+                    # Format scheduled time: convert ISO string to readable format
                     $scheduledTime = $reminder.scheduled_time
+                    if ($scheduledTime) {
+                        try {
+                            $dateTime = [DateTime]::Parse($scheduledTime)
+                            $scheduledTimeFormatted = $dateTime.ToString("yyyy-MM-dd HH:mm")
+                        } catch {
+                            # If parsing fails, truncate the ISO string
+                            $scheduledTimeFormatted = if ($scheduledTime.Length -gt 16) { $scheduledTime.Substring(0, 16) } else { $scheduledTime }
+                        }
+                    } else {
+                        $scheduledTimeFormatted = "-"
+                    }
+                    
                     $status = $reminder.status
-                    $answer = if ($reminder.answer) { $reminder.answer } else { "-" }
+                    $answer = if ($reminder.answer) { 
+                        if ($reminder.answer.Length -gt 15) { $reminder.answer.Substring(0, 15) } else { $reminder.answer }
+                    } else { "-" }
                     $notes = if ($reminder.notes) { 
-                        if ($reminder.notes.Length -gt 30) { $reminder.notes.Substring(0, 30) + "..." } else { $reminder.notes }
+                        if ($reminder.notes.Length -gt 40) { $reminder.notes.Substring(0, 40) + "..." } else { $reminder.notes }
                     } else { "-" }
                     
                     $statusColor = switch ($status) {
@@ -346,9 +369,9 @@ try {
                         default { "White" }
                     }
                     
-                    Write-Host ("  {0,-5} {1,-20} " -f $reminder.id, $scheduledTime) -NoNewline
+                    Write-Host ("  {0,-5} {1,-19} " -f $reminder.id, $scheduledTimeFormatted) -NoNewline
                     Write-Host ("{0,-10}" -f $status) -ForegroundColor $statusColor -NoNewline
-                    Write-Host (" {1,-20} {2}" -f $answer, $notes)
+                    Write-Host (" {0,-15} {1}" -f $answer, $notes)
                 }
             } else {
                 Write-Host "  REMINDERS: None" -ForegroundColor Gray

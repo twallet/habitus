@@ -115,6 +115,73 @@ export function useReminders() {
   }, [currentToken, fetchReminders]);
 
   /**
+   * Automatically refresh reminders periodically to detect when scheduled times are reached.
+   * Polls every 30 seconds to check for reminders that have reached their scheduled time.
+   * Pauses polling when the page is hidden to save resources.
+   * @internal
+   */
+  useEffect(() => {
+    if (!currentToken) {
+      // Don't poll if not authenticated
+      return;
+    }
+
+    let pollInterval: NodeJS.Timeout | null = null;
+
+    const pollReminders = () => {
+      // Don't poll if page is hidden
+      if (document.hidden) {
+        return;
+      }
+
+      const token = localStorage.getItem(TOKEN_KEY);
+      if (!token || token !== currentToken) {
+        // Token changed or removed, stop polling
+        return;
+      }
+      // Refresh reminders to get any that have reached their scheduled time
+      fetchReminders();
+    };
+
+    const startPolling = () => {
+      // Clear any existing interval
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+      // Poll every 30 seconds to check for reminders that have reached their scheduled time
+      pollInterval = setInterval(pollReminders, 30000);
+    };
+
+    const stopPolling = () => {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
+    };
+
+    // Start polling initially
+    startPolling();
+
+    // Handle page visibility changes
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        // Page became visible, refresh immediately and resume polling
+        pollReminders();
+        startPolling();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      stopPolling();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [currentToken, fetchReminders]);
+
+  /**
    * Update a reminder via API.
    * @param reminderId - The reminder ID
    * @param answer - Updated answer (optional)

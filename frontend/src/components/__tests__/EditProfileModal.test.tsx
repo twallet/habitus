@@ -41,28 +41,7 @@ describe('EditProfileModal', () => {
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 
-  it('should close modal when overlay is clicked', async () => {
-    const user = userEvent.setup();
-    render(
-      <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={mockOnSave} />
-    );
-
-    const overlay = screen.getByText('Edit Profile').closest('.modal-overlay');
-    if (overlay) {
-      await user.click(overlay);
-      expect(mockOnClose).toHaveBeenCalledTimes(1);
-    }
-  });
-
-  it('should close modal on Escape key', async () => {
-    render(
-      <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={mockOnSave} />
-    );
-
-    await userEvent.keyboard('{Escape}');
-
-    expect(mockOnClose).toHaveBeenCalledTimes(1);
-  });
+  // Note: Modal closing on overlay click and Escape key is disabled
 
   it('should update name when input changes', async () => {
     const user = userEvent.setup();

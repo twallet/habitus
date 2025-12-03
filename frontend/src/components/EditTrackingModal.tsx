@@ -266,35 +266,10 @@ export function EditTrackingModal({
     };
 
 
-    /**
-     * Handle escape key to close modal.
-     * @internal
-     */
-    useEffect(() => {
-        const handleEscape = (e: KeyboardEvent) => {
-            if (e.key === "Escape") {
-                if (!isSubmitting && !isSubmittingRef.current && !error && !hasSaveErrorRef.current && !hasCalledOnCloseRef.current) {
-                    hasCalledOnCloseRef.current = true;
-                    onClose();
-                }
-            }
-        };
-
-        document.addEventListener("keydown", handleEscape);
-        return () => {
-            document.removeEventListener("keydown", handleEscape);
-        };
-    }, [onClose, isSubmitting, error]);
-
-    const handleOverlayClick = () => {
-        if (!isSubmitting && !isSubmittingRef.current && !error && !hasSaveErrorRef.current && !hasCalledOnCloseRef.current) {
-            hasCalledOnCloseRef.current = true;
-            onClose();
-        }
-    };
+    // Escape key and overlay click to close modal are disabled
 
     return (
-        <div className="modal-overlay" onClick={handleOverlayClick}>
+        <div className="modal-overlay">
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
                     <h2>Edit Tracking</h2>

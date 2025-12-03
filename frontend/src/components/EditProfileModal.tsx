@@ -1,4 +1,4 @@
-import { useState, FormEvent, useEffect, useRef } from 'react';
+import { useState, FormEvent, useRef } from 'react';
 import { UserData } from '../models/User';
 import { User } from '../models/User';
 import './EditProfileModal.css';
@@ -118,25 +118,10 @@ export function EditProfileModal({
         }
     };
 
-    /**
-     * Handle escape key to close modal.
-     * @internal
-     */
-    useEffect(() => {
-        const handleEscape = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
-                onClose();
-            }
-        };
-
-        document.addEventListener('keydown', handleEscape);
-        return () => {
-            document.removeEventListener('keydown', handleEscape);
-        };
-    }, [onClose]);
+    // Escape key and overlay click to close modal are disabled
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-overlay">
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
                     <h2>Edit Profile</h2>

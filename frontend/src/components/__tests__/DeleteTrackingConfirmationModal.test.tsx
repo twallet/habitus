@@ -49,36 +49,7 @@ describe('DeleteTrackingConfirmationModal', () => {
         expect(mockOnClose).toHaveBeenCalledTimes(1);
     });
 
-    it('should close modal when overlay is clicked', async () => {
-        const user = userEvent.setup();
-        const { container } = render(
-            <DeleteTrackingConfirmationModal
-                tracking={mockTracking}
-                onClose={mockOnClose}
-                onConfirm={mockOnConfirm}
-            />
-        );
-
-        const overlay = container.querySelector('.modal-overlay');
-        if (overlay) {
-            await user.click(overlay);
-            expect(mockOnClose).toHaveBeenCalledTimes(1);
-        }
-    });
-
-    it('should close modal on Escape key', async () => {
-        render(
-            <DeleteTrackingConfirmationModal
-                tracking={mockTracking}
-                onClose={mockOnClose}
-                onConfirm={mockOnConfirm}
-            />
-        );
-
-        await userEvent.keyboard('{Escape}');
-
-        expect(mockOnClose).toHaveBeenCalledTimes(1);
-    });
+    // Note: Modal closing on overlay click and Escape key is disabled
 
     it('should disable delete button when confirmation text is not "DELETE"', () => {
         render(

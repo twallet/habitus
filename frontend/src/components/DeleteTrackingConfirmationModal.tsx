@@ -70,49 +70,10 @@ export function DeleteTrackingConfirmationModal({
         }
     };
 
-    /**
-     * Handle escape key to close modal.
-     * Uses refs to always check the latest state values.
-     * @internal
-     */
-    useEffect(() => {
-        const handleEscape = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
-                // Check refs to prevent closing during deletion or error states
-                // Refs are always current, so this check is reliable
-                if (isDeletingRef.current || errorRef.current) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return;
-                }
-                onClose();
-            }
-        };
-
-        document.addEventListener('keydown', handleEscape);
-        return () => {
-            document.removeEventListener('keydown', handleEscape);
-        };
-    }, [onClose]);
-
-    /**
-     * Handle overlay click to close modal.
-     * Prevents closing during deletion or error states.
-     * @param e - Click event
-     * @internal
-     */
-    const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
-        // Use refs to check current state - refs are always up to date
-        if (isDeletingRef.current || errorRef.current) {
-            e.preventDefault();
-            e.stopPropagation();
-            return;
-        }
-        onClose();
-    };
+    // Escape key and overlay click to close modal are disabled
 
     return (
-        <div className="modal-overlay" onClick={handleOverlayClick}>
+        <div className="modal-overlay">
             <div className="modal-content delete-modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
                     <h2>Delete Tracking</h2>

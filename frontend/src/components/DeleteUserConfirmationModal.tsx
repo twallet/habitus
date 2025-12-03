@@ -1,4 +1,4 @@
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, FormEvent } from 'react';
 import './DeleteUserConfirmationModal.css';
 
 interface DeleteUserConfirmationModalProps {
@@ -52,25 +52,10 @@ export function DeleteUserConfirmationModal({
         }
     };
 
-    /**
-     * Handle escape key to close modal.
-     * @internal
-     */
-    useEffect(() => {
-        const handleEscape = (e: KeyboardEvent) => {
-            if (e.key === 'Escape' && !isDeleting && !error) {
-                onClose();
-            }
-        };
-
-        document.addEventListener('keydown', handleEscape);
-        return () => {
-            document.removeEventListener('keydown', handleEscape);
-        };
-    }, [onClose, isDeleting, error]);
+    // Escape key and overlay click to close modal are disabled
 
     return (
-        <div className="modal-overlay" onClick={isDeleting || error ? undefined : onClose}>
+        <div className="modal-overlay">
             <div className="modal-content delete-modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
                     <h2>Delete Account</h2>

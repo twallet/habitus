@@ -1,4 +1,4 @@
-import { useState, FormEvent, useEffect, useRef } from "react";
+import { useState, FormEvent, useRef } from "react";
 import { ReminderData } from "../models/Reminder";
 import { TrackingData, TrackingType } from "../models/Tracking";
 import { ReminderFormatter } from "./RemindersList";
@@ -57,36 +57,7 @@ export function ReminderAnswerModal({
         }
     };
 
-    /**
-     * Handle escape key to close modal.
-     * @internal
-     */
-    useEffect(() => {
-        const handleEscape = (e: KeyboardEvent) => {
-            if (e.key === "Escape") {
-                if (!isSubmitting && !hasCalledOnCloseRef.current) {
-                    hasCalledOnCloseRef.current = true;
-                    onClose();
-                }
-            }
-        };
-
-        document.addEventListener("keydown", handleEscape);
-        return () => {
-            document.removeEventListener("keydown", handleEscape);
-        };
-    }, [onClose, isSubmitting]);
-
-    /**
-     * Handle overlay click.
-     * @internal
-     */
-    const handleOverlayClick = () => {
-        if (!isSubmitting && !hasCalledOnCloseRef.current) {
-            hasCalledOnCloseRef.current = true;
-            onClose();
-        }
-    };
+    // Escape key and overlay click to close modal are disabled
 
     /**
      * Handle Yes/No button click for true_false type.
@@ -98,7 +69,7 @@ export function ReminderAnswerModal({
     };
 
     return (
-        <div className="modal-overlay" onClick={handleOverlayClick}>
+        <div className="modal-overlay">
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
                     <h2>Answer Reminder</h2>

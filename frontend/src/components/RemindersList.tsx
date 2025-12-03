@@ -368,7 +368,7 @@ export function RemindersList({ onCreate: _onCreate, onMessage }: RemindersListP
 
     // Filter reminders for display: only show those whose scheduled time has been reached
     // Answered reminders are always shown (historical records)
-    // Snoozed reminders are always shown until their time is reached
+    // Snoozed reminders are hidden until their scheduled time is reached (then backend updates them to Pending)
     // For Pending reminders, only show if scheduled time has been reached
     const now = new Date();
     const remindersForDisplay = reminders.filter((reminder) => {
@@ -377,9 +377,10 @@ export function RemindersList({ onCreate: _onCreate, onMessage }: RemindersListP
         if (reminder.status === ReminderStatus.ANSWERED) {
             return true;
         }
-        // Show Snoozed reminders (they should appear until their time is reached)
+        // Hide Snoozed reminders until their scheduled time is reached
+        // When their time is reached, backend will update them to Pending status
         if (reminder.status === ReminderStatus.SNOOZED) {
-            return true;
+            return scheduledTime <= now;
         }
         // For Pending reminders, only show if scheduled time has been reached
         return scheduledTime <= now;
@@ -788,7 +789,9 @@ export function RemindersList({ onCreate: _onCreate, onMessage }: RemindersListP
         </div>
     ) : null;
 
-    if (reminders.length === 0) {
+    // If there are no reminders to display at all (after filtering by scheduled time),
+    // show simple message without filter UI
+    if (remindersForDisplay.length === 0) {
         return (
             <div className="reminders-list">
                 <div className="reminders-empty">
@@ -798,6 +801,8 @@ export function RemindersList({ onCreate: _onCreate, onMessage }: RemindersListP
         );
     }
 
+    // If there are reminders but they're all filtered out by user filters,
+    // show filter UI and appropriate message
     if (filteredAndSortedReminders.length === 0) {
         return (
             <div className="reminders-list">
