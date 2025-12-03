@@ -127,23 +127,40 @@ function App() {
         void computedStyle.height;
       }
 
-      // Measure table width (if table exists)
-      const table = view.querySelector('.trackings-table') || view.querySelector('.reminders-table');
+      // Check if filters are visible (filter panel exists and is displayed)
+      const listContent = view.querySelector('.trackings-list-content') || view.querySelector('.reminders-list-content');
+      const filterPanel = listContent?.querySelector('.filter-panel') as HTMLElement | null;
+      const filtersVisible = filterPanel && filterPanel.offsetParent !== null;
+
+      // Measure width: if filters are visible, calculate total width needed
+      // (filter panel + gap + table scrollWidth), otherwise just measure the table
       let tableWidth = 0;
-      if (table) {
-        const rect = table.getBoundingClientRect();
-        tableWidth = rect.width > 0 ? rect.width : 0;
+      if (filtersVisible && listContent && filterPanel) {
+        // When filters are shown, measure components separately to get accurate total width
+        // Use scrollWidth for table to get full content width regardless of container constraints
+        const table = view.querySelector('.trackings-table') || view.querySelector('.reminders-table');
+        const filterWidth = filterPanel.getBoundingClientRect().width || filterPanel.offsetWidth;
+        const gap = 16; // Gap between filter panel and table (from CSS)
+        const tableScrollWidth = table ? ((table as HTMLElement).scrollWidth || (table as HTMLElement).getBoundingClientRect().width) : 0;
+        tableWidth = filterWidth + gap + tableScrollWidth;
       } else {
-        // If no table, measure the view container width for empty states
-        const rect = view.getBoundingClientRect();
-        tableWidth = rect.width > 0 ? rect.width : 0;
+        // Measure table width (if table exists)
+        const table = view.querySelector('.trackings-table') || view.querySelector('.reminders-table');
+        if (table) {
+          // Use scrollWidth to get full content width, not just visible width
+          const scrollWidth = (table as HTMLElement).scrollWidth;
+          const rect = table.getBoundingClientRect();
+          tableWidth = scrollWidth > 0 ? scrollWidth : (rect.width > 0 ? rect.width : 0);
+        } else {
+          // If no table, measure the view container width for empty states
+          const rect = view.getBoundingClientRect();
+          tableWidth = rect.width > 0 ? rect.width : 0;
+        }
       }
 
       // Measure entire view height (including filters, empty states, etc.)
       // For empty states, we need to measure the entire view container
       // Use scrollHeight for content height, offsetHeight for element height
-      // Also check the list content container if it exists
-      const listContent = view.querySelector('.trackings-list-content') || view.querySelector('.reminders-list-content');
       let viewHeight = Math.max(view.scrollHeight, view.offsetHeight);
 
       if (listContent) {
