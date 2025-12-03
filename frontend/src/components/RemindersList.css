@@ -147,10 +147,6 @@
   max-width: 300px;
 }
 
-.answer-text {
-  cursor: help;
-}
-
 .answer-empty {
   color: var(--text-secondary);
 }
@@ -160,7 +156,6 @@
 }
 
 .notes-indicator {
-  cursor: help;
   font-size: 1.2em;
 }
 
