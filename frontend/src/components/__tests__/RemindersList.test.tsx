@@ -486,12 +486,22 @@ describe("RemindersList", () => {
         const pendingCheckbox = screen.getByLabelText(/filter by status: pending/i);
         await userEvent.click(pendingCheckbox);
 
-        // Should only show pending reminder - check status badge specifically
+        // Should only show pending reminder - check status badge in table rows
         await waitFor(() => {
             const statusBadges = screen.getAllByText("Pending");
-            // One in checkbox label, one in status badge
-            expect(statusBadges.length).toBeGreaterThanOrEqual(1);
-            expect(screen.queryByText("Answered")).not.toBeInTheDocument();
+            // Filter to only status badges in table (not checkbox labels)
+            const tableStatusBadges = statusBadges.filter(el => {
+                const cell = el.closest('.cell-status');
+                return cell !== null;
+            });
+            expect(tableStatusBadges.length).toBe(1);
+            // Check that Answered status badge is not in table
+            const answeredBadges = screen.queryAllByText("Answered");
+            const answeredInTable = answeredBadges.filter(el => {
+                const cell = el.closest('.cell-status');
+                return cell !== null;
+            });
+            expect(answeredInTable.length).toBe(0);
         });
     });
 
@@ -524,18 +534,23 @@ describe("RemindersList", () => {
         const filterButton = screen.getByLabelText(/show filters/i);
         await userEvent.click(filterButton);
 
-        // Set a filter
-        const timeInput = screen.getByLabelText(/filter by time/i);
-        await userEvent.clear(timeInput);
-        await userEvent.type(timeInput, "test");
+        // Set a filter that will hide all reminders
+        const answerInput = screen.getByLabelText(/filter by answer/i);
+        await userEvent.type(answerInput, "nonexistent");
+
+        // Verify filter is active - should show empty state
+        await waitFor(() => {
+            expect(screen.getByText(/no reminders match the current filters/i)).toBeInTheDocument();
+        });
 
         // Reset filters
         const resetButton = screen.getByLabelText(/reset all filters/i);
         await userEvent.click(resetButton);
 
-        // Filter should be cleared
+        // After reset, reminders should be visible again
         await waitFor(() => {
-            expect(timeInput).toHaveValue("");
+            expect(screen.queryByText(/no reminders match the current filters/i)).not.toBeInTheDocument();
+            expect(screen.getByText("Did I exercise?")).toBeInTheDocument();
         });
     });
 
