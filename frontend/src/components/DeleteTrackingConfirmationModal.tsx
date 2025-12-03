@@ -79,7 +79,7 @@ export function DeleteTrackingConfirmationModal({
     }, [onClose]);
 
     const handleOverlayClick = () => {
-        if (!isDeleting && !error) {
+        if (!isDeletingRef.current && !errorRef.current) {
             onClose();
         }
     };
