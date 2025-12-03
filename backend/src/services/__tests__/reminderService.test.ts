@@ -181,6 +181,52 @@ describe("ReminderService", () => {
       expect(reminders[0].scheduled_time).toBe(scheduledTime1);
       expect(reminders[1].scheduled_time).toBe(scheduledTime2);
     });
+
+    it("should update expired snoozed reminders to Pending", async () => {
+      // Create a reminder and snooze it to a past time
+      const pastTime = new Date(Date.now() - 60000).toISOString(); // 1 minute ago
+      const created = await reminderService.createReminder(
+        testTrackingId,
+        testUserId,
+        pastTime
+      );
+
+      // Manually set status to SNOOZED with past scheduled_time
+      await testDb.run(
+        "UPDATE reminders SET status = ?, scheduled_time = ? WHERE id = ?",
+        [ReminderStatus.SNOOZED, pastTime, created.id]
+      );
+
+      // Fetch reminders - should update expired snoozed reminder to Pending
+      const reminders = await reminderService.getRemindersByUserId(testUserId);
+
+      const updatedReminder = reminders.find((r) => r.id === created.id);
+      expect(updatedReminder).not.toBeUndefined();
+      expect(updatedReminder!.status).toBe(ReminderStatus.PENDING);
+    });
+
+    it("should not update non-expired snoozed reminders", async () => {
+      // Create a reminder and snooze it to a future time
+      const futureTime = new Date(Date.now() + 3600000).toISOString(); // 1 hour from now
+      const created = await reminderService.createReminder(
+        testTrackingId,
+        testUserId,
+        futureTime
+      );
+
+      // Manually set status to SNOOZED with future scheduled_time
+      await testDb.run(
+        "UPDATE reminders SET status = ?, scheduled_time = ? WHERE id = ?",
+        [ReminderStatus.SNOOZED, futureTime, created.id]
+      );
+
+      // Fetch reminders - should not update non-expired snoozed reminder
+      const reminders = await reminderService.getRemindersByUserId(testUserId);
+
+      const reminder = reminders.find((r) => r.id === created.id);
+      expect(reminder).not.toBeUndefined();
+      expect(reminder!.status).toBe(ReminderStatus.SNOOZED);
+    });
   });
 
   describe("getReminderById", () => {
@@ -205,6 +251,31 @@ describe("ReminderService", () => {
       const reminder = await reminderService.getReminderById(999, testUserId);
 
       expect(reminder).toBeNull();
+    });
+
+    it("should update expired snoozed reminder to Pending", async () => {
+      // Create a reminder and snooze it to a past time
+      const pastTime = new Date(Date.now() - 60000).toISOString(); // 1 minute ago
+      const created = await reminderService.createReminder(
+        testTrackingId,
+        testUserId,
+        pastTime
+      );
+
+      // Manually set status to SNOOZED with past scheduled_time
+      await testDb.run(
+        "UPDATE reminders SET status = ?, scheduled_time = ? WHERE id = ?",
+        [ReminderStatus.SNOOZED, pastTime, created.id]
+      );
+
+      // Fetch reminder by ID - should update expired snoozed reminder to Pending
+      const reminder = await reminderService.getReminderById(
+        created.id,
+        testUserId
+      );
+
+      expect(reminder).not.toBeNull();
+      expect(reminder!.status).toBe(ReminderStatus.PENDING);
     });
   });
 
