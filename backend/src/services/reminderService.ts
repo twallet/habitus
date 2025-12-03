@@ -46,31 +46,15 @@ export class ReminderService {
     // Check and update expired snoozed reminders
     await this.updateExpiredSnoozedReminders(reminders);
 
-    // Filter reminders to only show those whose scheduled time has been reached
-    // Answered reminders are always shown (historical records)
-    // Snoozed reminders are always shown until their scheduled time is reached
-    const now = new Date();
-    const filteredReminders = reminders.filter((reminder) => {
-      const scheduledTime = new Date(reminder.scheduled_time);
-      // Show Answered reminders (historical records)
-      if (reminder.status === ReminderStatus.ANSWERED) {
-        return true;
-      }
-      // Show Snoozed reminders (they should appear until their time is reached)
-      if (reminder.status === ReminderStatus.SNOOZED) {
-        return true;
-      }
-      // For Pending reminders, only show if scheduled time has been reached
-      return scheduledTime <= now;
-    });
-
+    // Return all reminders (including future ones) for tooltip display
+    // Frontend will filter them for display in RemindersList
     console.log(
-      `[${new Date().toISOString()}] REMINDER | Filtered to ${
-        filteredReminders.length
-      } reminders for userId: ${userId} (Answered always shown, Snoozed always shown, Pending only if scheduled time reached)`
+      `[${new Date().toISOString()}] REMINDER | Returning all ${
+        reminders.length
+      } reminders for userId: ${userId} (frontend will filter for display)`
     );
 
-    return filteredReminders.map((reminder) => reminder.toData());
+    return reminders.map((reminder) => reminder.toData());
   }
 
   /**

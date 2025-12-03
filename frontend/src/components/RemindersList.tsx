@@ -366,8 +366,27 @@ export function RemindersList({ onCreate: _onCreate, onMessage }: RemindersListP
         return trackings.find((t) => t.id === trackingId);
     };
 
+    // Filter reminders for display: only show those whose scheduled time has been reached
+    // Answered reminders are always shown (historical records)
+    // Snoozed reminders are always shown until their time is reached
+    // For Pending reminders, only show if scheduled time has been reached
+    const now = new Date();
+    const remindersForDisplay = reminders.filter((reminder) => {
+        const scheduledTime = new Date(reminder.scheduled_time);
+        // Show Answered reminders (historical records)
+        if (reminder.status === ReminderStatus.ANSWERED) {
+            return true;
+        }
+        // Show Snoozed reminders (they should appear until their time is reached)
+        if (reminder.status === ReminderStatus.SNOOZED) {
+            return true;
+        }
+        // For Pending reminders, only show if scheduled time has been reached
+        return scheduledTime <= now;
+    });
+
     // Apply filters and sorting
-    const filteredReminders = ReminderFilter.applyFilters(reminders, filterState, getTracking);
+    const filteredReminders = ReminderFilter.applyFilters(remindersForDisplay, filterState, getTracking);
     const filteredAndSortedReminders = ReminderSorter.sortReminders(filteredReminders, sortColumn, sortDirection, getTracking);
 
     /**

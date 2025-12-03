@@ -41,6 +41,7 @@ describe("TrackingsList", () => {
         // Default mock for useReminders - no reminders by default
         (useRemindersModule.useReminders as any).mockReturnValue({
             reminders: [],
+            refreshReminders: vi.fn().mockResolvedValue(undefined),
         });
     });
 
@@ -451,6 +452,7 @@ describe("TrackingsList", () => {
         // Mock useReminders to return no reminders (default behavior)
         (useRemindersModule.useReminders as any).mockReturnValue({
             reminders: [],
+            refreshReminders: vi.fn().mockResolvedValue(undefined),
         });
 
         render(

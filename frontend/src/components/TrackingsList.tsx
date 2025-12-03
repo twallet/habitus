@@ -620,7 +620,7 @@ export function TrackingsList({
     onDelete,
 }: TrackingsListProps) {
     const { trackings: hookTrackings, isLoading: hookIsLoading, updateTrackingState: hookUpdateTrackingState, deleteTracking: hookDeleteTracking, createTracking: hookCreateTracking } = useTrackings();
-    const { reminders } = useReminders();
+    const { reminders, refreshReminders } = useReminders();
     const [trackingToDelete, setTrackingToDelete] = useState<TrackingData | null>(null);
     const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
     const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right: number } | null>(null);
@@ -670,6 +670,26 @@ export function TrackingsList({
     // Use props if provided, otherwise use hook data
     const trackings = propTrackings ?? hookTrackings;
     const isLoading = propIsLoading ?? hookIsLoading;
+
+    // Refresh reminders when trackings change (e.g., after creating a new tracking)
+    // Use a ref to track previous tracking IDs to detect new trackings
+    const previousTrackingIdsRef = useRef<Set<number>>(new Set());
+
+    useEffect(() => {
+        const currentTrackingIds = new Set(trackings.map(t => t.id));
+        const previousIds = previousTrackingIdsRef.current;
+
+        // Check if there are new trackings (trackings that weren't in previous set)
+        const hasNewTrackings = trackings.some(t => !previousIds.has(t.id));
+
+        if (hasNewTrackings) {
+            // Refresh reminders to get the new reminder for the created tracking
+            refreshReminders();
+        }
+
+        // Update the ref with current IDs
+        previousTrackingIdsRef.current = currentTrackingIds;
+    }, [trackings, refreshReminders]);
 
     // Filter out Deleted trackings
     const visibleTrackings = trackings.filter(
