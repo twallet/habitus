@@ -20,25 +20,24 @@ if (!existsSync(coverageTmpDir)) {
 }
 
 // Run vitest with coverage
+// Use command string format with shell: true to avoid deprecation warning
+// This format doesn't trigger the security warning about unescaped arguments
 const vitestProcess = spawn(
-  "npx",
-  ["vitest", "run", "--config", "config/vitest.config.ts", "--coverage"],
+  "npx vitest run --config config/vitest.config.ts --coverage",
   {
     cwd: workspaceRoot,
     stdio: "inherit",
+    shell: true,
   }
 );
 
 vitestProcess.on("close", (code) => {
   // Always run the coverage report, regardless of vitest exit code
-  const coverageReportProcess = spawn(
-    "node",
-    ["config/coverage-report-low.js"],
-    {
-      cwd: workspaceRoot,
-      stdio: "inherit",
-    }
-  );
+  const coverageReportProcess = spawn("node config/coverage-report-low.js", {
+    cwd: workspaceRoot,
+    stdio: "inherit",
+    shell: true,
+  });
 
   coverageReportProcess.on("close", (reportCode) => {
     // Exit with the vitest code (not the report code) so test failures are still reported
