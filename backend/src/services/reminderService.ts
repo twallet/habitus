@@ -48,6 +48,7 @@ export class ReminderService {
 
     // Filter reminders to only show those whose scheduled time has been reached
     // Answered reminders are always shown (historical records)
+    // Snoozed reminders are always shown until their scheduled time is reached
     const now = new Date();
     const filteredReminders = reminders.filter((reminder) => {
       const scheduledTime = new Date(reminder.scheduled_time);
@@ -55,14 +56,18 @@ export class ReminderService {
       if (reminder.status === ReminderStatus.ANSWERED) {
         return true;
       }
-      // For Pending and Snoozed reminders, only show if scheduled time has been reached
+      // Show Snoozed reminders (they should appear until their time is reached)
+      if (reminder.status === ReminderStatus.SNOOZED) {
+        return true;
+      }
+      // For Pending reminders, only show if scheduled time has been reached
       return scheduledTime <= now;
     });
 
     console.log(
       `[${new Date().toISOString()}] REMINDER | Filtered to ${
         filteredReminders.length
-      } reminders whose scheduled time has been reached for userId: ${userId}`
+      } reminders for userId: ${userId} (Answered always shown, Snoozed always shown, Pending only if scheduled time reached)`
     );
 
     return filteredReminders.map((reminder) => reminder.toData());

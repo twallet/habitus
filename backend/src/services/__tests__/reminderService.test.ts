@@ -220,10 +220,11 @@ describe("ReminderService", () => {
         [ReminderStatus.SNOOZED, futureTime, created.id]
       );
 
-      // Fetch reminders - future reminders are filtered out, so it won't appear in the list
+      // Fetch reminders - snoozed reminders should appear even if scheduled_time is in the future
       const reminders = await reminderService.getRemindersByUserId(testUserId);
       const reminder = reminders.find((r) => r.id === created.id);
-      expect(reminder).toBeUndefined(); // Future reminders are filtered out
+      expect(reminder).not.toBeUndefined(); // Snoozed reminders should appear
+      expect(reminder!.status).toBe(ReminderStatus.SNOOZED); // Should not be updated to Pending
 
       // Verify the reminder still exists in the database with SNOOZED status
       const reminderFromDb = await Reminder.loadById(
