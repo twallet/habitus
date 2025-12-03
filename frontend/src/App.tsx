@@ -75,22 +75,52 @@ function App() {
         view.style.position = 'absolute';
         view.style.left = '-9999px';
         view.style.top = '0';
-        // Force multiple reflows to ensure all content is measured
+        // Force multiple reflows to ensure all content (including empty states) is measured
         void view.offsetHeight;
         void view.offsetHeight;
+        // Small delay to ensure empty states are rendered
+        // Use a synchronous approach by reading layout properties
+        const computedStyle = window.getComputedStyle(view);
+        void computedStyle.height;
       }
 
-      // Measure table width
+      // Measure table width (if table exists)
       const table = view.querySelector('.trackings-table') || view.querySelector('.reminders-table');
       let tableWidth = 0;
       if (table) {
         const rect = table.getBoundingClientRect();
         tableWidth = rect.width > 0 ? rect.width : 0;
+      } else {
+        // If no table, measure the view container width for empty states
+        const rect = view.getBoundingClientRect();
+        tableWidth = rect.width > 0 ? rect.width : 0;
       }
 
       // Measure entire view height (including filters, empty states, etc.)
+      // For empty states, we need to measure the entire view container
       // Use scrollHeight for content height, offsetHeight for element height
-      const viewHeight = Math.max(view.scrollHeight, view.offsetHeight);
+      // Also check the list content container if it exists
+      const listContent = view.querySelector('.trackings-list-content') || view.querySelector('.reminders-list-content');
+      let viewHeight = Math.max(view.scrollHeight, view.offsetHeight);
+
+      if (listContent) {
+        const contentHeight = Math.max(
+          (listContent as HTMLElement).scrollHeight,
+          (listContent as HTMLElement).offsetHeight
+        );
+        viewHeight = Math.max(viewHeight, contentHeight);
+      }
+
+      // Also measure empty state containers if they exist
+      const emptyState = view.querySelector('.empty-state') || view.querySelector('.reminders-empty');
+      if (emptyState) {
+        const emptyHeight = Math.max(
+          (emptyState as HTMLElement).scrollHeight,
+          (emptyState as HTMLElement).offsetHeight
+        );
+        // Add some margin for empty states
+        viewHeight = Math.max(viewHeight, emptyHeight + 40);
+      }
 
       // Restore original state
       if (wasHidden) {
@@ -112,26 +142,35 @@ function App() {
       let maxWidth = 0;
       let maxHeight = 0;
 
-      // Measure trackings view dimensions
+      // Measure trackings view dimensions (always measure, even if empty)
       if (trackingsViewRef.current) {
         const { width, height } = measureView(trackingsViewRef.current);
+        // For width, only use if we have a table or meaningful content
         if (width > 0) {
           maxWidth = Math.max(maxWidth, width);
         }
+        // For height, always use the measurement (includes empty states)
         if (height > 0) {
           maxHeight = Math.max(maxHeight, height);
         }
       }
 
-      // Measure reminders view dimensions
+      // Measure reminders view dimensions (always measure, even if empty)
       if (remindersViewRef.current) {
         const { width, height } = measureView(remindersViewRef.current);
+        // For width, only use if we have a table or meaningful content
         if (width > 0) {
           maxWidth = Math.max(maxWidth, width);
         }
+        // For height, always use the measurement (includes empty states)
         if (height > 0) {
           maxHeight = Math.max(maxHeight, height);
         }
+      }
+
+      // If both views are empty, ensure we have a minimum height
+      if (maxHeight === 0) {
+        maxHeight = 200; // Minimum height for empty states
       }
 
       // Update width if we have a valid width
@@ -160,15 +199,18 @@ function App() {
     const scheduleUpdate = () => {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          updateContainerSize();
+          // Additional delay for empty states to fully render
+          setTimeout(() => {
+            updateContainerSize();
+          }, 50);
         });
       });
     };
 
-    // Initial measurement with a small delay to ensure content is rendered
+    // Initial measurement with a delay to ensure content (including empty states) is rendered
     const timeoutId = setTimeout(() => {
       scheduleUpdate();
-    }, 150);
+    }, 200);
 
     // Use ResizeObserver to watch for size changes (if available)
     let resizeObserver: ResizeObserver | null = null;
