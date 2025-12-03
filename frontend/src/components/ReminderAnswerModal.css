@@ -30,6 +30,7 @@
 
 .yes-no-button {
   flex: 1;
+  min-width: 140px;
   padding: 12px 24px;
   border: 2px solid var(--border-color);
   border-radius: var(--radius);
@@ -43,6 +44,7 @@
   align-items: center;
   justify-content: center;
   min-height: 44px;
+  white-space: nowrap;
 }
 
 .yes-no-button:hover:not(:disabled) {

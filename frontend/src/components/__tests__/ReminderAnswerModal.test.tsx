@@ -54,8 +54,8 @@ describe("ReminderAnswerModal", () => {
             />
         );
 
-        expect(screen.getByText("Yes")).toBeInTheDocument();
-        expect(screen.getByText("No")).toBeInTheDocument();
+        expect(screen.getByText("🟢 Yes")).toBeInTheDocument();
+        expect(screen.getByText("🔘 No")).toBeInTheDocument();
     });
 
     it("should show text field for register type", () => {
@@ -87,7 +87,7 @@ describe("ReminderAnswerModal", () => {
             />
         );
 
-        const yesButton = screen.getByText("Yes");
+        const yesButton = screen.getByText("🟢 Yes");
         await userEvent.click(yesButton);
 
         const saveButton = screen.getByText("Save");
@@ -163,7 +163,7 @@ describe("ReminderAnswerModal", () => {
             />
         );
 
-        const yesButton = screen.getByText("Yes");
+        const yesButton = screen.getByText("🟢 Yes");
         await userEvent.click(yesButton);
 
         const notesTextarea = screen.getByPlaceholderText(

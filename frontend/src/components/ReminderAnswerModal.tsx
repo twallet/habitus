@@ -176,7 +176,7 @@ export function ReminderAnswerModal({
                                     onClick={() => handleYesNoClick("yes")}
                                     disabled={isSubmitting}
                                 >
-                                    Yes
+                                    🟢 Yes
                                 </button>
                                 <button
                                     type="button"
@@ -184,7 +184,7 @@ export function ReminderAnswerModal({
                                     onClick={() => handleYesNoClick("no")}
                                     disabled={isSubmitting}
                                 >
-                                    No
+                                    🔘 No
                                 </button>
                             </div>
                         ) : (

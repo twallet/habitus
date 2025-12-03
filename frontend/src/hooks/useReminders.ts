@@ -298,6 +298,11 @@ export function useReminders() {
       `[${new Date().toISOString()}] FRONTEND_REMINDERS | Deleting reminder ID: ${reminderId}`
     );
 
+    // Optimistically remove the reminder from state immediately
+    setReminders((prevReminders) =>
+      prevReminders.filter((r) => r.id !== reminderId)
+    );
+
     try {
       await apiClient.deleteReminder(reminderId);
       console.log(
@@ -310,6 +315,8 @@ export function useReminders() {
         `[${new Date().toISOString()}] FRONTEND_REMINDERS | Error deleting reminder:`,
         error
       );
+      // On error, refresh to restore correct state
+      await fetchReminders();
       throw error;
     }
   };
