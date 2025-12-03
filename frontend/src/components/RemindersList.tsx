@@ -662,7 +662,7 @@ export function RemindersList({ onCreate }: RemindersListProps = {}) {
                     />
                 </div>
                 <div className="filter-row">
-                    <div className="filter-label">Status:</div>
+                    <label className="filter-label">Status:</label>
                     <div className="filter-checkbox-group">
                         <label className="filter-checkbox-label">
                             <input

@@ -231,6 +231,14 @@ describe("ReminderService", () => {
       expect(updated.notes).toBe("Some notes");
       expect(updated.status).toBe(ReminderStatus.ANSWERED);
     });
+
+    it("should throw error if reminder not found", async () => {
+      await expect(
+        reminderService.updateReminder(999, testUserId, {
+          answer: "Yes",
+        })
+      ).rejects.toThrow("Reminder not found");
+    });
   });
 
   describe("snoozeReminder", () => {
@@ -255,6 +263,12 @@ describe("ReminderService", () => {
         (snoozedTime.getTime() - originalTime.getTime()) / (1000 * 60);
       expect(diffMinutes).toBeGreaterThanOrEqual(30);
     });
+
+    it("should throw error if reminder not found", async () => {
+      await expect(
+        reminderService.snoozeReminder(999, testUserId, 30)
+      ).rejects.toThrow("Reminder not found");
+    });
   });
 
   describe("deleteReminder", () => {
@@ -278,6 +292,12 @@ describe("ReminderService", () => {
       const reminders = await reminderService.getRemindersByUserId(testUserId);
       expect(reminders.length).toBe(1);
       expect(reminders[0].id).not.toBe(created.id);
+    });
+
+    it("should throw error if reminder not found", async () => {
+      await expect(
+        reminderService.deleteReminder(999, testUserId)
+      ).rejects.toThrow("Reminder not found");
     });
   });
 
@@ -319,6 +339,57 @@ describe("ReminderService", () => {
       );
 
       expect(reminder).toBeNull();
+    });
+
+    it("should return null if tracking not found", async () => {
+      const reminder = await reminderService.createNextReminderForTracking(
+        999,
+        testUserId
+      );
+
+      expect(reminder).toBeNull();
+    });
+
+    it("should return null if no valid time found", async () => {
+      // Create tracking without schedules
+      const trackingResult = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type, days, state) VALUES (?, ?, ?, ?, ?)",
+        [
+          testUserId,
+          "Test tracking",
+          TrackingType.TRUE_FALSE,
+          JSON.stringify({
+            pattern_type: DaysPatternType.INTERVAL,
+            interval_value: 1,
+            interval_unit: "days",
+          }),
+          "Running",
+        ]
+      );
+      const trackingIdWithoutSchedule = trackingResult.lastID;
+
+      const reminder = await reminderService.createNextReminderForTracking(
+        trackingIdWithoutSchedule,
+        testUserId
+      );
+
+      expect(reminder).toBeNull();
+    });
+
+    it("should exclude deleted time when creating next reminder", async () => {
+      const scheduledTime = new Date().toISOString();
+      const created = await reminderService.createReminder(
+        testTrackingId,
+        testUserId,
+        scheduledTime
+      );
+
+      await reminderService.deleteReminder(created.id, testUserId);
+
+      // The next reminder should not be at the same time as the deleted one
+      const reminders = await reminderService.getRemindersByUserId(testUserId);
+      expect(reminders.length).toBe(1);
+      expect(reminders[0].scheduled_time).not.toBe(scheduledTime);
     });
   });
 
@@ -395,6 +466,263 @@ describe("ReminderService", () => {
         user_id: testUserId,
         question: "Did I exercise?",
         type: TrackingType.TRUE_FALSE,
+        schedules: schedules.map((s: any) => ({
+          id: s.id,
+          tracking_id: s.tracking_id,
+          hour: s.hour,
+          minutes: s.minutes,
+        })),
+        state: "Running" as const,
+      };
+
+      const nextTime = await reminderService.calculateNextReminderTime(
+        trackingData as any
+      );
+
+      expect(nextTime).toBeNull();
+    });
+
+    it("should exclude specified time when calculating next reminder", async () => {
+      const schedules = await testDb.all(
+        "SELECT * FROM tracking_schedules WHERE tracking_id = ?",
+        [testTrackingId]
+      );
+
+      const excludeTime = new Date();
+      excludeTime.setHours(9, 0, 0, 0);
+      excludeTime.setDate(excludeTime.getDate() + 1);
+
+      const trackingData = {
+        id: testTrackingId,
+        user_id: testUserId,
+        question: "Did I exercise?",
+        type: TrackingType.TRUE_FALSE,
+        days: {
+          pattern_type: DaysPatternType.INTERVAL,
+          interval_value: 1,
+          interval_unit: "days" as const,
+        },
+        schedules: schedules.map((s: any) => ({
+          id: s.id,
+          tracking_id: s.tracking_id,
+          hour: s.hour,
+          minutes: s.minutes,
+        })),
+        state: "Running" as const,
+      };
+
+      const nextTime = await reminderService.calculateNextReminderTime(
+        trackingData as any,
+        excludeTime.toISOString()
+      );
+
+      expect(nextTime).not.toBeNull();
+      const nextDate = new Date(nextTime!);
+      expect(nextDate.getTime()).not.toBe(excludeTime.getTime());
+    });
+
+    it("should calculate next reminder time for DAY_OF_WEEK pattern", async () => {
+      const schedules = await testDb.all(
+        "SELECT * FROM tracking_schedules WHERE tracking_id = ?",
+        [testTrackingId]
+      );
+
+      const trackingData = {
+        id: testTrackingId,
+        user_id: testUserId,
+        question: "Did I exercise?",
+        type: TrackingType.TRUE_FALSE,
+        days: {
+          pattern_type: DaysPatternType.DAY_OF_WEEK,
+          days: [1, 3, 5], // Monday, Wednesday, Friday
+        },
+        schedules: schedules.map((s: any) => ({
+          id: s.id,
+          tracking_id: s.tracking_id,
+          hour: s.hour,
+          minutes: s.minutes,
+        })),
+        state: "Running" as const,
+      };
+
+      const nextTime = await reminderService.calculateNextReminderTime(
+        trackingData as any
+      );
+
+      expect(nextTime).not.toBeNull();
+      const nextDate = new Date(nextTime!);
+      const dayOfWeek = nextDate.getDay();
+      expect([1, 3, 5]).toContain(dayOfWeek);
+    });
+
+    it("should calculate next reminder time for DAY_OF_MONTH pattern with day_number", async () => {
+      const schedules = await testDb.all(
+        "SELECT * FROM tracking_schedules WHERE tracking_id = ?",
+        [testTrackingId]
+      );
+
+      const today = new Date();
+      const dayOfMonth = today.getDate();
+      const nextDay = dayOfMonth <= 15 ? 15 : 1; // Use 15th or 1st of next month
+
+      const trackingData = {
+        id: testTrackingId,
+        user_id: testUserId,
+        question: "Did I exercise?",
+        type: TrackingType.TRUE_FALSE,
+        days: {
+          pattern_type: DaysPatternType.DAY_OF_MONTH,
+          type: "day_number" as const,
+          day_numbers: [nextDay],
+        },
+        schedules: schedules.map((s: any) => ({
+          id: s.id,
+          tracking_id: s.tracking_id,
+          hour: s.hour,
+          minutes: s.minutes,
+        })),
+        state: "Running" as const,
+      };
+
+      const nextTime = await reminderService.calculateNextReminderTime(
+        trackingData as any
+      );
+
+      expect(nextTime).not.toBeNull();
+      const nextDate = new Date(nextTime!);
+      expect(nextDate.getDate()).toBe(nextDay);
+    });
+
+    it("should calculate next reminder time for DAY_OF_MONTH pattern with last_day", async () => {
+      const schedules = await testDb.all(
+        "SELECT * FROM tracking_schedules WHERE tracking_id = ?",
+        [testTrackingId]
+      );
+
+      const trackingData = {
+        id: testTrackingId,
+        user_id: testUserId,
+        question: "Did I exercise?",
+        type: TrackingType.TRUE_FALSE,
+        days: {
+          pattern_type: DaysPatternType.DAY_OF_MONTH,
+          type: "last_day" as const,
+        },
+        schedules: schedules.map((s: any) => ({
+          id: s.id,
+          tracking_id: s.tracking_id,
+          hour: s.hour,
+          minutes: s.minutes,
+        })),
+        state: "Running" as const,
+      };
+
+      const nextTime = await reminderService.calculateNextReminderTime(
+        trackingData as any
+      );
+
+      expect(nextTime).not.toBeNull();
+      const nextDate = new Date(nextTime!);
+      const lastDayOfMonth = new Date(
+        nextDate.getFullYear(),
+        nextDate.getMonth() + 1,
+        0
+      ).getDate();
+      expect(nextDate.getDate()).toBe(lastDayOfMonth);
+    });
+
+    it("should calculate next reminder time for DAY_OF_YEAR pattern", async () => {
+      const schedules = await testDb.all(
+        "SELECT * FROM tracking_schedules WHERE tracking_id = ?",
+        [testTrackingId]
+      );
+
+      const trackingData = {
+        id: testTrackingId,
+        user_id: testUserId,
+        question: "Did I exercise?",
+        type: TrackingType.TRUE_FALSE,
+        days: {
+          pattern_type: DaysPatternType.DAY_OF_YEAR,
+          type: "date" as const,
+          month: 12,
+          day: 25, // December 25
+        },
+        schedules: schedules.map((s: any) => ({
+          id: s.id,
+          tracking_id: s.tracking_id,
+          hour: s.hour,
+          minutes: s.minutes,
+        })),
+        state: "Running" as const,
+      };
+
+      const nextTime = await reminderService.calculateNextReminderTime(
+        trackingData as any
+      );
+
+      expect(nextTime).not.toBeNull();
+      const nextDate = new Date(nextTime!);
+      expect(nextDate.getMonth() + 1).toBe(12);
+      expect(nextDate.getDate()).toBe(25);
+    });
+
+    it("should handle interval patterns with different units", async () => {
+      const schedules = await testDb.all(
+        "SELECT * FROM tracking_schedules WHERE tracking_id = ?",
+        [testTrackingId]
+      );
+
+      const testCases = [
+        { unit: "weeks" as const, value: 1 },
+        { unit: "months" as const, value: 1 },
+        { unit: "years" as const, value: 1 },
+      ];
+
+      for (const testCase of testCases) {
+        const trackingData = {
+          id: testTrackingId,
+          user_id: testUserId,
+          question: "Did I exercise?",
+          type: TrackingType.TRUE_FALSE,
+          days: {
+            pattern_type: DaysPatternType.INTERVAL,
+            interval_value: testCase.value,
+            interval_unit: testCase.unit,
+          },
+          schedules: schedules.map((s: any) => ({
+            id: s.id,
+            tracking_id: s.tracking_id,
+            hour: s.hour,
+            minutes: s.minutes,
+          })),
+          state: "Running" as const,
+        };
+
+        const nextTime = await reminderService.calculateNextReminderTime(
+          trackingData as any
+        );
+
+        expect(nextTime).not.toBeNull();
+      }
+    });
+
+    it("should return null for invalid interval unit", async () => {
+      const schedules = await testDb.all(
+        "SELECT * FROM tracking_schedules WHERE tracking_id = ?",
+        [testTrackingId]
+      );
+
+      const trackingData = {
+        id: testTrackingId,
+        user_id: testUserId,
+        question: "Did I exercise?",
+        type: TrackingType.TRUE_FALSE,
+        days: {
+          pattern_type: DaysPatternType.INTERVAL,
+          interval_value: 1,
+          interval_unit: "invalid" as any,
+        },
         schedules: schedules.map((s: any) => ({
           id: s.id,
           tracking_id: s.tracking_id,
