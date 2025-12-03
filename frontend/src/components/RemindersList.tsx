@@ -266,7 +266,6 @@ export function RemindersList({ onCreate }: RemindersListProps = {}) {
 
     return (
         <div className="reminders-list">
-            <h2>Reminders</h2>
             {reminders.length === 0 ? (
                 <div className="reminders-empty">
                     <p>
@@ -312,12 +311,15 @@ export function RemindersList({ onCreate }: RemindersListProps = {}) {
                                         <td className="cell-time">{ReminderFormatter.formatDateTime(reminder.scheduled_time)}</td>
                                         <td className="cell-tracking">
                                             {tracking ? (
-                                                <>
+                                                <span
+                                                    title={tracking.question}
+                                                    className="tracking-text"
+                                                >
                                                     {tracking.icon && (
                                                         <span className="tracking-icon">{tracking.icon}</span>
                                                     )}
-                                                    {tracking.question}
-                                                </>
+                                                    {ReminderFormatter.truncateText(tracking.question, 50)}
+                                                </span>
                                             ) : (
                                                 "Unknown tracking"
                                             )}
@@ -483,7 +485,7 @@ export function RemindersList({ onCreate }: RemindersListProps = {}) {
             {reminderToDelete && (
                 <div className="modal-overlay" onClick={() => setReminderToDelete(null)}>
                     <div className="modal-content delete-confirmation" onClick={(e) => e.stopPropagation()}>
-                        <h3>Delete Reminder?</h3>
+                        <h3>Delete Reminder</h3>
                         <p>Are you sure you want to delete this reminder? A new reminder will be created automatically.</p>
                         <div className="modal-actions">
                             <button

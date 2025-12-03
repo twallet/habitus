@@ -246,7 +246,7 @@ describe("RemindersList", () => {
         if (deleteButton) {
             await userEvent.click(deleteButton);
             await waitFor(() => {
-                expect(screen.getByText("Delete Reminder?")).toBeInTheDocument();
+                expect(screen.getByText("Delete Reminder")).toBeInTheDocument();
             });
         }
     });

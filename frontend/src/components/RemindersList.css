@@ -72,8 +72,12 @@
 
 .reminders-table td {
   padding: 12px;
-  border-bottom: 1px solid var(--border-color);
   font-size: 0.875rem;
+  vertical-align: middle;
+}
+
+.reminder-row {
+  border-bottom: 1px solid var(--border-color);
 }
 
 .reminder-row:hover {
@@ -85,6 +89,15 @@
 }
 
 .cell-tracking {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 200px;
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+.tracking-text {
   display: flex;
   align-items: center;
   gap: 8px;

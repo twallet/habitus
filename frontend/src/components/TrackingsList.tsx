@@ -1134,6 +1134,11 @@ export function TrackingsList({
                             return (
                                 <tr key={tracking.id} className="tracking-row">
                                     <td className="cell-tracking">
+                                        {tracking.icon && (
+                                            <span className="tracking-icon">
+                                                {tracking.icon}
+                                            </span>
+                                        )}
                                         <button
                                             type="button"
                                             className="tracking-name-link"
@@ -1141,16 +1146,7 @@ export function TrackingsList({
                                             aria-label={`Edit tracking: ${tracking.question}`}
                                             title={`${tracking.question}. Click to edit`}
                                         >
-                                            {tracking.icon ? (
-                                                <>
-                                                    <span className="tracking-icon">
-                                                        {tracking.icon}
-                                                    </span>
-                                                    {TrackingFormatter.truncateText(tracking.question, 50)}
-                                                </>
-                                            ) : (
-                                                TrackingFormatter.truncateText(tracking.question, 50)
-                                            )}
+                                            {TrackingFormatter.truncateText(tracking.question, 50)}
                                         </button>
                                     </td>
                                     <td className="cell-type" title={TrackingFormatter.getFullTypeLabel(tracking.type)}>

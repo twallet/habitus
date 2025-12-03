@@ -276,10 +276,12 @@
 
 .cell-tracking {
   font-weight: 500;
-  max-width: 0;
+  min-width: 200px;
+  max-width: 400px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .tracking-name-link {
@@ -294,8 +296,10 @@
   text-decoration: underline;
   text-decoration-color: #00c8ff;
   transition: var(--transition);
-  width: 100%;
-  display: inline-block;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tracking-name-link:hover {
@@ -543,7 +547,8 @@
   }
 
   .cell-tracking {
-    max-width: 150px;
+    min-width: 150px;
+    max-width: 250px;
   }
 
   .cell-frequency {
