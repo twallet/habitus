@@ -773,6 +773,7 @@ export function RemindersList({ onCreate: _onCreate, onMessage }: RemindersListP
         return (
             <div className="reminders-list">
                 <div className="reminders-empty">
+                    <p>No pending reminders.</p>
                 </div>
             </div>
         );
