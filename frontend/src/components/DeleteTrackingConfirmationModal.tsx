@@ -94,10 +94,7 @@ export function DeleteTrackingConfirmationModal({
                             Are you sure you want to delete the tracking <strong>"{tracking.question}"</strong>?
                         </p>
                         <p>
-                            This tracking will be permanently deleted and cannot be recovered.
-                        </p>
-                        <p>
-                            This action cannot be undone.
+                            This tracking and its data will be permanently deleted and cannot be recovered. This action cannot be undone.
                         </p>
                     </div>
 
