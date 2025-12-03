@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { ReminderData, ReminderStatus } from "../models/Reminder";
-import { TrackingData, TrackingType } from "../models/Tracking";
+import { TrackingData } from "../models/Tracking";
 import { useReminders } from "../hooks/useReminders";
 import { useTrackings } from "../hooks/useTrackings";
 import { ReminderAnswerModal } from "./ReminderAnswerModal";
@@ -20,48 +20,52 @@ const SNOOZE_OPTIONS = [
 ];
 
 /**
- * Format date and time for display.
- * @param dateTime - ISO datetime string
- * @returns Formatted date and time string
- * @internal
+ * Utility class for formatting reminder data for display.
+ * Follows OOP principles by organizing related formatting methods.
+ * @public
  */
-function formatDateTime(dateTime: string): string {
-    const date = new Date(dateTime);
-    const dateStr = date.toLocaleDateString();
-    const timeStr = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    return `${dateStr} ${timeStr}`;
-}
-
-/**
- * Truncate text to specified length.
- * @param text - Text to truncate
- * @param maxLength - Maximum length
- * @returns Truncated text
- * @internal
- */
-function truncateText(text: string, maxLength: number): string {
-    if (text.length <= maxLength) {
-        return text;
+export class ReminderFormatter {
+    /**
+     * Format date and time for display.
+     * @param dateTime - ISO datetime string
+     * @returns Formatted date and time string
+     */
+    static formatDateTime(dateTime: string): string {
+        const date = new Date(dateTime);
+        const dateStr = date.toLocaleDateString();
+        const timeStr = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        return `${dateStr} ${timeStr}`;
     }
-    return text.substring(0, maxLength) + "...";
-}
 
-/**
- * Get status color class.
- * @param status - Reminder status
- * @returns CSS class name
- * @internal
- */
-function getStatusColorClass(status: ReminderStatus): string {
-    switch (status) {
-        case ReminderStatus.PENDING:
-            return "status-pending";
-        case ReminderStatus.ANSWERED:
-            return "status-answered";
-        case ReminderStatus.SNOOZED:
-            return "status-snoozed";
-        default:
-            return "";
+    /**
+     * Truncate text to specified length.
+     * @param text - Text to truncate
+     * @param maxLength - Maximum length
+     * @returns Truncated text
+     */
+    static truncateText(text: string, maxLength: number): string {
+        if (text.length <= maxLength) {
+            return text;
+        }
+        return text.substring(0, maxLength) + "...";
+    }
+
+    /**
+     * Get status color class.
+     * @param status - Reminder status
+     * @returns CSS class name
+     */
+    static getStatusColorClass(status: ReminderStatus): string {
+        switch (status) {
+            case ReminderStatus.PENDING:
+                return "status-pending";
+            case ReminderStatus.ANSWERED:
+                return "status-answered";
+            case ReminderStatus.SNOOZED:
+                return "status-snoozed";
+            default:
+                return "";
+        }
     }
 }
 
@@ -258,11 +262,11 @@ export function RemindersList() {
                                 const tracking = getTracking(reminder.tracking_id);
                                 const isDropdownOpen = openDropdownId === reminder.id;
                                 const isSnoozeOpen = openSnoozeId === reminder.id;
-                                const statusColorClass = getStatusColorClass(reminder.status);
+                                const statusColorClass = ReminderFormatter.getStatusColorClass(reminder.status);
 
                                 return (
                                     <tr key={reminder.id} className="reminder-row">
-                                        <td className="cell-time">{formatDateTime(reminder.scheduled_time)}</td>
+                                        <td className="cell-time">{ReminderFormatter.formatDateTime(reminder.scheduled_time)}</td>
                                         <td className="cell-tracking">
                                             {tracking ? (
                                                 <>
@@ -281,7 +285,7 @@ export function RemindersList() {
                                                     title={reminder.answer}
                                                     className="answer-text"
                                                 >
-                                                    {truncateText(reminder.answer, 50)}
+                                                    {ReminderFormatter.truncateText(reminder.answer, 50)}
                                                 </span>
                                             ) : (
                                                 <span className="answer-empty">—</span>

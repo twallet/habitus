@@ -1,6 +1,7 @@
 import { useState, FormEvent, useEffect, useRef } from "react";
 import { ReminderData } from "../models/Reminder";
 import { TrackingData, TrackingType } from "../models/Tracking";
+import { ReminderFormatter } from "./RemindersList";
 import "./ReminderAnswerModal.css";
 import "./EditTrackingModal.css";
 
@@ -31,19 +32,6 @@ export function ReminderAnswerModal({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const hasCalledOnCloseRef = useRef(false);
-
-    /**
-     * Format date and time for display.
-     * @param dateTime - ISO datetime string
-     * @returns Formatted date and time string
-     * @internal
-     */
-    const formatDateTime = (dateTime: string): string => {
-        const date = new Date(dateTime);
-        const dateStr = date.toLocaleDateString();
-        const timeStr = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-        return `${dateStr} ${timeStr}`;
-    };
 
     /**
      * Handle form submission.
@@ -159,7 +147,7 @@ export function ReminderAnswerModal({
                             </label>
                         </div>
                         <div className="form-field-readonly">
-                            {formatDateTime(reminder.scheduled_time)}
+                            {ReminderFormatter.formatDateTime(reminder.scheduled_time)}
                         </div>
                     </div>
 
