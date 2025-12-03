@@ -1,0 +1,395 @@
+.tracking-form {
+  background: var(--bg-primary);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.tracking-form h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 24px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-group label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.required-asterisk {
+  color: var(--error-color);
+  margin-left: 2px;
+}
+
+.field-help {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+}
+
+.field-hint {
+  font-weight: 400;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.form-group textarea,
+.form-group input[type="text"],
+.form-group input[type="datetime-local"],
+.form-group select {
+  width: fit-content;
+}
+
+.form-group input[type="datetime-local"] {
+  width: fit-content;
+}
+
+.form-group textarea {
+  width: fit-content;
+  min-width: 40ch;
+}
+
+.question-field-wrapper textarea {
+  width: fit-content;
+  min-width: 45ch;
+  min-height: auto;
+}
+
+.form-group select {
+  width: fit-content;
+  min-width: 15ch;
+}
+
+.icon-input-row input[type="text"],
+.icon-suggest-button {
+  height: 42px;
+}
+
+.form-group textarea:focus,
+.form-group input[type="datetime-local"]:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(0, 90, 127, 0.1);
+}
+
+.form-group textarea:disabled,
+.form-group input[type="datetime-local"]:disabled,
+.form-group select:disabled {
+  background: var(--bg-secondary);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.btn-primary {
+  padding: 10px 20px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  padding: 10px 20px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--border-color);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.question-field-wrapper {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+}
+
+.icon-type-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.icon-field-wrapper {
+  flex: 0 0 auto;
+}
+
+.type-field-wrapper {
+  flex: 0 0 auto;
+}
+
+.icon-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.icon-input-row input[type="text"] {
+  width: 11ch;
+  flex: 0 0 auto;
+}
+
+.icon-suggest-button {
+  padding-inline: 10px;
+  min-width: auto;
+  width: auto;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--primary-color);
+  color: #ffffff;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.icon-suggest-button:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.icon-suggest-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.icon-suggest-text {
+  display: inline-block;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.form-actions .btn-primary.create-tracking-button {
+  padding-inline: 16px;
+  width: auto;
+  flex-shrink: 0;
+  min-width: auto;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.schedule-input-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.schedule-time-inputs {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
+.schedule-time-inputs input[type="time"] {
+  height: 42px;
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  width: auto;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.schedule-time-inputs input[type="time"]:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(0, 90, 127, 0.1);
+}
+
+.schedule-time-inputs input[type="time"]:disabled {
+  background: var(--bg-secondary);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.schedule-add-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 42px;
+  padding: 10px 20px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  flex-basis: auto !important;
+  width: max-content !important;
+  min-width: unset !important;
+  max-width: fit-content !important;
+  align-self: flex-start;
+}
+
+.schedule-add-button:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.schedule-add-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.schedule-time-inputs input[type="number"] {
+  width: 70px;
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.schedule-time-inputs input[type="number"]:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(0, 90, 127, 0.1);
+}
+
+.schedule-time-inputs input[type="number"]:disabled {
+  background: var(--bg-secondary);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.btn-small {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}
+
+.schedules-list {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-start;
+  align-content: flex-start;
+  margin: 0;
+  margin-top: 0;
+  padding-top: 0;
+  align-self: flex-start;
+  min-height: 0;
+}
+
+.schedule-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+}
+
+.schedule-time {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.btn-icon {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  transition: var(--transition);
+}
+
+.btn-icon:hover:not(:disabled) {
+  background: var(--bg-primary);
+}
+
+.btn-icon:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
