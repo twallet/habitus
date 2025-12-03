@@ -554,23 +554,23 @@ export function RemindersList({ onCreate }: RemindersListProps = {}) {
             const target = event.target as Node;
 
             // Check status dropdowns
-            Object.values(dropdownRefs.current).forEach((ref) => {
+            for (const ref of Object.values(dropdownRefs.current)) {
                 if (ref && ref.contains(target)) {
                     return;
                 }
-            });
-            Object.values(dropdownMenuRefs.current).forEach((ref) => {
+            }
+            for (const ref of Object.values(dropdownMenuRefs.current)) {
                 if (ref && ref.contains(target)) {
                     return;
                 }
-            });
+            }
 
             // Check snooze menus
-            Object.values(snoozeMenuRefs.current).forEach((ref) => {
+            for (const ref of Object.values(snoozeMenuRefs.current)) {
                 if (ref && ref.contains(target)) {
                     return;
                 }
-            });
+            }
 
             setOpenDropdownId(null);
             setOpenSnoozeId(null);
