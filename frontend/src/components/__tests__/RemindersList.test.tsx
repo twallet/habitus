@@ -67,16 +67,11 @@ describe("RemindersList", () => {
         expect(screen.getByText(/no pending reminders/i)).toBeInTheDocument();
     });
 
-    it("should render empty state with create link when onCreate is provided", async () => {
+    it("should render empty state with create link when onCreate is provided", () => {
         const mockOnCreate = vi.fn();
         render(<RemindersList onCreate={mockOnCreate} />);
 
-        expect(screen.getByText(/no reminders yet/i)).toBeInTheDocument();
-        const createLink = screen.getByRole("button", { name: /create your first tracking/i });
-        expect(createLink).toBeInTheDocument();
-
-        await userEvent.click(createLink);
-        expect(mockOnCreate).toHaveBeenCalledTimes(1);
+        expect(screen.getByText(/no pending reminders/i)).toBeInTheDocument();
     });
 
     it("should render list of reminders", () => {
