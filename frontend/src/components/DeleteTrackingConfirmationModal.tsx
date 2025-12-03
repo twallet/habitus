@@ -95,11 +95,20 @@ export function DeleteTrackingConfirmationModal({
         };
     }, [onClose]);
 
-    const handleOverlayClick = () => {
+    /**
+     * Handle overlay click to close modal.
+     * Prevents closing during deletion or error states.
+     * @param e - Click event
+     * @internal
+     */
+    const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
         // Use refs to check current state - refs are always up to date
-        if (!isDeletingRef.current && !errorRef.current) {
-            onClose();
+        if (isDeletingRef.current || errorRef.current) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
         }
+        onClose();
     };
 
     return (

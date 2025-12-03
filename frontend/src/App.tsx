@@ -40,6 +40,9 @@ function App() {
   const [showTrackingForm, setShowTrackingForm] = useState(false);
   const [activeTab, setActiveTab] = useState<'trackings' | 'reminders'>('trackings');
   const verificationAttempted = useRef(false);
+  const trackingsViewRef = useRef<HTMLDivElement>(null);
+  const remindersViewRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const {
     trackings,
@@ -49,6 +52,84 @@ function App() {
     updateTrackingState,
     deleteTracking,
   } = useTrackings();
+
+  /**
+   * Update container width to match the maximum width between trackings and reminders tables.
+   * @internal
+   */
+  useEffect(() => {
+    const updateContainerWidth = () => {
+      if (!containerRef.current) {
+        return;
+      }
+
+      let maxWidth = 0;
+
+      // Measure trackings table width
+      if (trackingsViewRef.current) {
+        const trackingsTable = trackingsViewRef.current.querySelector('.trackings-table');
+        if (trackingsTable) {
+          const width = trackingsTable.getBoundingClientRect().width;
+          if (width > 0) {
+            maxWidth = Math.max(maxWidth, width);
+          }
+        }
+      }
+
+      // Measure reminders table width
+      if (remindersViewRef.current) {
+        const remindersTable = remindersViewRef.current.querySelector('.reminders-table');
+        if (remindersTable) {
+          const width = remindersTable.getBoundingClientRect().width;
+          if (width > 0) {
+            maxWidth = Math.max(maxWidth, width);
+          }
+        }
+      }
+
+      // Only update if we have a valid width
+      if (maxWidth > 0) {
+        // Add padding to account for container padding (40px on each side = 80px total)
+        const containerPadding = 80;
+        const newWidth = maxWidth + containerPadding;
+        containerRef.current.style.width = `${newWidth}px`;
+        containerRef.current.style.maxWidth = `${newWidth}px`;
+      }
+    };
+
+    // Small delay to ensure tables are rendered
+    const timeoutId = setTimeout(() => {
+      updateContainerWidth();
+    }, 100);
+
+    // Use ResizeObserver to watch for table size changes
+    const resizeObserver = new ResizeObserver(() => {
+      updateContainerWidth();
+    });
+
+    if (trackingsViewRef.current) {
+      const trackingsTable = trackingsViewRef.current.querySelector('.trackings-table');
+      if (trackingsTable) {
+        resizeObserver.observe(trackingsTable);
+      }
+    }
+
+    if (remindersViewRef.current) {
+      const remindersTable = remindersViewRef.current.querySelector('.reminders-table');
+      if (remindersTable) {
+        resizeObserver.observe(remindersTable);
+      }
+    }
+
+    // Also update when window resizes
+    window.addEventListener('resize', updateContainerWidth);
+
+    return () => {
+      clearTimeout(timeoutId);
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', updateContainerWidth);
+    };
+  }, [activeTab, trackings, trackingsLoading]);
 
   /**
    * Handle magic link verification from URL.
@@ -474,7 +555,7 @@ function App() {
   console.log(`[${new Date().toISOString()}] FRONTEND_APP | User authenticated and loaded: ${user.email} (ID: ${user.id}), rendering main app`);
 
   return (
-    <div className="container">
+    <div className="container" ref={containerRef}>
       <header className="app-header">
         <div>
           <h1>
@@ -520,29 +601,45 @@ function App() {
             </button>
           </div>
           <div className="tabs-content">
-            {activeTab === 'trackings' && (
-              <div className="trackings-view">
-                <TrackingsList
-                  trackings={trackings}
-                  onEdit={handleEditTracking}
-                  onCreate={() => setShowTrackingForm(true)}
-                  isLoading={trackingsLoading}
-                  onStateChange={updateTrackingState}
-                  onDelete={deleteTracking}
-                  onStateChangeSuccess={(message) => {
-                    setMessage({
-                      text: message,
-                      type: 'success',
-                    });
-                  }}
-                />
-              </div>
-            )}
-            {activeTab === 'reminders' && (
-              <div className="reminders-view">
-                <RemindersList onCreate={() => setShowTrackingForm(true)} />
-              </div>
-            )}
+            <div
+              className="trackings-view"
+              ref={trackingsViewRef}
+              style={{
+                display: activeTab === 'trackings' ? 'block' : 'block',
+                visibility: activeTab === 'trackings' ? 'visible' : 'hidden',
+                position: activeTab === 'trackings' ? 'static' : 'absolute',
+                left: activeTab === 'trackings' ? 'auto' : '-9999px',
+                top: activeTab === 'trackings' ? 'auto' : '0',
+              }}
+            >
+              <TrackingsList
+                trackings={trackings}
+                onEdit={handleEditTracking}
+                onCreate={() => setShowTrackingForm(true)}
+                isLoading={trackingsLoading}
+                onStateChange={updateTrackingState}
+                onDelete={deleteTracking}
+                onStateChangeSuccess={(message) => {
+                  setMessage({
+                    text: message,
+                    type: 'success',
+                  });
+                }}
+              />
+            </div>
+            <div
+              className="reminders-view"
+              ref={remindersViewRef}
+              style={{
+                display: activeTab === 'reminders' ? 'block' : 'block',
+                visibility: activeTab === 'reminders' ? 'visible' : 'hidden',
+                position: activeTab === 'reminders' ? 'static' : 'absolute',
+                left: activeTab === 'reminders' ? 'auto' : '-9999px',
+                top: activeTab === 'reminders' ? 'auto' : '0',
+              }}
+            >
+              <RemindersList onCreate={() => setShowTrackingForm(true)} />
+            </div>
           </div>
         </div>
       </main>
