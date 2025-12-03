@@ -814,8 +814,8 @@ function App() {
             type="button"
             className="fab"
             onClick={() => setShowTrackingForm(true)}
-            aria-label="Add"
-            title="Add"
+            aria-label="Add tracking"
+            title="Add tracking"
           >
             +
           </button>
