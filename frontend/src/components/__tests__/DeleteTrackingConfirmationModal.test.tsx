@@ -313,7 +313,9 @@ describe('DeleteTrackingConfirmationModal', () => {
         });
 
         // Wait for React to flush all updates and ensure refs are synchronized
-        await new Promise(resolve => setTimeout(resolve, 50));
+        // Use multiple ticks to ensure all React updates are processed
+        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise(resolve => setTimeout(resolve, 0));
 
         // Try to close with Escape while deleting - use fireEvent to ensure it happens after state update
         act(() => {
