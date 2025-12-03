@@ -186,10 +186,12 @@ function App() {
       if (maxHeight > 0) {
         // Add padding to account for container padding and header
         // Header height + tabs header height + padding top (40px) + padding bottom (40px)
+        // Include view margin-bottom (40px) for bottom spacing
         const headerHeight = containerRef.current.querySelector('header')?.getBoundingClientRect().height || 0;
         const tabsHeaderHeight = containerRef.current.querySelector('.tabs-header')?.getBoundingClientRect().height || 0;
         const containerPadding = 40 + 40; // top padding + bottom padding
-        const newHeight = maxHeight + headerHeight + tabsHeaderHeight + containerPadding;
+        const viewMarginBottom = 40; // margin-bottom for bottom spacing
+        const newHeight = maxHeight + headerHeight + tabsHeaderHeight + containerPadding + viewMarginBottom;
         containerRef.current.style.minHeight = `${newHeight}px`;
         containerRef.current.style.height = `${newHeight}px`;
       }

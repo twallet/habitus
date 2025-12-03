@@ -573,6 +573,7 @@ main {
 .trackings-view,
 .reminders-view {
   width: 100%;
+  margin-bottom: 40px;
 }
 
 .fab {
