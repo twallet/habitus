@@ -257,6 +257,21 @@ class TrackingFormatter {
         const timeStr = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
         return `Next reminder: ${dateStr} ${timeStr}`;
     }
+
+    /**
+     * Format next reminder time for table display.
+     * @param nextReminderTime - ISO datetime string or null
+     * @returns Formatted reminder time string for display
+     */
+    static formatNextReminderTimeDisplay(nextReminderTime: string | null): string {
+        if (!nextReminderTime) {
+            return "—";
+        }
+        const date = new Date(nextReminderTime);
+        const dateStr = date.toLocaleDateString();
+        const timeStr = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        return `${dateStr} ${timeStr}`;
+    }
 }
 
 /**
@@ -436,16 +451,44 @@ class TrackingSorter {
     }
 
     /**
+     * Compare two trackings by next reminder time.
+     * @param a - First tracking
+     * @param b - Second tracking
+     * @param getNextReminderTime - Function to get next reminder time for a tracking
+     * @returns Comparison result (-1, 0, or 1)
+     */
+    static compareNextReminder(
+        a: TrackingData,
+        b: TrackingData,
+        getNextReminderTime: (trackingId: number) => string | null
+    ): number {
+        const timeA = getNextReminderTime(a.id);
+        const timeB = getNextReminderTime(b.id);
+
+        // Null values sort to end
+        if (!timeA && !timeB) return 0;
+        if (!timeA) return 1;
+        if (!timeB) return -1;
+
+        // Compare dates
+        const dateA = new Date(timeA).getTime();
+        const dateB = new Date(timeB).getTime();
+        return dateA - dateB;
+    }
+
+    /**
      * Sort trackings array by column and direction.
      * @param trackings - Array of tracking data to sort
      * @param column - Column name to sort by (or null for no sorting)
      * @param direction - Sort direction ('asc', 'desc', or null)
+     * @param getNextReminderTime - Optional function to get next reminder time (required for 'next-reminder' column)
      * @returns Sorted array of trackings
      */
     static sortTrackings(
         trackings: TrackingData[],
         column: string | null,
-        direction: 'asc' | 'desc' | null
+        direction: 'asc' | 'desc' | null,
+        getNextReminderTime?: (trackingId: number) => string | null
     ): TrackingData[] {
         if (!column || !direction) {
             return [...trackings];
@@ -466,6 +509,12 @@ class TrackingSorter {
                 break;
             case 'frequency':
                 compareFn = TrackingSorter.compareFrequency;
+                break;
+            case 'next-reminder':
+                if (!getNextReminderTime) {
+                    return sorted;
+                }
+                compareFn = (a, b) => TrackingSorter.compareNextReminder(a, b, getNextReminderTime);
                 break;
             case 'status':
                 compareFn = TrackingSorter.compareStatus;
@@ -721,7 +770,7 @@ export function TrackingsList({
 
     // Apply filters and sorting
     const filteredTrackings = TrackingFilter.applyFilters(visibleTrackings, filterState);
-    const filteredAndSortedTrackings = TrackingSorter.sortTrackings(filteredTrackings, sortColumn, sortDirection);
+    const filteredAndSortedTrackings = TrackingSorter.sortTrackings(filteredTrackings, sortColumn, sortDirection, getNextReminderTime);
 
     /**
      * Handle filter change.
@@ -1188,6 +1237,21 @@ export function TrackingsList({
                                     )}
                                 </button>
                             </th>
+                            <th className="col-next-reminder">
+                                <button
+                                    type="button"
+                                    className="sortable-header"
+                                    onClick={() => handleSortClick('next-reminder')}
+                                    aria-label="Sort by next reminder"
+                                >
+                                    Next reminder
+                                    {sortColumn === 'next-reminder' && (
+                                        <span className="sort-indicator">
+                                            {sortDirection === 'asc' ? '↑' : '↓'}
+                                        </span>
+                                    )}
+                                </button>
+                            </th>
                             <th className="col-status">
                                 <button
                                     type="button"
@@ -1237,11 +1301,11 @@ export function TrackingsList({
                                     <td className="cell-times" title={TrackingFormatter.formatAllTimes(tracking.schedules)}>
                                         {TrackingFormatter.formatTimesDisplay(tracking.schedules)}
                                     </td>
-                                    <td
-                                        className="cell-frequency"
-                                        title={TrackingFormatter.formatNextReminderTime(getNextReminderTime(tracking.id))}
-                                    >
+                                    <td className="cell-frequency">
                                         {TrackingFormatter.formatFrequency(tracking.days)}
+                                    </td>
+                                    <td className="cell-next-reminder">
+                                        {TrackingFormatter.formatNextReminderTimeDisplay(getNextReminderTime(tracking.id))}
                                     </td>
                                     <td className="cell-status">
                                         <div

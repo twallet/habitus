@@ -249,6 +249,10 @@
   min-width: 150px;
 }
 
+.trackings-table th.col-next-reminder {
+  min-width: 180px;
+}
+
 .trackings-table th.col-status {
   width: 120px;
   text-align: center;
@@ -333,6 +337,12 @@
 .cell-frequency {
   color: var(--text-secondary);
   font-size: 0.8125rem;
+}
+
+.cell-next-reminder {
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  white-space: nowrap;
 }
 
 .cell-status {
@@ -557,6 +567,14 @@
   }
 
   .trackings-table th.col-frequency {
+    display: none;
+  }
+
+  .cell-next-reminder {
+    display: none;
+  }
+
+  .trackings-table th.col-next-reminder {
     display: none;
   }
 
