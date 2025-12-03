@@ -942,8 +942,11 @@ describe('App', () => {
     if (!timeInput) {
       throw new Error("Time input not found");
     }
-    const form = screen.getByRole('form');
-    const scheduleButton = within(form).getByRole('button', { name: /^add$/i });
+    const allAddButtons = screen.getAllByRole('button', { name: /^add$/i });
+    const scheduleButton = allAddButtons.find(btn => btn.classList.contains('schedule-add-button'));
+    if (!scheduleButton) {
+      throw new Error("Schedule add button not found");
+    }
     await userEvent.clear(timeInput);
     await userEvent.type(timeInput, '09:00');
     await userEvent.click(scheduleButton);
@@ -1372,8 +1375,11 @@ describe('App', () => {
     if (!timeInput) {
       throw new Error("Time input not found");
     }
-    const form = screen.getByRole('form');
-    const scheduleButton = within(form).getByRole('button', { name: /^add$/i });
+    const allAddButtons = screen.getAllByRole('button', { name: /^add$/i });
+    const scheduleButton = allAddButtons.find(btn => btn.classList.contains('schedule-add-button'));
+    if (!scheduleButton) {
+      throw new Error("Schedule add button not found");
+    }
     await userEvent.clear(timeInput);
     await userEvent.type(timeInput, '09:00');
     await userEvent.click(scheduleButton);

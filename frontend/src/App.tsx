@@ -186,12 +186,10 @@ function App() {
       if (maxHeight > 0) {
         // Add padding to account for container padding and header
         // Header height + tabs header height + padding top (40px) + padding bottom (40px)
-        // Also include view margin-bottom (40px) to account for bottom spacing
         const headerHeight = containerRef.current.querySelector('header')?.getBoundingClientRect().height || 0;
         const tabsHeaderHeight = containerRef.current.querySelector('.tabs-header')?.getBoundingClientRect().height || 0;
         const containerPadding = 40 + 40; // top padding + bottom padding
-        const viewMarginBottom = 40; // margin-bottom of trackings-view and reminders-view
-        const newHeight = maxHeight + headerHeight + tabsHeaderHeight + containerPadding + viewMarginBottom;
+        const newHeight = maxHeight + headerHeight + tabsHeaderHeight + containerPadding;
         containerRef.current.style.minHeight = `${newHeight}px`;
         containerRef.current.style.height = `${newHeight}px`;
       }
