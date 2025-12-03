@@ -5,10 +5,16 @@ import userEvent from "@testing-library/user-event";
 import { TrackingsList } from "../TrackingsList";
 import { TrackingData, TrackingType, DaysPatternType, TrackingState } from "../../models/Tracking";
 import * as useTrackingsModule from "../../hooks/useTrackings";
+import * as useRemindersModule from "../../hooks/useReminders";
 
 // Mock the useTrackings hook
 vi.mock("../../hooks/useTrackings", () => ({
     useTrackings: vi.fn(),
+}));
+
+// Mock the useReminders hook
+vi.mock("../../hooks/useReminders", () => ({
+    useReminders: vi.fn(),
 }));
 
 describe("TrackingsList", () => {
@@ -31,6 +37,10 @@ describe("TrackingsList", () => {
             updateTrackingState: mockUpdateTrackingState,
             deleteTracking: mockDeleteTracking,
             createTracking: mockCreateTracking,
+        });
+        // Default mock for useReminders - no reminders by default
+        (useRemindersModule.useReminders as any).mockReturnValue({
+            reminders: [],
         });
     });
 
@@ -424,7 +434,7 @@ describe("TrackingsList", () => {
         expect(screen.getByText("Daily")).toBeInTheDocument();
     });
 
-    it("should display full frequency details in tooltip", () => {
+    it("should display next reminder time in tooltip", () => {
         const trackings: TrackingData[] = [
             {
                 id: 1,
@@ -438,6 +448,11 @@ describe("TrackingsList", () => {
             },
         ];
 
+        // Mock useReminders to return no reminders (default behavior)
+        (useRemindersModule.useReminders as any).mockReturnValue({
+            reminders: [],
+        });
+
         render(
             <TrackingsList
                 trackings={trackings}
@@ -446,7 +461,7 @@ describe("TrackingsList", () => {
         );
 
         const frequencyCell = screen.getByText("Mon, Wed, Fri");
-        expect(frequencyCell).toHaveAttribute("title", "Frequency: Weekly (Monday, Wednesday, Friday)");
+        expect(frequencyCell).toHaveAttribute("title", "No upcoming reminder");
     });
 
     it("should display full type label in tooltip", () => {
