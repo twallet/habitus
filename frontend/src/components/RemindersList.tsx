@@ -69,17 +69,24 @@ export class ReminderFormatter {
     }
 }
 
+interface RemindersListProps {
+    onCreate?: () => void;
+}
+
 /**
  * RemindersList component for displaying reminders in a table.
+ * @param props - Component props
+ * @param props.onCreate - Optional callback when create tracking link is clicked
  * @public
  */
-export function RemindersList() {
+export function RemindersList({ onCreate }: RemindersListProps = {}) {
     const { reminders, isLoading, updateReminder, snoozeReminder, deleteReminder, refreshReminders } = useReminders();
     const { trackings } = useTrackings();
     const [editingReminder, setEditingReminder] = useState<ReminderData | null>(null);
     const [reminderToDelete, setReminderToDelete] = useState<ReminderData | null>(null);
     const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
     const [openSnoozeId, setOpenSnoozeId] = useState<number | null>(null);
+    const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right: number } | null>(null);
     const dropdownRefs = useRef<Record<number, HTMLDivElement | null>>({});
     const dropdownMenuRefs = useRef<Record<number, HTMLDivElement | null>>({});
     const snoozeMenuRefs = useRef<Record<number, HTMLDivElement | null>>({});
@@ -102,9 +109,21 @@ export function RemindersList() {
     const toggleDropdown = (reminderId: number) => {
         if (openDropdownId === reminderId) {
             setOpenDropdownId(null);
+            setDropdownPosition(null);
         } else {
             setOpenDropdownId(reminderId);
             setOpenSnoozeId(null);
+            // Calculate position after state update
+            setTimeout(() => {
+                const container = dropdownRefs.current[reminderId];
+                if (container) {
+                    const rect = container.getBoundingClientRect();
+                    setDropdownPosition({
+                        top: rect.bottom + 4,
+                        right: window.innerWidth - rect.right,
+                    });
+                }
+            }, 0);
         }
     };
 
@@ -119,6 +138,7 @@ export function RemindersList() {
         } else {
             setOpenSnoozeId(reminderId);
             setOpenDropdownId(null);
+            setDropdownPosition(null);
         }
     };
 
@@ -133,6 +153,7 @@ export function RemindersList() {
             await snoozeReminder(reminderId, minutes);
             setOpenSnoozeId(null);
             setOpenDropdownId(null);
+            setDropdownPosition(null);
             // Refresh reminders to get updated data
             await refreshReminders();
         } catch (error) {
@@ -148,6 +169,7 @@ export function RemindersList() {
     const handleAnswer = (reminder: ReminderData) => {
         setEditingReminder(reminder);
         setOpenDropdownId(null);
+        setDropdownPosition(null);
     };
 
     /**
@@ -158,6 +180,7 @@ export function RemindersList() {
     const handleDelete = (reminder: ReminderData) => {
         setReminderToDelete(reminder);
         setOpenDropdownId(null);
+        setDropdownPosition(null);
     };
 
     /**
@@ -228,6 +251,7 @@ export function RemindersList() {
 
             setOpenDropdownId(null);
             setOpenSnoozeId(null);
+            setDropdownPosition(null);
         };
 
         document.addEventListener("mousedown", handleClickOutside);
@@ -244,7 +268,26 @@ export function RemindersList() {
         <div className="reminders-list">
             <h2>Reminders</h2>
             {reminders.length === 0 ? (
-                <div className="reminders-empty">No reminders</div>
+                <div className="reminders-empty">
+                    <p>
+                        No reminders yet.{" "}
+                        {onCreate ? (
+                            <>
+                                <button
+                                    type="button"
+                                    className="link-button"
+                                    onClick={onCreate}
+                                    aria-label="Create your first tracking"
+                                >
+                                    Create your first tracking
+                                </button>{" "}
+                                to get started!
+                            </>
+                        ) : (
+                            "Create your first tracking to get started!"
+                        )}
+                    </p>
+                </div>
             ) : (
                 <div className="reminders-table-container">
                     <table className="reminders-table">
@@ -320,11 +363,15 @@ export function RemindersList() {
                                                     <span className="status-badge-text">{reminder.status}</span>
                                                     <span className="status-badge-arrow">▼</span>
                                                 </button>
-                                                {isDropdownOpen && (
+                                                {isDropdownOpen && dropdownPosition && (
                                                     <div
                                                         className="status-dropdown-menu"
                                                         ref={(el) => {
                                                             dropdownMenuRefs.current[reminder.id] = el;
+                                                        }}
+                                                        style={{
+                                                            top: `${dropdownPosition.top}px`,
+                                                            right: `${dropdownPosition.right}px`,
                                                         }}
                                                     >
                                                         {reminder.status === ReminderStatus.PENDING && (

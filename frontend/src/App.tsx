@@ -540,7 +540,7 @@ function App() {
             )}
             {activeTab === 'reminders' && (
               <div className="reminders-view">
-                <RemindersList />
+                <RemindersList onCreate={() => setShowTrackingForm(true)} />
               </div>
             )}
           </div>
