@@ -367,16 +367,16 @@ export function RemindersList({ onCreate: _onCreate, onMessage }: RemindersListP
     };
 
     // Filter reminders for display: only show those whose scheduled time has been reached
-    // Answered reminders are always shown (historical records)
+    // Answered reminders are hidden (they should not appear in the reminders table)
     // Snoozed reminders are hidden until their scheduled time is reached (then backend updates them to Pending)
     // For Pending reminders, only show if scheduled time has been reached
     const now = new Date();
     const remindersForDisplay = reminders.filter((reminder) => {
-        const scheduledTime = new Date(reminder.scheduled_time);
-        // Show Answered reminders (historical records)
+        // Hide Answered reminders - they should not appear in the reminders table
         if (reminder.status === ReminderStatus.ANSWERED) {
-            return true;
+            return false;
         }
+        const scheduledTime = new Date(reminder.scheduled_time);
         // Hide Snoozed reminders until their scheduled time is reached
         // When their time is reached, backend will update them to Pending status
         if (reminder.status === ReminderStatus.SNOOZED) {

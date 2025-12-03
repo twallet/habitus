@@ -827,7 +827,15 @@ function App() {
                 display: activeTab === 'reminders' ? 'block' : 'none',
               }}
             >
-              <RemindersList onCreate={() => setShowTrackingForm(true)} />
+              <RemindersList
+                onCreate={() => setShowTrackingForm(true)}
+                onMessage={(text, type) => {
+                  setMessage({
+                    text,
+                    type,
+                  });
+                }}
+              />
             </div>
           </div>
         </div>

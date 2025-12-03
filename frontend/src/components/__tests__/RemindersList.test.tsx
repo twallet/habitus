@@ -109,9 +109,9 @@ describe("RemindersList", () => {
                 id: 1,
                 tracking_id: 1,
                 user_id: 1,
-                scheduled_time: "2024-01-01T10:00:00Z",
+                scheduled_time: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
                 answer: "Yes",
-                status: ReminderStatus.ANSWERED,
+                status: ReminderStatus.PENDING,
             },
         ];
 
@@ -351,17 +351,17 @@ describe("RemindersList", () => {
                 id: 1,
                 tracking_id: 1,
                 user_id: 1,
-                scheduled_time: "2024-01-01T10:00:00Z",
+                scheduled_time: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
                 answer: "Yes",
-                status: ReminderStatus.ANSWERED,
+                status: ReminderStatus.PENDING,
             },
             {
                 id: 2,
                 tracking_id: 1,
                 user_id: 1,
-                scheduled_time: "2024-01-01T11:00:00Z",
+                scheduled_time: new Date(Date.now() - 1800000).toISOString(), // 30 minutes ago
                 answer: "No",
-                status: ReminderStatus.ANSWERED,
+                status: ReminderStatus.PENDING,
             },
         ];
 
@@ -643,17 +643,17 @@ describe("RemindersList", () => {
                 id: 1,
                 tracking_id: 1,
                 user_id: 1,
-                scheduled_time: "2024-01-01T10:00:00Z",
+                scheduled_time: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
                 answer: "No",
-                status: ReminderStatus.ANSWERED,
+                status: ReminderStatus.PENDING,
             },
             {
                 id: 2,
                 tracking_id: 1,
                 user_id: 1,
-                scheduled_time: "2024-01-01T11:00:00Z",
+                scheduled_time: new Date(Date.now() - 1800000).toISOString(), // 30 minutes ago
                 answer: "Yes",
-                status: ReminderStatus.ANSWERED,
+                status: ReminderStatus.PENDING,
             },
         ];
 
@@ -693,15 +693,15 @@ describe("RemindersList", () => {
                 id: 1,
                 tracking_id: 1,
                 user_id: 1,
-                scheduled_time: "2024-01-01T10:00:00Z",
+                scheduled_time: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
                 status: ReminderStatus.SNOOZED,
             },
             {
                 id: 2,
                 tracking_id: 1,
                 user_id: 1,
-                scheduled_time: "2024-01-01T11:00:00Z",
-                status: ReminderStatus.ANSWERED,
+                scheduled_time: new Date(Date.now() - 1800000).toISOString(), // 30 minutes ago
+                status: ReminderStatus.PENDING,
             },
         ];
 
@@ -724,7 +724,7 @@ describe("RemindersList", () => {
         await userEvent.click(statusHeader);
 
         // Should be sorted alphabetically
-        const statuses = screen.getAllByText(/Answered|Snoozed/);
+        const statuses = screen.getAllByText(/Pending|Snoozed/);
         expect(statuses.length).toBe(2);
     });
 
@@ -1055,40 +1055,7 @@ describe("RemindersList", () => {
         consoleErrorSpy.mockRestore();
     });
 
-    it("should show Edit button for answered reminders", async () => {
-        const reminders: ReminderData[] = [
-            {
-                id: 1,
-                tracking_id: 1,
-                user_id: 1,
-                scheduled_time: "2024-01-01T10:00:00Z",
-                status: ReminderStatus.ANSWERED,
-            },
-        ];
-
-        (useRemindersModule.useReminders as any).mockReturnValue({
-            reminders,
-            isLoading: false,
-            updateReminder: mockUpdateReminder,
-            snoozeReminder: mockSnoozeReminder,
-            deleteReminder: mockDeleteReminder,
-            refreshReminders: mockRefreshReminders,
-        });
-        (useTrackingsModule.useTrackings as any).mockReturnValue({
-            trackings: [mockTracking],
-        });
-
-        render(<RemindersList />);
-
-        const statusBadge = screen.getByText("Answered");
-        await userEvent.click(statusBadge);
-
-        // Should show Edit button instead of Answer
-        const editText = await screen.findByText((content, element) => {
-            return content === "Edit" && element?.closest(".status-dropdown-menu") !== null;
-        });
-        expect(editText).toBeInTheDocument();
-    });
+    // Note: Answered reminders are now hidden from the reminders table, so this test is no longer applicable
 
     it("should show Answer button for snoozed reminders", async () => {
         const reminders: ReminderData[] = [
