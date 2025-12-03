@@ -43,6 +43,9 @@ export class ReminderService {
       } reminders for userId: ${userId}`
     );
 
+    // Check and update expired snoozed reminders
+    await this.updateExpiredSnoozedReminders(reminders);
+
     return reminders.map((reminder) => reminder.toData());
   }
 
@@ -69,6 +72,9 @@ export class ReminderService {
       );
       return null;
     }
+
+    // Check and update expired snoozed reminder
+    await this.updateExpiredSnoozedReminders([reminder]);
 
     console.log(
       `[${new Date().toISOString()}] REMINDER | Reminder found: ID ${
@@ -565,6 +571,44 @@ export class ReminderService {
       Math.floor((dayOfYear - daysToFirstOccurrence) / 7) + 1;
 
     return occurrenceNumber === ordinal;
+  }
+
+  /**
+   * Check and update expired snoozed reminders to Pending status.
+   * @param reminders - Array of reminder instances to check
+   * @returns Promise resolving when all updates are complete
+   * @private
+   */
+  private async updateExpiredSnoozedReminders(
+    reminders: Reminder[]
+  ): Promise<void> {
+    const now = new Date();
+    const updatePromises: Promise<ReminderData>[] = [];
+
+    for (const reminder of reminders) {
+      if (reminder.status === ReminderStatus.SNOOZED) {
+        const scheduledTime = new Date(reminder.scheduled_time);
+        if (scheduledTime <= now) {
+          console.log(
+            `[${new Date().toISOString()}] REMINDER | Updating expired snoozed reminder ID ${
+              reminder.id
+            } to Pending status`
+          );
+          updatePromises.push(
+            reminder.update({ status: ReminderStatus.PENDING }, this.db)
+          );
+        }
+      }
+    }
+
+    if (updatePromises.length > 0) {
+      await Promise.all(updatePromises);
+      console.log(
+        `[${new Date().toISOString()}] REMINDER | Updated ${
+          updatePromises.length
+        } expired snoozed reminder(s) to Pending status`
+      );
+    }
   }
 
   /**
