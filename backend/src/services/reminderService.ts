@@ -669,34 +669,7 @@ export class ReminderService {
       return null;
     }
 
-    // Check if reminder already exists for this tracking
-    const existingReminder = await Reminder.loadByTrackingId(
-      trackingId,
-      userId,
-      this.db
-    );
-
-    // If there's a Snoozed reminder and we're creating a new one (tracking's scheduled time arrived),
-    // delete the snoozed reminder first
-    if (
-      existingReminder &&
-      existingReminder.status === ReminderStatus.SNOOZED
-    ) {
-      console.log(
-        `[${new Date().toISOString()}] REMINDER | Deleting snoozed reminder ID ${
-          existingReminder.id
-        } for trackingId: ${trackingId} as tracking's scheduled time has arrived`
-      );
-      await existingReminder.delete(this.db);
-    } else if (existingReminder) {
-      // If there's a Pending or Answered reminder, return it (don't create a new one)
-      console.log(
-        `[${new Date().toISOString()}] REMINDER | Reminder already exists for trackingId: ${trackingId}, skipping creation`
-      );
-      return existingReminder.toData();
-    }
-
-    // Calculate next reminder time
+    // Calculate next reminder time first
     const nextTime = await this.calculateNextReminderTime(
       tracking.toData(),
       excludeTime
@@ -709,7 +682,45 @@ export class ReminderService {
       return null;
     }
 
-    // Create reminder
+    const now = new Date().toISOString();
+
+    // Delete ALL future Pending reminders for this tracking to ensure uniqueness
+    // This includes any duplicates that might exist
+    const deleteResult = await this.db.run(
+      `DELETE FROM reminders 
+       WHERE tracking_id = ? 
+       AND user_id = ? 
+       AND status = ? 
+       AND scheduled_time > ?`,
+      [trackingId, userId, ReminderStatus.PENDING, now]
+    );
+
+    if (deleteResult.changes > 0) {
+      console.log(
+        `[${new Date().toISOString()}] REMINDER | Deleted ${
+          deleteResult.changes
+        } existing future Pending reminder(s) for trackingId: ${trackingId} to ensure uniqueness`
+      );
+    }
+
+    // Handle Snoozed reminder if it exists
+    const existingSnoozed = await Reminder.loadByTrackingId(
+      trackingId,
+      userId,
+      this.db
+    );
+
+    if (existingSnoozed && existingSnoozed.status === ReminderStatus.SNOOZED) {
+      // If there's a Snoozed reminder, delete it first
+      console.log(
+        `[${new Date().toISOString()}] REMINDER | Deleting snoozed reminder ID ${
+          existingSnoozed.id
+        } for trackingId: ${trackingId} as tracking's scheduled time has arrived`
+      );
+      await existingSnoozed.delete(this.db);
+    }
+
+    // Create the new unique future reminder
     const reminder = await this.createReminder(trackingId, userId, nextTime);
 
     console.log(

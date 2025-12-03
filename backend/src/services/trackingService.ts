@@ -401,18 +401,37 @@ export class TrackingService {
     );
 
     // Handle reminder cleanup and creation based on state transition
-    if (validatedNewState === TrackingState.ARCHIVED) {
-      // When archiving: Delete all Pending and Snoozed reminders
+    if (
+      validatedNewState === TrackingState.ARCHIVED ||
+      validatedNewState === TrackingState.PAUSED
+    ) {
+      // When archiving or pausing: Delete all future Pending and Snoozed reminders
       const { ReminderStatus } = await import("../models/Reminder.js");
+      const now = new Date().toISOString();
+
+      // Delete future reminders (scheduled_time > now) with Pending or Snoozed status
       const result = await this.db.run(
-        "DELETE FROM reminders WHERE tracking_id = ? AND user_id = ? AND status IN (?, ?)",
-        [trackingId, userId, ReminderStatus.PENDING, ReminderStatus.SNOOZED]
+        `DELETE FROM reminders 
+         WHERE tracking_id = ? 
+         AND user_id = ? 
+         AND status IN (?, ?) 
+         AND scheduled_time > ?`,
+        [
+          trackingId,
+          userId,
+          ReminderStatus.PENDING,
+          ReminderStatus.SNOOZED,
+          now,
+        ]
       );
+
       if (result.changes > 0) {
         console.log(
           `[${new Date().toISOString()}] TRACKING | Deleted ${
             result.changes
-          } Pending/Snoozed reminder(s) for archived tracking ${trackingId}`
+          } future Pending/Snoozed reminder(s) for ${
+            validatedNewState === TrackingState.ARCHIVED ? "archived" : "paused"
+          } tracking ${trackingId}`
         );
       }
     } else if (
