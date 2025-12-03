@@ -26,7 +26,6 @@ const vitestProcess = spawn(
   {
     cwd: workspaceRoot,
     stdio: "inherit",
-    shell: true,
   }
 );
 
@@ -38,7 +37,6 @@ vitestProcess.on("close", (code) => {
     {
       cwd: workspaceRoot,
       stdio: "inherit",
-      shell: true,
     }
   );
 
