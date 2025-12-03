@@ -58,6 +58,52 @@ function App() {
    * @internal
    */
   useEffect(() => {
+    const measureView = (view: HTMLElement): { width: number; height: number } => {
+      const wasHidden = view.style.display === 'none';
+      const originalStyles = {
+        display: view.style.display,
+        visibility: view.style.visibility,
+        position: view.style.position,
+        left: view.style.left,
+        top: view.style.top,
+      };
+
+      // Temporarily show the view if hidden to get accurate measurement
+      if (wasHidden) {
+        view.style.display = 'block';
+        view.style.visibility = 'hidden';
+        view.style.position = 'absolute';
+        view.style.left = '-9999px';
+        view.style.top = '0';
+        // Force multiple reflows to ensure all content is measured
+        void view.offsetHeight;
+        void view.offsetHeight;
+      }
+
+      // Measure table width
+      const table = view.querySelector('.trackings-table') || view.querySelector('.reminders-table');
+      let tableWidth = 0;
+      if (table) {
+        const rect = table.getBoundingClientRect();
+        tableWidth = rect.width > 0 ? rect.width : 0;
+      }
+
+      // Measure entire view height (including filters, empty states, etc.)
+      // Use scrollHeight for content height, offsetHeight for element height
+      const viewHeight = Math.max(view.scrollHeight, view.offsetHeight);
+
+      // Restore original state
+      if (wasHidden) {
+        view.style.display = originalStyles.display;
+        view.style.visibility = originalStyles.visibility;
+        view.style.position = originalStyles.position;
+        view.style.left = originalStyles.left;
+        view.style.top = originalStyles.top;
+      }
+
+      return { width: tableWidth, height: viewHeight };
+    };
+
     const updateContainerSize = () => {
       if (!containerRef.current) {
         return;
@@ -68,71 +114,23 @@ function App() {
 
       // Measure trackings view dimensions
       if (trackingsViewRef.current) {
-        const trackingsTable = trackingsViewRef.current.querySelector('.trackings-table');
-        if (trackingsTable) {
-          const rect = trackingsTable.getBoundingClientRect();
-          if (rect.width > 0) {
-            maxWidth = Math.max(maxWidth, rect.width);
-          }
+        const { width, height } = measureView(trackingsViewRef.current);
+        if (width > 0) {
+          maxWidth = Math.max(maxWidth, width);
         }
-        // Measure entire view height (including filters, empty states, etc.)
-        // Temporarily show the view if hidden to get accurate measurement
-        const view = trackingsViewRef.current;
-        const wasHidden = view.style.display === 'none';
-        if (wasHidden) {
-          view.style.display = 'block';
-          view.style.visibility = 'hidden';
-          view.style.position = 'absolute';
-          view.style.left = '-9999px';
-          // Force a reflow to ensure measurement is accurate
-          void view.offsetHeight;
-        }
-        // Use offsetHeight which includes padding and borders, or scrollHeight for content
-        const viewHeight = Math.max(view.offsetHeight, view.scrollHeight);
-        if (viewHeight > 0) {
-          maxHeight = Math.max(maxHeight, viewHeight);
-        }
-        // Restore original state
-        if (wasHidden) {
-          view.style.display = 'none';
-          view.style.visibility = '';
-          view.style.position = '';
-          view.style.left = '';
+        if (height > 0) {
+          maxHeight = Math.max(maxHeight, height);
         }
       }
 
       // Measure reminders view dimensions
       if (remindersViewRef.current) {
-        const remindersTable = remindersViewRef.current.querySelector('.reminders-table');
-        if (remindersTable) {
-          const rect = remindersTable.getBoundingClientRect();
-          if (rect.width > 0) {
-            maxWidth = Math.max(maxWidth, rect.width);
-          }
+        const { width, height } = measureView(remindersViewRef.current);
+        if (width > 0) {
+          maxWidth = Math.max(maxWidth, width);
         }
-        // Measure entire view height (including filters, empty states, etc.)
-        // Temporarily show the view if hidden to get accurate measurement
-        const view = remindersViewRef.current;
-        const wasHidden = view.style.display === 'none';
-        if (wasHidden) {
-          view.style.display = 'block';
-          view.style.visibility = 'hidden';
-          view.style.position = 'absolute';
-          view.style.left = '-9999px';
-          // Force a reflow to ensure measurement is accurate
-          void view.offsetHeight;
-        }
-        // Use offsetHeight which includes padding and borders, or scrollHeight for content
-        const viewHeight = Math.max(view.offsetHeight, view.scrollHeight);
-        if (viewHeight > 0) {
-          maxHeight = Math.max(maxHeight, viewHeight);
-        }
-        // Restore original state
-        if (wasHidden) {
-          view.style.display = 'none';
-          view.style.visibility = '';
-          view.style.position = '';
-          view.style.left = '';
+        if (height > 0) {
+          maxHeight = Math.max(maxHeight, height);
         }
       }
 
@@ -154,42 +152,124 @@ function App() {
         const containerPadding = 40 + 120; // top padding + bottom padding for FAB
         const newHeight = maxHeight + headerHeight + tabsHeaderHeight + containerPadding;
         containerRef.current.style.minHeight = `${newHeight}px`;
+        containerRef.current.style.height = `${newHeight}px`;
       }
     };
 
-    // Small delay to ensure tables are rendered
-    const timeoutId = setTimeout(() => {
-      updateContainerSize();
-    }, 100);
+    // Use requestAnimationFrame to ensure measurements happen after layout
+    const scheduleUpdate = () => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          updateContainerSize();
+        });
+      });
+    };
 
-    // Use ResizeObserver to watch for table size changes (if available)
+    // Initial measurement with a small delay to ensure content is rendered
+    const timeoutId = setTimeout(() => {
+      scheduleUpdate();
+    }, 150);
+
+    // Use ResizeObserver to watch for size changes (if available)
     let resizeObserver: ResizeObserver | null = null;
     if (typeof ResizeObserver !== 'undefined') {
       resizeObserver = new ResizeObserver(() => {
-        updateContainerSize();
+        scheduleUpdate();
       });
     }
 
     if (resizeObserver) {
-      // Observe the entire views (not just tables) to catch all height changes
+      // Observe the entire views to catch all changes including filters
       if (trackingsViewRef.current) {
         resizeObserver.observe(trackingsViewRef.current);
+        // Also observe the list content container to catch filter panel changes
+        const trackingsContent = trackingsViewRef.current.querySelector('.trackings-list-content');
+        if (trackingsContent) {
+          resizeObserver.observe(trackingsContent);
+        }
+        // Observe filter panel if it exists
+        const trackingsFilterPanel = trackingsViewRef.current.querySelector('.filter-panel');
+        if (trackingsFilterPanel) {
+          resizeObserver.observe(trackingsFilterPanel);
+        }
       }
 
       if (remindersViewRef.current) {
         resizeObserver.observe(remindersViewRef.current);
+        // Also observe the list content container to catch filter panel changes
+        const remindersContent = remindersViewRef.current.querySelector('.reminders-list-content');
+        if (remindersContent) {
+          resizeObserver.observe(remindersContent);
+        }
+        // Observe filter panel if it exists
+        const remindersFilterPanel = remindersViewRef.current.querySelector('.filter-panel');
+        if (remindersFilterPanel) {
+          resizeObserver.observe(remindersFilterPanel);
+        }
+      }
+
+      // Also observe the tabs-content container to catch any layout changes
+      if (containerRef.current) {
+        const tabsContent = containerRef.current.querySelector('.tabs-content');
+        if (tabsContent) {
+          resizeObserver.observe(tabsContent);
+        }
+      }
+    }
+
+    // Use MutationObserver to watch for filter panel additions/removals
+    let mutationObserver: MutationObserver | null = null;
+    if (typeof MutationObserver !== 'undefined') {
+      mutationObserver = new MutationObserver(() => {
+        scheduleUpdate();
+        // Re-observe filter panels if they were added
+        if (resizeObserver) {
+          if (trackingsViewRef.current) {
+            const trackingsFilterPanel = trackingsViewRef.current.querySelector('.filter-panel');
+            if (trackingsFilterPanel) {
+              resizeObserver.observe(trackingsFilterPanel);
+            }
+          }
+          if (remindersViewRef.current) {
+            const remindersFilterPanel = remindersViewRef.current.querySelector('.filter-panel');
+            if (remindersFilterPanel) {
+              resizeObserver.observe(remindersFilterPanel);
+            }
+          }
+        }
+      });
+
+      // Observe changes to the view containers
+      if (trackingsViewRef.current) {
+        mutationObserver.observe(trackingsViewRef.current, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ['style', 'class'],
+        });
+      }
+      if (remindersViewRef.current) {
+        mutationObserver.observe(remindersViewRef.current, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ['style', 'class'],
+        });
       }
     }
 
     // Also update when window resizes
-    window.addEventListener('resize', updateContainerSize);
+    window.addEventListener('resize', scheduleUpdate);
 
     return () => {
       clearTimeout(timeoutId);
       if (resizeObserver) {
         resizeObserver.disconnect();
       }
-      window.removeEventListener('resize', updateContainerSize);
+      if (mutationObserver) {
+        mutationObserver.disconnect();
+      }
+      window.removeEventListener('resize', scheduleUpdate);
     };
   }, [activeTab, trackings, trackingsLoading]);
 
