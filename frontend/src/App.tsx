@@ -76,9 +76,38 @@ function App() {
           }
         }
         // Measure entire view height (including filters, empty states, etc.)
-        const viewRect = trackingsViewRef.current.getBoundingClientRect();
-        if (viewRect.height > 0) {
-          maxHeight = Math.max(maxHeight, viewRect.height);
+        // Temporarily make it visible if hidden to get accurate measurement
+        const view = trackingsViewRef.current;
+        const wasHidden = view.style.visibility === 'hidden' || view.style.display === 'none';
+        const originalStyles = {
+          display: view.style.display,
+          visibility: view.style.visibility,
+          position: view.style.position,
+          left: view.style.left,
+          top: view.style.top,
+        };
+
+        if (wasHidden) {
+          view.style.display = 'block';
+          view.style.visibility = 'hidden';
+          view.style.position = 'absolute';
+          view.style.left = '-9999px';
+          view.style.top = '0';
+        }
+
+        // Use scrollHeight for more accurate height measurement
+        const viewHeight = view.scrollHeight || view.getBoundingClientRect().height;
+        if (viewHeight > 0) {
+          maxHeight = Math.max(maxHeight, viewHeight);
+        }
+
+        // Restore original styles
+        if (wasHidden) {
+          view.style.display = originalStyles.display;
+          view.style.visibility = originalStyles.visibility;
+          view.style.position = originalStyles.position;
+          view.style.left = originalStyles.left;
+          view.style.top = originalStyles.top;
         }
       }
 
@@ -92,9 +121,38 @@ function App() {
           }
         }
         // Measure entire view height (including filters, empty states, etc.)
-        const viewRect = remindersViewRef.current.getBoundingClientRect();
-        if (viewRect.height > 0) {
-          maxHeight = Math.max(maxHeight, viewRect.height);
+        // Temporarily make it visible if hidden to get accurate measurement
+        const view = remindersViewRef.current;
+        const wasHidden = view.style.visibility === 'hidden' || view.style.display === 'none';
+        const originalStyles = {
+          display: view.style.display,
+          visibility: view.style.visibility,
+          position: view.style.position,
+          left: view.style.left,
+          top: view.style.top,
+        };
+
+        if (wasHidden) {
+          view.style.display = 'block';
+          view.style.visibility = 'hidden';
+          view.style.position = 'absolute';
+          view.style.left = '-9999px';
+          view.style.top = '0';
+        }
+
+        // Use scrollHeight for more accurate height measurement
+        const viewHeight = view.scrollHeight || view.getBoundingClientRect().height;
+        if (viewHeight > 0) {
+          maxHeight = Math.max(maxHeight, viewHeight);
+        }
+
+        // Restore original styles
+        if (wasHidden) {
+          view.style.display = originalStyles.display;
+          view.style.visibility = originalStyles.visibility;
+          view.style.position = originalStyles.position;
+          view.style.left = originalStyles.left;
+          view.style.top = originalStyles.top;
         }
       }
 
