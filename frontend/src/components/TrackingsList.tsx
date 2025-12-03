@@ -671,24 +671,47 @@ export function TrackingsList({
     const trackings = propTrackings ?? hookTrackings;
     const isLoading = propIsLoading ?? hookIsLoading;
 
-    // Refresh reminders when trackings change (e.g., after creating a new tracking)
-    // Use a ref to track previous tracking IDs to detect new trackings
-    const previousTrackingIdsRef = useRef<Set<number>>(new Set());
+    // Refresh reminders when trackings change (e.g., after creating or editing a tracking)
+    // Use a ref to track previous tracking data to detect changes
+    const previousTrackingsRef = useRef<Map<number, { schedules?: Array<{ hour: number; minutes: number }>; days?: DaysPattern; updated_at?: string }>>(new Map());
 
     useEffect(() => {
-        const currentTrackingIds = new Set(trackings.map(t => t.id));
-        const previousIds = previousTrackingIdsRef.current;
+        const currentTrackingsMap = new Map(
+            trackings.map(t => [t.id, {
+                schedules: t.schedules,
+                days: t.days,
+                updated_at: t.updated_at,
+            }])
+        );
+        const previousTrackings = previousTrackingsRef.current;
 
-        // Check if there are new trackings (trackings that weren't in previous set)
-        const hasNewTrackings = trackings.some(t => !previousIds.has(t.id));
+        // Check if there are new trackings or if existing trackings were updated
+        const hasNewTrackings = trackings.some(t => !previousTrackings.has(t.id));
 
-        if (hasNewTrackings) {
-            // Refresh reminders to get the new reminder for the created tracking
+        // Check if any existing tracking was updated (schedules or days pattern changed)
+        const hasUpdatedTrackings = trackings.some(t => {
+            const prev = previousTrackings.get(t.id);
+            if (!prev) return false;
+
+            // Check if schedules changed
+            const schedulesChanged = JSON.stringify(t.schedules || []) !== JSON.stringify(prev.schedules || []);
+
+            // Check if days pattern changed
+            const daysChanged = JSON.stringify(t.days || {}) !== JSON.stringify(prev.days || {});
+
+            // Check if updated_at timestamp changed (indicates tracking was edited)
+            const wasEdited = t.updated_at !== prev.updated_at;
+
+            return schedulesChanged || daysChanged || wasEdited;
+        });
+
+        if (hasNewTrackings || hasUpdatedTrackings) {
+            // Refresh reminders to get updated reminders after creating or editing a tracking
             refreshReminders();
         }
 
-        // Update the ref with current IDs
-        previousTrackingIdsRef.current = currentTrackingIds;
+        // Update the ref with current tracking data
+        previousTrackingsRef.current = currentTrackingsMap;
     }, [trackings, refreshReminders]);
 
     // Filter out Deleted trackings
