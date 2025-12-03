@@ -31,3 +31,8 @@
 6. **File Structure**:
    6.1. Make suggestions when suitable to improve file names and folder structure according to best practices.
    6.2. Follow consistent naming conventions across the project.
+7. **UI Text Capitalization**:
+   7.1. Modal titles: Use sentence case (first word capitalized, rest lowercase). Examples: "Edit profile", "Create tracking", "Delete tracking", "Change email", "Answer reminder".
+   7.2. Button text: Use sentence case for action buttons. Examples: "Save", "Delete tracking", "Change email", "Choose file".
+   7.3. Form labels: Use sentence case. Examples: "Profile picture", "Current email", "New email".
+   7.4. Follow this pattern consistently across all modals, forms, and UI components.
