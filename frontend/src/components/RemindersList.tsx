@@ -321,15 +321,17 @@ export class ReminderFormatter {
 
 interface RemindersListProps {
     onCreate?: () => void;
+    onMessage?: (text: string, type: 'success' | 'error') => void;
 }
 
 /**
  * RemindersList component for displaying reminders in a table.
  * @param props - Component props
  * @param props.onCreate - Optional callback when create tracking link is clicked
+ * @param props.onMessage - Optional callback to display success/error messages
  * @public
  */
-export function RemindersList({ onCreate }: RemindersListProps = {}) {
+export function RemindersList({ onCreate, onMessage }: RemindersListProps = {}) {
     const { reminders, isLoading, updateReminder, snoozeReminder, deleteReminder, refreshReminders } = useReminders();
     const { trackings } = useTrackings();
     const [editingReminder, setEditingReminder] = useState<ReminderData | null>(null);
@@ -511,8 +513,17 @@ export function RemindersList({ onCreate }: RemindersListProps = {}) {
             setSnoozeMenuPosition(null);
             // Refresh reminders to get updated data
             await refreshReminders();
+            if (onMessage) {
+                onMessage("Reminder snoozed successfully", "success");
+            }
         } catch (error) {
             console.error("Error snoozing reminder:", error);
+            if (onMessage) {
+                onMessage(
+                    error instanceof Error ? error.message : "Error snoozing reminder",
+                    "error"
+                );
+            }
         }
     };
 
@@ -549,8 +560,17 @@ export function RemindersList({ onCreate }: RemindersListProps = {}) {
         try {
             await deleteReminder(reminderToDelete.id);
             setReminderToDelete(null);
+            if (onMessage) {
+                onMessage("Reminder skipped successfully", "success");
+            }
         } catch (error) {
             console.error("Error deleting reminder:", error);
+            if (onMessage) {
+                onMessage(
+                    error instanceof Error ? error.message : "Error skipping reminder",
+                    "error"
+                );
+            }
         }
     };
 
@@ -571,8 +591,17 @@ export function RemindersList({ onCreate }: RemindersListProps = {}) {
             setEditingReminder(null);
             // Refresh reminders to get updated data
             await refreshReminders();
+            if (onMessage) {
+                onMessage("Reminder answered successfully", "success");
+            }
         } catch (error) {
             console.error("Error updating reminder:", error);
+            if (onMessage) {
+                onMessage(
+                    error instanceof Error ? error.message : "Error answering reminder",
+                    "error"
+                );
+            }
             throw error;
         }
     };
