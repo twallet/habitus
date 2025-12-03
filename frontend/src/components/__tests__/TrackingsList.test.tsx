@@ -275,9 +275,11 @@ describe("TrackingsList", () => {
             />
         );
 
-        const trackingCell = screen.getByTitle(`${longQuestion}. Click to edit`);
-        expect(trackingCell.textContent).toContain("💪");
-        expect(trackingCell.textContent).toContain(longQuestion.substring(0, 50) + "...");
+        const trackingButton = screen.getByTitle(`${longQuestion}. Click to edit`);
+        const trackingCell = trackingButton.closest(".cell-tracking");
+        expect(trackingCell).toBeTruthy();
+        expect(trackingCell?.textContent).toContain("💪");
+        expect(trackingButton.textContent).toContain(longQuestion.substring(0, 50) + "...");
     });
 
     it("should display full question in tooltip even when truncated", () => {
