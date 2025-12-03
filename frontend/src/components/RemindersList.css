@@ -263,16 +263,13 @@
 }
 
 .snooze-menu {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 4px;
+  position: fixed;
+  min-width: 120px;
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
   box-shadow: var(--shadow-md);
   z-index: 1001;
-  min-width: 120px;
   padding: 4px;
 }
 
