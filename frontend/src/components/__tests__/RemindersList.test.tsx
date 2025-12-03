@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RemindersList } from "../RemindersList";
 import { ReminderData, ReminderStatus } from "../../models/Reminder";
@@ -182,10 +182,18 @@ describe("RemindersList", () => {
         const statusBadge = screen.getByText("Pending");
         await userEvent.click(statusBadge);
 
-        const answerButton = screen.getByText("Answer");
-        await userEvent.click(answerButton);
-
-        expect(screen.getByText("Answer Reminder")).toBeInTheDocument();
+        // Wait for dropdown to open and find Answer button in the dropdown menu
+        const answerText = await screen.findByText((content, element) => {
+            return content === "Answer" && element?.closest(".status-dropdown-menu") !== null;
+        });
+        const answerButton = answerText.closest("button");
+        expect(answerButton).toBeTruthy();
+        if (answerButton) {
+            await userEvent.click(answerButton);
+            await waitFor(() => {
+                expect(screen.getByText("Answer Reminder")).toBeInTheDocument();
+            });
+        }
     });
 
     it("should show delete confirmation when Delete is clicked", async () => {
@@ -216,10 +224,18 @@ describe("RemindersList", () => {
         const statusBadge = screen.getByText("Pending");
         await userEvent.click(statusBadge);
 
-        const deleteButton = screen.getByText("Delete");
-        await userEvent.click(deleteButton);
-
-        expect(screen.getByText("Delete Reminder?")).toBeInTheDocument();
+        // Wait for dropdown to open and find Delete button in the dropdown menu
+        const deleteText = await screen.findByText((content, element) => {
+            return content === "Delete" && element?.closest(".status-dropdown-menu") !== null;
+        });
+        const deleteButton = deleteText.closest("button");
+        expect(deleteButton).toBeTruthy();
+        if (deleteButton) {
+            await userEvent.click(deleteButton);
+            await waitFor(() => {
+                expect(screen.getByText("Delete Reminder?")).toBeInTheDocument();
+            });
+        }
     });
 });
 

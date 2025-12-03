@@ -39,6 +39,9 @@ mockAuthRouter.use((req, res, next) => next());
 const mockTrackingsRouter = express.Router();
 mockTrackingsRouter.use((req, res, next) => next());
 
+const mockRemindersRouter = express.Router();
+mockRemindersRouter.use((req, res, next) => next());
+
 vi.mock("../routes/users.js", () => ({
   default: mockUsersRouter,
 }));
@@ -49,6 +52,10 @@ vi.mock("../routes/auth.js", () => ({
 
 vi.mock("../routes/trackings.js", () => ({
   default: mockTrackingsRouter,
+}));
+
+vi.mock("../routes/reminders.js", () => ({
+  default: mockRemindersRouter,
 }));
 
 // Mock upload middleware
@@ -1198,6 +1205,7 @@ describe("Server Configuration - Integration Tests", () => {
       const usersRouterMock = mockUsersRouter;
       const authRouterMock = mockAuthRouter;
       const trackingsRouterMock = mockTrackingsRouter;
+      const remindersRouterMock = mockRemindersRouter;
 
       // Capture real express before resetModules so we can use it in mocks
       const realExpressModule = express;
@@ -1253,6 +1261,10 @@ describe("Server Configuration - Integration Tests", () => {
         default: trackingsRouterMock,
       }));
 
+      vi.doMock("../routes/reminders.js", () => ({
+        default: remindersRouterMock,
+      }));
+
       // Mock upload middleware
       vi.doMock("../middleware/upload.js", () => ({
         getUploadsDirectory: getUploadsDirMock,
@@ -1295,34 +1307,40 @@ describe("Server Configuration - Integration Tests", () => {
           (() => {
             // Use captured express module
             const realExpress = realExpressModule;
+            const expressFactory = () => {
+              const app = realExpress();
+              capturedApp = app;
+
+              const mockServer = {
+                close: mockServerClose,
+              } as unknown as Server;
+
+              capturedServer = mockServer;
+
+              app.listen = vi.fn((port: number, callback?: () => void) => {
+                if (callback) callback();
+                return mockServer;
+              }) as unknown as typeof app.listen;
+              return app;
+            };
+            // Attach static methods to the factory function
+            Object.assign(expressFactory, {
+              json: realExpress.json,
+              static: realExpress.static,
+              urlencoded: realExpress.urlencoded,
+              raw: realExpress.raw,
+              text: realExpress.text,
+              Router: realExpress.Router,
+            });
             return {
-              default: Object.assign(
-                () => {
-                  const app = realExpress();
-                  capturedApp = app;
-
-                  const mockServer = {
-                    close: mockServerClose,
-                  } as unknown as Server;
-
-                  capturedServer = mockServer;
-
-                  app.listen = vi.fn((port: number, callback?: () => void) => {
-                    if (callback) callback();
-                    return mockServer;
-                  }) as unknown as typeof app.listen;
-                  return app;
-                },
-                {
-                  // Include express static methods from captured module
-                  json: realExpress.json,
-                  static: realExpress.static,
-                  urlencoded: realExpress.urlencoded,
-                  raw: realExpress.raw,
-                  text: realExpress.text,
-                  Router: realExpress.Router,
-                }
-              ),
+              default: expressFactory,
+              // Export Router as named export for ES module imports
+              Router: realExpress.Router,
+              json: realExpress.json,
+              static: realExpress.static,
+              urlencoded: realExpress.urlencoded,
+              raw: realExpress.raw,
+              text: realExpress.text,
             };
           })
       );
