@@ -20,6 +20,238 @@ const SNOOZE_OPTIONS = [
 ];
 
 /**
+ * Filter state interface for reminder filters.
+ * @internal
+ */
+interface FilterState {
+    time: string;
+    tracking: string;
+    answer: string;
+    notes: string;
+    status: string[]; // Multiple choice for status
+}
+
+/**
+ * Utility class for filtering reminder data.
+ * Follows OOP principles by organizing related filtering methods.
+ * @internal
+ */
+class ReminderFilter {
+    /**
+     * Filter reminder by time display (case-insensitive contains).
+     * @param reminder - Reminder data to filter
+     * @param filterValue - Filter text value
+     * @returns True if reminder matches filter
+     */
+    static filterByTime(reminder: ReminderData, filterValue: string): boolean {
+        if (!filterValue.trim()) {
+            return true;
+        }
+        const timeDisplay = ReminderFormatter.formatDateTime(reminder.scheduled_time);
+        return timeDisplay.toLowerCase().includes(filterValue.toLowerCase());
+    }
+
+    /**
+     * Filter reminder by tracking question text (case-insensitive contains).
+     * @param reminder - Reminder data to filter
+     * @param filterValue - Filter text value
+     * @param getTracking - Function to get tracking data
+     * @returns True if reminder matches filter
+     */
+    static filterByTracking(reminder: ReminderData, filterValue: string, getTracking: (id: number) => TrackingData | undefined): boolean {
+        if (!filterValue.trim()) {
+            return true;
+        }
+        const tracking = getTracking(reminder.tracking_id);
+        if (!tracking) {
+            return false;
+        }
+        return tracking.question.toLowerCase().includes(filterValue.toLowerCase());
+    }
+
+    /**
+     * Filter reminder by answer text (case-insensitive contains).
+     * @param reminder - Reminder data to filter
+     * @param filterValue - Filter text value
+     * @returns True if reminder matches filter
+     */
+    static filterByAnswer(reminder: ReminderData, filterValue: string): boolean {
+        if (!filterValue.trim()) {
+            return true;
+        }
+        if (!reminder.answer) {
+            return false;
+        }
+        return reminder.answer.toLowerCase().includes(filterValue.toLowerCase());
+    }
+
+    /**
+     * Filter reminder by notes text (case-insensitive contains).
+     * @param reminder - Reminder data to filter
+     * @param filterValue - Filter text value
+     * @returns True if reminder matches filter
+     */
+    static filterByNotes(reminder: ReminderData, filterValue: string): boolean {
+        if (!filterValue.trim()) {
+            return true;
+        }
+        if (!reminder.notes) {
+            return false;
+        }
+        return reminder.notes.toLowerCase().includes(filterValue.toLowerCase());
+    }
+
+    /**
+     * Filter reminder by status.
+     * @param reminder - Reminder data to filter
+     * @param filterValues - Array of selected status values
+     * @returns True if reminder matches filter
+     */
+    static filterByStatus(reminder: ReminderData, filterValues: string[]): boolean {
+        if (!filterValues || filterValues.length === 0) {
+            return true;
+        }
+        return filterValues.includes(reminder.status);
+    }
+
+    /**
+     * Apply all active filters to reminders array.
+     * @param reminders - Array of reminder data to filter
+     * @param filters - Filter state object
+     * @param getTracking - Function to get tracking data
+     * @returns Filtered array of reminders
+     */
+    static applyFilters(reminders: ReminderData[], filters: FilterState, getTracking: (id: number) => TrackingData | undefined): ReminderData[] {
+        return reminders.filter((reminder) => {
+            return (
+                ReminderFilter.filterByTime(reminder, filters.time) &&
+                ReminderFilter.filterByTracking(reminder, filters.tracking, getTracking) &&
+                ReminderFilter.filterByAnswer(reminder, filters.answer) &&
+                ReminderFilter.filterByNotes(reminder, filters.notes) &&
+                ReminderFilter.filterByStatus(reminder, filters.status)
+            );
+        });
+    }
+}
+
+/**
+ * Utility class for sorting reminder data.
+ * Follows OOP principles by organizing related sorting methods.
+ * @internal
+ */
+class ReminderSorter {
+    /**
+     * Compare two reminders by scheduled time.
+     * @param a - First reminder
+     * @param b - Second reminder
+     * @returns Comparison result (-1, 0, or 1)
+     */
+    static compareTime(a: ReminderData, b: ReminderData): number {
+        const timeA = new Date(a.scheduled_time).getTime();
+        const timeB = new Date(b.scheduled_time).getTime();
+        return timeA - timeB;
+    }
+
+    /**
+     * Compare two reminders by tracking question text.
+     * @param a - First reminder
+     * @param b - Second reminder
+     * @param getTracking - Function to get tracking data
+     * @returns Comparison result (-1, 0, or 1)
+     */
+    static compareTracking(a: ReminderData, b: ReminderData, getTracking: (id: number) => TrackingData | undefined): number {
+        const trackingA = getTracking(a.tracking_id);
+        const trackingB = getTracking(b.tracking_id);
+        const questionA = trackingA?.question || "";
+        const questionB = trackingB?.question || "";
+        return questionA.localeCompare(questionB);
+    }
+
+    /**
+     * Compare two reminders by answer text.
+     * @param a - First reminder
+     * @param b - Second reminder
+     * @returns Comparison result (-1, 0, or 1)
+     */
+    static compareAnswer(a: ReminderData, b: ReminderData): number {
+        const answerA = a.answer || "";
+        const answerB = b.answer || "";
+        return answerA.localeCompare(answerB);
+    }
+
+    /**
+     * Compare two reminders by notes text.
+     * @param a - First reminder
+     * @param b - Second reminder
+     * @returns Comparison result (-1, 0, or 1)
+     */
+    static compareNotes(a: ReminderData, b: ReminderData): number {
+        const notesA = a.notes || "";
+        const notesB = b.notes || "";
+        return notesA.localeCompare(notesB);
+    }
+
+    /**
+     * Compare two reminders by status.
+     * @param a - First reminder
+     * @param b - Second reminder
+     * @returns Comparison result (-1, 0, or 1)
+     */
+    static compareStatus(a: ReminderData, b: ReminderData): number {
+        return a.status.localeCompare(b.status);
+    }
+
+    /**
+     * Sort reminders array by column and direction.
+     * @param reminders - Array of reminder data to sort
+     * @param column - Column name to sort by (or null for no sorting)
+     * @param direction - Sort direction ('asc', 'desc', or null)
+     * @param getTracking - Function to get tracking data
+     * @returns Sorted array of reminders
+     */
+    static sortReminders(
+        reminders: ReminderData[],
+        column: string | null,
+        direction: 'asc' | 'desc' | null,
+        getTracking: (id: number) => TrackingData | undefined
+    ): ReminderData[] {
+        if (!column || !direction) {
+            return [...reminders];
+        }
+
+        const sorted = [...reminders];
+        let compareFn: (a: ReminderData, b: ReminderData) => number;
+
+        switch (column) {
+            case 'time':
+                compareFn = ReminderSorter.compareTime;
+                break;
+            case 'tracking':
+                compareFn = (a, b) => ReminderSorter.compareTracking(a, b, getTracking);
+                break;
+            case 'answer':
+                compareFn = ReminderSorter.compareAnswer;
+                break;
+            case 'notes':
+                compareFn = ReminderSorter.compareNotes;
+                break;
+            case 'status':
+                compareFn = ReminderSorter.compareStatus;
+                break;
+            default:
+                return sorted;
+        }
+
+        sorted.sort((a, b) => {
+            const result = compareFn(a, b);
+            return direction === 'asc' ? result : -result;
+        });
+
+        return sorted;
+    }
+}
+
+/**
  * Utility class for formatting reminder data for display.
  * Follows OOP principles by organizing related formatting methods.
  * @public
@@ -91,6 +323,18 @@ export function RemindersList({ onCreate }: RemindersListProps = {}) {
     const dropdownMenuRefs = useRef<Record<number, HTMLDivElement | null>>({});
     const snoozeMenuRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
+    // Filter and sort state
+    const [filterState, setFilterState] = useState<FilterState>({
+        time: "",
+        tracking: "",
+        answer: "",
+        notes: "",
+        status: [],
+    });
+    const [sortColumn, setSortColumn] = useState<string | null>(null);
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>(null);
+    const [showFilters, setShowFilters] = useState<boolean>(false);
+
     /**
      * Get tracking for a reminder.
      * @param trackingId - Tracking ID
@@ -99,6 +343,85 @@ export function RemindersList({ onCreate }: RemindersListProps = {}) {
      */
     const getTracking = (trackingId: number): TrackingData | undefined => {
         return trackings.find((t) => t.id === trackingId);
+    };
+
+    // Apply filters and sorting
+    const filteredReminders = ReminderFilter.applyFilters(reminders, filterState, getTracking);
+    const filteredAndSortedReminders = ReminderSorter.sortReminders(filteredReminders, sortColumn, sortDirection, getTracking);
+
+    /**
+     * Handle filter change.
+     * @param column - Filter column name
+     * @param value - Filter value (string for text inputs, string[] for checkboxes)
+     * @internal
+     */
+    const handleFilterChange = (column: keyof FilterState, value: string | string[]) => {
+        setFilterState((prev) => ({
+            ...prev,
+            [column]: value,
+        }));
+    };
+
+    /**
+     * Handle checkbox filter change (toggle selection).
+     * @param column - Filter column name
+     * @param value - Value to toggle
+     * @internal
+     */
+    const handleCheckboxFilterChange = (column: keyof FilterState, value: string) => {
+        setFilterState((prev) => {
+            const currentValues = (prev[column] as string[]) || [];
+            return {
+                ...prev,
+                [column]: currentValues.includes(value)
+                    ? currentValues.filter((v) => v !== value)
+                    : [...currentValues, value],
+            };
+        });
+    };
+
+    /**
+     * Reset all filters to default values.
+     * @internal
+     */
+    const handleResetFilters = () => {
+        setFilterState({
+            time: "",
+            tracking: "",
+            answer: "",
+            notes: "",
+            status: [],
+        });
+    };
+
+    /**
+     * Toggle filter panel visibility.
+     * @internal
+     */
+    const toggleFilters = () => {
+        setShowFilters((prev) => !prev);
+    };
+
+    /**
+     * Handle sort column click.
+     * Cycles through: none → asc → desc → none
+     * @param column - Column name to sort by
+     * @internal
+     */
+    const handleSortClick = (column: string) => {
+        if (sortColumn === column) {
+            // Cycle: asc → desc → none
+            if (sortDirection === 'asc') {
+                setSortDirection('desc');
+            } else if (sortDirection === 'desc') {
+                setSortColumn(null);
+                setSortDirection(null);
+            }
+        } else {
+            // New column, start with asc
+            setSortColumn(column);
+            setSortDirection('asc');
+        }
     };
 
     /**
@@ -264,9 +587,129 @@ export function RemindersList({ onCreate }: RemindersListProps = {}) {
         return <div className="reminders-loading">Loading reminders...</div>;
     }
 
-    return (
-        <div className="reminders-list">
-            {reminders.length === 0 ? (
+    // Filter toggle button (reusable)
+    const filterToggleButton = (
+        <button
+            type="button"
+            className="filter-toggle-button"
+            onClick={toggleFilters}
+            aria-label={showFilters ? "Hide filters" : "Show filters"}
+            aria-expanded={showFilters}
+            title={showFilters ? "Hide filters" : "Show filters"}
+        >
+            <span className="filter-toggle-icon">🔍</span>
+        </button>
+    );
+
+    // Filter panel
+    const filterPanel = showFilters ? (
+        <div className="filter-panel">
+            <div className="filter-panel-content">
+                <div className="filter-row">
+                    <label htmlFor="filter-time" className="filter-label">
+                        Time:
+                    </label>
+                    <input
+                        type="text"
+                        id="filter-time"
+                        className="filter-input"
+                        placeholder="Filter by time..."
+                        value={filterState.time}
+                        onChange={(e) => handleFilterChange('time', e.target.value)}
+                        aria-label="Filter by time"
+                    />
+                </div>
+                <div className="filter-row">
+                    <label htmlFor="filter-tracking" className="filter-label">
+                        Tracking:
+                    </label>
+                    <input
+                        type="text"
+                        id="filter-tracking"
+                        className="filter-input"
+                        placeholder="Filter by tracking..."
+                        value={filterState.tracking}
+                        onChange={(e) => handleFilterChange('tracking', e.target.value)}
+                        aria-label="Filter by tracking"
+                    />
+                </div>
+                <div className="filter-row">
+                    <label htmlFor="filter-answer" className="filter-label">
+                        Answer:
+                    </label>
+                    <input
+                        type="text"
+                        id="filter-answer"
+                        className="filter-input"
+                        placeholder="Filter by answer..."
+                        value={filterState.answer}
+                        onChange={(e) => handleFilterChange('answer', e.target.value)}
+                        aria-label="Filter by answer"
+                    />
+                </div>
+                <div className="filter-row">
+                    <label htmlFor="filter-notes" className="filter-label">
+                        Notes:
+                    </label>
+                    <input
+                        type="text"
+                        id="filter-notes"
+                        className="filter-input"
+                        placeholder="Filter by notes..."
+                        value={filterState.notes}
+                        onChange={(e) => handleFilterChange('notes', e.target.value)}
+                        aria-label="Filter by notes"
+                    />
+                </div>
+                <div className="filter-row">
+                    <div className="filter-label">Status:</div>
+                    <div className="filter-checkbox-group">
+                        <label className="filter-checkbox-label">
+                            <input
+                                type="checkbox"
+                                checked={filterState.status.includes(ReminderStatus.PENDING)}
+                                onChange={() => handleCheckboxFilterChange('status', ReminderStatus.PENDING)}
+                                aria-label="Filter by status: Pending"
+                            />
+                            <span>Pending</span>
+                        </label>
+                        <label className="filter-checkbox-label">
+                            <input
+                                type="checkbox"
+                                checked={filterState.status.includes(ReminderStatus.ANSWERED)}
+                                onChange={() => handleCheckboxFilterChange('status', ReminderStatus.ANSWERED)}
+                                aria-label="Filter by status: Answered"
+                            />
+                            <span>Answered</span>
+                        </label>
+                        <label className="filter-checkbox-label">
+                            <input
+                                type="checkbox"
+                                checked={filterState.status.includes(ReminderStatus.SNOOZED)}
+                                onChange={() => handleCheckboxFilterChange('status', ReminderStatus.SNOOZED)}
+                                aria-label="Filter by status: Snoozed"
+                            />
+                            <span>Snoozed</span>
+                        </label>
+                    </div>
+                </div>
+                <div className="filter-row">
+                    <button
+                        type="button"
+                        className="btn-secondary filter-reset-button"
+                        onClick={handleResetFilters}
+                        aria-label="Reset all filters"
+                    >
+                        Reset Filters
+                    </button>
+                </div>
+            </div>
+        </div>
+    ) : null;
+
+    if (reminders.length === 0) {
+        return (
+            <div className="reminders-list">
                 <div className="reminders-empty">
                     <p>
                         No reminders yet.{" "}
@@ -287,20 +730,116 @@ export function RemindersList({ onCreate }: RemindersListProps = {}) {
                         )}
                     </p>
                 </div>
-            ) : (
+            </div>
+        );
+    }
+
+    if (filteredAndSortedReminders.length === 0) {
+        return (
+            <div className="reminders-list">
+                <div className="reminders-list-content">
+                    <div className="filter-toggle-container">
+                        {filterToggleButton}
+                    </div>
+                    {filterPanel}
+                    <div className="empty-state">
+                        <p>No reminders match the current filters.</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="reminders-list">
+            <div className="reminders-list-content">
+                {filterPanel}
                 <div className="reminders-table-container">
                     <table className="reminders-table">
                         <thead>
                             <tr>
-                                <th className="col-time">Time</th>
-                                <th className="col-tracking">Tracking</th>
-                                <th className="col-answer">Answer</th>
-                                <th className="col-notes">Notes</th>
-                                <th className="col-status">Status</th>
+                                <th className="col-time">
+                                    <div className="header-with-filter">
+                                        {filterToggleButton}
+                                        <button
+                                            type="button"
+                                            className="sortable-header"
+                                            onClick={() => handleSortClick('time')}
+                                            aria-label="Sort by time"
+                                        >
+                                            Time
+                                            {sortColumn === 'time' && (
+                                                <span className="sort-indicator">
+                                                    {sortDirection === 'asc' ? '↑' : '↓'}
+                                                </span>
+                                            )}
+                                        </button>
+                                    </div>
+                                </th>
+                                <th className="col-tracking">
+                                    <button
+                                        type="button"
+                                        className="sortable-header"
+                                        onClick={() => handleSortClick('tracking')}
+                                        aria-label="Sort by tracking"
+                                    >
+                                        Tracking
+                                        {sortColumn === 'tracking' && (
+                                            <span className="sort-indicator">
+                                                {sortDirection === 'asc' ? '↑' : '↓'}
+                                            </span>
+                                        )}
+                                    </button>
+                                </th>
+                                <th className="col-answer">
+                                    <button
+                                        type="button"
+                                        className="sortable-header"
+                                        onClick={() => handleSortClick('answer')}
+                                        aria-label="Sort by answer"
+                                    >
+                                        Answer
+                                        {sortColumn === 'answer' && (
+                                            <span className="sort-indicator">
+                                                {sortDirection === 'asc' ? '↑' : '↓'}
+                                            </span>
+                                        )}
+                                    </button>
+                                </th>
+                                <th className="col-notes">
+                                    <button
+                                        type="button"
+                                        className="sortable-header"
+                                        onClick={() => handleSortClick('notes')}
+                                        aria-label="Sort by notes"
+                                    >
+                                        Notes
+                                        {sortColumn === 'notes' && (
+                                            <span className="sort-indicator">
+                                                {sortDirection === 'asc' ? '↑' : '↓'}
+                                            </span>
+                                        )}
+                                    </button>
+                                </th>
+                                <th className="col-status">
+                                    <button
+                                        type="button"
+                                        className="sortable-header"
+                                        onClick={() => handleSortClick('status')}
+                                        aria-label="Sort by status"
+                                    >
+                                        Status
+                                        {sortColumn === 'status' && (
+                                            <span className="sort-indicator">
+                                                {sortDirection === 'asc' ? '↑' : '↓'}
+                                            </span>
+                                        )}
+                                    </button>
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
-                            {reminders.map((reminder) => {
+                            {filteredAndSortedReminders.map((reminder) => {
                                 const tracking = getTracking(reminder.tracking_id);
                                 const isDropdownOpen = openDropdownId === reminder.id;
                                 const isSnoozeOpen = openSnoozeId === reminder.id;
@@ -473,7 +1012,7 @@ export function RemindersList({ onCreate }: RemindersListProps = {}) {
                         </tbody>
                     </table>
                 </div>
-            )}
+            </div>
             {editingReminder && (
                 <ReminderAnswerModal
                     reminder={editingReminder}

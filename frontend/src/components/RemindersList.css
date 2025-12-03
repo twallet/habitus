@@ -70,6 +70,42 @@
   border-bottom: 2px solid var(--border-color);
 }
 
+.sortable-header {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: var(--transition);
+  width: 100%;
+}
+
+.sortable-header:hover {
+  color: var(--text-primary);
+}
+
+.sort-indicator {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  font-weight: bold;
+}
+
+.header-with-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .reminders-table td {
   padding: 12px;
   font-size: 0.875rem;
@@ -279,4 +315,128 @@
   display: flex;
   gap: 12px;
   justify-content: flex-end;
+}
+
+/* Filter Panel Styles */
+.reminders-list-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.filter-toggle-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  margin-right: 8px;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: inherit;
+  vertical-align: middle;
+}
+
+.filter-toggle-button:hover {
+  opacity: 0.7;
+}
+
+.filter-toggle-button:focus {
+  outline: none;
+}
+
+.filter-toggle-button:focus-visible {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.filter-toggle-icon {
+  display: inline-block;
+}
+
+.filter-toggle-container {
+  margin-bottom: 16px;
+}
+
+.filter-panel {
+  min-width: 250px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.filter-panel-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.filter-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.filter-input {
+  padding: 6px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-family: inherit;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: var(--transition);
+}
+
+.filter-input:focus {
+  outline: none;
+  border-color: var(--text-primary);
+}
+
+.filter-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.filter-checkbox-label input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.filter-reset-button {
+  margin-top: 8px;
+  width: 100%;
+}
+
+.empty-state {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.empty-state p {
+  margin: 0;
 }
