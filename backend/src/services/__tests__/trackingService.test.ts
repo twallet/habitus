@@ -3,6 +3,8 @@ import sqlite3 from "sqlite3";
 import { TrackingService } from "../trackingService.js";
 import { TrackingType, TrackingState } from "../../models/Tracking.js";
 import { Database } from "../../db/database.js";
+import { Reminder, ReminderStatus } from "../../models/Reminder.js";
+import { TrackingSchedule } from "../../models/TrackingSchedule.js";
 
 /**
  * Create an in-memory database for testing.
@@ -524,6 +526,240 @@ describe("TrackingService", () => {
           "InvalidState"
         )
       ).rejects.toThrow(TypeError);
+    });
+
+    it("should delete Pending and Snoozed reminders when archiving", async () => {
+      // Create tracking with schedule
+      const trackingResult = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type, state, days) VALUES (?, ?, ?, ?, ?)",
+        [
+          testUserId,
+          "Test Question",
+          TrackingType.TRUE_FALSE,
+          "Running",
+          JSON.stringify({
+            pattern_type: "day_of_week",
+            days: [1, 2, 3, 4, 5],
+          }),
+        ]
+      );
+      const trackingId = trackingResult.lastID;
+
+      // Create schedule
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 10, 0]
+      );
+
+      // Create Pending reminder
+      const pendingReminder = new Reminder({
+        id: 0,
+        tracking_id: trackingId,
+        user_id: testUserId,
+        scheduled_time: new Date(
+          Date.now() + 24 * 60 * 60 * 1000
+        ).toISOString(),
+        status: ReminderStatus.PENDING,
+      });
+      await pendingReminder.save(testDb);
+
+      // Create Snoozed reminder
+      const snoozedReminder = new Reminder({
+        id: 0,
+        tracking_id: trackingId,
+        user_id: testUserId,
+        scheduled_time: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+        status: ReminderStatus.SNOOZED,
+      });
+      await snoozedReminder.save(testDb);
+
+      // Create Answered reminder (should not be deleted)
+      const answeredReminder = new Reminder({
+        id: 0,
+        tracking_id: trackingId,
+        user_id: testUserId,
+        scheduled_time: new Date(
+          Date.now() - 24 * 60 * 60 * 1000
+        ).toISOString(),
+        status: ReminderStatus.ANSWERED,
+      });
+      await answeredReminder.save(testDb);
+
+      // Archive the tracking
+      await trackingService.updateTrackingState(
+        trackingId,
+        testUserId,
+        "Archived"
+      );
+
+      // Verify Pending and Snoozed reminders are deleted
+      const pendingAfter = await Reminder.loadById(
+        pendingReminder.id,
+        testUserId,
+        testDb
+      );
+      const snoozedAfter = await Reminder.loadById(
+        snoozedReminder.id,
+        testUserId,
+        testDb
+      );
+      const answeredAfter = await Reminder.loadById(
+        answeredReminder.id,
+        testUserId,
+        testDb
+      );
+
+      expect(pendingAfter).toBeNull();
+      expect(snoozedAfter).toBeNull();
+      expect(answeredAfter).not.toBeNull(); // Answered reminder should remain
+    });
+
+    it("should keep Pending/Snoozed reminders when pausing", async () => {
+      // Create tracking with schedule
+      const trackingResult = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type, state, days) VALUES (?, ?, ?, ?, ?)",
+        [
+          testUserId,
+          "Test Question",
+          TrackingType.TRUE_FALSE,
+          "Running",
+          JSON.stringify({
+            pattern_type: "day_of_week",
+            days: [1, 2, 3, 4, 5],
+          }),
+        ]
+      );
+      const trackingId = trackingResult.lastID;
+
+      // Create schedule
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 10, 0]
+      );
+
+      // Create Pending reminder
+      const pendingReminder = new Reminder({
+        id: 0,
+        tracking_id: trackingId,
+        user_id: testUserId,
+        scheduled_time: new Date(
+          Date.now() + 24 * 60 * 60 * 1000
+        ).toISOString(),
+        status: ReminderStatus.PENDING,
+      });
+      await pendingReminder.save(testDb);
+
+      // Create Snoozed reminder
+      const snoozedReminder = new Reminder({
+        id: 0,
+        tracking_id: trackingId,
+        user_id: testUserId,
+        scheduled_time: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+        status: ReminderStatus.SNOOZED,
+      });
+      await snoozedReminder.save(testDb);
+
+      // Pause the tracking
+      await trackingService.updateTrackingState(
+        trackingId,
+        testUserId,
+        "Paused"
+      );
+
+      // Verify reminders are still there
+      const pendingAfter = await Reminder.loadById(
+        pendingReminder.id,
+        testUserId,
+        testDb
+      );
+      const snoozedAfter = await Reminder.loadById(
+        snoozedReminder.id,
+        testUserId,
+        testDb
+      );
+
+      expect(pendingAfter).not.toBeNull();
+      expect(snoozedAfter).not.toBeNull();
+    });
+
+    it("should create next reminder when resuming from Paused", async () => {
+      // Create tracking with schedule
+      const trackingResult = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type, state, days) VALUES (?, ?, ?, ?, ?)",
+        [
+          testUserId,
+          "Test Question",
+          TrackingType.TRUE_FALSE,
+          "Paused",
+          JSON.stringify({
+            pattern_type: "day_of_week",
+            days: [1, 2, 3, 4, 5],
+          }),
+        ]
+      );
+      const trackingId = trackingResult.lastID;
+
+      // Create schedule
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 10, 0]
+      );
+
+      // Resume the tracking
+      await trackingService.updateTrackingState(
+        trackingId,
+        testUserId,
+        "Running"
+      );
+
+      // Verify a reminder was created
+      const reminder = await Reminder.loadByTrackingId(
+        trackingId,
+        testUserId,
+        testDb
+      );
+      expect(reminder).not.toBeNull();
+      expect(reminder!.status).toBe(ReminderStatus.PENDING);
+    });
+
+    it("should create next reminder when unarchiving from Archived", async () => {
+      // Create tracking with schedule
+      const trackingResult = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type, state, days) VALUES (?, ?, ?, ?, ?)",
+        [
+          testUserId,
+          "Test Question",
+          TrackingType.TRUE_FALSE,
+          "Archived",
+          JSON.stringify({
+            pattern_type: "day_of_week",
+            days: [1, 2, 3, 4, 5],
+          }),
+        ]
+      );
+      const trackingId = trackingResult.lastID;
+
+      // Create schedule
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 10, 0]
+      );
+
+      // Unarchive the tracking
+      await trackingService.updateTrackingState(
+        trackingId,
+        testUserId,
+        "Running"
+      );
+
+      // Verify a reminder was created
+      const reminder = await Reminder.loadByTrackingId(
+        trackingId,
+        testUserId,
+        testDb
+      );
+      expect(reminder).not.toBeNull();
+      expect(reminder!.status).toBe(ReminderStatus.PENDING);
     });
   });
 });

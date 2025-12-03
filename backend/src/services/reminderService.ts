@@ -628,20 +628,7 @@ export class ReminderService {
       `[${new Date().toISOString()}] REMINDER | Creating next reminder for trackingId: ${trackingId}`
     );
 
-    // Check if reminder already exists for this tracking
-    const existingReminder = await Reminder.loadByTrackingId(
-      trackingId,
-      userId,
-      this.db
-    );
-    if (existingReminder) {
-      console.log(
-        `[${new Date().toISOString()}] REMINDER | Reminder already exists for trackingId: ${trackingId}, skipping creation`
-      );
-      return existingReminder.toData();
-    }
-
-    // Load tracking
+    // Load tracking first to check state
     const tracking = await Tracking.loadById(trackingId, userId, this.db);
     if (!tracking) {
       console.warn(
@@ -656,6 +643,33 @@ export class ReminderService {
         `[${new Date().toISOString()}] REMINDER | Tracking ${trackingId} is not Running, skipping reminder creation`
       );
       return null;
+    }
+
+    // Check if reminder already exists for this tracking
+    const existingReminder = await Reminder.loadByTrackingId(
+      trackingId,
+      userId,
+      this.db
+    );
+
+    // If there's a Snoozed reminder and we're creating a new one (tracking's scheduled time arrived),
+    // delete the snoozed reminder first
+    if (
+      existingReminder &&
+      existingReminder.status === ReminderStatus.SNOOZED
+    ) {
+      console.log(
+        `[${new Date().toISOString()}] REMINDER | Deleting snoozed reminder ID ${
+          existingReminder.id
+        } for trackingId: ${trackingId} as tracking's scheduled time has arrived`
+      );
+      await existingReminder.delete(this.db);
+    } else if (existingReminder) {
+      // If there's a Pending or Answered reminder, return it (don't create a new one)
+      console.log(
+        `[${new Date().toISOString()}] REMINDER | Reminder already exists for trackingId: ${trackingId}, skipping creation`
+      );
+      return existingReminder.toData();
     }
 
     // Calculate next reminder time

@@ -400,6 +400,45 @@ export class TrackingService {
       [validatedNewState, trackingId, userId]
     );
 
+    // Handle reminder cleanup and creation based on state transition
+    if (validatedNewState === TrackingState.ARCHIVED) {
+      // When archiving: Delete all Pending and Snoozed reminders
+      const { ReminderStatus } = await import("../models/Reminder.js");
+      const result = await this.db.run(
+        "DELETE FROM reminders WHERE tracking_id = ? AND user_id = ? AND status IN (?, ?)",
+        [trackingId, userId, ReminderStatus.PENDING, ReminderStatus.SNOOZED]
+      );
+      if (result.changes > 0) {
+        console.log(
+          `[${new Date().toISOString()}] TRACKING | Deleted ${
+            result.changes
+          } Pending/Snoozed reminder(s) for archived tracking ${trackingId}`
+        );
+      }
+    } else if (
+      validatedNewState === TrackingState.RUNNING &&
+      (currentState === TrackingState.PAUSED ||
+        currentState === TrackingState.ARCHIVED)
+    ) {
+      // When resuming (Paused → Running) or unarchiving (Archived → Running):
+      // Create next reminder (only if time is in future, handled by createNextReminderForTracking)
+      try {
+        await this.reminderService.createNextReminderForTracking(
+          trackingId,
+          userId
+        );
+        console.log(
+          `[${new Date().toISOString()}] TRACKING | Created next reminder for resumed/unarchived tracking ${trackingId}`
+        );
+      } catch (error) {
+        // Log error but don't fail state update if reminder creation fails
+        console.error(
+          `[${new Date().toISOString()}] TRACKING | Failed to create reminder for tracking ${trackingId} after state transition:`,
+          error
+        );
+      }
+    }
+
     // Retrieve updated tracking
     const tracking = await this.getTrackingById(trackingId, userId);
     if (!tracking) {

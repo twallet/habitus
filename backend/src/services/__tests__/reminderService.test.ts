@@ -1,7 +1,7 @@
 import { vi } from "vitest";
 import sqlite3 from "sqlite3";
 import { ReminderService } from "../reminderService.js";
-import { ReminderStatus } from "../../models/Reminder.js";
+import { Reminder, ReminderStatus } from "../../models/Reminder.js";
 import { TrackingType, DaysPatternType } from "../../models/Tracking.js";
 import { Database } from "../../db/database.js";
 import { TrackingSchedule } from "../../models/TrackingSchedule.js";
@@ -461,6 +461,71 @@ describe("ReminderService", () => {
       const reminders = await reminderService.getRemindersByUserId(testUserId);
       expect(reminders.length).toBe(1);
       expect(reminders[0].scheduled_time).not.toBe(scheduledTime);
+    });
+
+    it("should delete snoozed reminder and create new one when tracking's scheduled time arrives", async () => {
+      // Create a snoozed reminder for the tracking
+      const snoozedTime = new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30 minutes from now
+      const snoozedReminder = new Reminder({
+        id: 0,
+        tracking_id: testTrackingId,
+        user_id: testUserId,
+        scheduled_time: snoozedTime,
+        status: ReminderStatus.SNOOZED,
+      });
+      await snoozedReminder.save(testDb);
+
+      // Verify snoozed reminder exists
+      const beforeReminder = await Reminder.loadByTrackingId(
+        testTrackingId,
+        testUserId,
+        testDb
+      );
+      expect(beforeReminder).not.toBeNull();
+      expect(beforeReminder!.status).toBe(ReminderStatus.SNOOZED);
+
+      // Create next reminder (simulating tracking's scheduled time arriving)
+      const newReminder = await reminderService.createNextReminderForTracking(
+        testTrackingId,
+        testUserId
+      );
+
+      // Verify snoozed reminder was deleted
+      const deletedSnoozed = await Reminder.loadById(
+        snoozedReminder.id,
+        testUserId,
+        testDb
+      );
+      expect(deletedSnoozed).toBeNull();
+
+      // Verify new reminder was created
+      expect(newReminder).not.toBeNull();
+      expect(newReminder!.id).not.toBe(snoozedReminder.id);
+      expect(newReminder!.status).toBe(ReminderStatus.PENDING);
+    });
+
+    it("should keep Pending reminder and not create new one", async () => {
+      // Create a Pending reminder for the tracking
+      const pendingTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // Tomorrow
+      const pendingReminder = new Reminder({
+        id: 0,
+        tracking_id: testTrackingId,
+        user_id: testUserId,
+        scheduled_time: pendingTime,
+        status: ReminderStatus.PENDING,
+      });
+      await pendingReminder.save(testDb);
+
+      // Try to create next reminder
+      const result = await reminderService.createNextReminderForTracking(
+        testTrackingId,
+        testUserId
+      );
+
+      // Verify the existing Pending reminder is returned (not a new one created)
+      expect(result).not.toBeNull();
+      expect(result!.id).toBe(pendingReminder.id);
+      expect(result!.status).toBe(ReminderStatus.PENDING);
     });
   });
 
