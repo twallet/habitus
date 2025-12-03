@@ -79,7 +79,6 @@
   justify-content: flex-end;
   margin-top: 8px;
   padding-top: 24px;
-  border-top: 1px solid var(--border-color);
 }
 
 .form-actions .btn-primary {
