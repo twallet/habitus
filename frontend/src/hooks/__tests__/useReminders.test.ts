@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { vi, type Mock } from "vitest";
-import { renderHook, waitFor, act } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { useReminders } from "../useReminders";
 import { ReminderData, ReminderStatus } from "../../models/Reminder";
 import { API_ENDPOINTS } from "../../config/api";
@@ -121,14 +121,12 @@ describe("useReminders", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      await act(async () => {
-        await result.current.updateReminder(
-          1,
-          "Yes",
-          "Some notes",
-          ReminderStatus.ANSWERED
-        );
-      });
+      await result.current.updateReminder(
+        1,
+        "Yes",
+        "Some notes",
+        ReminderStatus.ANSWERED
+      );
 
       await waitFor(() => {
         expect(result.current.reminders[0].answer).toBe("Yes");
@@ -173,9 +171,7 @@ describe("useReminders", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      await act(async () => {
-        await result.current.snoozeReminder(1, 30);
-      });
+      await result.current.snoozeReminder(1, 30);
 
       await waitFor(() => {
         expect(result.current.reminders[0].status).toBe(ReminderStatus.SNOOZED);
@@ -215,9 +211,7 @@ describe("useReminders", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      await act(async () => {
-        await result.current.deleteReminder(1);
-      });
+      await result.current.deleteReminder(1);
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
@@ -260,9 +254,7 @@ describe("useReminders", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      await act(async () => {
-        await result.current.refreshReminders();
-      });
+      await result.current.refreshReminders();
 
       await waitFor(() => {
         expect(result.current.reminders).toEqual(mockReminders);

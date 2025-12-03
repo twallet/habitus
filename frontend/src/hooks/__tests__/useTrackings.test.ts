@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { vi, type Mock } from "vitest";
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { useTrackings } from "../useTrackings";
 import { API_ENDPOINTS } from "../../config/api";
 import { TrackingType, DaysPatternType } from "../../models/Tracking";
@@ -111,22 +111,19 @@ describe("useTrackings", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    let newTracking: any;
-    await act(async () => {
-      const defaultDays = {
-        pattern_type: DaysPatternType.INTERVAL,
-        interval_value: 1,
-        interval_unit: "days" as const,
-      };
-      newTracking = await result.current.createTracking(
-        "Did I exercise?",
-        TrackingType.TRUE_FALSE,
-        undefined,
-        undefined,
-        [{ hour: 9, minutes: 0 }],
-        defaultDays
-      );
-    });
+    const defaultDays = {
+      pattern_type: DaysPatternType.INTERVAL,
+      interval_value: 1,
+      interval_unit: "days" as const,
+    };
+    const newTracking = await result.current.createTracking(
+      "Did I exercise?",
+      TrackingType.TRUE_FALSE,
+      undefined,
+      undefined,
+      [{ hour: 9, minutes: 0 }],
+      defaultDays
+    );
 
     expect(newTracking!.question).toBe("Did I exercise?");
     expect(newTracking!.type).toBe(TrackingType.TRUE_FALSE);
@@ -167,9 +164,7 @@ describe("useTrackings", () => {
       interval_unit: "days" as const,
     };
 
-    await act(async () => {
-      await result.current.updateTracking(1, defaultDays, "New Question");
-    });
+    await result.current.updateTracking(1, defaultDays, "New Question");
 
     expect(result.current.trackings[0].question).toBe("New Question");
     expect(global.fetch).toHaveBeenCalledWith(`${API_ENDPOINTS.trackings}/1`, {
@@ -209,9 +204,7 @@ describe("useTrackings", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    await act(async () => {
-      await result.current.deleteTracking(1);
-    });
+    await result.current.deleteTracking(1);
 
     expect(result.current.trackings).toHaveLength(0);
     expect(global.fetch).toHaveBeenCalledWith(`${API_ENDPOINTS.trackings}/1`, {
@@ -257,23 +250,21 @@ describe("useTrackings", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    await expect(async () => {
-      await act(async () => {
-        const defaultDays = {
-          pattern_type: DaysPatternType.INTERVAL,
-          interval_value: 1,
-          interval_unit: "days" as const,
-        };
-        await result.current.createTracking(
-          "Test Question",
-          TrackingType.TRUE_FALSE,
-          undefined,
-          undefined,
-          [{ hour: 9, minutes: 0 }],
-          defaultDays
-        );
-      });
-    }).rejects.toThrow();
+    const defaultDays = {
+      pattern_type: DaysPatternType.INTERVAL,
+      interval_value: 1,
+      interval_unit: "days" as const,
+    };
+    await expect(
+      result.current.createTracking(
+        "Test Question",
+        TrackingType.TRUE_FALSE,
+        undefined,
+        undefined,
+        [{ hour: 9, minutes: 0 }],
+        defaultDays
+      )
+    ).rejects.toThrow();
   });
 
   it("should throw error when not authenticated", async () => {
@@ -290,22 +281,20 @@ describe("useTrackings", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    await expect(async () => {
-      await act(async () => {
-        const defaultDays = {
-          pattern_type: DaysPatternType.INTERVAL,
-          interval_value: 1,
-          interval_unit: "days" as const,
-        };
-        await result.current.createTracking(
-          "Test Question",
-          TrackingType.TRUE_FALSE,
-          undefined,
-          undefined,
-          [{ hour: 9, minutes: 0 }],
-          defaultDays
-        );
-      });
-    }).rejects.toThrow("Not authenticated");
+    const defaultDays = {
+      pattern_type: DaysPatternType.INTERVAL,
+      interval_value: 1,
+      interval_unit: "days" as const,
+    };
+    await expect(
+      result.current.createTracking(
+        "Test Question",
+        TrackingType.TRUE_FALSE,
+        undefined,
+        undefined,
+        [{ hour: 9, minutes: 0 }],
+        defaultDays
+      )
+    ).rejects.toThrow("Not authenticated");
   });
 });

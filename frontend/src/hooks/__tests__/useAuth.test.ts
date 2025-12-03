@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { vi, type Mock } from "vitest";
-import { renderHook, waitFor, act } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { useAuth } from "../useAuth";
 import { API_ENDPOINTS } from "../../config/api";
 
@@ -114,7 +114,9 @@ describe("useAuth", () => {
     it("should handle fetch error during token verification", async () => {
       localStorage.setItem(TOKEN_KEY, "token");
 
-      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation();
+      const consoleErrorSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
 
       (global.fetch as Mock).mockRejectedValueOnce(new Error("Network error"));
 
@@ -181,9 +183,7 @@ describe("useAuth", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      await act(async () => {
-        await result.current.requestLoginMagicLink("test@example.com");
-      });
+      await result.current.requestLoginMagicLink("test@example.com");
 
       expect(global.fetch).toHaveBeenCalledWith(
         API_ENDPOINTS.auth.login,
@@ -238,9 +238,7 @@ describe("useAuth", () => {
       });
 
       await expect(
-        act(async () => {
-          await result.current.requestLoginMagicLink("invalid@example.com");
-        })
+        result.current.requestLoginMagicLink("invalid@example.com")
       ).rejects.toThrow("Invalid email");
     });
 
@@ -288,9 +286,7 @@ describe("useAuth", () => {
       });
 
       await expect(
-        act(async () => {
-          await result.current.requestLoginMagicLink("test@example.com");
-        })
+        result.current.requestLoginMagicLink("test@example.com")
       ).rejects.toThrow();
     });
   });
@@ -341,13 +337,11 @@ describe("useAuth", () => {
         type: "image/jpeg",
       });
 
-      await act(async () => {
-        await result.current.requestRegisterMagicLink(
-          "John Doe",
-          "john@example.com",
-          mockFile
-        );
-      });
+      await result.current.requestRegisterMagicLink(
+        "John Doe",
+        "john@example.com",
+        mockFile
+      );
 
       // Check that fetch was called with register endpoint
       const registerCalls = (global.fetch as Mock).mock.calls.filter(
@@ -405,12 +399,10 @@ describe("useAuth", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      await act(async () => {
-        await result.current.requestRegisterMagicLink(
-          "John Doe",
-          "john@example.com"
-        );
-      });
+      await result.current.requestRegisterMagicLink(
+        "John Doe",
+        "john@example.com"
+      );
 
       expect(global.fetch).toHaveBeenCalledWith(
         API_ENDPOINTS.auth.register,
@@ -461,12 +453,10 @@ describe("useAuth", () => {
       });
 
       await expect(
-        act(async () => {
-          await result.current.requestRegisterMagicLink(
-            "John Doe",
-            "existing@example.com"
-          );
-        })
+        result.current.requestRegisterMagicLink(
+          "John Doe",
+          "existing@example.com"
+        )
       ).rejects.toThrow("Email already exists");
     });
   });
@@ -523,10 +513,8 @@ describe("useAuth", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      await act(async () => {
-        const user = await result.current.verifyMagicLink("magic-token");
-        expect(user).toEqual(mockUser);
-      });
+      const user = await result.current.verifyMagicLink("magic-token");
+      expect(user).toEqual(mockUser);
 
       expect(result.current.user).toEqual(mockUser);
       expect(result.current.token).toBe("new-token");
@@ -581,9 +569,7 @@ describe("useAuth", () => {
       });
 
       await expect(
-        act(async () => {
-          await result.current.verifyMagicLink("invalid-token");
-        })
+        result.current.verifyMagicLink("invalid-token")
       ).rejects.toThrow("Invalid or expired magic link");
     });
   });
@@ -610,9 +596,7 @@ describe("useAuth", () => {
         expect(result.current.isAuthenticated).toBe(true);
       });
 
-      act(() => {
-        result.current.logout();
-      });
+      result.current.logout();
 
       expect(result.current.user).toBeNull();
       expect(result.current.token).toBeNull();
@@ -630,7 +614,9 @@ describe("useAuth", () => {
         created_at: "2024-01-01T00:00:00Z",
       };
 
-      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation();
+      const consoleErrorSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
 
       let callCount = 0;
       (global.fetch as Mock).mockImplementation(
@@ -697,9 +683,7 @@ describe("useAuth", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      await act(async () => {
-        await result.current.setTokenFromCallback("callback-token");
-      });
+      await result.current.setTokenFromCallback("callback-token");
 
       expect(result.current.user).toEqual(mockUser);
       expect(result.current.token).toBe("callback-token");
@@ -710,7 +694,9 @@ describe("useAuth", () => {
     });
 
     it("should throw error when callback token is invalid", async () => {
-      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation();
+      const consoleErrorSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
 
       let callCount = 0;
       (global.fetch as Mock).mockImplementation(
@@ -777,11 +763,9 @@ describe("useAuth", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      await act(async () => {
-        await expect(
-          result.current.setTokenFromCallback("invalid-token")
-        ).rejects.toThrow();
-      });
+      await expect(
+        result.current.setTokenFromCallback("invalid-token")
+      ).rejects.toThrow();
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         expect.stringContaining(
@@ -845,9 +829,7 @@ describe("useAuth", () => {
         expect(result.current.isAuthenticated).toBe(true);
       });
 
-      await act(async () => {
-        await result.current.requestEmailChange("newemail@example.com");
-      });
+      await result.current.requestEmailChange("newemail@example.com");
 
       const emailChangeCalls = (global.fetch as Mock).mock.calls.filter(
         (call: any[]) => {
@@ -893,9 +875,7 @@ describe("useAuth", () => {
       });
 
       await expect(
-        act(async () => {
-          await result.current.requestEmailChange("newemail@example.com");
-        })
+        result.current.requestEmailChange("newemail@example.com")
       ).rejects.toThrow("Not authenticated");
     });
 
@@ -950,9 +930,7 @@ describe("useAuth", () => {
       });
 
       await expect(
-        act(async () => {
-          await result.current.requestEmailChange("existing@example.com");
-        })
+        result.current.requestEmailChange("existing@example.com")
       ).rejects.toThrow("Email already in use");
     });
   });
@@ -1015,10 +993,8 @@ describe("useAuth", () => {
         expect(result.current.isAuthenticated).toBe(true);
       });
 
-      await act(async () => {
-        const user = await result.current.updateProfile("John Updated", null);
-        expect(user).toEqual(updatedUser);
-      });
+      const user = await result.current.updateProfile("John Updated", null);
+      expect(user).toEqual(updatedUser);
 
       expect(result.current.user).toEqual(updatedUser);
     });
@@ -1084,10 +1060,8 @@ describe("useAuth", () => {
         type: "image/jpeg",
       });
 
-      await act(async () => {
-        const user = await result.current.updateProfile("John Doe", mockFile);
-        expect(user).toEqual(updatedUser);
-      });
+      const user = await result.current.updateProfile("John Doe", mockFile);
+      expect(user).toEqual(updatedUser);
 
       expect(result.current.user).toEqual(updatedUser);
     });
@@ -1125,9 +1099,7 @@ describe("useAuth", () => {
       });
 
       await expect(
-        act(async () => {
-          await result.current.updateProfile("New Name", null);
-        })
+        result.current.updateProfile("New Name", null)
       ).rejects.toThrow("Not authenticated");
     });
 
@@ -1183,11 +1155,9 @@ describe("useAuth", () => {
         expect(result.current.isAuthenticated).toBe(true);
       });
 
-      await expect(
-        act(async () => {
-          await result.current.updateProfile("", null);
-        })
-      ).rejects.toThrow("Invalid name");
+      await expect(result.current.updateProfile("", null)).rejects.toThrow(
+        "Invalid name"
+      );
     });
   });
 
@@ -1244,9 +1214,7 @@ describe("useAuth", () => {
         expect(result.current.isAuthenticated).toBe(true);
       });
 
-      await act(async () => {
-        await result.current.deleteUser();
-      });
+      await result.current.deleteUser();
 
       expect(result.current.user).toBeNull();
       expect(result.current.token).toBeNull();
@@ -1286,11 +1254,9 @@ describe("useAuth", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      await expect(
-        act(async () => {
-          await result.current.deleteUser();
-        })
-      ).rejects.toThrow("Not authenticated");
+      await expect(result.current.deleteUser()).rejects.toThrow(
+        "Not authenticated"
+      );
     });
 
     it("should throw error when deletion fails", async () => {
@@ -1346,11 +1312,9 @@ describe("useAuth", () => {
         expect(result.current.isAuthenticated).toBe(true);
       });
 
-      await expect(
-        act(async () => {
-          await result.current.deleteUser();
-        })
-      ).rejects.toThrow("Deletion failed");
+      await expect(result.current.deleteUser()).rejects.toThrow(
+        "Deletion failed"
+      );
 
       // User should still be authenticated if deletion failed
       expect(result.current.user).toEqual(mockUser);

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { vi, type Mock } from "vitest";
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { useUsers } from "../useUsers";
 
 // Mock fetch
@@ -78,10 +78,7 @@ describe("useUsers", () => {
       expect(result.current.isInitialized).toBe(true);
     });
 
-    let newUser: { id: number; name: string };
-    await act(async () => {
-      newUser = await result.current.createUser("New User");
-    });
+    const newUser = await result.current.createUser("New User");
 
     expect(newUser!.name).toBe("New User");
     expect(newUser!.id).toBe(1);
@@ -107,9 +104,7 @@ describe("useUsers", () => {
       expect(result.current.isInitialized).toBe(true);
     });
 
-    await act(async () => {
-      await result.current.createUser("Test User");
-    });
+    await result.current.createUser("Test User");
 
     expect(global.fetch).toHaveBeenCalledWith(
       expect.stringContaining("/api/users"),
@@ -150,17 +145,9 @@ describe("useUsers", () => {
       expect(result.current.isInitialized).toBe(true);
     });
 
-    await act(async () => {
-      await result.current.createUser("User 1");
-    });
-
-    await act(async () => {
-      await result.current.createUser("User 2");
-    });
-
-    await act(async () => {
-      await result.current.createUser("User 3");
-    });
+    await result.current.createUser("User 1");
+    await result.current.createUser("User 2");
+    await result.current.createUser("User 3");
 
     expect(result.current.users).toHaveLength(3);
     expect(result.current.users[0].name).toBe("User 1");
@@ -206,11 +193,7 @@ describe("useUsers", () => {
       expect(result.current.isInitialized).toBe(true);
     });
 
-    await expect(async () => {
-      await act(async () => {
-        await result.current.createUser("Test User");
-      });
-    }).rejects.toThrow();
+    await expect(result.current.createUser("Test User")).rejects.toThrow();
   });
 
   it("should handle API error responses", async () => {
@@ -231,10 +214,8 @@ describe("useUsers", () => {
       expect(result.current.isInitialized).toBe(true);
     });
 
-    await expect(async () => {
-      await act(async () => {
-        await result.current.createUser("");
-      });
-    }).rejects.toThrow("Name is required");
+    await expect(result.current.createUser("")).rejects.toThrow(
+      "Name is required"
+    );
   });
 });

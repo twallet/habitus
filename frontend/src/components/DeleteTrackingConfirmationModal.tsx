@@ -51,10 +51,11 @@ export function DeleteTrackingConfirmationModal({
             return;
         }
 
-        setIsDeleting(true);
+        // Set ref BEFORE state update to ensure it's available immediately for event handlers
         isDeletingRef.current = true;
-        setError(null);
         errorRef.current = null;
+        setIsDeleting(true);
+        setError(null);
 
         try {
             await onConfirm();
@@ -78,9 +79,13 @@ export function DeleteTrackingConfirmationModal({
         const handleEscape = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
                 // Use refs to check current state - refs are always up to date
-                if (!isDeletingRef.current && !errorRef.current) {
-                    onClose();
+                // Check refs to prevent closing during deletion or error states
+                if (isDeletingRef.current || errorRef.current) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
                 }
+                onClose();
             }
         };
 

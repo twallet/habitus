@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { vi } from 'vitest';
-import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DeleteTrackingConfirmationModal } from '../DeleteTrackingConfirmationModal';
 import { TrackingData, TrackingType } from '../../models/Tracking';
@@ -312,12 +312,13 @@ describe('DeleteTrackingConfirmationModal', () => {
             expect(screen.getByText(/deleting.../i)).toBeInTheDocument();
         });
 
-        // Wait for React to flush all updates and ensure refs are synchronized
-        // Use multiple ticks to ensure all React updates are processed
-        await new Promise(resolve => setTimeout(resolve, 0));
-        await new Promise(resolve => setTimeout(resolve, 0));
+        // Wait for the delete button to be disabled, confirming state update is complete
+        await waitFor(() => {
+            const deleteButton = screen.getByRole('button', { name: /deleting.../i });
+            expect(deleteButton).toBeDisabled();
+        });
 
-        // Try to close with Escape while deleting - use fireEvent to ensure it happens after state update
+        // Try to close with Escape while deleting - wrap in act to ensure React processes it correctly
         act(() => {
             fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' });
         });
