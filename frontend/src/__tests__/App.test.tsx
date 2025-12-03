@@ -213,11 +213,11 @@ describe('App', () => {
     });
 
     // Verify user menu is present
-    const userMenuButton = screen.getByRole('button', { name: /user menu/i });
+    const userMenuButton = screen.getByRole('button', { name: /user settings/i });
     expect(userMenuButton).toBeInTheDocument();
 
     // Verify FAB button is present
-    const fabButton = screen.getByRole('button', { name: /create tracking/i });
+    const fabButton = screen.getByRole('button', { name: /add/i });
     expect(fabButton).toBeInTheDocument();
   });
 
@@ -494,7 +494,7 @@ describe('App', () => {
     });
 
     // Open user menu
-    const userMenuButton = screen.getByRole('button', { name: /user menu/i });
+    const userMenuButton = screen.getByRole('button', { name: /user settings/i });
     await userEvent.click(userMenuButton);
 
     // Click logout from menu
@@ -725,7 +725,7 @@ describe('App', () => {
       expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
-    const userMenuButton = screen.getByRole('button', { name: /user menu/i });
+    const userMenuButton = screen.getByRole('button', { name: /user settings/i });
     await userEvent.click(userMenuButton);
 
     const editProfileMenuItem = screen.getByRole('button', { name: /edit profile/i });
@@ -765,7 +765,7 @@ describe('App', () => {
       expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
-    const userMenuButton = screen.getByRole('button', { name: /user menu/i });
+    const userMenuButton = screen.getByRole('button', { name: /user settings/i });
     await userEvent.click(userMenuButton);
 
     const changeEmailMenuItem = screen.getByRole('button', { name: /change email/i });
@@ -812,7 +812,7 @@ describe('App', () => {
       expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
-    const userMenuButton = screen.getByRole('button', { name: /user menu/i });
+    const userMenuButton = screen.getByRole('button', { name: /user settings/i });
     await userEvent.click(userMenuButton);
 
     const editProfileMenuItem = screen.getByRole('button', { name: /edit profile/i });
@@ -864,7 +864,7 @@ describe('App', () => {
       expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
-    const userMenuButton = screen.getByRole('button', { name: /user menu/i });
+    const userMenuButton = screen.getByRole('button', { name: /user settings/i });
     await userEvent.click(userMenuButton);
 
     const deleteUserMenuItem = screen.getByRole('button', { name: /delete user/i });
@@ -922,7 +922,7 @@ describe('App', () => {
       expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
-    const fabButton = screen.getByRole('button', { name: /create tracking/i });
+    const fabButton = screen.getByRole('button', { name: /add/i });
     await userEvent.click(fabButton);
 
     // Wait for the form input to appear (more reliable than waiting for text)
@@ -942,7 +942,8 @@ describe('App', () => {
     if (!timeInput) {
       throw new Error("Time input not found");
     }
-    const scheduleButton = screen.getByRole('button', { name: /^add$/i });
+    const form = screen.getByRole('form');
+    const scheduleButton = within(form).getByRole('button', { name: /^add$/i });
     await userEvent.clear(timeInput);
     await userEvent.type(timeInput, '09:00');
     await userEvent.click(scheduleButton);
@@ -1116,7 +1117,7 @@ describe('App', () => {
       expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
-    const userMenuButton = screen.getByRole('button', { name: /user menu/i });
+    const userMenuButton = screen.getByRole('button', { name: /user settings/i });
     await userEvent.click(userMenuButton);
 
     const editProfileMenuItem = screen.getByRole('button', { name: /edit profile/i });
@@ -1172,7 +1173,7 @@ describe('App', () => {
       expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
-    const userMenuButton = screen.getByRole('button', { name: /user menu/i });
+    const userMenuButton = screen.getByRole('button', { name: /user settings/i });
     await userEvent.click(userMenuButton);
 
     const changeEmailMenuItem = screen.getByRole('button', { name: /change email/i });
@@ -1225,7 +1226,7 @@ describe('App', () => {
       expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
-    const userMenuButton = screen.getByRole('button', { name: /user menu/i });
+    const userMenuButton = screen.getByRole('button', { name: /user settings/i });
     await userEvent.click(userMenuButton);
 
     const deleteUserMenuItem = screen.getByRole('button', { name: /delete user/i });
@@ -1280,7 +1281,7 @@ describe('App', () => {
       expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
-    const userMenuButton = screen.getByRole('button', { name: /user menu/i });
+    const userMenuButton = screen.getByRole('button', { name: /user settings/i });
     await userEvent.click(userMenuButton);
 
     const deleteUserMenuItem = screen.getByRole('button', { name: /delete user/i });
@@ -1349,7 +1350,7 @@ describe('App', () => {
       expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
     });
 
-    const fabButton = screen.getByRole('button', { name: /create tracking/i });
+    const fabButton = screen.getByRole('button', { name: /add/i });
     await userEvent.click(fabButton);
 
     // Wait for the form to be fully rendered (all required fields present)
@@ -1371,7 +1372,8 @@ describe('App', () => {
     if (!timeInput) {
       throw new Error("Time input not found");
     }
-    const scheduleButton = screen.getByRole('button', { name: /^add$/i });
+    const form = screen.getByRole('form');
+    const scheduleButton = within(form).getByRole('button', { name: /^add$/i });
     await userEvent.clear(timeInput);
     await userEvent.type(timeInput, '09:00');
     await userEvent.click(scheduleButton);

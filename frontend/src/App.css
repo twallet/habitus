@@ -72,6 +72,7 @@ body {
   padding: 40px;
   animation: fadeIn 0.3s ease-in-out;
   position: relative;
+  overflow: hidden;
 }
 
 @keyframes fadeIn {
@@ -572,7 +573,7 @@ main {
 .trackings-view,
 .reminders-view {
   width: 100%;
-  margin-bottom: 80px;
+  margin-bottom: 40px;
 }
 
 .fab {
