@@ -54,40 +54,51 @@ function App() {
   } = useTrackings();
 
   /**
-   * Update container width to match the maximum width between trackings and reminders tables.
+   * Update container width and height to match the maximum dimensions between trackings and reminders tables.
    * @internal
    */
   useEffect(() => {
-    const updateContainerWidth = () => {
+    const updateContainerSize = () => {
       if (!containerRef.current) {
         return;
       }
 
       let maxWidth = 0;
+      let maxHeight = 0;
 
-      // Measure trackings table width
+      // Measure trackings view dimensions
       if (trackingsViewRef.current) {
         const trackingsTable = trackingsViewRef.current.querySelector('.trackings-table');
         if (trackingsTable) {
-          const width = trackingsTable.getBoundingClientRect().width;
-          if (width > 0) {
-            maxWidth = Math.max(maxWidth, width);
+          const rect = trackingsTable.getBoundingClientRect();
+          if (rect.width > 0) {
+            maxWidth = Math.max(maxWidth, rect.width);
           }
+        }
+        // Measure entire view height (including filters, empty states, etc.)
+        const viewRect = trackingsViewRef.current.getBoundingClientRect();
+        if (viewRect.height > 0) {
+          maxHeight = Math.max(maxHeight, viewRect.height);
         }
       }
 
-      // Measure reminders table width
+      // Measure reminders view dimensions
       if (remindersViewRef.current) {
         const remindersTable = remindersViewRef.current.querySelector('.reminders-table');
         if (remindersTable) {
-          const width = remindersTable.getBoundingClientRect().width;
-          if (width > 0) {
-            maxWidth = Math.max(maxWidth, width);
+          const rect = remindersTable.getBoundingClientRect();
+          if (rect.width > 0) {
+            maxWidth = Math.max(maxWidth, rect.width);
           }
+        }
+        // Measure entire view height (including filters, empty states, etc.)
+        const viewRect = remindersViewRef.current.getBoundingClientRect();
+        if (viewRect.height > 0) {
+          maxHeight = Math.max(maxHeight, viewRect.height);
         }
       }
 
-      // Only update if we have a valid width
+      // Update width if we have a valid width
       if (maxWidth > 0) {
         // Add padding to account for container padding (40px on each side = 80px total)
         const containerPadding = 80;
@@ -95,46 +106,52 @@ function App() {
         containerRef.current.style.width = `${newWidth}px`;
         containerRef.current.style.maxWidth = `${newWidth}px`;
       }
+
+      // Update height if we have a valid height
+      if (maxHeight > 0) {
+        // Add padding to account for container padding and header
+        // Header height + tabs header height + padding top (40px) + padding bottom (120px for FAB)
+        const headerHeight = containerRef.current.querySelector('header')?.getBoundingClientRect().height || 0;
+        const tabsHeaderHeight = containerRef.current.querySelector('.tabs-header')?.getBoundingClientRect().height || 0;
+        const containerPadding = 40 + 120; // top padding + bottom padding for FAB
+        const newHeight = maxHeight + headerHeight + tabsHeaderHeight + containerPadding;
+        containerRef.current.style.minHeight = `${newHeight}px`;
+      }
     };
 
     // Small delay to ensure tables are rendered
     const timeoutId = setTimeout(() => {
-      updateContainerWidth();
+      updateContainerSize();
     }, 100);
 
     // Use ResizeObserver to watch for table size changes (if available)
     let resizeObserver: ResizeObserver | null = null;
     if (typeof ResizeObserver !== 'undefined') {
       resizeObserver = new ResizeObserver(() => {
-        updateContainerWidth();
+        updateContainerSize();
       });
     }
 
     if (resizeObserver) {
+      // Observe the entire views (not just tables) to catch all height changes
       if (trackingsViewRef.current) {
-        const trackingsTable = trackingsViewRef.current.querySelector('.trackings-table');
-        if (trackingsTable) {
-          resizeObserver.observe(trackingsTable);
-        }
+        resizeObserver.observe(trackingsViewRef.current);
       }
 
       if (remindersViewRef.current) {
-        const remindersTable = remindersViewRef.current.querySelector('.reminders-table');
-        if (remindersTable) {
-          resizeObserver.observe(remindersTable);
-        }
+        resizeObserver.observe(remindersViewRef.current);
       }
     }
 
     // Also update when window resizes
-    window.addEventListener('resize', updateContainerWidth);
+    window.addEventListener('resize', updateContainerSize);
 
     return () => {
       clearTimeout(timeoutId);
       if (resizeObserver) {
         resizeObserver.disconnect();
       }
-      window.removeEventListener('resize', updateContainerWidth);
+      window.removeEventListener('resize', updateContainerSize);
     };
   }, [activeTab, trackings, trackingsLoading]);
 
