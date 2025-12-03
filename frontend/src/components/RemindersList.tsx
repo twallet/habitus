@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { ReminderData, ReminderStatus } from "../models/Reminder";
-import { TrackingData } from "../models/Tracking";
+import { TrackingData, TrackingType } from "../models/Tracking";
 import { useReminders } from "../hooks/useReminders";
 import { useTrackings } from "../hooks/useTrackings";
 import { ReminderAnswerModal } from "./ReminderAnswerModal";
@@ -298,6 +298,24 @@ export class ReminderFormatter {
             default:
                 return "";
         }
+    }
+
+    /**
+     * Format answer with emoji for TRUE_FALSE type trackings.
+     * @param answer - Answer text
+     * @param trackingType - Tracking type
+     * @returns Formatted answer text with emoji if applicable
+     */
+    static formatAnswer(answer: string, trackingType: TrackingType): string {
+        if (trackingType === TrackingType.TRUE_FALSE) {
+            const normalizedAnswer = answer.trim();
+            if (normalizedAnswer.toLowerCase() === "yes") {
+                return "🟢Yes";
+            } else if (normalizedAnswer.toLowerCase() === "no") {
+                return "🔘No";
+            }
+        }
+        return answer;
     }
 }
 
@@ -881,10 +899,12 @@ export function RemindersList({ onCreate }: RemindersListProps = {}) {
                                         <td className="cell-answer">
                                             {reminder.answer ? (
                                                 <span
-                                                    title={reminder.answer}
+                                                    title={tracking?.type === TrackingType.TRUE_FALSE ? undefined : reminder.answer}
                                                     className="answer-text"
                                                 >
-                                                    {ReminderFormatter.truncateText(reminder.answer, 50)}
+                                                    {tracking?.type === TrackingType.TRUE_FALSE
+                                                        ? ReminderFormatter.formatAnswer(reminder.answer, tracking.type)
+                                                        : ReminderFormatter.truncateText(reminder.answer, 50)}
                                                 </span>
                                             ) : (
                                                 <span className="answer-empty">—</span>
@@ -940,7 +960,7 @@ export function RemindersList({ onCreate }: RemindersListProps = {}) {
                                                                         toggleSnoozeMenu(reminder.id);
                                                                     }}
                                                                 >
-                                                                    <span className="status-dropdown-icon">⏰</span>
+                                                                    <span className="status-dropdown-icon">💤</span>
                                                                     <span className="status-dropdown-label">Snooze</span>
                                                                 </button>
                                                                 <button
@@ -956,8 +976,8 @@ export function RemindersList({ onCreate }: RemindersListProps = {}) {
                                                                     className="status-dropdown-item"
                                                                     onClick={() => handleDelete(reminder)}
                                                                 >
-                                                                    <span className="status-dropdown-icon">🗑️</span>
-                                                                    <span className="status-dropdown-label">Delete</span>
+                                                                    <span className="status-dropdown-icon">⏭️</span>
+                                                                    <span className="status-dropdown-label">Skip</span>
                                                                 </button>
                                                             </>
                                                         )}
@@ -976,8 +996,8 @@ export function RemindersList({ onCreate }: RemindersListProps = {}) {
                                                                     className="status-dropdown-item"
                                                                     onClick={() => handleDelete(reminder)}
                                                                 >
-                                                                    <span className="status-dropdown-icon">🗑️</span>
-                                                                    <span className="status-dropdown-label">Delete</span>
+                                                                    <span className="status-dropdown-icon">⏭️</span>
+                                                                    <span className="status-dropdown-label">Skip</span>
                                                                 </button>
                                                             </>
                                                         )}
@@ -996,8 +1016,8 @@ export function RemindersList({ onCreate }: RemindersListProps = {}) {
                                                                     className="status-dropdown-item"
                                                                     onClick={() => handleDelete(reminder)}
                                                                 >
-                                                                    <span className="status-dropdown-icon">🗑️</span>
-                                                                    <span className="status-dropdown-label">Delete</span>
+                                                                    <span className="status-dropdown-icon">⏭️</span>
+                                                                    <span className="status-dropdown-label">Skip</span>
                                                                 </button>
                                                             </>
                                                         )}
@@ -1049,8 +1069,8 @@ export function RemindersList({ onCreate }: RemindersListProps = {}) {
             {reminderToDelete && (
                 <div className="modal-overlay" onClick={() => setReminderToDelete(null)}>
                     <div className="modal-content delete-confirmation" onClick={(e) => e.stopPropagation()}>
-                        <h3>Delete Reminder</h3>
-                        <p>Are you sure you want to delete this reminder? A new reminder will be created automatically.</p>
+                        <h3>Skip Reminder</h3>
+                        <p>The current reminder will be deleted and the next one will be created for this tracking.</p>
                         <div className="modal-actions">
                             <button
                                 type="button"
@@ -1064,7 +1084,7 @@ export function RemindersList({ onCreate }: RemindersListProps = {}) {
                                 className="btn-primary"
                                 onClick={handleConfirmDelete}
                             >
-                                Delete
+                                Skip
                             </button>
                         </div>
                     </div>

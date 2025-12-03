@@ -207,9 +207,9 @@
 }
 
 .status-pending {
-  background: #fff3cd;
-  color: #856404;
-  border-color: #ffc107;
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #ef4444;
 }
 
 .status-answered {
@@ -369,18 +369,22 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  align-items: flex-start;
 }
 
 .filter-row {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  align-items: flex-start;
+  width: 100%;
 }
 
 .filter-label {
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--text-primary);
+  text-align: left;
 }
 
 .filter-input {
@@ -392,6 +396,9 @@
   background: var(--bg-primary);
   color: var(--text-primary);
   transition: var(--transition);
+  text-align: left;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .filter-input:focus {
@@ -412,6 +419,7 @@
   font-size: 0.875rem;
   color: var(--text-primary);
   cursor: pointer;
+  text-align: left;
 }
 
 .filter-checkbox-label input[type="checkbox"] {
@@ -421,6 +429,15 @@
 .filter-reset-button {
   margin-top: 8px;
   width: 100%;
+  text-align: left;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.filter-reset-button.btn-secondary {
+  text-align: left;
+  justify-content: flex-start;
 }
 
 .empty-state {

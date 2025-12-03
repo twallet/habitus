@@ -135,7 +135,7 @@ describe("RemindersList", () => {
 
         render(<RemindersList />);
 
-        expect(screen.getByText("Yes")).toBeInTheDocument();
+        expect(screen.getByText("🟢Yes")).toBeInTheDocument();
     });
 
     it("should show notes indicator when reminder has notes", () => {
@@ -209,7 +209,7 @@ describe("RemindersList", () => {
         }
     });
 
-    it("should show delete confirmation when Delete is clicked", async () => {
+    it("should show skip confirmation when Skip is clicked", async () => {
         const reminders: ReminderData[] = [
             {
                 id: 1,
@@ -237,16 +237,16 @@ describe("RemindersList", () => {
         const statusBadge = screen.getByText("Pending");
         await userEvent.click(statusBadge);
 
-        // Wait for dropdown to open and find Delete button in the dropdown menu
-        const deleteText = await screen.findByText((content, element) => {
-            return content === "Delete" && element?.closest(".status-dropdown-menu") !== null;
+        // Wait for dropdown to open and find Skip button in the dropdown menu
+        const skipText = await screen.findByText((content, element) => {
+            return content === "Skip" && element?.closest(".status-dropdown-menu") !== null;
         });
-        const deleteButton = deleteText.closest("button");
-        expect(deleteButton).toBeTruthy();
-        if (deleteButton) {
-            await userEvent.click(deleteButton);
+        const skipButton = skipText.closest("button");
+        expect(skipButton).toBeTruthy();
+        if (skipButton) {
+            await userEvent.click(skipButton);
             await waitFor(() => {
-                expect(screen.getByText("Delete Reminder")).toBeInTheDocument();
+                expect(screen.getByText("Skip Reminder")).toBeInTheDocument();
             });
         }
     });
@@ -394,8 +394,8 @@ describe("RemindersList", () => {
         await userEvent.type(answerInput, "Yes");
 
         // Should only show reminder with "Yes" answer
-        expect(screen.getByText("Yes")).toBeInTheDocument();
-        expect(screen.queryByText("No")).not.toBeInTheDocument();
+        expect(screen.getByText("🟢Yes")).toBeInTheDocument();
+        expect(screen.queryByText("🔘No")).not.toBeInTheDocument();
     });
 
     it("should filter reminders by notes", async () => {
@@ -683,7 +683,7 @@ describe("RemindersList", () => {
 
         // Should be sorted alphabetically - check answer cells specifically
         await waitFor(() => {
-            const answerCells = screen.getAllByText(/^Yes$|^No$/);
+            const answerCells = screen.getAllByText(/^🟢Yes$|^🔘No$/);
             // Filter to only exact matches in answer cells (not in other places)
             const exactAnswers = answerCells.filter(el => {
                 const cell = el.closest('.cell-answer');
@@ -1037,21 +1037,21 @@ describe("RemindersList", () => {
         const statusBadge = screen.getByText("Pending");
         await userEvent.click(statusBadge);
 
-        // Open delete confirmation
-        const deleteText = await screen.findByText((content, element) => {
-            return content === "Delete" && element?.closest(".status-dropdown-menu") !== null;
+        // Open skip confirmation
+        const skipText = await screen.findByText((content, element) => {
+            return content === "Skip" && element?.closest(".status-dropdown-menu") !== null;
         });
-        const deleteButton = deleteText.closest("button");
-        if (deleteButton) {
-            await userEvent.click(deleteButton);
+        const skipButton = skipText.closest("button");
+        if (skipButton) {
+            await userEvent.click(skipButton);
         }
 
         await waitFor(() => {
-            expect(screen.getByText("Delete Reminder")).toBeInTheDocument();
+            expect(screen.getByText("Skip Reminder")).toBeInTheDocument();
         });
 
-        // Confirm delete
-        const confirmButton = screen.getByRole("button", { name: /delete/i });
+        // Confirm skip
+        const confirmButton = screen.getByRole("button", { name: /skip/i });
         await userEvent.click(confirmButton);
 
         await waitFor(() => {
@@ -1187,17 +1187,17 @@ describe("RemindersList", () => {
         const statusBadge = screen.getByText("Pending");
         await userEvent.click(statusBadge);
 
-        // Open delete confirmation
-        const deleteText = await screen.findByText((content, element) => {
-            return content === "Delete" && element?.closest(".status-dropdown-menu") !== null;
+        // Open skip confirmation
+        const skipText = await screen.findByText((content, element) => {
+            return content === "Skip" && element?.closest(".status-dropdown-menu") !== null;
         });
-        const deleteButton = deleteText.closest("button");
-        if (deleteButton) {
-            await userEvent.click(deleteButton);
+        const skipButton = skipText.closest("button");
+        if (skipButton) {
+            await userEvent.click(skipButton);
         }
 
         await waitFor(() => {
-            expect(screen.getByText("Delete Reminder")).toBeInTheDocument();
+            expect(screen.getByText("Skip Reminder")).toBeInTheDocument();
         });
 
         // Click Cancel
@@ -1205,7 +1205,7 @@ describe("RemindersList", () => {
         await userEvent.click(cancelButton);
 
         await waitFor(() => {
-            expect(screen.queryByText("Delete Reminder")).not.toBeInTheDocument();
+            expect(screen.queryByText("Skip Reminder")).not.toBeInTheDocument();
         });
     });
 });

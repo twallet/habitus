@@ -81,3 +81,8 @@
   padding-top: 24px;
   border-top: 1px solid var(--border-color);
 }
+
+.form-actions .btn-primary {
+  width: auto;
+  display: inline-block;
+}
