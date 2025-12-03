@@ -28,6 +28,15 @@ export function DeleteTrackingConfirmationModal({
     const isDeletingRef = useRef(isDeleting);
     const errorRef = useRef(error);
 
+    // Sync refs with state to ensure they're always up to date
+    useEffect(() => {
+        isDeletingRef.current = isDeleting;
+    }, [isDeleting]);
+
+    useEffect(() => {
+        errorRef.current = error;
+    }, [error]);
+
     const isConfirmEnabled = confirmationText === 'DELETE';
 
     /**
