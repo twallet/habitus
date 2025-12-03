@@ -312,6 +312,9 @@ describe('DeleteTrackingConfirmationModal', () => {
             expect(screen.getByText(/deleting.../i)).toBeInTheDocument();
         });
 
+        // Small delay to ensure refs are updated and event handlers are set up
+        await new Promise(resolve => setTimeout(resolve, 0));
+
         // Try to close with Escape while deleting
         await user.keyboard('{Escape}');
 
@@ -348,6 +351,9 @@ describe('DeleteTrackingConfirmationModal', () => {
         await waitFor(() => {
             expect(screen.getByText(/deleting.../i)).toBeInTheDocument();
         });
+
+        // Small delay to ensure refs are updated and event handlers are set up
+        await new Promise(resolve => setTimeout(resolve, 0));
 
         // Try to close by clicking overlay while deleting
         // Use fireEvent directly to simulate the click

@@ -76,8 +76,11 @@ export function DeleteTrackingConfirmationModal({
      */
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
-            if (e.key === 'Escape' && !isDeletingRef.current && !errorRef.current) {
-                onClose();
+            if (e.key === 'Escape') {
+                // Use refs to check current state - refs are always up to date
+                if (!isDeletingRef.current && !errorRef.current) {
+                    onClose();
+                }
             }
         };
 
@@ -88,6 +91,7 @@ export function DeleteTrackingConfirmationModal({
     }, [onClose]);
 
     const handleOverlayClick = () => {
+        // Use refs to check current state - refs are always up to date
         if (!isDeletingRef.current && !errorRef.current) {
             onClose();
         }
