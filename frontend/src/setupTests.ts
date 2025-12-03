@@ -31,6 +31,19 @@ Object.defineProperty(globalThis, "localStorage", {
   value: localStorageMock,
 });
 
+// Mock ResizeObserver for tests
+global.ResizeObserver = class ResizeObserver {
+  observe() {
+    // Mock implementation
+  }
+  unobserve() {
+    // Mock implementation
+  }
+  disconnect() {
+    // Mock implementation
+  }
+} as typeof ResizeObserver;
+
 // Mock import.meta.env for Vite environment variables
 // Tests will fail if VITE_SERVER_URL or VITE_PORT are not set in environment
 if (!process.env.VITE_SERVER_URL) {

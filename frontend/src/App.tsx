@@ -102,22 +102,27 @@ function App() {
       updateContainerWidth();
     }, 100);
 
-    // Use ResizeObserver to watch for table size changes
-    const resizeObserver = new ResizeObserver(() => {
-      updateContainerWidth();
-    });
-
-    if (trackingsViewRef.current) {
-      const trackingsTable = trackingsViewRef.current.querySelector('.trackings-table');
-      if (trackingsTable) {
-        resizeObserver.observe(trackingsTable);
-      }
+    // Use ResizeObserver to watch for table size changes (if available)
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => {
+        updateContainerWidth();
+      });
     }
 
-    if (remindersViewRef.current) {
-      const remindersTable = remindersViewRef.current.querySelector('.reminders-table');
-      if (remindersTable) {
-        resizeObserver.observe(remindersTable);
+    if (resizeObserver) {
+      if (trackingsViewRef.current) {
+        const trackingsTable = trackingsViewRef.current.querySelector('.trackings-table');
+        if (trackingsTable) {
+          resizeObserver.observe(trackingsTable);
+        }
+      }
+
+      if (remindersViewRef.current) {
+        const remindersTable = remindersViewRef.current.querySelector('.reminders-table');
+        if (remindersTable) {
+          resizeObserver.observe(remindersTable);
+        }
       }
     }
 
@@ -126,7 +131,9 @@ function App() {
 
     return () => {
       clearTimeout(timeoutId);
-      resizeObserver.disconnect();
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
       window.removeEventListener('resize', updateContainerWidth);
     };
   }, [activeTab, trackings, trackingsLoading]);
