@@ -185,10 +185,10 @@ function App() {
       // Update height if we have a valid height
       if (maxHeight > 0) {
         // Add padding to account for container padding and header
-        // Header height + tabs header height + padding top (40px) + padding bottom (120px for FAB)
+        // Header height + tabs header height + padding top (40px) + padding bottom (40px)
         const headerHeight = containerRef.current.querySelector('header')?.getBoundingClientRect().height || 0;
         const tabsHeaderHeight = containerRef.current.querySelector('.tabs-header')?.getBoundingClientRect().height || 0;
-        const containerPadding = 40 + 120; // top padding + bottom padding for FAB
+        const containerPadding = 40 + 40; // top padding + bottom padding
         const newHeight = maxHeight + headerHeight + tabsHeaderHeight + containerPadding;
         containerRef.current.style.minHeight = `${newHeight}px`;
         containerRef.current.style.height = `${newHeight}px`;
@@ -747,15 +747,26 @@ function App() {
             Habitus
           </h1>
         </div>
-        {user && (
-          <UserMenu
-            user={user}
-            onEditProfile={handleEditProfile}
-            onChangeEmail={handleChangeEmail}
-            onLogout={handleLogout}
-            onDeleteUser={handleDeleteUser}
-          />
-        )}
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '16px' }}>
+          <button
+            type="button"
+            className="fab"
+            onClick={() => setShowTrackingForm(true)}
+            aria-label="Create Tracking"
+            title="Create Tracking"
+          >
+            +
+          </button>
+          {user && (
+            <UserMenu
+              user={user}
+              onEditProfile={handleEditProfile}
+              onChangeEmail={handleChangeEmail}
+              onLogout={handleLogout}
+              onDeleteUser={handleDeleteUser}
+            />
+          )}
+        </div>
       </header>
 
       <main>
@@ -820,15 +831,6 @@ function App() {
         </div>
       </main>
 
-      <button
-        type="button"
-        className="fab"
-        onClick={() => setShowTrackingForm(true)}
-        aria-label="Create Tracking"
-        title="Create Tracking"
-      >
-        +
-      </button>
 
       {showEditProfile && user && (
         <EditProfileModal
