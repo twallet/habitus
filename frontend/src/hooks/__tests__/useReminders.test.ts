@@ -171,7 +171,6 @@ describe("useReminders", () => {
     });
 
     it("should detect token changes via polling interval", async () => {
-      vi.useFakeTimers();
       localStorage.setItem(TOKEN_KEY, "token1");
 
       (global.fetch as Mock).mockResolvedValue({
@@ -186,6 +185,7 @@ describe("useReminders", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
+      vi.useFakeTimers();
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
 
       // Change token in localStorage
@@ -194,9 +194,14 @@ describe("useReminders", () => {
       });
 
       // Advance timer to trigger polling check (500ms interval)
-      act(() => {
+      await act(async () => {
         vi.advanceTimersByTime(500);
+        // Flush promises without running all timers (to avoid infinite loop)
+        await Promise.resolve();
       });
+
+      // Switch to real timers for waitFor
+      vi.useRealTimers();
 
       // Wait for fetch to complete
       await waitFor(
@@ -207,13 +212,9 @@ describe("useReminders", () => {
         },
         { timeout: 2000 }
       );
-
-      vi.useRealTimers();
     });
 
     it("should not poll when no token exists", async () => {
-      vi.useFakeTimers();
-
       (global.fetch as Mock).mockResolvedValue({
         ok: true,
         json: async () => [],
@@ -226,15 +227,14 @@ describe("useReminders", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
+      vi.useFakeTimers();
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
 
       // Advance timer significantly - should not poll without token
-      act(() => {
+      await act(async () => {
         vi.advanceTimersByTime(30000);
+        await vi.runAllTimersAsync();
       });
-
-      // Wait a bit to ensure no additional calls
-      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Should not have made additional calls
       expect((global.fetch as Mock).mock.calls.length).toBe(initialCallCount);
@@ -614,8 +614,6 @@ describe("useReminders", () => {
 
   describe("reminder polling", () => {
     it("should not poll when no token exists", async () => {
-      vi.useFakeTimers();
-
       (global.fetch as Mock).mockResolvedValue({
         ok: true,
         json: async () => [],
@@ -628,15 +626,14 @@ describe("useReminders", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
+      vi.useFakeTimers();
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
 
       // Advance timer significantly - should not poll without token
-      act(() => {
+      await act(async () => {
         vi.advanceTimersByTime(30000);
+        await vi.runAllTimersAsync();
       });
-
-      // Wait a bit to ensure no additional calls
-      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Should not have made additional calls
       expect((global.fetch as Mock).mock.calls.length).toBe(initialCallCount);
@@ -645,7 +642,6 @@ describe("useReminders", () => {
     });
 
     it("should not poll when page is hidden", async () => {
-      vi.useFakeTimers();
       localStorage.setItem(TOKEN_KEY, "valid-token");
 
       Object.defineProperty(document, "hidden", {
@@ -666,15 +662,14 @@ describe("useReminders", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
+      vi.useFakeTimers();
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
 
       // Advance timer - should not poll when hidden
-      act(() => {
+      await act(async () => {
         vi.advanceTimersByTime(30000);
+        await vi.runAllTimersAsync();
       });
-
-      // Wait a bit to ensure no additional calls
-      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Should not have made additional calls
       expect((global.fetch as Mock).mock.calls.length).toBe(initialCallCount);
@@ -683,7 +678,6 @@ describe("useReminders", () => {
     });
 
     it("should stop polling when token is removed during polling", async () => {
-      vi.useFakeTimers();
       localStorage.setItem(TOKEN_KEY, "valid-token");
 
       (global.fetch as Mock).mockResolvedValue({
@@ -698,6 +692,7 @@ describe("useReminders", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
+      vi.useFakeTimers();
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
 
       // Remove token
@@ -706,12 +701,10 @@ describe("useReminders", () => {
       });
 
       // Advance timer - should not poll without token
-      act(() => {
+      await act(async () => {
         vi.advanceTimersByTime(30000);
+        await vi.runAllTimersAsync();
       });
-
-      // Wait a bit to ensure no additional calls
-      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Should not have made additional calls
       expect((global.fetch as Mock).mock.calls.length).toBe(initialCallCount);
@@ -720,7 +713,6 @@ describe("useReminders", () => {
     });
 
     it("should stop polling when token changes during polling", async () => {
-      vi.useFakeTimers();
       localStorage.setItem(TOKEN_KEY, "token1");
 
       (global.fetch as Mock).mockResolvedValue({
@@ -735,6 +727,7 @@ describe("useReminders", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
+      vi.useFakeTimers();
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
 
       // Change token
@@ -743,9 +736,14 @@ describe("useReminders", () => {
       });
 
       // Advance timer - should detect token change via polling interval (500ms)
-      act(() => {
+      await act(async () => {
         vi.advanceTimersByTime(500);
+        // Flush promises without running all timers (to avoid infinite loop)
+        await Promise.resolve();
       });
+
+      // Switch to real timers for waitFor
+      vi.useRealTimers();
 
       // Wait for fetch to complete
       await waitFor(
@@ -756,12 +754,9 @@ describe("useReminders", () => {
         },
         { timeout: 2000 }
       );
-
-      vi.useRealTimers();
     });
 
     it("should handle visibility change - stop polling when hidden", async () => {
-      vi.useFakeTimers();
       localStorage.setItem(TOKEN_KEY, "valid-token");
 
       Object.defineProperty(document, "hidden", {
@@ -782,6 +777,7 @@ describe("useReminders", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
+      vi.useFakeTimers();
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
 
       // Simulate page becoming hidden
@@ -796,12 +792,10 @@ describe("useReminders", () => {
       });
 
       // Advance timer - should not poll when hidden
-      act(() => {
+      await act(async () => {
         vi.advanceTimersByTime(30000);
+        await vi.runAllTimersAsync();
       });
-
-      // Wait a bit to ensure no additional calls
-      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Should not have made additional calls
       expect((global.fetch as Mock).mock.calls.length).toBe(initialCallCount);
@@ -810,7 +804,6 @@ describe("useReminders", () => {
     });
 
     it("should handle visibility change - resume polling when visible", async () => {
-      vi.useFakeTimers();
       localStorage.setItem(TOKEN_KEY, "valid-token");
 
       Object.defineProperty(document, "hidden", {
@@ -834,7 +827,7 @@ describe("useReminders", () => {
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
 
       // Simulate page becoming visible
-      act(() => {
+      await act(async () => {
         Object.defineProperty(document, "hidden", {
           writable: true,
           configurable: true,
@@ -842,6 +835,8 @@ describe("useReminders", () => {
         });
         const event = new Event("visibilitychange");
         document.dispatchEvent(event);
+        // Flush promises
+        await Promise.resolve();
       });
 
       // Should immediately refresh
@@ -853,12 +848,9 @@ describe("useReminders", () => {
         },
         { timeout: 2000 }
       );
-
-      vi.useRealTimers();
     });
 
     it("should handle multiple startPolling calls correctly", async () => {
-      vi.useFakeTimers();
       localStorage.setItem(TOKEN_KEY, "valid-token");
 
       (global.fetch as Mock).mockResolvedValue({
@@ -874,7 +866,7 @@ describe("useReminders", () => {
       });
 
       // Simulate visibility change to trigger startPolling multiple times
-      act(() => {
+      await act(async () => {
         Object.defineProperty(document, "hidden", {
           writable: true,
           configurable: true,
@@ -882,6 +874,8 @@ describe("useReminders", () => {
         });
         const event = new Event("visibilitychange");
         document.dispatchEvent(event);
+        // Flush promises
+        await Promise.resolve();
       });
 
       // Wait for refresh
@@ -891,8 +885,6 @@ describe("useReminders", () => {
         },
         { timeout: 2000 }
       );
-
-      vi.useRealTimers();
     });
   });
 });
