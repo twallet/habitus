@@ -39,12 +39,18 @@ describe('App', () => {
       if (typeof url === 'string' && url.includes('/api/trackings/debug')) {
         return Promise.resolve({
           ok: true,
+          status: 200,
+          statusText: 'OK',
           json: async () => ({ log: '' }),
+          text: async () => JSON.stringify({ log: '' }),
         } as Response);
       }
       return Promise.resolve({
         ok: true,
+        status: 200,
+        statusText: 'OK',
         json: async () => ({}),
+        text: async () => JSON.stringify({}),
       } as Response);
     });
 
