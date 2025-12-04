@@ -110,16 +110,14 @@ export function ReminderAnswerModal({
                     )}
 
                     <div className="form-group">
-                        <label>Time</label>
-                        <div className="form-field-readonly">
-                            {ReminderFormatter.formatDateTime(reminder.scheduled_time)}
+                        <div className="form-field-readonly time-field">
+                            Time: {ReminderFormatter.formatDateTime(reminder.scheduled_time)}
                         </div>
                     </div>
 
                     <div className="form-group">
-                        <label>Tracking</label>
-                        <div className="form-field-readonly">
-                            {tracking ? (
+                        <div className="form-field-readonly tracking-field">
+                            Tracking: {tracking ? (
                                 <>
                                     {tracking.icon && (
                                         <span className="tracking-icon">{tracking.icon}</span>
@@ -135,7 +133,15 @@ export function ReminderAnswerModal({
                     <div className="form-group">
                         <div className="form-label-row">
                             <label htmlFor="reminder-answer">
-                                Answer <span className="required-asterisk">*</span>
+                                Answer <span className="required-asterisk">*</span>{" "}
+                                <button
+                                    type="button"
+                                    className="field-help"
+                                    aria-label="Answer help"
+                                    title={tracking?.type === TrackingType.TRUE_FALSE ? "Click Yes or No to answer" : "Maximum length: 500 characters"}
+                                >
+                                    ?
+                                </button>
                             </label>
                         </div>
                         {tracking && tracking.type === TrackingType.TRUE_FALSE ? (
@@ -212,7 +218,7 @@ export function ReminderAnswerModal({
                         <button
                             type="submit"
                             className="btn-primary"
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || !answer.trim()}
                         >
                             {isSubmitting ? "Saving..." : "Save"}
                         </button>

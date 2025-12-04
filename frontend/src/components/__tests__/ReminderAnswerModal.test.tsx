@@ -41,7 +41,11 @@ describe("ReminderAnswerModal", () => {
         );
 
         expect(screen.getByText("Answer reminder")).toBeInTheDocument();
-        expect(screen.getByText("Did I exercise?")).toBeInTheDocument();
+        const trackingField = screen.getByText((_content, element) => {
+            return !!(element?.classList?.contains("tracking-field") &&
+                element?.textContent?.includes("Did I exercise?"));
+        });
+        expect(trackingField).toBeInTheDocument();
     });
 
     it("should show Yes/No buttons for true_false type", () => {

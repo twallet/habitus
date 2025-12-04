@@ -18,6 +18,14 @@
   gap: 8px;
 }
 
+.form-field-readonly.time-field,
+.form-field-readonly.tracking-field {
+  background: none;
+  border: none;
+  padding: 0;
+  min-height: auto;
+}
+
 .tracking-icon {
   font-size: 1.1rem;
   flex-shrink: 0;
