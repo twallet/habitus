@@ -11,6 +11,7 @@ import "./RemindersList.css";
  * @private
  */
 const SNOOZE_OPTIONS = [
+    { label: "5 min", minutes: 5 },
     { label: "15 min", minutes: 15 },
     { label: "30 min", minutes: 30 },
     { label: "1 hour", minutes: 60 },
