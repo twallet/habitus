@@ -1,7 +1,6 @@
 import { UserData } from "../models/User.js";
 import {
   TrackingData,
-  TrackingType,
   TrackingState,
   DaysPattern,
 } from "../models/Tracking.js";
@@ -566,7 +565,6 @@ export class ApiClient {
    */
   async createTracking(
     question: string,
-    type: TrackingType,
     notes: string | undefined,
     icon: string | undefined,
     schedules: Array<{ hour: number; minutes: number }>,
@@ -574,7 +572,6 @@ export class ApiClient {
   ): Promise<TrackingData> {
     return this.post<TrackingData>(API_ENDPOINTS.trackings, {
       question,
-      type,
       notes,
       icon,
       schedules,
@@ -586,7 +583,6 @@ export class ApiClient {
    * Update a tracking.
    * @param trackingId - The tracking ID
    * @param question - Updated question (optional)
-   * @param type - Updated type (optional)
    * @param notes - Updated notes (optional)
    * @param icon - Updated icon (optional)
    * @param schedules - Updated schedules array (optional, 1-5 schedules if provided)
@@ -599,14 +595,12 @@ export class ApiClient {
     trackingId: number,
     days: DaysPattern,
     question?: string,
-    type?: TrackingType,
     notes?: string,
     icon?: string,
     schedules?: Array<{ hour: number; minutes: number }>
   ): Promise<TrackingData> {
     return this.put<TrackingData>(`${API_ENDPOINTS.trackings}/${trackingId}`, {
       question,
-      type,
       notes,
       icon,
       schedules,
@@ -702,7 +696,6 @@ export class ApiClient {
   /**
    * Update a reminder.
    * @param id - The reminder ID
-   * @param answer - Updated answer (optional)
    * @param notes - Updated notes (optional)
    * @param status - Updated status (optional)
    * @param scheduledTime - Updated scheduled time (optional)
@@ -712,16 +705,28 @@ export class ApiClient {
    */
   async updateReminder(
     id: number,
-    answer?: string,
     notes?: string,
     status?: string,
     scheduledTime?: string
   ): Promise<ReminderData> {
     return this.put<ReminderData>(`${API_ENDPOINTS.reminders}/${id}`, {
-      answer,
       notes,
       status,
       scheduled_time: scheduledTime,
+    });
+  }
+
+  /**
+   * Check or uncheck a reminder.
+   * @param id - The reminder ID
+   * @param checked - Whether to check (true) or uncheck (false) the reminder
+   * @returns Promise resolving to updated reminder data
+   * @throws Error if request fails
+   * @public
+   */
+  async checkReminder(id: number, checked: boolean): Promise<ReminderData> {
+    return this.patch<ReminderData>(`${API_ENDPOINTS.reminders}/${id}/check`, {
+      checked,
     });
   }
 

@@ -229,6 +229,76 @@ export class ReminderService {
   }
 
   /**
+   * Check or uncheck a reminder.
+   * When checked, status changes to ANSWERED. When unchecked, status stays PENDING.
+   * @param reminderId - The reminder ID
+   * @param userId - The user ID (for authorization)
+   * @param checked - Whether to check (true) or uncheck (false) the reminder
+   * @returns Promise resolving to updated reminder data
+   * @throws Error if reminder not found
+   * @public
+   */
+  async checkReminder(
+    reminderId: number,
+    userId: number,
+    checked: boolean
+  ): Promise<ReminderData> {
+    console.log(
+      `[${new Date().toISOString()}] REMINDER | ${
+        checked ? "Checking" : "Unchecking"
+      } reminder ID: ${reminderId} for userId: ${userId}`
+    );
+
+    const existingReminder = await Reminder.loadById(
+      reminderId,
+      userId,
+      this.db
+    );
+    if (!existingReminder) {
+      console.warn(
+        `[${new Date().toISOString()}] REMINDER | Check failed: reminder not found for ID: ${reminderId} and userId: ${userId}`
+      );
+      throw new Error("Reminder not found");
+    }
+
+    const trackingId = existingReminder.tracking_id;
+    const newStatus = checked
+      ? ReminderStatus.ANSWERED
+      : ReminderStatus.PENDING;
+    const isBeingChecked =
+      checked && existingReminder.status !== ReminderStatus.ANSWERED;
+
+    const updatedReminder = await existingReminder.update(
+      { status: newStatus },
+      this.db
+    );
+
+    // If reminder was checked (answered), create new Upcoming reminder
+    if (isBeingChecked) {
+      try {
+        await this.createNextReminderForTracking(trackingId, userId);
+        console.log(
+          `[${new Date().toISOString()}] REMINDER | Created new Upcoming reminder after checking reminder ID ${reminderId}`
+        );
+      } catch (error) {
+        // Log error but don't fail reminder update if next reminder creation fails
+        console.error(
+          `[${new Date().toISOString()}] REMINDER | Failed to create next reminder after checking reminder ID ${reminderId}:`,
+          error
+        );
+      }
+    }
+
+    console.log(
+      `[${new Date().toISOString()}] REMINDER | Reminder ${
+        checked ? "checked" : "unchecked"
+      } successfully: ID ${reminderId}`
+    );
+
+    return updatedReminder;
+  }
+
+  /**
    * Snooze a reminder.
    * @param reminderId - The reminder ID
    * @param userId - The user ID (for authorization)

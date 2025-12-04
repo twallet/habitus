@@ -17,7 +17,6 @@ export interface ReminderData {
   tracking_id: number;
   user_id: number;
   scheduled_time: string;
-  answer?: string;
   notes?: string;
   status: ReminderStatus;
   created_at?: string;

@@ -19,7 +19,6 @@ export interface ReminderData {
   tracking_id: number;
   user_id: number;
   scheduled_time: string;
-  answer?: string;
   notes?: string;
   status: ReminderStatus;
   created_at?: string;
@@ -56,13 +55,7 @@ export class Reminder {
   scheduled_time: string;
 
   /**
-   * Optional answer (empty by default).
-   * @public
-   */
-  answer?: string;
-
-  /**
-   * Optional notes added when answering.
+   * Optional notes.
    * @public
    */
   notes?: string;
@@ -95,7 +88,6 @@ export class Reminder {
     this.tracking_id = data.tracking_id;
     this.user_id = data.user_id;
     this.scheduled_time = data.scheduled_time;
-    this.answer = data.answer;
     this.notes = data.notes;
     this.status = data.status || ReminderStatus.PENDING;
     this.created_at = data.created_at;
@@ -113,9 +105,6 @@ export class Reminder {
     this.tracking_id = Reminder.validateTrackingId(this.tracking_id);
     this.user_id = Reminder.validateUserId(this.user_id);
     this.scheduled_time = Reminder.validateScheduledTime(this.scheduled_time);
-    if (this.answer !== undefined) {
-      this.answer = Reminder.validateAnswer(this.answer);
-    }
     if (this.notes !== undefined) {
       this.notes = Reminder.validateNotes(this.notes);
     }
@@ -142,11 +131,6 @@ export class Reminder {
       updates.push("scheduled_time = ?");
       values.push(this.scheduled_time);
 
-      if (this.answer !== undefined) {
-        updates.push("answer = ?");
-        values.push(this.answer || null);
-      }
-
       if (this.notes !== undefined) {
         updates.push("notes = ?");
         values.push(this.notes || null);
@@ -171,12 +155,11 @@ export class Reminder {
     } else {
       // Create new reminder
       const result = await db.run(
-        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, answer, notes, status) VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, notes, status) VALUES (?, ?, ?, ?, ?)",
         [
           this.tracking_id,
           this.user_id,
           this.scheduled_time,
-          this.answer || null,
           this.notes || null,
           this.status || ReminderStatus.PENDING,
         ]
@@ -211,9 +194,6 @@ export class Reminder {
       this.scheduled_time = Reminder.validateScheduledTime(
         updates.scheduled_time
       );
-    }
-    if (updates.answer !== undefined) {
-      this.answer = Reminder.validateAnswer(updates.answer);
     }
     if (updates.notes !== undefined) {
       this.notes = Reminder.validateNotes(updates.notes);
@@ -258,7 +238,6 @@ export class Reminder {
       tracking_id: this.tracking_id,
       user_id: this.user_id,
       scheduled_time: this.scheduled_time,
-      answer: this.answer,
       notes: this.notes,
       status: this.status,
       created_at: this.created_at,
@@ -284,13 +263,12 @@ export class Reminder {
       tracking_id: number;
       user_id: number;
       scheduled_time: string;
-      answer: string | null;
       notes: string | null;
       status: string;
       created_at: string;
       updated_at: string;
     }>(
-      "SELECT id, tracking_id, user_id, scheduled_time, answer, notes, status, created_at, updated_at FROM reminders WHERE id = ? AND user_id = ?",
+      "SELECT id, tracking_id, user_id, scheduled_time, notes, status, created_at, updated_at FROM reminders WHERE id = ? AND user_id = ?",
       [id, userId]
     );
 
@@ -303,7 +281,6 @@ export class Reminder {
       tracking_id: row.tracking_id,
       user_id: row.user_id,
       scheduled_time: row.scheduled_time,
-      answer: row.answer || undefined,
       notes: row.notes || undefined,
       status: (row.status as ReminderStatus) || ReminderStatus.PENDING,
       created_at: row.created_at,
@@ -324,13 +301,12 @@ export class Reminder {
       tracking_id: number;
       user_id: number;
       scheduled_time: string;
-      answer: string | null;
       notes: string | null;
       status: string;
       created_at: string;
       updated_at: string;
     }>(
-      "SELECT id, tracking_id, user_id, scheduled_time, answer, notes, status, created_at, updated_at FROM reminders WHERE user_id = ? ORDER BY scheduled_time ASC",
+      "SELECT id, tracking_id, user_id, scheduled_time, notes, status, created_at, updated_at FROM reminders WHERE user_id = ? ORDER BY scheduled_time ASC",
       [userId]
     );
 
@@ -341,7 +317,6 @@ export class Reminder {
           tracking_id: row.tracking_id,
           user_id: row.user_id,
           scheduled_time: row.scheduled_time,
-          answer: row.answer || undefined,
           notes: row.notes || undefined,
           status: (row.status as ReminderStatus) || ReminderStatus.PENDING,
           created_at: row.created_at,
@@ -368,13 +343,12 @@ export class Reminder {
       tracking_id: number;
       user_id: number;
       scheduled_time: string;
-      answer: string | null;
       notes: string | null;
       status: string;
       created_at: string;
       updated_at: string;
     }>(
-      "SELECT id, tracking_id, user_id, scheduled_time, answer, notes, status, created_at, updated_at FROM reminders WHERE tracking_id = ? AND user_id = ? ORDER BY scheduled_time ASC LIMIT 1",
+      "SELECT id, tracking_id, user_id, scheduled_time, notes, status, created_at, updated_at FROM reminders WHERE tracking_id = ? AND user_id = ? ORDER BY scheduled_time ASC LIMIT 1",
       [trackingId, userId]
     );
 
@@ -387,7 +361,6 @@ export class Reminder {
       tracking_id: row.tracking_id,
       user_id: row.user_id,
       scheduled_time: row.scheduled_time,
-      answer: row.answer || undefined,
       notes: row.notes || undefined,
       status: (row.status as ReminderStatus) || ReminderStatus.PENDING,
       created_at: row.created_at,
@@ -413,13 +386,12 @@ export class Reminder {
       tracking_id: number;
       user_id: number;
       scheduled_time: string;
-      answer: string | null;
       notes: string | null;
       status: string;
       created_at: string;
       updated_at: string;
     }>(
-      "SELECT id, tracking_id, user_id, scheduled_time, answer, notes, status, created_at, updated_at FROM reminders WHERE tracking_id = ? AND user_id = ? AND status = ? LIMIT 1",
+      "SELECT id, tracking_id, user_id, scheduled_time, notes, status, created_at, updated_at FROM reminders WHERE tracking_id = ? AND user_id = ? AND status = ? LIMIT 1",
       [trackingId, userId, ReminderStatus.UPCOMING]
     );
 
@@ -432,7 +404,6 @@ export class Reminder {
       tracking_id: row.tracking_id,
       user_id: row.user_id,
       scheduled_time: row.scheduled_time,
-      answer: row.answer || undefined,
       notes: row.notes || undefined,
       status: (row.status as ReminderStatus) || ReminderStatus.PENDING,
       created_at: row.created_at,
@@ -523,29 +494,6 @@ export class Reminder {
     }
 
     return trimmedTime;
-  }
-
-  /**
-   * Validates answer (optional text).
-   * @param answer - The answer to validate (optional)
-   * @returns The validated answer or undefined if empty
-   * @public
-   */
-  static validateAnswer(answer?: string | null): string | undefined {
-    if (answer === null || answer === undefined) {
-      return undefined;
-    }
-
-    if (typeof answer !== "string") {
-      throw new TypeError("Answer must be a string");
-    }
-
-    const trimmedAnswer = answer.trim();
-    if (!trimmedAnswer) {
-      return undefined;
-    }
-
-    return trimmedAnswer;
   }
 
   /**

@@ -148,7 +148,6 @@ db.all(
     '  r.tracking_id, ' +
     '  r.user_id, ' +
     '  r.scheduled_time, ' +
-    '  r.answer, ' +
     '  r.notes, ' +
     '  r.status, ' +
     '  r.created_at, ' +
@@ -351,8 +350,7 @@ try {
                         $scheduledTimeFormatted = "null"
                     }
                     
-                    # Format answer and notes (handle null/empty)
-                    $answerStr = if ($reminder.answer) { $reminder.answer } else { "null" }
+                    # Format notes (handle null/empty)
                     $notesStr = if ($reminder.notes) { $reminder.notes } else { "null" }
                     
                     # Build reminder attributes string
@@ -362,7 +360,6 @@ try {
                         "UserID=$($reminder.user_id)",
                         "ScheduledTime=$scheduledTimeFormatted",
                         "Status=$($reminder.status)",
-                        "Answer=$answerStr",
                         "Notes=$notesStr",
                         "Created=$($reminder.created_at)",
                         "Updated=$($reminder.updated_at)"

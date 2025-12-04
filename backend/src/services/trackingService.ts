@@ -85,7 +85,6 @@ export class TrackingService {
    * Create a new tracking.
    * @param userId - The user ID
    * @param question - The tracking question
-   * @param type - The tracking type (true_false or register)
    * @param notes - Optional notes (rich text)
    * @param icon - Optional icon (emoji)
    * @param schedules - Array of schedules (required, 1-5 schedules)
@@ -97,7 +96,6 @@ export class TrackingService {
   async createTracking(
     userId: number,
     question: string,
-    type: string,
     notes?: string,
     icon?: string,
     schedules?: Array<{ hour: number; minutes: number }>,
@@ -110,7 +108,6 @@ export class TrackingService {
     // Validate inputs
     const validatedUserId = Tracking.validateUserId(userId);
     const validatedQuestion = Tracking.validateQuestion(question);
-    const validatedType = Tracking.validateType(type);
     const validatedNotes = Tracking.validateNotes(notes);
     const validatedIcon = Tracking.validateIcon(icon);
     const validatedDays = Tracking.validateDays(days);
@@ -123,11 +120,10 @@ export class TrackingService {
 
     // Insert tracking with Running state by default
     const result = await this.db.run(
-      "INSERT INTO trackings (user_id, question, type, notes, icon, days, state) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO trackings (user_id, question, notes, icon, days, state) VALUES (?, ?, ?, ?, ?, ?)",
       [
         validatedUserId,
         validatedQuestion,
-        validatedType,
         validatedNotes || null,
         validatedIcon || null,
         validatedDays ? JSON.stringify(validatedDays) : null,
@@ -192,7 +188,6 @@ export class TrackingService {
    * @param trackingId - The tracking ID
    * @param userId - The user ID (for authorization)
    * @param question - Updated question (optional)
-   * @param type - Updated type (optional)
    * @param notes - Updated notes (optional)
    * @param icon - Updated icon (optional)
    * @param schedules - Updated schedules array (optional, 1-5 schedules if provided)
@@ -205,7 +200,6 @@ export class TrackingService {
     trackingId: number,
     userId: number,
     question?: string,
-    type?: string,
     notes?: string,
     icon?: string,
     schedules?: Array<{ hour: number; minutes: number }>,
@@ -232,12 +226,6 @@ export class TrackingService {
       const validatedQuestion = Tracking.validateQuestion(question);
       updates.push("question = ?");
       values.push(validatedQuestion);
-    }
-
-    if (type !== undefined) {
-      const validatedType = Tracking.validateType(type);
-      updates.push("type = ?");
-      values.push(validatedType);
     }
 
     if (notes !== undefined) {

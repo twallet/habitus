@@ -185,7 +185,6 @@ export function useReminders() {
   /**
    * Update a reminder via API.
    * @param reminderId - The reminder ID
-   * @param answer - Updated answer (optional)
    * @param notes - Updated notes (optional)
    * @param status - Updated status (optional)
    * @returns The updated reminder data
@@ -194,7 +193,6 @@ export function useReminders() {
    */
   const updateReminder = async (
     reminderId: number,
-    answer?: string,
     notes?: string,
     status?: ReminderStatus
   ): Promise<ReminderData> => {
@@ -211,7 +209,6 @@ export function useReminders() {
     );
 
     // Optimistically update the reminder in state immediately for instant UI feedback
-    // This ensures the badge count updates immediately when answering a reminder (status changes to ANSWERED)
     // Use flushSync to ensure the state update triggers an immediate re-render
     flushSync(() => {
       setReminders((prevReminders) =>
@@ -219,7 +216,6 @@ export function useReminders() {
           if (r.id === reminderId) {
             return {
               ...r,
-              answer: answer !== undefined ? answer : r.answer,
               notes: notes !== undefined ? notes : r.notes,
               status: status !== undefined ? status : r.status,
             };
@@ -232,7 +228,6 @@ export function useReminders() {
     try {
       const reminderData = await apiClient.updateReminder(
         reminderId,
-        answer,
         notes,
         status
       );
@@ -249,6 +244,77 @@ export function useReminders() {
     } catch (error) {
       console.error(
         `[${new Date().toISOString()}] FRONTEND_REMINDERS | Error updating reminder:`,
+        error
+      );
+      // On error, refresh to restore correct state
+      await fetchReminders();
+      throw error;
+    }
+  };
+
+  /**
+   * Check or uncheck a reminder via API.
+   * @param reminderId - The reminder ID
+   * @param checked - Whether to check (true) or uncheck (false) the reminder
+   * @returns The updated reminder data
+   * @throws Error if API request fails
+   * @public
+   */
+  const checkReminder = async (
+    reminderId: number,
+    checked: boolean
+  ): Promise<ReminderData> => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) {
+      throw new Error("Not authenticated");
+    }
+
+    // Sync token with apiClient before making the request
+    apiClient.setToken(token);
+
+    console.log(
+      `[${new Date().toISOString()}] FRONTEND_REMINDERS | ${
+        checked ? "Checking" : "Unchecking"
+      } reminder ID: ${reminderId}`
+    );
+
+    // Optimistically update the reminder in state immediately for instant UI feedback
+    // This ensures the badge count updates immediately when checking a reminder (status changes to ANSWERED)
+    // Use flushSync to ensure the state update triggers an immediate re-render
+    const newStatus = checked
+      ? ReminderStatus.ANSWERED
+      : ReminderStatus.PENDING;
+    flushSync(() => {
+      setReminders((prevReminders) =>
+        prevReminders.map((r) => {
+          if (r.id === reminderId) {
+            return {
+              ...r,
+              status: newStatus,
+            };
+          }
+          return r;
+        })
+      );
+    });
+
+    try {
+      const reminderData = await apiClient.checkReminder(reminderId, checked);
+      console.log(
+        `[${new Date().toISOString()}] FRONTEND_REMINDERS | Reminder ${
+          checked ? "checked" : "unchecked"
+        } successfully: ID ${reminderData.id}`
+      );
+      // Update with server response to ensure consistency
+      setReminders((prevReminders) =>
+        prevReminders.map((r) => (r.id === reminderId ? reminderData : r))
+      );
+      return reminderData;
+    } catch (error) {
+      console.error(
+        `[${new Date().toISOString()}] FRONTEND_REMINDERS | Error ${
+          checked ? "checking" : "unchecking"
+        } reminder:`,
         error
       );
       // On error, refresh to restore correct state
@@ -381,6 +447,7 @@ export function useReminders() {
     reminders,
     isLoading,
     updateReminder,
+    checkReminder,
     snoozeReminder,
     deleteReminder,
     refreshReminders,

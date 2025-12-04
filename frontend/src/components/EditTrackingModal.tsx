@@ -1,5 +1,5 @@
 import { useState, FormEvent, useEffect, useRef } from "react";
-import { TrackingData, TrackingType, DaysPattern, DaysPatternType } from "../models/Tracking";
+import { TrackingData, DaysPattern, DaysPatternType } from "../models/Tracking";
 import { ApiClient } from "../config/api";
 import { DaysPatternInput } from "./DaysPatternInput";
 import "./EditTrackingModal.css";
@@ -12,7 +12,6 @@ interface EditTrackingModalProps {
         trackingId: number,
         days: DaysPattern,
         question?: string,
-        type?: TrackingType,
         notes?: string,
         icon?: string,
         schedules?: Array<{ hour: number; minutes: number }>
@@ -33,7 +32,6 @@ export function EditTrackingModal({
     onSave,
 }: EditTrackingModalProps) {
     const [question, setQuestion] = useState(tracking.question);
-    const [type, setType] = useState<TrackingType>(tracking.type);
     const [notes, setNotes] = useState(tracking.notes || "");
     const [icon, setIcon] = useState(tracking.icon || "");
     const [schedules, setSchedules] = useState<
@@ -248,7 +246,6 @@ export function EditTrackingModal({
                 tracking.id,
                 days, // Always pass days (mandatory field)
                 question.trim() !== tracking.question ? question.trim() : undefined,
-                type !== tracking.type ? type : undefined,
                 notes.trim() !== (tracking.notes || "") ? notes.trim() || undefined : undefined,
                 iconValue,
                 schedulesChanged ? sortedNewSchedules : undefined
@@ -335,32 +332,6 @@ export function EditTrackingModal({
                         </div>
 
                         <div className="icon-type-row">
-                            <div className="type-field-wrapper">
-                                <div className="form-label-row">
-                                    <label htmlFor="edit-tracking-type">
-                                        Type <span className="required-asterisk">*</span>{" "}
-                                        <button
-                                            type="button"
-                                            className="field-help"
-                                            aria-label="Type help"
-                                            title="Choose whether you want a simple Yes/No tracking or a free text register."
-                                        >
-                                            ?
-                                        </button>
-                                    </label>
-                                </div>
-                                <select
-                                    id="edit-tracking-type"
-                                    name="type"
-                                    value={type}
-                                    onChange={(e) => setType(e.target.value as TrackingType)}
-                                    required
-                                    disabled={isSubmitting}
-                                >
-                                    <option value={TrackingType.TRUE_FALSE}>🔘🟢 Yes/No</option>
-                                    <option value={TrackingType.REGISTER}>🖊️ Text</option>
-                                </select>
-                            </div>
                             <div className="icon-field-wrapper">
                                 <div className="form-label-row">
                                     <label htmlFor="edit-tracking-icon">

@@ -117,7 +117,6 @@ router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
  * @route PUT /api/reminders/:id
  * @header {string} Authorization - Bearer token
  * @param {number} id - The reminder ID
- * @body {string} answer - Updated answer (optional)
  * @body {string} notes - Updated notes (optional)
  * @body {string} status - Updated status (optional)
  * @body {string} scheduled_time - Updated scheduled time (optional)
@@ -130,16 +129,13 @@ router.put(
     try {
       const reminderId = parseInt(req.params.id, 10);
       const userId = req.userId!;
-      const { answer, notes, status, scheduled_time } = req.body;
+      const { notes, status, scheduled_time } = req.body;
 
       if (isNaN(reminderId)) {
         return res.status(400).json({ error: "Invalid reminder ID" });
       }
 
       const updates: any = {};
-      if (answer !== undefined) {
-        updates.answer = answer;
-      }
       if (notes !== undefined) {
         updates.notes = notes;
       }
@@ -218,6 +214,55 @@ router.patch(
         error
       );
       res.status(500).json({ error: "Error snoozing reminder" });
+    }
+  }
+);
+
+/**
+ * PATCH /api/reminders/:id/check
+ * Check or uncheck a reminder.
+ * @route PATCH /api/reminders/:id/check
+ * @header {string} Authorization - Bearer token
+ * @param {number} id - The reminder ID
+ * @body {boolean} checked - Whether the reminder should be checked (true) or unchecked (false)
+ * @returns {ReminderData} Updated reminder data
+ */
+router.patch(
+  "/:id/check",
+  authenticateToken,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const reminderId = parseInt(req.params.id, 10);
+      const userId = req.userId!;
+      const { checked } = req.body;
+
+      if (isNaN(reminderId)) {
+        return res.status(400).json({ error: "Invalid reminder ID" });
+      }
+
+      if (typeof checked !== "boolean") {
+        return res.status(400).json({ error: "checked must be a boolean" });
+      }
+
+      const reminder = await getReminderServiceInstance().checkReminder(
+        reminderId,
+        userId,
+        checked
+      );
+
+      res.json(reminder);
+    } catch (error) {
+      if (error instanceof TypeError) {
+        return res.status(400).json({ error: error.message });
+      }
+      if (error instanceof Error && error.message === "Reminder not found") {
+        return res.status(404).json({ error: error.message });
+      }
+      console.error(
+        `[${new Date().toISOString()}] REMINDER_ROUTE | Error checking reminder:`,
+        error
+      );
+      res.status(500).json({ error: "Error checking reminder" });
     }
   }
 );

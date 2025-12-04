@@ -1,9 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { ReminderData, ReminderStatus } from "../models/Reminder";
-import { TrackingData, TrackingType } from "../models/Tracking";
+import { TrackingData } from "../models/Tracking";
 import { useReminders } from "../hooks/useReminders";
 import { useTrackings } from "../hooks/useTrackings";
-import { ReminderAnswerModal } from "./ReminderAnswerModal";
 import "./RemindersList.css";
 
 /**
@@ -27,7 +26,6 @@ const SNOOZE_OPTIONS = [
 interface FilterState {
     time: string;
     tracking: string;
-    answer: string;
     notes: string;
     status: string[]; // Multiple choice for status
 }
@@ -71,22 +69,6 @@ class ReminderFilter {
     }
 
     /**
-     * Filter reminder by answer text (case-insensitive contains).
-     * @param reminder - Reminder data to filter
-     * @param filterValue - Filter text value
-     * @returns True if reminder matches filter
-     */
-    static filterByAnswer(reminder: ReminderData, filterValue: string): boolean {
-        if (!filterValue.trim()) {
-            return true;
-        }
-        if (!reminder.answer) {
-            return false;
-        }
-        return reminder.answer.toLowerCase().includes(filterValue.toLowerCase());
-    }
-
-    /**
      * Filter reminder by notes text (case-insensitive contains).
      * @param reminder - Reminder data to filter
      * @param filterValue - Filter text value
@@ -127,7 +109,6 @@ class ReminderFilter {
             return (
                 ReminderFilter.filterByTime(reminder, filters.time) &&
                 ReminderFilter.filterByTracking(reminder, filters.tracking, getTracking) &&
-                ReminderFilter.filterByAnswer(reminder, filters.answer) &&
                 ReminderFilter.filterByNotes(reminder, filters.notes) &&
                 ReminderFilter.filterByStatus(reminder, filters.status)
             );
@@ -169,18 +150,6 @@ class ReminderSorter {
     }
 
     /**
-     * Compare two reminders by answer text.
-     * @param a - First reminder
-     * @param b - Second reminder
-     * @returns Comparison result (-1, 0, or 1)
-     */
-    static compareAnswer(a: ReminderData, b: ReminderData): number {
-        const answerA = a.answer || "";
-        const answerB = b.answer || "";
-        return answerA.localeCompare(answerB);
-    }
-
-    /**
      * Compare two reminders by notes text.
      * @param a - First reminder
      * @param b - Second reminder
@@ -190,21 +159,6 @@ class ReminderSorter {
         const notesA = a.notes || "";
         const notesB = b.notes || "";
         return notesA.localeCompare(notesB);
-    }
-
-    /**
-     * Compare two reminders by tracking type.
-     * @param a - First reminder
-     * @param b - Second reminder
-     * @param getTracking - Function to get tracking data
-     * @returns Comparison result (-1, 0, or 1)
-     */
-    static compareType(a: ReminderData, b: ReminderData, getTracking: (id: number) => TrackingData | undefined): number {
-        const trackingA = getTracking(a.tracking_id);
-        const trackingB = getTracking(b.tracking_id);
-        const typeA = trackingA?.type || "";
-        const typeB = trackingB?.type || "";
-        return typeA.localeCompare(typeB);
     }
 
     /**
@@ -245,14 +199,8 @@ class ReminderSorter {
             case 'tracking':
                 compareFn = (a, b) => ReminderSorter.compareTracking(a, b, getTracking);
                 break;
-            case 'answer':
-                compareFn = ReminderSorter.compareAnswer;
-                break;
             case 'notes':
                 compareFn = ReminderSorter.compareNotes;
-                break;
-            case 'type':
-                compareFn = (a, b) => ReminderSorter.compareType(a, b, getTracking);
                 break;
             case 'status':
                 compareFn = ReminderSorter.compareStatus;
@@ -320,56 +268,6 @@ export class ReminderFormatter {
     }
 
     /**
-     * Format answer with emoji for TRUE_FALSE type trackings.
-     * @param answer - Answer text
-     * @param trackingType - Tracking type
-     * @returns Formatted answer text with emoji if applicable
-     */
-    static formatAnswer(answer: string, trackingType: TrackingType): string {
-        if (trackingType === TrackingType.TRUE_FALSE) {
-            const normalizedAnswer = answer.trim();
-            if (normalizedAnswer.toLowerCase() === "yes") {
-                return "🟢Yes";
-            } else if (normalizedAnswer.toLowerCase() === "no") {
-                return "🔘No";
-            }
-        }
-        return answer;
-    }
-
-    /**
-     * Get type emoji for display.
-     * @param type - Tracking type
-     * @returns Type emoji
-     */
-    static getTypeEmoji(type: TrackingType): string {
-        switch (type) {
-            case TrackingType.TRUE_FALSE:
-                return "🔘🟢";
-            case TrackingType.REGISTER:
-                return "🖊️";
-            default:
-                return "";
-        }
-    }
-
-    /**
-     * Get full type label for tooltip.
-     * @param type - Tracking type
-     * @returns Full type label
-     */
-    static getFullTypeLabel(type: TrackingType): string {
-        switch (type) {
-            case TrackingType.TRUE_FALSE:
-                return "Yes/No";
-            case TrackingType.REGISTER:
-                return "Text";
-            default:
-                return type;
-        }
-    }
-
-    /**
      * Build tracking tooltip text with icon, question, and notes if available.
      * @param tracking - Tracking data
      * @returns Tooltip text
@@ -395,7 +293,8 @@ interface RemindersListProps {
     // Optional props to share reminders state with parent component (for immediate badge updates)
     reminders?: ReminderData[];
     isLoadingReminders?: boolean;
-    updateReminder?: (reminderId: number, answer?: string, notes?: string, status?: ReminderStatus) => Promise<ReminderData>;
+    updateReminder?: (reminderId: number, notes?: string, status?: ReminderStatus) => Promise<ReminderData>;
+    checkReminder?: (reminderId: number, checked: boolean) => Promise<ReminderData>;
     snoozeReminder?: (reminderId: number, minutes: number) => Promise<ReminderData>;
     deleteReminder?: (reminderId: number) => Promise<void>;
 }
@@ -422,6 +321,7 @@ export function RemindersList({
     reminders: propReminders,
     isLoadingReminders: propIsLoadingReminders,
     updateReminder: propUpdateReminder,
+    checkReminder: propCheckReminder,
     snoozeReminder: propSnoozeReminder,
     deleteReminder: propDeleteReminder
 }: RemindersListProps = {}) {
@@ -431,6 +331,7 @@ export function RemindersList({
         reminders: hookRemindersData,
         isLoading: hookIsLoading,
         updateReminder: hookUpdateReminder,
+        checkReminder: hookCheckReminder,
         snoozeReminder: hookSnoozeReminder,
         deleteReminder: hookDeleteReminder
     } = hookReminders;
@@ -441,11 +342,11 @@ export function RemindersList({
     const reminders = propReminders ?? hookRemindersData;
     const isLoading = propIsLoadingReminders ?? hookIsLoading;
     const updateReminder = propUpdateReminder ?? hookUpdateReminder;
+    const checkReminder = propCheckReminder ?? hookCheckReminder;
     const snoozeReminder = propSnoozeReminder ?? hookSnoozeReminder;
     const deleteReminder = propDeleteReminder ?? hookDeleteReminder;
     const trackings = propTrackings ?? hookTrackings;
     const isLoadingTrackings = propIsLoadingTrackings ?? hookIsLoadingTrackings;
-    const [editingReminder, setEditingReminder] = useState<ReminderData | null>(null);
     const [reminderToDelete, setReminderToDelete] = useState<ReminderData | null>(null);
     const [openSnoozeId, setOpenSnoozeId] = useState<number | null>(null);
     const [snoozeMenuPosition, setSnoozeMenuPosition] = useState<{ top: number; right: number } | null>(null);
@@ -456,7 +357,6 @@ export function RemindersList({
     const [filterState, setFilterState] = useState<FilterState>({
         time: "",
         tracking: "",
-        answer: "",
         notes: "",
         status: [],
     });
@@ -558,7 +458,6 @@ export function RemindersList({
         setFilterState({
             time: "",
             tracking: "",
-            answer: "",
             notes: "",
             status: [],
         });
@@ -647,12 +546,34 @@ export function RemindersList({
     };
 
     /**
-     * Handle answer/edit.
+     * Handle check/uncheck.
      * @param reminder - Reminder data
+     * @param checked - Whether to check (true) or uncheck (false)
      * @internal
      */
-    const handleAnswer = (reminder: ReminderData) => {
-        setEditingReminder(reminder);
+    const handleCheck = async (reminder: ReminderData, checked: boolean) => {
+        try {
+            await checkReminder(reminder.id, checked);
+            // Badge updates immediately via optimistic update in useReminders hook
+            if (onMessage) {
+                onMessage(
+                    checked
+                        ? "Reminder checked successfully"
+                        : "Reminder unchecked successfully",
+                    "success"
+                );
+            }
+        } catch (error) {
+            console.error("Error checking reminder:", error);
+            if (onMessage) {
+                onMessage(
+                    error instanceof Error
+                        ? error.message
+                        : "Error checking reminder",
+                    "error"
+                );
+            }
+        }
     };
 
     /**
@@ -698,50 +619,6 @@ export function RemindersList({
         }
     };
 
-    /**
-     * Handle modal save.
-     * @param reminderId - Reminder ID
-     * @param answer - Answer text
-     * @param notes - Notes text
-     * @internal
-     */
-    const handleModalSave = async (
-        reminderId: number,
-        answer: string,
-        notes: string
-    ) => {
-        try {
-            // Check if reminder is already answered to determine the message
-            const reminder = reminders.find((r) => r.id === reminderId);
-            const isAlreadyAnswered = reminder?.status === ReminderStatus.ANSWERED;
-
-            await updateReminder(reminderId, answer, notes, ReminderStatus.ANSWERED);
-            setEditingReminder(null);
-            // Badge updates immediately via optimistic update in useReminders hook
-            if (onMessage) {
-                if (isAlreadyAnswered) {
-                    onMessage("Reminder updated successfully", "success");
-                } else {
-                    onMessage("Reminder answered successfully", "success");
-                }
-            }
-        } catch (error) {
-            console.error("Error updating reminder:", error);
-            if (onMessage) {
-                const reminder = reminders.find((r) => r.id === reminderId);
-                const isAlreadyAnswered = reminder?.status === ReminderStatus.ANSWERED;
-                onMessage(
-                    error instanceof Error
-                        ? error.message
-                        : isAlreadyAnswered
-                            ? "Error updating reminder"
-                            : "Error answering reminder",
-                    "error"
-                );
-            }
-            throw error;
-        }
-    };
 
     /**
      * Close dropdowns when clicking outside.
@@ -823,20 +700,6 @@ export function RemindersList({
                         value={filterState.tracking}
                         onChange={(e) => handleFilterChange('tracking', e.target.value)}
                         aria-label="Filter by tracking"
-                    />
-                </div>
-                <div className="filter-row">
-                    <label htmlFor="filter-answer" className="filter-label">
-                        Answer:
-                    </label>
-                    <input
-                        type="text"
-                        id="filter-answer"
-                        className="filter-input"
-                        placeholder="Filter by answer..."
-                        value={filterState.answer}
-                        onChange={(e) => handleFilterChange('answer', e.target.value)}
-                        aria-label="Filter by answer"
                     />
                 </div>
                 <div className="filter-row">
@@ -970,35 +833,8 @@ export function RemindersList({
                                         )}
                                     </button>
                                 </th>
-                                <th className="col-type">
-                                    <button
-                                        type="button"
-                                        className="sortable-header"
-                                        onClick={() => handleSortClick('type')}
-                                        aria-label="Sort by type"
-                                    >
-                                        Type
-                                        {sortColumn === 'type' && (
-                                            <span className="sort-indicator">
-                                                {sortDirection === 'asc' ? '↑' : '↓'}
-                                            </span>
-                                        )}
-                                    </button>
-                                </th>
-                                <th className="col-answer">
-                                    <button
-                                        type="button"
-                                        className="sortable-header"
-                                        onClick={() => handleSortClick('answer')}
-                                        aria-label="Sort by answer"
-                                    >
-                                        Answer
-                                        {sortColumn === 'answer' && (
-                                            <span className="sort-indicator">
-                                                {sortDirection === 'asc' ? '↑' : '↓'}
-                                            </span>
-                                        )}
-                                    </button>
+                                <th className="col-check">
+                                    Check
                                 </th>
                                 <th className="col-notes">
                                     <button
@@ -1043,28 +879,14 @@ export function RemindersList({
                                                 "Unknown tracking"
                                             )}
                                         </td>
-                                        <td className="cell-type" title={tracking ? ReminderFormatter.getFullTypeLabel(tracking.type) : undefined}>
-                                            {tracking ? (
-                                                <span className="type-text">
-                                                    {ReminderFormatter.getTypeEmoji(tracking.type)}
-                                                </span>
-                                            ) : (
-                                                <span className="type-empty">—</span>
-                                            )}
-                                        </td>
-                                        <td className="cell-answer">
-                                            {reminder.answer ? (
-                                                <span
-                                                    title={tracking?.type === TrackingType.TRUE_FALSE ? undefined : reminder.answer}
-                                                    className="answer-text"
-                                                >
-                                                    {tracking?.type === TrackingType.TRUE_FALSE
-                                                        ? ReminderFormatter.formatAnswer(reminder.answer, tracking.type)
-                                                        : ReminderFormatter.truncateText(reminder.answer, 50)}
-                                                </span>
-                                            ) : (
-                                                <span className="answer-empty">—</span>
-                                            )}
+                                        <td className="cell-check">
+                                            <input
+                                                type="checkbox"
+                                                checked={reminder.status === ReminderStatus.ANSWERED}
+                                                onChange={(e) => handleCheck(reminder, e.target.checked)}
+                                                aria-label={reminder.status === ReminderStatus.ANSWERED ? "Uncheck reminder" : "Check reminder"}
+                                                title={reminder.status === ReminderStatus.ANSWERED ? "Uncheck reminder" : "Check reminder"}
+                                            />
                                         </td>
                                         <td className="cell-notes">
                                             {reminder.notes ? (
@@ -1086,15 +908,6 @@ export function RemindersList({
                                                 }}
                                             >
                                                 <div className="actions-buttons">
-                                                    <button
-                                                        type="button"
-                                                        className="action-button action-edit"
-                                                        onClick={() => handleAnswer(reminder)}
-                                                        title={reminder.status === ReminderStatus.PENDING ? "Answer reminder" : "Edit reminder"}
-                                                        aria-label={reminder.status === ReminderStatus.PENDING ? "Answer reminder" : "Edit reminder"}
-                                                    >
-                                                        ✏️
-                                                    </button>
                                                     {reminder.status === ReminderStatus.PENDING && (
                                                         <button
                                                             type="button"
@@ -1161,14 +974,6 @@ export function RemindersList({
                     </table>
                 </div>
             </div>
-            {editingReminder && (
-                <ReminderAnswerModal
-                    reminder={editingReminder}
-                    tracking={getTracking(editingReminder.tracking_id)}
-                    onClose={() => setEditingReminder(null)}
-                    onSave={handleModalSave}
-                />
-            )}
             {reminderToDelete && (
                 <div className="modal-overlay" onClick={() => setReminderToDelete(null)}>
                     <div className="modal-content delete-confirmation" onClick={(e) => e.stopPropagation()}>

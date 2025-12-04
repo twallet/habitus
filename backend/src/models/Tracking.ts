@@ -2,15 +2,6 @@ import { Database } from "../db/database.js";
 import { TrackingSchedule, TrackingScheduleData } from "./TrackingSchedule.js";
 
 /**
- * Tracking type enumeration.
- * @public
- */
-export enum TrackingType {
-  TRUE_FALSE = "true_false",
-  REGISTER = "register",
-}
-
-/**
  * Days pattern type enumeration.
  * @public
  */
@@ -61,7 +52,6 @@ export interface TrackingData {
   id: number;
   user_id: number;
   question: string;
-  type: TrackingType;
   notes?: string;
   icon?: string;
   days?: DaysPattern;
@@ -99,12 +89,6 @@ export class Tracking {
    * @public
    */
   question: string;
-
-  /**
-   * Tracking type.
-   * @public
-   */
-  type: TrackingType;
 
   /**
    * Optional notes (rich text).
@@ -151,7 +135,6 @@ export class Tracking {
     this.id = data.id;
     this.user_id = data.user_id;
     this.question = data.question;
-    this.type = data.type;
     this.notes = data.notes;
     this.icon = data.icon;
     this.days = data.days;
@@ -170,7 +153,6 @@ export class Tracking {
   validate(): Tracking {
     this.user_id = Tracking.validateUserId(this.user_id);
     this.question = Tracking.validateQuestion(this.question);
-    this.type = Tracking.validateType(this.type as string);
     if (this.notes !== undefined) {
       this.notes = Tracking.validateNotes(this.notes);
     }
@@ -202,9 +184,6 @@ export class Tracking {
 
       updates.push("question = ?");
       values.push(this.question);
-
-      updates.push("type = ?");
-      values.push(this.type);
 
       if (this.notes !== undefined) {
         updates.push("notes = ?");
@@ -240,11 +219,10 @@ export class Tracking {
     } else {
       // Create new tracking
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question, type, notes, icon, days, state) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO trackings (user_id, question, notes, icon, days, state) VALUES (?, ?, ?, ?, ?, ?)",
         [
           this.user_id,
           this.question,
-          this.type,
           this.notes || null,
           this.icon || null,
           this.days ? JSON.stringify(this.days) : null,
@@ -279,9 +257,6 @@ export class Tracking {
 
     if (updates.question !== undefined) {
       this.question = Tracking.validateQuestion(updates.question);
-    }
-    if (updates.type !== undefined) {
-      this.type = Tracking.validateType(updates.type as string);
     }
     if (updates.notes !== undefined) {
       this.notes = Tracking.validateNotes(updates.notes);
@@ -328,7 +303,6 @@ export class Tracking {
       id: this.id,
       user_id: this.user_id,
       question: this.question,
-      type: this.type,
       notes: this.notes,
       icon: this.icon,
       days: this.days,
@@ -356,7 +330,6 @@ export class Tracking {
       id: number;
       user_id: number;
       question: string;
-      type: string;
       notes: string | null;
       icon: string | null;
       days: string | null;
@@ -364,7 +337,7 @@ export class Tracking {
       created_at: string;
       updated_at: string;
     }>(
-      "SELECT id, user_id, question, type, notes, icon, days, state, created_at, updated_at FROM trackings WHERE id = ? AND user_id = ?",
+      "SELECT id, user_id, question, notes, icon, days, state, created_at, updated_at FROM trackings WHERE id = ? AND user_id = ?",
       [id, userId]
     );
 
@@ -388,7 +361,6 @@ export class Tracking {
       id: row.id,
       user_id: row.user_id,
       question: row.question,
-      type: row.type as TrackingType,
       notes: row.notes || undefined,
       icon: row.icon || undefined,
       days: daysPattern,
@@ -416,7 +388,6 @@ export class Tracking {
       id: number;
       user_id: number;
       question: string;
-      type: string;
       notes: string | null;
       icon: string | null;
       days: string | null;
@@ -424,7 +395,7 @@ export class Tracking {
       created_at: string;
       updated_at: string;
     }>(
-      "SELECT id, user_id, question, type, notes, icon, days, state, created_at, updated_at FROM trackings WHERE user_id = ? AND state != 'Deleted' ORDER BY created_at DESC",
+      "SELECT id, user_id, question, notes, icon, days, state, created_at, updated_at FROM trackings WHERE user_id = ? AND state != 'Deleted' ORDER BY created_at DESC",
       [userId]
     );
 
@@ -448,7 +419,6 @@ export class Tracking {
           id: row.id,
           user_id: row.user_id,
           question: row.question,
-          type: row.type as TrackingType,
           notes: row.notes || undefined,
           icon: row.icon || undefined,
           days: daysPattern,
@@ -492,31 +462,6 @@ export class Tracking {
     }
 
     return trimmedQuestion;
-  }
-
-  /**
-   * Validates a tracking type.
-   * @param type - The type to validate
-   * @returns The validated tracking type
-   * @throws {@link TypeError} If the type is invalid
-   * @public
-   */
-  static validateType(type: string): TrackingType {
-    if (typeof type !== "string") {
-      throw new TypeError("Type must be a string");
-    }
-
-    const normalizedType = type.toLowerCase().trim();
-    if (
-      normalizedType !== TrackingType.TRUE_FALSE &&
-      normalizedType !== TrackingType.REGISTER
-    ) {
-      throw new TypeError(
-        `Type must be either "${TrackingType.TRUE_FALSE}" or "${TrackingType.REGISTER}"`
-      );
-    }
-
-    return normalizedType as TrackingType;
   }
 
   /**

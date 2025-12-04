@@ -1,13 +1,4 @@
 /**
- * Tracking type enumeration.
- * @public
- */
-export enum TrackingType {
-  TRUE_FALSE = "true_false",
-  REGISTER = "register",
-}
-
-/**
  * Days pattern type enumeration.
  * @public
  */
@@ -81,12 +72,6 @@ export class Tracking {
   question: string;
 
   /**
-   * Tracking type.
-   * @public
-   */
-  type: TrackingType;
-
-  /**
    * Optional notes (rich text).
    * @public
    */
@@ -119,7 +104,6 @@ export class Tracking {
     this.id = data.id;
     this.user_id = data.user_id;
     this.question = data.question;
-    this.type = data.type;
     this.notes = data.notes;
     this.icon = data.icon;
     this.created_at = data.created_at;
@@ -135,7 +119,6 @@ export class Tracking {
    */
   validate(): Tracking {
     this.question = Tracking.validateQuestion(this.question);
-    this.type = Tracking.validateType(this.type as string);
     if (this.notes !== undefined) {
       this.notes = Tracking.validateNotes(this.notes);
     }
@@ -152,7 +135,6 @@ export class Tracking {
       id: this.id,
       user_id: this.user_id,
       question: this.question,
-      type: this.type,
       notes: this.notes,
       icon: this.icon,
       created_at: this.created_at,
@@ -184,31 +166,6 @@ export class Tracking {
     }
 
     return trimmedQuestion;
-  }
-
-  /**
-   * Validates a tracking type.
-   * @param type - The type to validate
-   * @returns The validated tracking type
-   * @throws {@link TypeError} If the type is invalid
-   * @public
-   */
-  static validateType(type: string): TrackingType {
-    if (typeof type !== "string") {
-      throw new TypeError("Type must be a string");
-    }
-
-    const normalizedType = type.toLowerCase().trim();
-    if (
-      normalizedType !== TrackingType.TRUE_FALSE &&
-      normalizedType !== TrackingType.REGISTER
-    ) {
-      throw new TypeError(
-        `Type must be either "${TrackingType.TRUE_FALSE}" or "${TrackingType.REGISTER}"`
-      );
-    }
-
-    return normalizedType as TrackingType;
   }
 
   /**
@@ -256,7 +213,6 @@ export interface TrackingData {
   id: number;
   user_id: number;
   question: string;
-  type: TrackingType;
   notes?: string;
   icon?: string;
   days?: DaysPattern;

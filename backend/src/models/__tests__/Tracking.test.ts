@@ -44,7 +44,6 @@ async function createTestDatabase(): Promise<Database> {
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               user_id INTEGER NOT NULL,
               question TEXT NOT NULL CHECK(length(question) <= 100),
-              type TEXT NOT NULL CHECK(type IN ('true_false', 'register')),
               notes TEXT,
               icon TEXT,
               days TEXT,

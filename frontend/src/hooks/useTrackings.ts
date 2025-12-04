@@ -1,10 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  TrackingData,
-  TrackingType,
-  TrackingState,
-  DaysPattern,
-} from "../models/Tracking";
+import { TrackingData, TrackingState, DaysPattern } from "../models/Tracking";
 import { ApiClient } from "../config/api";
 
 /**
@@ -133,7 +128,6 @@ export function useTrackings() {
    */
   const createTracking = async (
     question: string,
-    type: TrackingType,
     notes: string | undefined,
     icon: string | undefined,
     schedules: Array<{ hour: number; minutes: number }>,
@@ -148,13 +142,12 @@ export function useTrackings() {
     apiClient.setToken(token);
 
     console.log(
-      `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Creating new tracking with question: ${question}, type: ${type}`
+      `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Creating new tracking with question: ${question}`
     );
 
     try {
       const trackingData = await apiClient.createTracking(
         question,
-        type,
         notes,
         icon,
         schedules,
@@ -193,7 +186,6 @@ export function useTrackings() {
     trackingId: number,
     days: DaysPattern,
     question?: string,
-    type?: TrackingType,
     notes?: string,
     icon?: string,
     schedules?: Array<{ hour: number; minutes: number }>
@@ -215,7 +207,6 @@ export function useTrackings() {
         trackingId,
         days,
         question,
-        type,
         notes,
         icon,
         schedules

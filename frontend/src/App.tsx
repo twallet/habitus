@@ -13,7 +13,7 @@ import { DebugLogWindow } from './components/DebugLogWindow';
 import { useAuth } from './hooks/useAuth';
 import { useTrackings } from './hooks/useTrackings';
 import { useReminders } from './hooks/useReminders';
-import { TrackingData, TrackingType, TrackingState } from './models/Tracking';
+import { TrackingData, TrackingState } from './models/Tracking';
 import { ReminderStatus } from './models/Reminder';
 import { getDailyCitation } from './utils/citations';
 import './App.css';
@@ -58,7 +58,7 @@ function App() {
     refreshTrackings,
   } = useTrackings();
 
-  const { reminders, refreshReminders, removeRemindersForTracking, updateReminder, snoozeReminder, deleteReminder, isLoading: remindersLoading } =
+  const { reminders, refreshReminders, removeRemindersForTracking, updateReminder, checkReminder, snoozeReminder, deleteReminder, isLoading: remindersLoading } =
     useReminders();
 
   /**
@@ -754,7 +754,6 @@ function App() {
    */
   const handleCreateTracking = async (
     question: string,
-    type: TrackingType,
     notes: string | undefined,
     icon: string | undefined,
     schedules: Array<{ hour: number; minutes: number }>,
@@ -762,7 +761,7 @@ function App() {
   ) => {
     console.log(`[${new Date().toISOString()}] FRONTEND_APP | Creating tracking`);
     try {
-      await createTracking(question, type, notes, icon, schedules, days);
+      await createTracking(question, notes, icon, schedules, days);
       setShowTrackingForm(false);
       // Refresh reminders immediately after creating tracking to ensure
       // any reminder created by the backend is loaded with the correct tracking data
@@ -797,14 +796,13 @@ function App() {
     trackingId: number,
     days: import("./models/Tracking").DaysPattern,
     question?: string,
-    type?: TrackingType,
     notes?: string,
     icon?: string,
     schedules?: Array<{ hour: number; minutes: number }>
   ) => {
     console.log(`[${new Date().toISOString()}] FRONTEND_APP | Updating tracking ID: ${trackingId}`);
     try {
-      await updateTracking(trackingId, days, question, type, notes, icon, schedules);
+      await updateTracking(trackingId, days, question, notes, icon, schedules);
       setEditingTracking(null);
       // Refresh reminders immediately after updating tracking (times/frequency) to reflect any changes
       await refreshReminders();
@@ -1005,6 +1003,7 @@ function App() {
                   reminders={reminders}
                   isLoadingReminders={remindersLoading}
                   updateReminder={updateReminder}
+                  checkReminder={checkReminder}
                   snoozeReminder={snoozeReminder}
                   deleteReminder={deleteReminder}
                   onCreate={() => setShowTrackingForm(true)}

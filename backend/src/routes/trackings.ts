@@ -102,7 +102,6 @@ router.get(
             `ID=${tracking.id}`,
             `UserID=${tracking.user_id}`,
             `Question=${tracking.question}`,
-            `Type=${tracking.type}`,
             `State=${tracking.state}`,
             `Icon=${tracking.icon || "null"}`,
             `Days=${tracking.days || "null"}`,
@@ -139,8 +138,7 @@ router.get(
                     .substring(0, 19)
                 : "null";
 
-              // Format answer and notes
-              const answerStr = reminder.answer || "null";
+              // Format notes
               const notesStr = reminder.notes || "null";
 
               const reminderAttrs = [
@@ -149,7 +147,6 @@ router.get(
                 `UserID=${reminder.user_id}`,
                 `ScheduledTime=${scheduledTime}`,
                 `Status=${reminder.status}`,
-                `Answer=${answerStr}`,
                 `Notes=${notesStr}`,
                 `Created=${reminder.created_at}`,
                 `Updated=${reminder.updated_at}`,
@@ -234,7 +231,6 @@ router.get(
  * @route POST /api/trackings
  * @header {string} Authorization - Bearer token
  * @body {string} question - The tracking question
- * @body {string} type - The tracking type ("true_false" or "register")
  * @body {string} notes - Optional notes (rich text)
  * @body {string} icon - Optional icon (emoji)
  * @body {Array<{hour: number, minutes: number}>} schedules - Required schedules array (1-5 schedules)
@@ -244,10 +240,10 @@ router.get(
 router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
-    const { question, type, notes, icon, schedules, days } = req.body;
+    const { question, notes, icon, schedules, days } = req.body;
 
-    if (!question || !type) {
-      return res.status(400).json({ error: "Question and type are required" });
+    if (!question) {
+      return res.status(400).json({ error: "Question is required" });
     }
 
     if (!schedules || !Array.isArray(schedules) || schedules.length === 0) {
@@ -259,7 +255,6 @@ router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
     const tracking = await getTrackingServiceInstance().createTracking(
       userId,
       question,
-      type,
       notes,
       icon,
       schedules,
@@ -286,7 +281,6 @@ router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
  * @header {string} Authorization - Bearer token
  * @param {number} id - The tracking ID
  * @body {string} question - Updated question (optional)
- * @body {string} type - Updated type (optional)
  * @body {string} notes - Updated notes (optional)
  * @body {string} icon - Updated icon (optional)
  * @body {Array<{hour: number, minutes: number}>} schedules - Updated schedules array (optional, 1-5 schedules if provided)
@@ -300,7 +294,7 @@ router.put(
     try {
       const trackingId = parseInt(req.params.id, 10);
       const userId = req.userId!;
-      const { question, type, notes, icon, schedules, days } = req.body;
+      const { question, notes, icon, schedules, days } = req.body;
 
       if (isNaN(trackingId)) {
         return res.status(400).json({ error: "Invalid tracking ID" });
@@ -319,7 +313,6 @@ router.put(
         trackingId,
         userId,
         question,
-        type,
         notes,
         icon,
         schedules,
