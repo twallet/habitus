@@ -30,13 +30,14 @@ const mockUseTrackings = useTrackings as MockedFunction<typeof useTrackings>;
 describe('App', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (global.fetch as Mock).mockClear();
+    (global.fetch as Mock).mockReset();
     // Clear localStorage
     localStorage.clear();
 
     // Default mock for fetch - handle debug endpoint
-    (global.fetch as Mock).mockImplementation((url: string) => {
-      if (typeof url === 'string' && url.includes('/api/trackings/debug')) {
+    (global.fetch as Mock).mockImplementation((url: string | Request | URL) => {
+      const urlString = typeof url === 'string' ? url : url instanceof Request ? url.url : url.toString();
+      if (urlString.includes('/api/trackings/debug')) {
         return Promise.resolve({
           ok: true,
           status: 200,
@@ -45,6 +46,7 @@ describe('App', () => {
           text: async () => JSON.stringify({ log: '' }),
         } as Response);
       }
+      // Default response with both json() and text() methods
       return Promise.resolve({
         ok: true,
         status: 200,
