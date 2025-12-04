@@ -96,15 +96,14 @@ When a tracking transitions to `Archived`:
 
 - The `Upcoming` reminder is deleted
 - All `Pending` reminders are deleted
-- `Answered` reminders are preserved (historical data)
+- `Answered` reminders are preserved
 - No new reminders are generated while archived
 
 #### Transitioning to Running
 
 When a tracking transitions to `Running` (from `Paused` or `Archived`):
 
-- A new `Upcoming` reminder is automatically created
-- The next reminder time is calculated based on current times and days pattern
+- A new `Upcoming` reminder is automatically created, and its time is calculated based on current times and days pattern
 
 #### Deletion
 
@@ -131,10 +130,9 @@ A Reminder can exist in one of three statuses:
 The following status transitions occur:
 
 ```
-Upcoming → Pending (automatic when scheduled_time passes)
-Pending → Answered (when user answers)
-Pending → Upcoming (when snoozed)
-Pending/Upcoming → [Skipped] → [New Upcoming created automatically]
+Upcoming → Pending
+Pending → Answered
+Pending → Upcoming
 ```
 
 **Important Rules:**
@@ -143,6 +141,22 @@ Pending/Upcoming → [Skipped] → [New Upcoming created automatically]
 - `Upcoming` → `Pending` transition happens automatically when `scheduled_time` passes
 - When a reminder is answered, a new `Upcoming` reminder is automatically created
 - Only `Pending` reminders can be snoozed (not `Answered` reminders)
+
+### Available Actions by Status
+
+**Pending Reminders:**
+
+- Answer the reminder (changes status to `Answered`)
+- Snooze the reminder (changes status to `Upcoming` with new time)
+- Skip the reminder (removes reminder and creates next one)
+
+**Upcoming Reminders:**
+
+- No actions available to the user
+
+**Answered Reminders:**
+
+- No actions available (historical data, cannot be modified)
 
 ### Reminder Creation
 
@@ -155,19 +169,16 @@ Reminders are automatically created:
 - **When a tracking is created** (if tracking has times and days pattern)
 - **When a tracking transitions to Running** (from Paused or Archived)
 - **When a reminder is answered** (creates next reminder)
-- **When a reminder is deleted** (creates next reminder)
 - **When tracking times or days pattern are updated** (if tracking is Running)
-
-**Note:** New reminders are always created with status `"Upcoming"` (time is always in the future). They automatically transition to `"Pending"` when their `scheduled_time` passes.
 
 ### Reminder Updates
 
 When a reminder is updated, the following fields can be changed:
 
-- `answer`: The user's answer
+- `answer`: The user's answer (when answering a `Pending` reminder)
 - `notes`: Optional notes added when answering
-- `status`: Can be changed to `"Answered"`, `"Pending"`, or `"Upcoming"`
-- `scheduled_time`: Can be updated (used for snoozing)
+- `status`: Automatically changed when performing actions (answer, snooze)
+- `scheduled_time`: Automatically updated when snoozing
 
 **When a reminder is answered** (status changes to `"Answered"`):
 
@@ -175,28 +186,23 @@ When a reminder is updated, the following fields can be changed:
 
 ### Reminder Snoozing
 
-When a `Pending` reminder is snoozed:
-
-1. Any existing `Upcoming` reminder for the tracking is deleted
-2. The snoozed reminder's `scheduled_time` is updated (current time + snooze minutes)
-3. The reminder's status is set to `"Upcoming"`
+When a `Pending` reminder is snoozed, the existing `Upcoming` reminder time is updated (current time + snooze minutes)
 
 ### Reminder Skip
 
 When a reminder is skipped by the user:
 
 1. The reminder is removed from the database
-2. Any existing `Upcoming` reminder for the tracking is deleted
-3. A new `Upcoming` reminder is automatically created
-4. The skipped reminder's `scheduled_time` is excluded from next reminder calculation
+2. If there is no existing `Upcoming` reminder for the tracking, it is created
+3. The `Upcoming` reminder time is calculated, with the skipped reminder's `scheduled_time` excluded from next reminder calculation
 
 ### Reminder Deletion
 
 Reminders are only deleted in the following scenarios:
 
 1. **When a tracking is deleted:** All reminders associated with the tracking are deleted
-2. **When a tracking is archived:** All `Pending` and `Upcoming` reminders are deleted (`Answered` reminders are preserved)
-3. **When a tracking is paused:** All `Upcoming` reminders are deleted (`Pending` and `Answered` reminders are preserved)
+2. **When a tracking is archived:** All `Pending` and `Upcoming` reminders are deleted
+3. **When a tracking is paused:** Its `Upcoming` reminder is deleted
 4. **Orphaned reminders:** Reminders whose tracking no longer exists are automatically deleted when detected
 
 ### Automatic Status Updates
@@ -216,7 +222,6 @@ Reminders are only deleted in the following scenarios:
 
 ### Reminder Constraints
 
-- **Only one `Upcoming` reminder per tracking:** When a new `Upcoming` reminder is created, any existing one is deleted first
 - **Multiple `Pending`/`Answered` reminders:** A tracking can have multiple `Pending` reminders (if not answered) and multiple `Answered` reminders (historical data)
 
 ### Reminder Generation Rules
@@ -376,7 +381,7 @@ Answered → [New Upcoming created automatically]
     ↓
 Pending → Upcoming (snoozed, time updated)
     ↓
-Pending/Upcoming → [Skipped] (creates next reminder)
+Pending → [Skipped] (creates next reminder)
 ```
 
 ### Key Principles
