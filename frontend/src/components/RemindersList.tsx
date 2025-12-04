@@ -387,6 +387,8 @@ export class ReminderFormatter {
 }
 
 interface RemindersListProps {
+    trackings?: TrackingData[];
+    isLoadingTrackings?: boolean;
     onCreate?: () => void;
     onMessage?: (text: string, type: 'success' | 'error') => void;
 }
@@ -394,13 +396,19 @@ interface RemindersListProps {
 /**
  * RemindersList component for displaying reminders in a table.
  * @param props - Component props
+ * @param props.trackings - Optional array of tracking data (if not provided, will use useTrackings hook)
+ * @param props.isLoadingTrackings - Optional loading state for trackings
  * @param props.onCreate - Optional callback when create tracking link is clicked
  * @param props.onMessage - Optional callback to display success/error messages
  * @public
  */
-export function RemindersList({ onCreate: _onCreate, onMessage }: RemindersListProps = {}) {
+export function RemindersList({ trackings: propTrackings, isLoadingTrackings: propIsLoadingTrackings, onCreate: _onCreate, onMessage }: RemindersListProps = {}) {
     const { reminders, isLoading, updateReminder, snoozeReminder, deleteReminder } = useReminders();
-    const { trackings, isLoading: isLoadingTrackings } = useTrackings();
+    const { trackings: hookTrackings, isLoading: hookIsLoadingTrackings } = useTrackings();
+
+    // Use props if provided, otherwise use hook data
+    const trackings = propTrackings ?? hookTrackings;
+    const isLoadingTrackings = propIsLoadingTrackings ?? hookIsLoadingTrackings;
     const [editingReminder, setEditingReminder] = useState<ReminderData | null>(null);
     const [reminderToDelete, setReminderToDelete] = useState<ReminderData | null>(null);
     const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);

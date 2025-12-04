@@ -980,6 +980,8 @@ function App() {
               }}
             >
               <RemindersList
+                trackings={trackings}
+                isLoadingTrackings={trackingsLoading}
                 onCreate={() => setShowTrackingForm(true)}
                 onMessage={(text, type) => {
                   setMessage({
