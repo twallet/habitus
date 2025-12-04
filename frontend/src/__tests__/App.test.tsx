@@ -34,6 +34,20 @@ describe('App', () => {
     // Clear localStorage
     localStorage.clear();
 
+    // Default mock for fetch - handle debug endpoint
+    (global.fetch as Mock).mockImplementation((url: string) => {
+      if (typeof url === 'string' && url.includes('/api/trackings/debug')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ log: '' }),
+        } as Response);
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({}),
+      } as Response);
+    });
+
     // Default mock for useTrackings
     mockUseTrackings.mockReturnValue({
       trackings: [],
@@ -42,6 +56,7 @@ describe('App', () => {
       updateTracking: vi.fn(),
       updateTrackingState: vi.fn(),
       deleteTracking: vi.fn(),
+      refreshTrackings: vi.fn(),
     });
 
     // Default mock: unauthenticated state
@@ -209,7 +224,7 @@ describe('App', () => {
 
     // Wait for the authenticated state to render
     await waitFor(() => {
-      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
+      expect(screen.getByText(/no trackings\./i)).toBeInTheDocument();
     });
 
     // Verify user menu is present
@@ -490,7 +505,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
+      expect(screen.getByText(/no trackings\./i)).toBeInTheDocument();
     });
 
     // Open user menu
@@ -722,7 +737,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
+      expect(screen.getByText(/no trackings\./i)).toBeInTheDocument();
     });
 
     const userMenuButton = screen.getByRole('button', { name: /account settings/i });
@@ -762,7 +777,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
+      expect(screen.getByText(/no trackings\./i)).toBeInTheDocument();
     });
 
     const userMenuButton = screen.getByRole('button', { name: /account settings/i });
@@ -809,7 +824,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
+      expect(screen.getByText(/no trackings\./i)).toBeInTheDocument();
     });
 
     const userMenuButton = screen.getByRole('button', { name: /account settings/i });
@@ -861,7 +876,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
+      expect(screen.getByText(/no trackings\./i)).toBeInTheDocument();
     });
 
     const userMenuButton = screen.getByRole('button', { name: /account settings/i });
@@ -899,6 +914,7 @@ describe('App', () => {
       updateTracking: vi.fn(),
       updateTrackingState: vi.fn(),
       deleteTracking: vi.fn(),
+      refreshTrackings: vi.fn(),
     });
 
     mockUseAuth.mockReturnValue({
@@ -919,7 +935,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
+      expect(screen.getByText(/no trackings\./i)).toBeInTheDocument();
     });
 
     const fabButton = screen.getByRole('button', { name: /create tracking/i });
@@ -983,6 +999,7 @@ describe('App', () => {
       updateTracking: vi.fn(),
       updateTrackingState: vi.fn(),
       deleteTracking: vi.fn(),
+      refreshTrackings: vi.fn(),
     });
 
     mockUseAuth.mockReturnValue({
@@ -1043,6 +1060,7 @@ describe('App', () => {
       updateTracking: mockUpdateTracking,
       updateTrackingState: vi.fn(),
       deleteTracking: vi.fn(),
+      refreshTrackings: vi.fn(),
     });
 
     mockUseAuth.mockReturnValue({
@@ -1117,7 +1135,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
+      expect(screen.getByText(/no trackings\./i)).toBeInTheDocument();
     });
 
     const userMenuButton = screen.getByRole('button', { name: /account settings/i });
@@ -1173,7 +1191,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
+      expect(screen.getByText(/no trackings\./i)).toBeInTheDocument();
     });
 
     const userMenuButton = screen.getByRole('button', { name: /account settings/i });
@@ -1226,7 +1244,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
+      expect(screen.getByText(/no trackings\./i)).toBeInTheDocument();
     });
 
     const userMenuButton = screen.getByRole('button', { name: /account settings/i });
@@ -1281,7 +1299,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
+      expect(screen.getByText(/no trackings\./i)).toBeInTheDocument();
     });
 
     const userMenuButton = screen.getByRole('button', { name: /account settings/i });
@@ -1330,6 +1348,7 @@ describe('App', () => {
       updateTracking: vi.fn(),
       updateTrackingState: vi.fn(),
       deleteTracking: vi.fn(),
+      refreshTrackings: vi.fn(),
     });
 
     mockUseAuth.mockReturnValue({
@@ -1350,7 +1369,7 @@ describe('App', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
+      expect(screen.getByText(/no trackings\./i)).toBeInTheDocument();
     });
 
     const fabButton = screen.getByRole('button', { name: /create tracking/i });
@@ -1426,6 +1445,7 @@ describe('App', () => {
       updateTracking: mockUpdateTracking,
       updateTrackingState: vi.fn(),
       deleteTracking: vi.fn(),
+      refreshTrackings: vi.fn(),
     });
 
     mockUseAuth.mockReturnValue({

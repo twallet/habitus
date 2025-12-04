@@ -54,7 +54,7 @@ describe("TrackingsList", () => {
         );
 
         expect(
-            screen.getByText(/no trackings yet/i)
+            screen.getByText(/no trackings\./i)
         ).toBeInTheDocument();
     });
 
@@ -524,7 +524,7 @@ describe("TrackingsList", () => {
             />
         );
 
-        const createButton = screen.getByRole("button", { name: /create your first tracking/i });
+        const createButton = screen.getByRole("button", { name: /create a new tracking/i });
         await user.click(createButton);
 
         expect(mockOnCreate).toHaveBeenCalledTimes(1);
@@ -538,9 +538,9 @@ describe("TrackingsList", () => {
             />
         );
 
-        expect(screen.getByText(/no trackings yet/i)).toBeInTheDocument();
-        expect(screen.getByText(/create your first tracking to get started!/i)).toBeInTheDocument();
-        expect(screen.queryByRole("button", { name: /create your first tracking/i })).not.toBeInTheDocument();
+        expect(screen.getByText(/no trackings\./i)).toBeInTheDocument();
+        expect(screen.getByText(/create a new tracking to get started!/i)).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: /create a new tracking/i })).not.toBeInTheDocument();
     });
 
     it("should handle trackings with all fields populated", () => {

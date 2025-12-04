@@ -9,6 +9,7 @@ import { TrackingsList } from './components/TrackingsList';
 import { TrackingForm } from './components/TrackingForm';
 import { EditTrackingModal } from './components/EditTrackingModal';
 import { RemindersList } from './components/RemindersList';
+import { DebugLogWindow } from './components/DebugLogWindow';
 import { useAuth } from './hooks/useAuth';
 import { useTrackings } from './hooks/useTrackings';
 import { useReminders } from './hooks/useReminders';
@@ -398,6 +399,8 @@ function App() {
       // Refresh reminders from backend to ensure consistency
       // The backend will have cleaned up orphaned reminders
       refreshReminders();
+      // Dispatch event for debug log refresh
+      window.dispatchEvent(new CustomEvent('trackingsChanged'));
     };
 
     window.addEventListener("trackingDeleted", handleTrackingDeleted);
@@ -406,6 +409,22 @@ function App() {
       window.removeEventListener("trackingDeleted", handleTrackingDeleted);
     };
   }, [removeRemindersForTracking, refreshReminders]);
+
+  /**
+   * Dispatch events when trackings or reminders change for debug log refresh.
+   * @internal
+   */
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('trackingsChanged'));
+  }, [trackings]);
+
+  /**
+   * Dispatch events when reminders change for debug log refresh.
+   * @internal
+   */
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('remindersChanged'));
+  }, [reminders]);
 
   /**
    * Refresh trackings when reminders reference missing trackings.
@@ -993,6 +1012,8 @@ function App() {
             </div>
           </div>
         </div>
+
+        <DebugLogWindow />
       </main>
 
 
