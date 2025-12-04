@@ -330,7 +330,7 @@ describe("ReminderService", () => {
       expect(reminder).toBeNull();
     });
 
-    it("should update expired upcoming reminder to Pending", async () => {
+    it("should update expired upcoming reminder to Pending and create new Upcoming reminder", async () => {
       // Create a reminder and snooze it to a past time
       const pastTime = new Date(Date.now() - 60000).toISOString(); // 1 minute ago
       const created = await reminderService.createReminder(
@@ -345,7 +345,7 @@ describe("ReminderService", () => {
         [ReminderStatus.UPCOMING, pastTime, created.id]
       );
 
-      // Fetch reminder by ID - should update expired upcoming reminder to Pending
+      // Fetch reminder by ID - should update expired upcoming reminder to Pending and create new Upcoming reminder
       const reminder = await reminderService.getReminderById(
         created.id,
         testUserId
@@ -353,6 +353,21 @@ describe("ReminderService", () => {
 
       expect(reminder).not.toBeNull();
       expect(reminder!.status).toBe(ReminderStatus.PENDING);
+
+      // Verify a new Upcoming reminder was created for the tracking
+      const allReminders = await reminderService.getRemindersByUserId(
+        testUserId
+      );
+      const upcomingReminders = allReminders.filter(
+        (r) =>
+          r.tracking_id === testTrackingId &&
+          r.status === ReminderStatus.UPCOMING &&
+          r.id !== created.id
+      );
+      expect(upcomingReminders.length).toBe(1);
+      expect(
+        new Date(upcomingReminders[0].scheduled_time).getTime()
+      ).toBeGreaterThan(Date.now());
     });
   });
 
