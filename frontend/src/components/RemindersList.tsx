@@ -1040,15 +1040,7 @@ export function RemindersList({ trackings: propTrackings, isLoadingTrackings: pr
                                                         : ReminderFormatter.truncateText(reminder.answer, 50)}
                                                 </span>
                                             ) : (
-                                                <button
-                                                    type="button"
-                                                    className="link-button"
-                                                    onClick={() => handleAnswer(reminder)}
-                                                    aria-label="Answer reminder"
-                                                    title="No answer yet. Click to answer"
-                                                >
-                                                    No answer
-                                                </button>
+                                                <span className="answer-empty">—</span>
                                             )}
                                         </td>
                                         <td className="cell-notes">
