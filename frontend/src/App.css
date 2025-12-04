@@ -606,7 +606,8 @@ main {
 }
 
 .tab-badge-green {
-  background-color: var(--success-color);
+  background-color: #d1fae5;
+  color: #065f46;
 }
 
 .tabs-content {
