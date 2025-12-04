@@ -145,6 +145,18 @@
   font-size: 1.2em;
 }
 
+.cell-type {
+  white-space: nowrap;
+}
+
+.type-text {
+  color: var(--text-primary);
+}
+
+.type-empty {
+  color: var(--text-secondary);
+}
+
 .cell-answer {
   max-width: 300px;
 }

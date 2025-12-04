@@ -389,19 +389,19 @@
 
 /* State badge colors with pastel backgrounds */
 .status-badge.state-badge-running {
-  color: #047857;
-  border-color: #10b981;
-  background: #d1fae5;
+  color: #2e7d32;
+  border-color: #81c784;
+  background: #c8e6c9;
 }
 
 .status-badge.state-badge-running:hover {
-  background: #a7f3d0;
-  border-color: #059669;
+  background: #a5d6a7;
+  border-color: #66bb6a;
 }
 
 .status-badge.state-badge-running.open {
-  background: #a7f3d0;
-  border-color: #059669;
+  background: #a5d6a7;
+  border-color: #66bb6a;
 }
 
 .status-badge.state-badge-paused {

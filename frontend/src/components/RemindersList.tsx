@@ -192,6 +192,21 @@ class ReminderSorter {
     }
 
     /**
+     * Compare two reminders by tracking type.
+     * @param a - First reminder
+     * @param b - Second reminder
+     * @param getTracking - Function to get tracking data
+     * @returns Comparison result (-1, 0, or 1)
+     */
+    static compareType(a: ReminderData, b: ReminderData, getTracking: (id: number) => TrackingData | undefined): number {
+        const trackingA = getTracking(a.tracking_id);
+        const trackingB = getTracking(b.tracking_id);
+        const typeA = trackingA?.type || "";
+        const typeB = trackingB?.type || "";
+        return typeA.localeCompare(typeB);
+    }
+
+    /**
      * Compare two reminders by status.
      * @param a - First reminder
      * @param b - Second reminder
@@ -234,6 +249,9 @@ class ReminderSorter {
                 break;
             case 'notes':
                 compareFn = ReminderSorter.compareNotes;
+                break;
+            case 'type':
+                compareFn = (a, b) => ReminderSorter.compareType(a, b, getTracking);
                 break;
             case 'status':
                 compareFn = ReminderSorter.compareStatus;
@@ -316,6 +334,39 @@ export class ReminderFormatter {
             }
         }
         return answer;
+    }
+
+    /**
+     * Get full type label for display.
+     * @param type - Tracking type
+     * @returns Full type label
+     */
+    static getFullTypeLabel(type: TrackingType): string {
+        switch (type) {
+            case TrackingType.TRUE_FALSE:
+                return "Yes/No";
+            case TrackingType.REGISTER:
+                return "Text";
+            default:
+                return type;
+        }
+    }
+
+    /**
+     * Build tracking tooltip text with icon, question, and notes if available.
+     * @param tracking - Tracking data
+     * @returns Tooltip text
+     */
+    static buildTrackingTooltip(tracking: TrackingData): string {
+        let tooltip = "";
+        if (tracking.icon) {
+            tooltip += tracking.icon + " ";
+        }
+        tooltip += tracking.question;
+        if (tracking.notes) {
+            tooltip += " - Notes: " + tracking.notes;
+        }
+        return tooltip;
     }
 }
 
@@ -857,6 +908,21 @@ export function RemindersList({ onCreate: _onCreate, onMessage }: RemindersListP
                                         )}
                                     </button>
                                 </th>
+                                <th className="col-type">
+                                    <button
+                                        type="button"
+                                        className="sortable-header"
+                                        onClick={() => handleSortClick('type')}
+                                        aria-label="Sort by type"
+                                    >
+                                        Type
+                                        {sortColumn === 'type' && (
+                                            <span className="sort-indicator">
+                                                {sortDirection === 'asc' ? '↑' : '↓'}
+                                            </span>
+                                        )}
+                                    </button>
+                                </th>
                                 <th className="col-answer">
                                     <button
                                         type="button"
@@ -917,7 +983,7 @@ export function RemindersList({ onCreate: _onCreate, onMessage }: RemindersListP
                                         <td className="cell-tracking">
                                             {tracking ? (
                                                 <span
-                                                    title={tracking.question}
+                                                    title={ReminderFormatter.buildTrackingTooltip(tracking)}
                                                     className="tracking-text"
                                                 >
                                                     {tracking.icon && (
@@ -927,6 +993,15 @@ export function RemindersList({ onCreate: _onCreate, onMessage }: RemindersListP
                                                 </span>
                                             ) : (
                                                 "Unknown tracking"
+                                            )}
+                                        </td>
+                                        <td className="cell-type">
+                                            {tracking ? (
+                                                <span className="type-text">
+                                                    {ReminderFormatter.getFullTypeLabel(tracking.type)}
+                                                </span>
+                                            ) : (
+                                                <span className="type-empty">—</span>
                                             )}
                                         </td>
                                         <td className="cell-answer">
@@ -940,7 +1015,14 @@ export function RemindersList({ onCreate: _onCreate, onMessage }: RemindersListP
                                                         : ReminderFormatter.truncateText(reminder.answer, 50)}
                                                 </span>
                                             ) : (
-                                                <span className="answer-empty">—</span>
+                                                <button
+                                                    type="button"
+                                                    className="link-button"
+                                                    onClick={() => handleAnswer(reminder)}
+                                                    aria-label="Answer reminder"
+                                                >
+                                                    No answer
+                                                </button>
                                             )}
                                         </td>
                                         <td className="cell-notes">
