@@ -422,7 +422,9 @@ describe("ReminderService", () => {
       expect(pendingReminder.status).toBe(ReminderStatus.PENDING);
 
       // Create an existing Upcoming reminder
-      const upcomingTime = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(); // 2 hours from now
+      const upcomingTime = new Date(
+        Date.now() + 2 * 60 * 60 * 1000
+      ).toISOString(); // 2 hours from now
       const existingUpcoming = await reminderService.createReminder(
         testTrackingId,
         testUserId,
@@ -444,8 +446,7 @@ describe("ReminderService", () => {
       expect(snoozed.status).toBe(ReminderStatus.UPCOMING);
       const snoozedTime = new Date(snoozed.scheduled_time);
       const now = new Date();
-      const diffMinutes =
-        (snoozedTime.getTime() - now.getTime()) / (1000 * 60);
+      const diffMinutes = (snoozedTime.getTime() - now.getTime()) / (1000 * 60);
       expect(diffMinutes).toBeGreaterThanOrEqual(29); // Should be around 30 minutes
       expect(diffMinutes).toBeLessThan(31);
       expect(snoozed.scheduled_time).not.toBe(originalUpcomingTime);
@@ -490,8 +491,7 @@ describe("ReminderService", () => {
       expect(snoozed.id).not.toBe(pendingReminder.id);
       const snoozedTime = new Date(snoozed.scheduled_time);
       const now = new Date();
-      const diffMinutes =
-        (snoozedTime.getTime() - now.getTime()) / (1000 * 60);
+      const diffMinutes = (snoozedTime.getTime() - now.getTime()) / (1000 * 60);
       expect(diffMinutes).toBeGreaterThanOrEqual(29);
       expect(diffMinutes).toBeLessThan(31);
     });

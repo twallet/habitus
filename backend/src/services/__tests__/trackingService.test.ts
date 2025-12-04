@@ -8,7 +8,6 @@ import {
 } from "../../models/Tracking.js";
 import { Database } from "../../db/database.js";
 import { Reminder, ReminderStatus } from "../../models/Reminder.js";
-import { TrackingSchedule } from "../../models/TrackingSchedule.js";
 
 /**
  * Create an in-memory database for testing.
