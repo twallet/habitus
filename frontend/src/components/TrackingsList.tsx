@@ -707,13 +707,14 @@ export function TrackingsList({
 
     // Refresh reminders when trackings change (e.g., after creating or editing a tracking)
     // Use a ref to track previous tracking data to detect changes
-    const previousTrackingsRef = useRef<Map<number, { schedules?: Array<{ hour: number; minutes: number }>; days?: DaysPattern; updated_at?: string }>>(new Map());
+    const previousTrackingsRef = useRef<Map<number, { schedules?: Array<{ hour: number; minutes: number }>; days?: DaysPattern; state?: TrackingState; updated_at?: string }>>(new Map());
 
     useEffect(() => {
         const currentTrackingsMap = new Map(
             trackings.map(t => [t.id, {
                 schedules: t.schedules,
                 days: t.days,
+                state: t.state || TrackingState.RUNNING,
                 updated_at: t.updated_at,
             }])
         );
@@ -722,7 +723,7 @@ export function TrackingsList({
         // Check if there are new trackings or if existing trackings were updated
         const hasNewTrackings = trackings.some(t => !previousTrackings.has(t.id));
 
-        // Check if any existing tracking was updated (schedules or days pattern changed)
+        // Check if any existing tracking was updated (schedules, days pattern, or state changed)
         const hasUpdatedTrackings = trackings.some(t => {
             const prev = previousTrackings.get(t.id);
             if (!prev) return false;
@@ -733,10 +734,14 @@ export function TrackingsList({
             // Check if days pattern changed
             const daysChanged = JSON.stringify(t.days || {}) !== JSON.stringify(prev.days || {});
 
+            // Check if state changed
+            const currentState = t.state || TrackingState.RUNNING;
+            const stateChanged = currentState !== prev.state;
+
             // Check if updated_at timestamp changed (indicates tracking was edited)
             const wasEdited = t.updated_at !== prev.updated_at;
 
-            return schedulesChanged || daysChanged || wasEdited;
+            return schedulesChanged || daysChanged || stateChanged || wasEdited;
         });
 
         if (hasNewTrackings || hasUpdatedTrackings) {

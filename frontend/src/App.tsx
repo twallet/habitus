@@ -787,6 +787,8 @@ function App() {
     try {
       await updateTracking(trackingId, days, question, type, notes, icon, schedules);
       setEditingTracking(null);
+      // Refresh reminders immediately after updating tracking (times/frequency) to reflect any changes
+      await refreshReminders();
       setMessage({
         text: 'Tracking updated successfully',
         type: 'success',
@@ -956,7 +958,11 @@ function App() {
                 onEdit={handleEditTracking}
                 onCreate={() => setShowTrackingForm(true)}
                 isLoading={trackingsLoading}
-                onStateChange={updateTrackingState}
+                onStateChange={async (trackingId, newState) => {
+                  await updateTrackingState(trackingId, newState);
+                  // Refresh reminders immediately after tracking state change to reflect any changes
+                  await refreshReminders();
+                }}
                 onDelete={deleteTracking}
                 onStateChangeSuccess={(message) => {
                   setMessage({
