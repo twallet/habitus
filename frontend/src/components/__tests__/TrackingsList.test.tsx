@@ -4,6 +4,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { TrackingsList } from "../TrackingsList";
 import { TrackingData, TrackingType, DaysPatternType, TrackingState } from "../../models/Tracking";
+import { ReminderData, ReminderStatus } from "../../models/Reminder";
 import * as useTrackingsModule from "../../hooks/useTrackings";
 import * as useRemindersModule from "../../hooks/useReminders";
 
@@ -1434,6 +1435,822 @@ describe("TrackingsList", () => {
             expect(dataRows).toHaveLength(2);
             expect(dataRows[0]).toHaveTextContent("Alpha exercise");
             expect(dataRows[1]).toHaveTextContent("Beta exercise");
+        });
+    });
+
+    describe("Next Reminder value updates", () => {
+        const mockRefreshReminders = vi.fn().mockResolvedValue(undefined);
+        const futureTime = new Date(Date.now() + 86400000).toISOString(); // Tomorrow
+        const laterFutureTime = new Date(Date.now() + 172800000).toISOString(); // Day after tomorrow
+        const pastTime = new Date(Date.now() - 3600000).toISOString(); // 1 hour ago
+
+        beforeEach(() => {
+            mockRefreshReminders.mockClear();
+        });
+
+        describe("Reminder actions that update Next Reminder", () => {
+            it("should update Next Reminder when a reminder is answered (status changes to ANSWERED)", () => {
+                const trackings: TrackingData[] = [
+                    {
+                        id: 1,
+                        user_id: 1,
+                        question: "Did I exercise?",
+                        type: TrackingType.TRUE_FALSE,
+                        state: TrackingState.RUNNING,
+                    },
+                ];
+
+                // Initially, there's a PENDING reminder
+                const initialReminders: ReminderData[] = [
+                    {
+                        id: 1,
+                        tracking_id: 1,
+                        user_id: 1,
+                        scheduled_time: futureTime,
+                        status: ReminderStatus.PENDING,
+                    },
+                ];
+
+                (useRemindersModule.useReminders as any).mockReturnValue({
+                    reminders: initialReminders,
+                    refreshReminders: mockRefreshReminders,
+                });
+
+                const { rerender } = render(
+                    <TrackingsList
+                        trackings={trackings}
+                        onEdit={mockOnEdit}
+                    />
+                );
+
+                // Should show the next reminder time (check that it's not the empty "—" symbol)
+                const nextReminderCell = screen.getByText((content, element) => {
+                    return !!(element?.classList.contains("cell-next-reminder") && content !== "—");
+                });
+                expect(nextReminderCell).toBeInTheDocument();
+
+                // After answering, the reminder status changes to ANSWERED
+                const updatedReminders: ReminderData[] = [
+                    {
+                        id: 1,
+                        tracking_id: 1,
+                        user_id: 1,
+                        scheduled_time: futureTime,
+                        status: ReminderStatus.ANSWERED,
+                        answer: "Yes",
+                    },
+                ];
+
+                (useRemindersModule.useReminders as any).mockReturnValue({
+                    reminders: updatedReminders,
+                    refreshReminders: mockRefreshReminders,
+                });
+
+                rerender(
+                    <TrackingsList
+                        trackings={trackings}
+                        onEdit={mockOnEdit}
+                    />
+                );
+
+                // Next Reminder should now be empty (no PENDING or UPCOMING reminders)
+                expect(screen.getByText("—")).toBeInTheDocument();
+            });
+
+            it("should update Next Reminder when a reminder is snoozed (creates/updates UPCOMING reminder)", () => {
+                const trackings: TrackingData[] = [
+                    {
+                        id: 1,
+                        user_id: 1,
+                        question: "Did I exercise?",
+                        type: TrackingType.TRUE_FALSE,
+                        state: TrackingState.RUNNING,
+                    },
+                ];
+
+                // Initially, there's a PENDING reminder
+                const initialReminders: ReminderData[] = [
+                    {
+                        id: 1,
+                        tracking_id: 1,
+                        user_id: 1,
+                        scheduled_time: pastTime,
+                        status: ReminderStatus.PENDING,
+                    },
+                ];
+
+                (useRemindersModule.useReminders as any).mockReturnValue({
+                    reminders: initialReminders,
+                    refreshReminders: mockRefreshReminders,
+                });
+
+                const { rerender } = render(
+                    <TrackingsList
+                        trackings={trackings}
+                        onEdit={mockOnEdit}
+                    />
+                );
+
+                // After snoozing, an UPCOMING reminder is created with new time
+                const snoozedReminders: ReminderData[] = [
+                    {
+                        id: 1,
+                        tracking_id: 1,
+                        user_id: 1,
+                        scheduled_time: pastTime,
+                        status: ReminderStatus.PENDING,
+                    },
+                    {
+                        id: 2,
+                        tracking_id: 1,
+                        user_id: 1,
+                        scheduled_time: laterFutureTime,
+                        status: ReminderStatus.UPCOMING,
+                    },
+                ];
+
+                (useRemindersModule.useReminders as any).mockReturnValue({
+                    reminders: snoozedReminders,
+                    refreshReminders: mockRefreshReminders,
+                });
+
+                rerender(
+                    <TrackingsList
+                        trackings={trackings}
+                        onEdit={mockOnEdit}
+                    />
+                );
+
+                // Next Reminder should show the snoozed time (UPCOMING reminder) - check that it's not empty
+                const nextReminderCell = screen.getByText((content, element) => {
+                    return !!(element?.classList.contains("cell-next-reminder") && content !== "—");
+                });
+                expect(nextReminderCell).toBeInTheDocument();
+            });
+
+            it("should update Next Reminder when a reminder is deleted (creates next reminder)", () => {
+                const trackings: TrackingData[] = [
+                    {
+                        id: 1,
+                        user_id: 1,
+                        question: "Did I exercise?",
+                        type: TrackingType.TRUE_FALSE,
+                        state: TrackingState.RUNNING,
+                    },
+                ];
+
+                // Initially, there's a PENDING reminder
+                const initialReminders: ReminderData[] = [
+                    {
+                        id: 1,
+                        tracking_id: 1,
+                        user_id: 1,
+                        scheduled_time: futureTime,
+                        status: ReminderStatus.PENDING,
+                    },
+                ];
+
+                (useRemindersModule.useReminders as any).mockReturnValue({
+                    reminders: initialReminders,
+                    refreshReminders: mockRefreshReminders,
+                });
+
+                const { rerender } = render(
+                    <TrackingsList
+                        trackings={trackings}
+                        onEdit={mockOnEdit}
+                    />
+                );
+
+                // After deleting, a new UPCOMING reminder is created
+                const updatedReminders: ReminderData[] = [
+                    {
+                        id: 2,
+                        tracking_id: 1,
+                        user_id: 1,
+                        scheduled_time: laterFutureTime,
+                        status: ReminderStatus.UPCOMING,
+                    },
+                ];
+
+                (useRemindersModule.useReminders as any).mockReturnValue({
+                    reminders: updatedReminders,
+                    refreshReminders: mockRefreshReminders,
+                });
+
+                rerender(
+                    <TrackingsList
+                        trackings={trackings}
+                        onEdit={mockOnEdit}
+                    />
+                );
+
+                // Next Reminder should show the new reminder time - check that it's not empty
+                const nextReminderCell = screen.getByText((content, element) => {
+                    return !!(element?.classList.contains("cell-next-reminder") && content !== "—");
+                });
+                expect(nextReminderCell).toBeInTheDocument();
+            });
+        });
+
+        describe("Tracking creation/editing that updates Next Reminder", () => {
+            it("should refresh reminders when a new tracking is created", () => {
+                const initialTrackings: TrackingData[] = [];
+
+                (useRemindersModule.useReminders as any).mockReturnValue({
+                    reminders: [],
+                    refreshReminders: mockRefreshReminders,
+                });
+
+                const { rerender } = render(
+                    <TrackingsList
+                        trackings={initialTrackings}
+                        onEdit={mockOnEdit}
+                    />
+                );
+
+                // New tracking is created
+                const newTrackings: TrackingData[] = [
+                    {
+                        id: 1,
+                        user_id: 1,
+                        question: "Did I exercise?",
+                        type: TrackingType.TRUE_FALSE,
+                        state: TrackingState.RUNNING,
+                    },
+                ];
+
+                rerender(
+                    <TrackingsList
+                        trackings={newTrackings}
+                        onEdit={mockOnEdit}
+                    />
+                );
+
+                // refreshReminders should be called when new tracking is detected
+                expect(mockRefreshReminders).toHaveBeenCalled();
+            });
+
+            it("should refresh reminders when tracking schedules are edited", () => {
+                const trackings: TrackingData[] = [
+                    {
+                        id: 1,
+                        user_id: 1,
+                        question: "Did I exercise?",
+                        type: TrackingType.TRUE_FALSE,
+                        state: TrackingState.RUNNING,
+                        schedules: [{ id: 1, tracking_id: 1, hour: 9, minutes: 0 }],
+                    },
+                ];
+
+                (useRemindersModule.useReminders as any).mockReturnValue({
+                    reminders: [],
+                    refreshReminders: mockRefreshReminders,
+                });
+
+                const { rerender } = render(
+                    <TrackingsList
+                        trackings={trackings}
+                        onEdit={mockOnEdit}
+                    />
+                );
+
+                // Schedules are updated
+                const updatedTrackings: TrackingData[] = [
+                    {
+                        id: 1,
+                        user_id: 1,
+                        question: "Did I exercise?",
+                        type: TrackingType.TRUE_FALSE,
+                        state: TrackingState.RUNNING,
+                        schedules: [{ id: 1, tracking_id: 1, hour: 10, minutes: 30 }],
+                        updated_at: new Date().toISOString(),
+                    },
+                ];
+
+                rerender(
+                    <TrackingsList
+                        trackings={updatedTrackings}
+                        onEdit={mockOnEdit}
+                    />
+                );
+
+                // refreshReminders should be called when schedules change
+                expect(mockRefreshReminders).toHaveBeenCalled();
+            });
+
+            it("should refresh reminders when tracking days pattern is edited", () => {
+                const trackings: TrackingData[] = [
+                    {
+                        id: 1,
+                        user_id: 1,
+                        question: "Did I exercise?",
+                        type: TrackingType.TRUE_FALSE,
+                        state: TrackingState.RUNNING,
+                        days: {
+                            pattern_type: DaysPatternType.DAY_OF_WEEK,
+                            days: [1, 3, 5],
+                        },
+                    },
+                ];
+
+                (useRemindersModule.useReminders as any).mockReturnValue({
+                    reminders: [],
+                    refreshReminders: mockRefreshReminders,
+                });
+
+                const { rerender } = render(
+                    <TrackingsList
+                        trackings={trackings}
+                        onEdit={mockOnEdit}
+                    />
+                );
+
+                // Days pattern is updated
+                const updatedTrackings: TrackingData[] = [
+                    {
+                        id: 1,
+                        user_id: 1,
+                        question: "Did I exercise?",
+                        type: TrackingType.TRUE_FALSE,
+                        state: TrackingState.RUNNING,
+                        days: {
+                            pattern_type: DaysPatternType.DAY_OF_WEEK,
+                            days: [2, 4, 6],
+                        },
+                        updated_at: new Date().toISOString(),
+                    },
+                ];
+
+                rerender(
+                    <TrackingsList
+                        trackings={updatedTrackings}
+                        onEdit={mockOnEdit}
+                    />
+                );
+
+                // refreshReminders should be called when days pattern changes
+                expect(mockRefreshReminders).toHaveBeenCalled();
+            });
+
+            it("should update Next Reminder display when reminders are refreshed after tracking edit", () => {
+                const trackings: TrackingData[] = [
+                    {
+                        id: 1,
+                        user_id: 1,
+                        question: "Did I exercise?",
+                        type: TrackingType.TRUE_FALSE,
+                        state: TrackingState.RUNNING,
+                    },
+                ];
+
+                // After editing tracking, new reminder is created
+                const updatedReminders: ReminderData[] = [
+                    {
+                        id: 1,
+                        tracking_id: 1,
+                        user_id: 1,
+                        scheduled_time: futureTime,
+                        status: ReminderStatus.UPCOMING,
+                    },
+                ];
+
+                (useRemindersModule.useReminders as any).mockReturnValue({
+                    reminders: updatedReminders,
+                    refreshReminders: mockRefreshReminders,
+                });
+
+                render(
+                    <TrackingsList
+                        trackings={trackings}
+                        onEdit={mockOnEdit}
+                    />
+                );
+
+                // Next Reminder should display the new reminder time - check that it's not empty
+                const nextReminderCell = screen.getByText((content, element) => {
+                    return !!(element?.classList.contains("cell-next-reminder") && content !== "—");
+                });
+                expect(nextReminderCell).toBeInTheDocument();
+            });
+        });
+
+        describe("Tracking state changes that update Next Reminder", () => {
+            it("should refresh reminders when tracking state changes to Running", () => {
+                const trackings: TrackingData[] = [
+                    {
+                        id: 1,
+                        user_id: 1,
+                        question: "Did I exercise?",
+                        type: TrackingType.TRUE_FALSE,
+                        state: TrackingState.PAUSED,
+                    },
+                ];
+
+                (useRemindersModule.useReminders as any).mockReturnValue({
+                    reminders: [],
+                    refreshReminders: mockRefreshReminders,
+                });
+
+                const { rerender } = render(
+                    <TrackingsList
+                        trackings={trackings}
+                        onEdit={mockOnEdit}
+                    />
+                );
+
+                // State changes to Running
+                const updatedTrackings: TrackingData[] = [
+                    {
+                        id: 1,
+                        user_id: 1,
+                        question: "Did I exercise?",
+                        type: TrackingType.TRUE_FALSE,
+                        state: TrackingState.RUNNING,
+                    },
+                ];
+
+                rerender(
+                    <TrackingsList
+                        trackings={updatedTrackings}
+                        onEdit={mockOnEdit}
+                    />
+                );
+
+                // refreshReminders should be called when state changes
+                expect(mockRefreshReminders).toHaveBeenCalled();
+            });
+
+            it("should refresh reminders when tracking state changes to Paused", () => {
+                const trackings: TrackingData[] = [
+                    {
+                        id: 1,
+                        user_id: 1,
+                        question: "Did I exercise?",
+                        type: TrackingType.TRUE_FALSE,
+                        state: TrackingState.RUNNING,
+                    },
+                ];
+
+                (useRemindersModule.useReminders as any).mockReturnValue({
+                    reminders: [],
+                    refreshReminders: mockRefreshReminders,
+                });
+
+                const { rerender } = render(
+                    <TrackingsList
+                        trackings={trackings}
+                        onEdit={mockOnEdit}
+                    />
+                );
+
+                // State changes to Paused
+                const updatedTrackings: TrackingData[] = [
+                    {
+                        id: 1,
+                        user_id: 1,
+                        question: "Did I exercise?",
+                        type: TrackingType.TRUE_FALSE,
+                        state: TrackingState.PAUSED,
+                    },
+                ];
+
+                rerender(
+                    <TrackingsList
+                        trackings={updatedTrackings}
+                        onEdit={mockOnEdit}
+                    />
+                );
+
+                // refreshReminders should be called when state changes
+                expect(mockRefreshReminders).toHaveBeenCalled();
+            });
+
+            it("should show no Next Reminder when tracking is Paused (no new reminders generated)", () => {
+                const trackings: TrackingData[] = [
+                    {
+                        id: 1,
+                        user_id: 1,
+                        question: "Did I exercise?",
+                        type: TrackingType.TRUE_FALSE,
+                        state: TrackingState.PAUSED,
+                    },
+                ];
+
+                // No reminders exist (paused tracking doesn't generate new ones)
+                (useRemindersModule.useReminders as any).mockReturnValue({
+                    reminders: [],
+                    refreshReminders: mockRefreshReminders,
+                });
+
+                render(
+                    <TrackingsList
+                        trackings={trackings}
+                        onEdit={mockOnEdit}
+                    />
+                );
+
+                // Next Reminder should be empty
+                expect(screen.getByText("—")).toBeInTheDocument();
+            });
+
+            it("should show Next Reminder when tracking is Resumed (new reminders generated)", () => {
+                const trackings: TrackingData[] = [
+                    {
+                        id: 1,
+                        user_id: 1,
+                        question: "Did I exercise?",
+                        type: TrackingType.TRUE_FALSE,
+                        state: TrackingState.RUNNING,
+                    },
+                ];
+
+                // After resuming, new reminder is created
+                const reminders: ReminderData[] = [
+                    {
+                        id: 1,
+                        tracking_id: 1,
+                        user_id: 1,
+                        scheduled_time: futureTime,
+                        status: ReminderStatus.UPCOMING,
+                    },
+                ];
+
+                (useRemindersModule.useReminders as any).mockReturnValue({
+                    reminders,
+                    refreshReminders: mockRefreshReminders,
+                });
+
+                render(
+                    <TrackingsList
+                        trackings={trackings}
+                        onEdit={mockOnEdit}
+                    />
+                );
+
+                // Next Reminder should show the new reminder time - check that it's not empty
+                const nextReminderCell = screen.getByText((content, element) => {
+                    return !!(element?.classList.contains("cell-next-reminder") && content !== "—");
+                });
+                expect(nextReminderCell).toBeInTheDocument();
+            });
+
+            it("should show no Next Reminder when tracking is Archived", () => {
+                const trackings: TrackingData[] = [
+                    {
+                        id: 1,
+                        user_id: 1,
+                        question: "Did I exercise?",
+                        type: TrackingType.TRUE_FALSE,
+                        state: TrackingState.ARCHIVED,
+                    },
+                ];
+
+                // Archived tracking doesn't generate new reminders
+                (useRemindersModule.useReminders as any).mockReturnValue({
+                    reminders: [],
+                    refreshReminders: mockRefreshReminders,
+                });
+
+                render(
+                    <TrackingsList
+                        trackings={trackings}
+                        onEdit={mockOnEdit}
+                    />
+                );
+
+                // Next Reminder should be empty
+                expect(screen.getByText("—")).toBeInTheDocument();
+            });
+        });
+
+        describe("Next Reminder calculation logic", () => {
+            it("should show the earliest PENDING reminder when multiple exist", () => {
+                const trackings: TrackingData[] = [
+                    {
+                        id: 1,
+                        user_id: 1,
+                        question: "Did I exercise?",
+                        type: TrackingType.TRUE_FALSE,
+                        state: TrackingState.RUNNING,
+                    },
+                ];
+
+                // Multiple PENDING reminders with different times
+                const reminders: ReminderData[] = [
+                    {
+                        id: 1,
+                        tracking_id: 1,
+                        user_id: 1,
+                        scheduled_time: laterFutureTime,
+                        status: ReminderStatus.PENDING,
+                    },
+                    {
+                        id: 2,
+                        tracking_id: 1,
+                        user_id: 1,
+                        scheduled_time: futureTime,
+                        status: ReminderStatus.PENDING,
+                    },
+                ];
+
+                (useRemindersModule.useReminders as any).mockReturnValue({
+                    reminders,
+                    refreshReminders: mockRefreshReminders,
+                });
+
+                render(
+                    <TrackingsList
+                        trackings={trackings}
+                        onEdit={mockOnEdit}
+                    />
+                );
+
+                // Should show the earliest one (futureTime, not laterFutureTime) - check that it's not empty
+                const nextReminderCell = screen.getByText((content, element) => {
+                    return !!(element?.classList.contains("cell-next-reminder") && content !== "—");
+                });
+                expect(nextReminderCell).toBeInTheDocument();
+                // Verify it shows a date (not empty)
+                expect(nextReminderCell.textContent).not.toBe("—");
+            });
+
+            it("should show the earliest UPCOMING reminder when multiple exist", () => {
+                const trackings: TrackingData[] = [
+                    {
+                        id: 1,
+                        user_id: 1,
+                        question: "Did I exercise?",
+                        type: TrackingType.TRUE_FALSE,
+                        state: TrackingState.RUNNING,
+                    },
+                ];
+
+                // Multiple UPCOMING reminders with different times
+                const reminders: ReminderData[] = [
+                    {
+                        id: 1,
+                        tracking_id: 1,
+                        user_id: 1,
+                        scheduled_time: laterFutureTime,
+                        status: ReminderStatus.UPCOMING,
+                    },
+                    {
+                        id: 2,
+                        tracking_id: 1,
+                        user_id: 1,
+                        scheduled_time: futureTime,
+                        status: ReminderStatus.UPCOMING,
+                    },
+                ];
+
+                (useRemindersModule.useReminders as any).mockReturnValue({
+                    reminders,
+                    refreshReminders: mockRefreshReminders,
+                });
+
+                render(
+                    <TrackingsList
+                        trackings={trackings}
+                        onEdit={mockOnEdit}
+                    />
+                );
+
+                // Should show the earliest one (futureTime, not laterFutureTime) - check that it's not empty
+                const nextReminderCell = screen.getByText((content, element) => {
+                    return !!(element?.classList.contains("cell-next-reminder") && content !== "—");
+                });
+                expect(nextReminderCell).toBeInTheDocument();
+                // Verify it shows a date (not empty)
+                expect(nextReminderCell.textContent).not.toBe("—");
+            });
+
+            it("should prioritize PENDING over UPCOMING when both exist", () => {
+                const trackings: TrackingData[] = [
+                    {
+                        id: 1,
+                        user_id: 1,
+                        question: "Did I exercise?",
+                        type: TrackingType.TRUE_FALSE,
+                        state: TrackingState.RUNNING,
+                    },
+                ];
+
+                // Both PENDING and UPCOMING reminders exist
+                const reminders: ReminderData[] = [
+                    {
+                        id: 1,
+                        tracking_id: 1,
+                        user_id: 1,
+                        scheduled_time: laterFutureTime,
+                        status: ReminderStatus.UPCOMING,
+                    },
+                    {
+                        id: 2,
+                        tracking_id: 1,
+                        user_id: 1,
+                        scheduled_time: futureTime,
+                        status: ReminderStatus.PENDING,
+                    },
+                ];
+
+                (useRemindersModule.useReminders as any).mockReturnValue({
+                    reminders,
+                    refreshReminders: mockRefreshReminders,
+                });
+
+                render(
+                    <TrackingsList
+                        trackings={trackings}
+                        onEdit={mockOnEdit}
+                    />
+                );
+
+                // Should show the PENDING one (futureTime) as it's earlier - check that it's not empty
+                const nextReminderCell = screen.getByText((content, element) => {
+                    return !!(element?.classList.contains("cell-next-reminder") && content !== "—");
+                });
+                expect(nextReminderCell).toBeInTheDocument();
+                // Verify it shows a date (not empty)
+                expect(nextReminderCell.textContent).not.toBe("—");
+            });
+
+            it("should not show past reminders in Next Reminder", () => {
+                const trackings: TrackingData[] = [
+                    {
+                        id: 1,
+                        user_id: 1,
+                        question: "Did I exercise?",
+                        type: TrackingType.TRUE_FALSE,
+                        state: TrackingState.RUNNING,
+                    },
+                ];
+
+                // Only past reminders exist
+                const reminders: ReminderData[] = [
+                    {
+                        id: 1,
+                        tracking_id: 1,
+                        user_id: 1,
+                        scheduled_time: pastTime,
+                        status: ReminderStatus.PENDING,
+                    },
+                ];
+
+                (useRemindersModule.useReminders as any).mockReturnValue({
+                    reminders,
+                    refreshReminders: mockRefreshReminders,
+                });
+
+                render(
+                    <TrackingsList
+                        trackings={trackings}
+                        onEdit={mockOnEdit}
+                    />
+                );
+
+                // Next Reminder should be empty (past reminders are filtered out)
+                expect(screen.getByText("—")).toBeInTheDocument();
+            });
+
+            it("should not show ANSWERED reminders in Next Reminder", () => {
+                const trackings: TrackingData[] = [
+                    {
+                        id: 1,
+                        user_id: 1,
+                        question: "Did I exercise?",
+                        type: TrackingType.TRUE_FALSE,
+                        state: TrackingState.RUNNING,
+                    },
+                ];
+
+                // Only ANSWERED reminders exist
+                const reminders: ReminderData[] = [
+                    {
+                        id: 1,
+                        tracking_id: 1,
+                        user_id: 1,
+                        scheduled_time: futureTime,
+                        status: ReminderStatus.ANSWERED,
+                        answer: "Yes",
+                    },
+                ];
+
+                (useRemindersModule.useReminders as any).mockReturnValue({
+                    reminders,
+                    refreshReminders: mockRefreshReminders,
+                });
+
+                render(
+                    <TrackingsList
+                        trackings={trackings}
+                        onEdit={mockOnEdit}
+                    />
+                );
+
+                // Next Reminder should be empty (ANSWERED reminders are filtered out)
+                expect(screen.getByText("—")).toBeInTheDocument();
+            });
         });
     });
 });
