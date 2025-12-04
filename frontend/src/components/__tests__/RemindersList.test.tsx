@@ -1051,5 +1051,201 @@ describe("RemindersList", () => {
             expect(screen.queryByText("Skip reminder")).not.toBeInTheDocument();
         });
     });
+
+    describe("Props override hook behavior", () => {
+        it("should use provided reminders prop instead of hook", () => {
+            const propReminders: ReminderData[] = [
+                {
+                    id: 1,
+                    tracking_id: 1,
+                    user_id: 1,
+                    scheduled_time: new Date(Date.now() - 3600000).toISOString(),
+                    status: ReminderStatus.PENDING,
+                },
+            ];
+
+            const hookReminders: ReminderData[] = [
+                {
+                    id: 2,
+                    tracking_id: 2,
+                    user_id: 1,
+                    scheduled_time: new Date(Date.now() - 3600000).toISOString(),
+                    status: ReminderStatus.PENDING,
+                },
+            ];
+
+            (useRemindersModule.useReminders as any).mockReturnValue({
+                reminders: hookReminders,
+                isLoading: false,
+                updateReminder: mockUpdateReminder,
+                snoozeReminder: mockSnoozeReminder,
+                deleteReminder: mockDeleteReminder,
+                refreshReminders: mockRefreshReminders,
+            });
+            (useTrackingsModule.useTrackings as any).mockReturnValue({
+                trackings: [mockTracking],
+            });
+
+            render(<RemindersList reminders={propReminders} />);
+
+            // Should show reminder from props (id: 1), not from hook (id: 2)
+            expect(screen.getByText("Did I exercise?")).toBeInTheDocument();
+            expect(screen.getByRole("button", { name: "Answer reminder" })).toBeInTheDocument();
+        });
+
+        it("should use provided isLoadingReminders prop instead of hook", () => {
+            (useRemindersModule.useReminders as any).mockReturnValue({
+                reminders: [],
+                isLoading: false, // Hook says not loading
+                updateReminder: mockUpdateReminder,
+                snoozeReminder: mockSnoozeReminder,
+                deleteReminder: mockDeleteReminder,
+                refreshReminders: mockRefreshReminders,
+            });
+
+            render(<RemindersList isLoadingReminders={true} />);
+
+            // Should show loading state from prop, not hook
+            expect(screen.getByText(/loading reminders/i)).toBeInTheDocument();
+        });
+
+        it("should use provided updateReminder function instead of hook", async () => {
+            const propUpdateReminder = vi.fn().mockResolvedValue(undefined);
+            const reminders: ReminderData[] = [
+                {
+                    id: 1,
+                    tracking_id: 1,
+                    user_id: 1,
+                    scheduled_time: new Date(Date.now() - 3600000).toISOString(),
+                    status: ReminderStatus.PENDING,
+                },
+            ];
+
+            (useRemindersModule.useReminders as any).mockReturnValue({
+                reminders,
+                isLoading: false,
+                updateReminder: mockUpdateReminder,
+                snoozeReminder: mockSnoozeReminder,
+                deleteReminder: mockDeleteReminder,
+                refreshReminders: mockRefreshReminders,
+            });
+            (useTrackingsModule.useTrackings as any).mockReturnValue({
+                trackings: [mockTracking],
+            });
+
+            render(<RemindersList reminders={reminders} updateReminder={propUpdateReminder} />);
+
+            const answerButton = screen.getByRole("button", { name: "Answer reminder" });
+            await userEvent.click(answerButton);
+
+            await waitFor(() => {
+                expect(screen.getByText("Answer reminder")).toBeInTheDocument();
+            });
+
+            // Fill in answer and save (TRUE_FALSE type shows Yes/No buttons)
+            const yesButton = screen.getByRole("button", { name: /🟢 yes/i });
+            await userEvent.click(yesButton);
+
+            const saveButton = screen.getByRole("button", { name: /save/i });
+            await userEvent.click(saveButton);
+
+            await waitFor(() => {
+                expect(propUpdateReminder).toHaveBeenCalledWith(1, "Yes", "", ReminderStatus.ANSWERED);
+                expect(mockUpdateReminder).not.toHaveBeenCalled();
+            });
+        });
+
+        it("should use provided snoozeReminder function instead of hook", async () => {
+            const propSnoozeReminder = vi.fn().mockResolvedValue({
+                id: 1,
+                tracking_id: 1,
+                user_id: 1,
+                scheduled_time: new Date(Date.now() + 900000).toISOString(),
+                status: ReminderStatus.UPCOMING,
+            });
+
+            const reminders: ReminderData[] = [
+                {
+                    id: 1,
+                    tracking_id: 1,
+                    user_id: 1,
+                    scheduled_time: new Date(Date.now() - 3600000).toISOString(),
+                    status: ReminderStatus.PENDING,
+                },
+            ];
+
+            (useRemindersModule.useReminders as any).mockReturnValue({
+                reminders,
+                isLoading: false,
+                updateReminder: mockUpdateReminder,
+                snoozeReminder: mockSnoozeReminder,
+                deleteReminder: mockDeleteReminder,
+                refreshReminders: mockRefreshReminders,
+            });
+            (useTrackingsModule.useTrackings as any).mockReturnValue({
+                trackings: [mockTracking],
+            });
+
+            render(<RemindersList reminders={reminders} snoozeReminder={propSnoozeReminder} />);
+
+            const snoozeButton = screen.getByRole("button", { name: "Snooze reminder" });
+            await userEvent.click(snoozeButton);
+
+            await waitFor(() => {
+                expect(screen.getByText("15 min")).toBeInTheDocument();
+            });
+
+            const snoozeOption = screen.getByText("15 min");
+            await userEvent.click(snoozeOption);
+
+            await waitFor(() => {
+                expect(propSnoozeReminder).toHaveBeenCalledWith(1, 15);
+                expect(mockSnoozeReminder).not.toHaveBeenCalled();
+            });
+        });
+
+        it("should use provided deleteReminder function instead of hook", async () => {
+            const propDeleteReminder = vi.fn().mockResolvedValue(undefined);
+
+            const reminders: ReminderData[] = [
+                {
+                    id: 1,
+                    tracking_id: 1,
+                    user_id: 1,
+                    scheduled_time: new Date(Date.now() - 3600000).toISOString(),
+                    status: ReminderStatus.PENDING,
+                },
+            ];
+
+            (useRemindersModule.useReminders as any).mockReturnValue({
+                reminders,
+                isLoading: false,
+                updateReminder: mockUpdateReminder,
+                snoozeReminder: mockSnoozeReminder,
+                deleteReminder: mockDeleteReminder,
+                refreshReminders: mockRefreshReminders,
+            });
+            (useTrackingsModule.useTrackings as any).mockReturnValue({
+                trackings: [mockTracking],
+            });
+
+            render(<RemindersList reminders={reminders} deleteReminder={propDeleteReminder} />);
+
+            const skipButton = screen.getByRole("button", { name: "Skip reminder" });
+            await userEvent.click(skipButton);
+
+            await waitFor(() => {
+                expect(screen.getByText("Skip reminder")).toBeInTheDocument();
+            });
+
+            const confirmButton = screen.getByRole("button", { name: /^skip$/i });
+            await userEvent.click(confirmButton);
+
+            await waitFor(() => {
+                expect(propDeleteReminder).toHaveBeenCalledWith(1);
+                expect(mockDeleteReminder).not.toHaveBeenCalled();
+            });
+        });
+    });
 });
 

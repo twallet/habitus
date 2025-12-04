@@ -6,6 +6,7 @@ import App from '../App';
 import { API_ENDPOINTS } from '../config/api';
 import { useAuth } from '../hooks/useAuth';
 import { useTrackings } from '../hooks/useTrackings';
+import { useReminders } from '../hooks/useReminders';
 import { TrackingType } from '../models/Tracking';
 
 // Mock fetch
@@ -24,8 +25,14 @@ vi.mock('../hooks/useTrackings', () => ({
   useTrackings: vi.fn(),
 }));
 
+// Mock useReminders hook
+vi.mock('../hooks/useReminders', () => ({
+  useReminders: vi.fn(),
+}));
+
 const mockUseAuth = useAuth as MockedFunction<typeof useAuth>;
 const mockUseTrackings = useTrackings as MockedFunction<typeof useTrackings>;
+const mockUseReminders = useReminders as MockedFunction<typeof useReminders>;
 
 describe('App', () => {
   beforeEach(() => {
@@ -65,6 +72,17 @@ describe('App', () => {
       updateTrackingState: vi.fn(),
       deleteTracking: vi.fn(),
       refreshTrackings: vi.fn(),
+    });
+
+    // Default mock for useReminders
+    mockUseReminders.mockReturnValue({
+      reminders: [],
+      isLoading: false,
+      updateReminder: vi.fn(),
+      snoozeReminder: vi.fn(),
+      deleteReminder: vi.fn(),
+      refreshReminders: vi.fn(),
+      removeRemindersForTracking: vi.fn(),
     });
 
     // Default mock: unauthenticated state
