@@ -333,7 +333,7 @@ interface RemindersListProps {
  */
 export function RemindersList({ onCreate: _onCreate, onMessage }: RemindersListProps = {}) {
     const { reminders, isLoading, updateReminder, snoozeReminder, deleteReminder, refreshReminders } = useReminders();
-    const { trackings } = useTrackings();
+    const { trackings, isLoading: isLoadingTrackings } = useTrackings();
     const [editingReminder, setEditingReminder] = useState<ReminderData | null>(null);
     const [reminderToDelete, setReminderToDelete] = useState<ReminderData | null>(null);
     const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
@@ -664,7 +664,7 @@ export function RemindersList({ onCreate: _onCreate, onMessage }: RemindersListP
         };
     }, []);
 
-    if (isLoading) {
+    if (isLoading || isLoadingTrackings) {
         return <div className="reminders-loading">Loading reminders...</div>;
     }
 
