@@ -1307,7 +1307,10 @@ export function TrackingsList({
                                     >
                                         {TrackingFormatter.formatFrequency(tracking.days)}
                                     </td>
-                                    <td className="cell-next-reminder">
+                                    <td
+                                        className="cell-next-reminder"
+                                        title={TrackingFormatter.formatNextReminderTime(getNextReminderTime(tracking.id))}
+                                    >
                                         {TrackingFormatter.formatNextReminderTimeDisplay(getNextReminderTime(tracking.id))}
                                     </td>
                                     <td className="cell-status">
