@@ -43,18 +43,29 @@ export class ReminderService {
       } reminders for userId: ${userId}`
     );
 
-    // Check and update expired upcoming reminders
-    await this.updateExpiredUpcomingReminders(reminders);
+    // Filter out orphaned reminders first (identify and separate valid from orphaned)
+    const validReminders = await this.filterOrphanedReminders(reminders);
+    const orphanedReminders = reminders.filter(
+      (r) => !validReminders.some((vr) => vr.id === r.id)
+    );
+
+    // Clean up orphaned reminders (delete from database)
+    if (orphanedReminders.length > 0) {
+      await this.cleanupOrphanedReminders(orphanedReminders, userId);
+    }
+
+    // Check and update expired upcoming reminders (only on valid reminders)
+    await this.updateExpiredUpcomingReminders(validReminders);
 
     // Return all reminders (including future ones) for tooltip display
     // Frontend will filter them for display in RemindersList
     console.log(
-      `[${new Date().toISOString()}] REMINDER | Returning all ${
-        reminders.length
-      } reminders for userId: ${userId} (frontend will filter for display)`
+      `[${new Date().toISOString()}] REMINDER | Returning ${
+        validReminders.length
+      } valid reminders for userId: ${userId} (frontend will filter for display)`
     );
 
-    return reminders.map((reminder) => reminder.toData());
+    return validReminders.map((reminder) => reminder.toData());
   }
 
   /**
@@ -223,24 +234,41 @@ export class ReminderService {
     const snoozedTime = new Date(now.getTime() + snoozeMinutes * 60 * 1000);
     const trackingId = reminder.tracking_id;
 
-    // Delete any existing Upcoming reminder for this tracking to ensure only one
-    await Reminder.deleteUpcomingByTrackingId(trackingId, userId, this.db);
-
-    const updatedReminder = await reminder.update(
-      {
-        scheduled_time: snoozedTime.toISOString(),
-        status: ReminderStatus.UPCOMING,
-        answer: undefined,
-        notes: undefined,
-      },
+    // Find existing Upcoming reminder for this tracking
+    const existingUpcoming = await Reminder.loadUpcomingByTrackingId(
+      trackingId,
+      userId,
       this.db
     );
 
-    console.log(
-      `[${new Date().toISOString()}] REMINDER | Reminder snoozed successfully: ID ${reminderId}`
-    );
+    if (existingUpcoming) {
+      // Update the existing Upcoming reminder's time
+      const updatedReminder = await existingUpcoming.update(
+        {
+          scheduled_time: snoozedTime.toISOString(),
+        },
+        this.db
+      );
 
-    return updatedReminder;
+      console.log(
+        `[${new Date().toISOString()}] REMINDER | Updated existing Upcoming reminder time for tracking ${trackingId}`
+      );
+
+      return updatedReminder;
+    } else {
+      // No existing Upcoming reminder, create a new one with the snoozed time
+      const newReminder = await this.createReminder(
+        trackingId,
+        userId,
+        snoozedTime.toISOString()
+      );
+
+      console.log(
+        `[${new Date().toISOString()}] REMINDER | Created new Upcoming reminder with snoozed time for tracking ${trackingId}`
+      );
+
+      return newReminder;
+    }
   }
 
   /**

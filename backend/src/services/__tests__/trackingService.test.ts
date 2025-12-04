@@ -1,7 +1,11 @@
 import { vi } from "vitest";
 import sqlite3 from "sqlite3";
 import { TrackingService } from "../trackingService.js";
-import { TrackingType, TrackingState } from "../../models/Tracking.js";
+import {
+  TrackingType,
+  TrackingState,
+  DaysPatternType,
+} from "../../models/Tracking.js";
 import { Database } from "../../db/database.js";
 import { Reminder, ReminderStatus } from "../../models/Reminder.js";
 import { TrackingSchedule } from "../../models/TrackingSchedule.js";
@@ -295,6 +299,61 @@ describe("TrackingService", () => {
         )
       ).rejects.toThrow("At least one schedule is required");
     });
+
+    it("should create initial Upcoming reminder when tracking is created with times and days pattern", async () => {
+      const tracking = await trackingService.createTracking(
+        testUserId,
+        "Did I exercise today?",
+        TrackingType.TRUE_FALSE,
+        undefined,
+        undefined,
+        [{ hour: 9, minutes: 0 }],
+        {
+          pattern_type: DaysPatternType.DAY_OF_WEEK,
+          days: [1, 2, 3, 4, 5],
+        }
+      );
+
+      expect(tracking).not.toBeNull();
+      expect(tracking.id).toBeGreaterThan(0);
+
+      // Verify an initial reminder was created
+      const reminder = await Reminder.loadByTrackingId(
+        tracking.id!,
+        testUserId,
+        testDb
+      );
+      expect(reminder).not.toBeNull();
+      expect(reminder!.status).toBe(ReminderStatus.UPCOMING);
+      expect(reminder!.tracking_id).toBe(tracking.id);
+
+      // Verify the reminder time is in the future
+      const scheduledTime = new Date(reminder!.scheduled_time);
+      const now = new Date();
+      expect(scheduledTime.getTime()).toBeGreaterThan(now.getTime());
+    });
+
+    it("should not create reminder when tracking is created without days pattern", async () => {
+      const tracking = await trackingService.createTracking(
+        testUserId,
+        "Did I exercise today?",
+        TrackingType.TRUE_FALSE,
+        undefined,
+        undefined,
+        [{ hour: 9, minutes: 0 }]
+        // No days pattern
+      );
+
+      expect(tracking).not.toBeNull();
+
+      // Verify no reminder was created
+      const reminder = await Reminder.loadByTrackingId(
+        tracking.id!,
+        testUserId,
+        testDb
+      );
+      expect(reminder).toBeNull();
+    });
   });
 
   describe("updateTracking", () => {
@@ -365,6 +424,172 @@ describe("TrackingService", () => {
       await expect(
         trackingService.updateTracking(trackingId, testUserId)
       ).rejects.toThrow("No fields to update");
+    });
+
+    it("should update or create Upcoming reminder when schedules change and tracking is Running", async () => {
+      // Create tracking with schedule and days pattern
+      const trackingResult = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type, state, days) VALUES (?, ?, ?, ?, ?)",
+        [
+          testUserId,
+          "Test Question",
+          TrackingType.TRUE_FALSE,
+          "Running",
+          JSON.stringify({
+            pattern_type: "day_of_week",
+            days: [1, 2, 3, 4, 5],
+          }),
+        ]
+      );
+      const trackingId = trackingResult.lastID;
+
+      // Create initial schedule
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 9, 0]
+      );
+
+      // Create an existing Upcoming reminder
+      const existingUpcoming = new Reminder({
+        id: 0,
+        tracking_id: trackingId,
+        user_id: testUserId,
+        scheduled_time: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hour from now
+        status: ReminderStatus.UPCOMING,
+      });
+      await existingUpcoming.save(testDb);
+
+      // Update tracking with new schedule
+      await trackingService.updateTracking(
+        trackingId,
+        testUserId,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        [{ hour: 10, minutes: 30 }] // New schedule time
+      );
+
+      // Verify the Upcoming reminder was updated or replaced
+      const updatedUpcoming = await Reminder.loadUpcomingByTrackingId(
+        trackingId,
+        testUserId,
+        testDb
+      );
+      expect(updatedUpcoming).not.toBeNull();
+      // The time should be recalculated based on the new schedule
+      expect(updatedUpcoming!.scheduled_time).not.toBe(
+        existingUpcoming.scheduled_time
+      );
+    });
+
+    it("should create Upcoming reminder when schedules change and no Upcoming exists", async () => {
+      // Create tracking with schedule and days pattern
+      const trackingResult = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type, state, days) VALUES (?, ?, ?, ?, ?)",
+        [
+          testUserId,
+          "Test Question",
+          TrackingType.TRUE_FALSE,
+          "Running",
+          JSON.stringify({
+            pattern_type: "day_of_week",
+            days: [1, 2, 3, 4, 5],
+          }),
+        ]
+      );
+      const trackingId = trackingResult.lastID;
+
+      // Create initial schedule
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 9, 0]
+      );
+
+      // Verify no Upcoming reminder exists
+      const beforeUpcoming = await Reminder.loadUpcomingByTrackingId(
+        trackingId,
+        testUserId,
+        testDb
+      );
+      expect(beforeUpcoming).toBeNull();
+
+      // Update tracking with new schedule
+      await trackingService.updateTracking(
+        trackingId,
+        testUserId,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        [{ hour: 10, minutes: 30 }] // New schedule time
+      );
+
+      // Verify Upcoming reminder was created
+      const afterUpcoming = await Reminder.loadUpcomingByTrackingId(
+        trackingId,
+        testUserId,
+        testDb
+      );
+      expect(afterUpcoming).not.toBeNull();
+      expect(afterUpcoming!.status).toBe(ReminderStatus.UPCOMING);
+    });
+
+    it("should update Upcoming reminder when days pattern changes and tracking is Running", async () => {
+      // Create tracking with schedule and days pattern
+      const trackingResult = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type, state, days) VALUES (?, ?, ?, ?, ?)",
+        [
+          testUserId,
+          "Test Question",
+          TrackingType.TRUE_FALSE,
+          "Running",
+          JSON.stringify({
+            pattern_type: "day_of_week",
+            days: [1, 2, 3, 4, 5], // Weekdays
+          }),
+        ]
+      );
+      const trackingId = trackingResult.lastID;
+
+      // Create schedule
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 9, 0]
+      );
+
+      // Create an existing Upcoming reminder
+      const existingUpcoming = new Reminder({
+        id: 0,
+        tracking_id: trackingId,
+        user_id: testUserId,
+        scheduled_time: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        status: ReminderStatus.UPCOMING,
+      });
+      await existingUpcoming.save(testDb);
+
+      // Update tracking with new days pattern
+      await trackingService.updateTracking(
+        trackingId,
+        testUserId,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          pattern_type: DaysPatternType.DAY_OF_WEEK,
+          days: [0, 6], // Weekends instead
+        }
+      );
+
+      // Verify the Upcoming reminder was updated or replaced
+      const updatedUpcoming = await Reminder.loadUpcomingByTrackingId(
+        trackingId,
+        testUserId,
+        testDb
+      );
+      expect(updatedUpcoming).not.toBeNull();
     });
   });
 
@@ -794,6 +1019,164 @@ describe("TrackingService", () => {
       } else {
         expect(reminder!.status).toBe(ReminderStatus.PENDING);
       }
+    });
+
+    it("should delete Pending and Upcoming reminders when transitioning from Running to Archived", async () => {
+      // Create tracking with schedule
+      const trackingResult = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type, state, days) VALUES (?, ?, ?, ?, ?)",
+        [
+          testUserId,
+          "Test Question",
+          TrackingType.TRUE_FALSE,
+          "Running",
+          JSON.stringify({
+            pattern_type: "day_of_week",
+            days: [1, 2, 3, 4, 5],
+          }),
+        ]
+      );
+      const trackingId = trackingResult.lastID;
+
+      // Create schedule
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 10, 0]
+      );
+
+      // Create Pending reminder
+      const pendingReminder = new Reminder({
+        id: 0,
+        tracking_id: trackingId,
+        user_id: testUserId,
+        scheduled_time: new Date(
+          Date.now() + 24 * 60 * 60 * 1000
+        ).toISOString(),
+        status: ReminderStatus.PENDING,
+      });
+      await pendingReminder.save(testDb);
+
+      // Create Upcoming reminder
+      const upcomingReminder = new Reminder({
+        id: 0,
+        tracking_id: trackingId,
+        user_id: testUserId,
+        scheduled_time: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+        status: ReminderStatus.UPCOMING,
+      });
+      await upcomingReminder.save(testDb);
+
+      // Create Answered reminder (should not be deleted)
+      const answeredReminder = new Reminder({
+        id: 0,
+        tracking_id: trackingId,
+        user_id: testUserId,
+        scheduled_time: new Date(
+          Date.now() - 24 * 60 * 60 * 1000
+        ).toISOString(),
+        status: ReminderStatus.ANSWERED,
+        answer: "Yes",
+      });
+      await answeredReminder.save(testDb);
+
+      // Archive the tracking
+      await trackingService.updateTrackingState(
+        trackingId,
+        testUserId,
+        "Archived"
+      );
+
+      // Verify Pending and Upcoming reminders are deleted
+      const pendingAfter = await Reminder.loadById(
+        pendingReminder.id,
+        testUserId,
+        testDb
+      );
+      const upcomingAfter = await Reminder.loadById(
+        upcomingReminder.id,
+        testUserId,
+        testDb
+      );
+      const answeredAfter = await Reminder.loadById(
+        answeredReminder.id,
+        testUserId,
+        testDb
+      );
+
+      expect(pendingAfter).toBeNull();
+      expect(upcomingAfter).toBeNull();
+      expect(answeredAfter).not.toBeNull(); // Answered reminder should remain
+    });
+
+    it("should delete Pending and Upcoming reminders when transitioning from Paused to Archived", async () => {
+      // Create tracking with schedule
+      const trackingResult = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type, state, days) VALUES (?, ?, ?, ?, ?)",
+        [
+          testUserId,
+          "Test Question",
+          TrackingType.TRUE_FALSE,
+          "Paused",
+          JSON.stringify({
+            pattern_type: "day_of_week",
+            days: [1, 2, 3, 4, 5],
+          }),
+        ]
+      );
+      const trackingId = trackingResult.lastID;
+
+      // Create schedule
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 10, 0]
+      );
+
+      // Create Pending reminder
+      const pendingReminder = new Reminder({
+        id: 0,
+        tracking_id: trackingId,
+        user_id: testUserId,
+        scheduled_time: new Date(
+          Date.now() + 24 * 60 * 60 * 1000
+        ).toISOString(),
+        status: ReminderStatus.PENDING,
+      });
+      await pendingReminder.save(testDb);
+
+      // Create Answered reminder (should not be deleted)
+      const answeredReminder = new Reminder({
+        id: 0,
+        tracking_id: trackingId,
+        user_id: testUserId,
+        scheduled_time: new Date(
+          Date.now() - 24 * 60 * 60 * 1000
+        ).toISOString(),
+        status: ReminderStatus.ANSWERED,
+        answer: "Yes",
+      });
+      await answeredReminder.save(testDb);
+
+      // Archive the tracking
+      await trackingService.updateTrackingState(
+        trackingId,
+        testUserId,
+        "Archived"
+      );
+
+      // Verify Pending reminder is deleted
+      const pendingAfter = await Reminder.loadById(
+        pendingReminder.id,
+        testUserId,
+        testDb
+      );
+      const answeredAfter = await Reminder.loadById(
+        answeredReminder.id,
+        testUserId,
+        testDb
+      );
+
+      expect(pendingAfter).toBeNull();
+      expect(answeredAfter).not.toBeNull(); // Answered reminder should remain
     });
   });
 });

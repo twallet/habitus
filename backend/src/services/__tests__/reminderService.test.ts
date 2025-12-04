@@ -160,6 +160,63 @@ describe("ReminderService", () => {
   });
 
   describe("getRemindersByUserId", () => {
+    it("should delete orphaned reminders (reminders whose tracking no longer exists)", async () => {
+      // Create a tracking
+      const trackingResult = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type, days, state) VALUES (?, ?, ?, ?, ?)",
+        [
+          testUserId,
+          "Test Question",
+          TrackingType.TRUE_FALSE,
+          JSON.stringify({
+            pattern_type: DaysPatternType.INTERVAL,
+            interval_value: 1,
+            interval_unit: "days",
+          }),
+          "Running",
+        ]
+      );
+      const trackingId = trackingResult.lastID;
+
+      // Create a schedule
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 9, 0]
+      );
+
+      // Create a reminder for this tracking
+      const reminder = await reminderService.createReminder(
+        trackingId,
+        testUserId,
+        new Date().toISOString()
+      );
+
+      // Verify reminder exists
+      const beforeReminder = await Reminder.loadById(
+        reminder.id,
+        testUserId,
+        testDb
+      );
+      expect(beforeReminder).not.toBeNull();
+
+      // Delete the tracking (making the reminder orphaned)
+      await testDb.run("DELETE FROM trackings WHERE id = ?", [trackingId]);
+
+      // Fetch reminders - should detect and delete orphaned reminder
+      const reminders = await reminderService.getRemindersByUserId(testUserId);
+
+      // Verify orphaned reminder was deleted
+      const afterReminder = await Reminder.loadById(
+        reminder.id,
+        testUserId,
+        testDb
+      );
+      expect(afterReminder).toBeNull();
+
+      // Verify orphaned reminder is not in the returned list
+      const orphanedInList = reminders.find((r) => r.id === reminder.id);
+      expect(orphanedInList).toBeUndefined();
+    });
     it("should get all reminders for a user", async () => {
       const scheduledTime1 = new Date(Date.now() - 3600000).toISOString(); // 1 hour ago
       const scheduledTime2 = new Date(Date.now() - 1800000).toISOString(); // 30 minutes ago
@@ -311,6 +368,39 @@ describe("ReminderService", () => {
       expect(updated.status).toBe(ReminderStatus.ANSWERED);
     });
 
+    it("should create next Upcoming reminder when reminder is answered", async () => {
+      const scheduledTime = new Date().toISOString();
+      const created = await reminderService.createReminder(
+        testTrackingId,
+        testUserId,
+        scheduledTime
+      );
+
+      // Verify no Upcoming reminder exists before answering
+      const beforeUpcoming = await Reminder.loadUpcomingByTrackingId(
+        testTrackingId,
+        testUserId,
+        testDb
+      );
+      expect(beforeUpcoming).toBeNull();
+
+      // Answer the reminder
+      await reminderService.updateReminder(created.id, testUserId, {
+        answer: "Yes",
+        status: ReminderStatus.ANSWERED,
+      });
+
+      // Verify a new Upcoming reminder was created
+      const afterUpcoming = await Reminder.loadUpcomingByTrackingId(
+        testTrackingId,
+        testUserId,
+        testDb
+      );
+      expect(afterUpcoming).not.toBeNull();
+      expect(afterUpcoming!.status).toBe(ReminderStatus.UPCOMING);
+      expect(afterUpcoming!.scheduled_time).not.toBe(scheduledTime);
+    });
+
     it("should throw error if reminder not found", async () => {
       await expect(
         reminderService.updateReminder(999, testUserId, {
@@ -321,26 +411,89 @@ describe("ReminderService", () => {
   });
 
   describe("snoozeReminder", () => {
-    it("should snooze a reminder", async () => {
-      const scheduledTime = new Date().toISOString();
-      const created = await reminderService.createReminder(
+    it("should update existing Upcoming reminder time when snoozing a Pending reminder", async () => {
+      // Create a Pending reminder
+      const pendingTime = new Date(Date.now() - 60 * 60 * 1000).toISOString(); // 1 hour ago
+      const pendingReminder = await reminderService.createReminder(
         testTrackingId,
         testUserId,
-        scheduledTime
+        pendingTime
       );
+      expect(pendingReminder.status).toBe(ReminderStatus.PENDING);
 
+      // Create an existing Upcoming reminder
+      const upcomingTime = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(); // 2 hours from now
+      const existingUpcoming = await reminderService.createReminder(
+        testTrackingId,
+        testUserId,
+        upcomingTime
+      );
+      expect(existingUpcoming.status).toBe(ReminderStatus.UPCOMING);
+
+      const originalUpcomingTime = existingUpcoming.scheduled_time;
+
+      // Snooze the Pending reminder
       const snoozed = await reminderService.snoozeReminder(
-        created.id,
+        pendingReminder.id,
         testUserId,
         30
       );
 
+      // Verify the existing Upcoming reminder's time was updated
+      expect(snoozed.id).toBe(existingUpcoming.id);
       expect(snoozed.status).toBe(ReminderStatus.UPCOMING);
       const snoozedTime = new Date(snoozed.scheduled_time);
-      const originalTime = new Date(scheduledTime);
+      const now = new Date();
       const diffMinutes =
-        (snoozedTime.getTime() - originalTime.getTime()) / (1000 * 60);
-      expect(diffMinutes).toBeGreaterThanOrEqual(30);
+        (snoozedTime.getTime() - now.getTime()) / (1000 * 60);
+      expect(diffMinutes).toBeGreaterThanOrEqual(29); // Should be around 30 minutes
+      expect(diffMinutes).toBeLessThan(31);
+      expect(snoozed.scheduled_time).not.toBe(originalUpcomingTime);
+
+      // Verify the Pending reminder still exists (not converted)
+      const pendingAfter = await Reminder.loadById(
+        pendingReminder.id,
+        testUserId,
+        testDb
+      );
+      expect(pendingAfter).not.toBeNull();
+      expect(pendingAfter!.status).toBe(ReminderStatus.PENDING);
+    });
+
+    it("should create new Upcoming reminder when snoozing if no existing Upcoming", async () => {
+      // Create a Pending reminder
+      const pendingTime = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const pendingReminder = await reminderService.createReminder(
+        testTrackingId,
+        testUserId,
+        pendingTime
+      );
+      expect(pendingReminder.status).toBe(ReminderStatus.PENDING);
+
+      // Verify no Upcoming reminder exists
+      const beforeUpcoming = await Reminder.loadUpcomingByTrackingId(
+        testTrackingId,
+        testUserId,
+        testDb
+      );
+      expect(beforeUpcoming).toBeNull();
+
+      // Snooze the Pending reminder
+      const snoozed = await reminderService.snoozeReminder(
+        pendingReminder.id,
+        testUserId,
+        30
+      );
+
+      // Verify a new Upcoming reminder was created
+      expect(snoozed.status).toBe(ReminderStatus.UPCOMING);
+      expect(snoozed.id).not.toBe(pendingReminder.id);
+      const snoozedTime = new Date(snoozed.scheduled_time);
+      const now = new Date();
+      const diffMinutes =
+        (snoozedTime.getTime() - now.getTime()) / (1000 * 60);
+      expect(diffMinutes).toBeGreaterThanOrEqual(29);
+      expect(diffMinutes).toBeLessThan(31);
     });
 
     it("should throw error if reminder not found", async () => {
