@@ -27,9 +27,12 @@ function ansiToHtml(text: string): string {
     // Replace ANSI codes with HTML spans
     html = html.replace(/\x1b\[32m/g, '<span style="color: #4ec9b0">'); // Green
     html = html.replace(/\x1b\[33m/g, '<span style="color: #dcdcaa">'); // Yellow
+    html = html.replace(/\x1b\[34m/g, '<span style="color: #569cd6">'); // Blue
+    html = html.replace(/\x1b\[35m/g, '<span style="color: #c586c0">'); // Magenta
     html = html.replace(/\x1b\[36m/g, '<span style="color: #4ec9b0">'); // Cyan
     html = html.replace(/\x1b\[37m/g, '<span style="color: #d4d4d4">'); // White
     html = html.replace(/\x1b\[90m/g, '<span style="color: #808080">'); // Gray
+    html = html.replace(/\x1b\[93m/g, '<span style="color: #dcdcaa">'); // Bright Yellow
     html = html.replace(/\x1b\[0m/g, '</span>'); // Reset
 
     // Close any unclosed spans at the end

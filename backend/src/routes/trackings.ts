@@ -64,9 +64,12 @@ router.get(
       const ANSI_RESET = "\x1b[0m";
       const ANSI_GREEN = "\x1b[32m";
       const ANSI_YELLOW = "\x1b[33m";
+      const ANSI_BLUE = "\x1b[34m";
+      const ANSI_MAGENTA = "\x1b[35m";
       const ANSI_CYAN = "\x1b[36m";
       const ANSI_WHITE = "\x1b[37m";
       const ANSI_GRAY = "\x1b[90m";
+      const ANSI_BRIGHT_YELLOW = "\x1b[93m";
 
       // Format output similar to PowerShell script with ANSI color codes
       const lines: string[] = [];
@@ -113,11 +116,12 @@ router.get(
           ];
 
           // Determine color based on tracking state
+          // Use different colors from reminder statuses to avoid conflicts
           const stateColor =
             tracking.state === "Running"
-              ? ANSI_GREEN
+              ? ANSI_BLUE
               : tracking.state === "Paused"
-              ? ANSI_YELLOW
+              ? ANSI_BRIGHT_YELLOW
               : ANSI_WHITE;
 
           lines.push(
@@ -161,7 +165,7 @@ router.get(
                   : reminder.status === "Answered"
                   ? ANSI_GREEN
                   : reminder.status === "Upcoming"
-                  ? ANSI_CYAN
+                  ? ANSI_MAGENTA
                   : ANSI_GRAY;
 
               lines.push(
