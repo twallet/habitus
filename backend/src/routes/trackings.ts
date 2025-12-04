@@ -33,6 +33,123 @@ router.get("/", authenticateToken, async (req: AuthRequest, res: Response) => {
 });
 
 /**
+ * GET /api/trackings/debug
+ * Get formatted debug log output showing all trackings and their reminders.
+ * @route GET /api/trackings/debug
+ * @header {string} Authorization - Bearer token
+ * @returns {Object} Object with formatted log text
+ */
+router.get(
+  "/debug",
+  authenticateToken,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId!;
+      const trackingService = getTrackingServiceInstance();
+      const reminderService = ServiceManager.getReminderService();
+
+      const trackings = await trackingService.getTrackingsByUserId(userId);
+      const reminders = await reminderService.getRemindersByUserId(userId);
+
+      // Group reminders by tracking_id
+      const remindersByTracking = new Map<number, typeof reminders>();
+      reminders.forEach((reminder) => {
+        const trackingReminders =
+          remindersByTracking.get(reminder.tracking_id) || [];
+        trackingReminders.push(reminder);
+        remindersByTracking.set(reminder.tracking_id, trackingReminders);
+      });
+
+      // Format output similar to PowerShell script
+      const lines: string[] = [];
+      lines.push(`Total number of trackings: ${trackings.length}`);
+
+      if (trackings.length === 0) {
+        lines.push("No trackings found in the database.");
+      } else {
+        trackings.forEach((tracking, index) => {
+          if (index > 0) {
+            lines.push("");
+          }
+
+          // Format schedules
+          const schedulesStr =
+            tracking.schedules && tracking.schedules.length > 0
+              ? tracking.schedules
+                  .map(
+                    (s) =>
+                      `${String(s.hour).padStart(2, "0")}:${String(
+                        s.minutes
+                      ).padStart(2, "0")}`
+                  )
+                  .join(", ")
+              : "None";
+
+          // Build tracking attributes
+          const trackingAttrs = [
+            `ID=${tracking.id}`,
+            `UserID=${tracking.user_id}`,
+            `Question=${tracking.question}`,
+            `Type=${tracking.type}`,
+            `State=${tracking.state}`,
+            `Icon=${tracking.icon || "null"}`,
+            `Days=${tracking.days || "null"}`,
+            `Schedules=[${schedulesStr}]`,
+            `Notes=${tracking.notes || "null"}`,
+            `Created=${tracking.created_at}`,
+            `Updated=${tracking.updated_at}`,
+          ];
+
+          lines.push(`TRACKING #${index + 1} : ${trackingAttrs.join(" | ")}`);
+
+          // Display reminders
+          const trackingReminders = remindersByTracking.get(tracking.id) || [];
+          if (trackingReminders.length > 0) {
+            trackingReminders.forEach((reminder) => {
+              // Format scheduled time
+              const scheduledTime = reminder.scheduled_time
+                ? new Date(reminder.scheduled_time)
+                    .toISOString()
+                    .replace("T", " ")
+                    .substring(0, 19)
+                : "null";
+
+              // Format answer and notes
+              const answerStr = reminder.answer || "null";
+              const notesStr = reminder.notes || "null";
+
+              const reminderAttrs = [
+                `ID=${reminder.id}`,
+                `TrackingID=${reminder.tracking_id}`,
+                `UserID=${reminder.user_id}`,
+                `ScheduledTime=${scheduledTime}`,
+                `Status=${reminder.status}`,
+                `Answer=${answerStr}`,
+                `Notes=${notesStr}`,
+                `Created=${reminder.created_at}`,
+                `Updated=${reminder.updated_at}`,
+              ];
+
+              lines.push(`  -> REMINDER : ${reminderAttrs.join(" | ")}`);
+            });
+          } else {
+            lines.push("  -> REMINDERS: None");
+          }
+        });
+      }
+
+      res.json({ log: lines.join("\n") });
+    } catch (error) {
+      console.error(
+        `[${new Date().toISOString()}] TRACKING_ROUTE | Error generating debug log:`,
+        error
+      );
+      res.status(500).json({ error: "Error generating debug log" });
+    }
+  }
+);
+
+/**
  * GET /api/trackings/:id
  * Get a tracking by ID.
  * @route GET /api/trackings/:id
@@ -316,123 +433,6 @@ router.post(
         return res.status(500).json({ error: error.message });
       }
       res.status(500).json({ error: "Error suggesting emoji" });
-    }
-  }
-);
-
-/**
- * GET /api/trackings/debug
- * Get formatted debug log output showing all trackings and their reminders.
- * @route GET /api/trackings/debug
- * @header {string} Authorization - Bearer token
- * @returns {Object} Object with formatted log text
- */
-router.get(
-  "/debug",
-  authenticateToken,
-  async (req: AuthRequest, res: Response) => {
-    try {
-      const userId = req.userId!;
-      const trackingService = getTrackingServiceInstance();
-      const reminderService = ServiceManager.getReminderService();
-
-      const trackings = await trackingService.getTrackingsByUserId(userId);
-      const reminders = await reminderService.getRemindersByUserId(userId);
-
-      // Group reminders by tracking_id
-      const remindersByTracking = new Map<number, typeof reminders>();
-      reminders.forEach((reminder) => {
-        const trackingReminders =
-          remindersByTracking.get(reminder.tracking_id) || [];
-        trackingReminders.push(reminder);
-        remindersByTracking.set(reminder.tracking_id, trackingReminders);
-      });
-
-      // Format output similar to PowerShell script
-      const lines: string[] = [];
-      lines.push(`Total number of trackings: ${trackings.length}`);
-
-      if (trackings.length === 0) {
-        lines.push("No trackings found in the database.");
-      } else {
-        trackings.forEach((tracking, index) => {
-          if (index > 0) {
-            lines.push("");
-          }
-
-          // Format schedules
-          const schedulesStr =
-            tracking.schedules && tracking.schedules.length > 0
-              ? tracking.schedules
-                  .map(
-                    (s) =>
-                      `${String(s.hour).padStart(2, "0")}:${String(
-                        s.minutes
-                      ).padStart(2, "0")}`
-                  )
-                  .join(", ")
-              : "None";
-
-          // Build tracking attributes
-          const trackingAttrs = [
-            `ID=${tracking.id}`,
-            `UserID=${tracking.user_id}`,
-            `Question=${tracking.question}`,
-            `Type=${tracking.type}`,
-            `State=${tracking.state}`,
-            `Icon=${tracking.icon || "null"}`,
-            `Days=${tracking.days || "null"}`,
-            `Schedules=[${schedulesStr}]`,
-            `Notes=${tracking.notes || "null"}`,
-            `Created=${tracking.created_at}`,
-            `Updated=${tracking.updated_at}`,
-          ];
-
-          lines.push(`TRACKING #${index + 1} : ${trackingAttrs.join(" | ")}`);
-
-          // Display reminders
-          const trackingReminders = remindersByTracking.get(tracking.id) || [];
-          if (trackingReminders.length > 0) {
-            trackingReminders.forEach((reminder) => {
-              // Format scheduled time
-              const scheduledTime = reminder.scheduled_time
-                ? new Date(reminder.scheduled_time)
-                    .toISOString()
-                    .replace("T", " ")
-                    .substring(0, 19)
-                : "null";
-
-              // Format answer and notes
-              const answerStr = reminder.answer || "null";
-              const notesStr = reminder.notes || "null";
-
-              const reminderAttrs = [
-                `ID=${reminder.id}`,
-                `TrackingID=${reminder.tracking_id}`,
-                `UserID=${reminder.user_id}`,
-                `ScheduledTime=${scheduledTime}`,
-                `Status=${reminder.status}`,
-                `Answer=${answerStr}`,
-                `Notes=${notesStr}`,
-                `Created=${reminder.created_at}`,
-                `Updated=${reminder.updated_at}`,
-              ];
-
-              lines.push(`  -> REMINDER : ${reminderAttrs.join(" | ")}`);
-            });
-          } else {
-            lines.push("  -> REMINDERS: None");
-          }
-        });
-      }
-
-      res.json({ log: lines.join("\n") });
-    } catch (error) {
-      console.error(
-        `[${new Date().toISOString()}] TRACKING_ROUTE | Error generating debug log:`,
-        error
-      );
-      res.status(500).json({ error: "Error generating debug log" });
     }
   }
 );
