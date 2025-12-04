@@ -281,21 +281,10 @@ export function useReminders() {
       `[${new Date().toISOString()}] FRONTEND_REMINDERS | Snoozing reminder ID: ${reminderId} for ${minutes} minutes`
     );
 
-    // Optimistically update the reminder in state immediately for instant UI feedback
-    // Calculate new scheduled time
-    const now = new Date();
-    const newScheduledTime = new Date(now.getTime() + minutes * 60 * 1000);
+    // Optimistically remove the original reminder from the list
+    // (it will be deleted on the backend and replaced with an Upcoming reminder)
     setReminders((prevReminders) =>
-      prevReminders.map((r) => {
-        if (r.id === reminderId) {
-          return {
-            ...r,
-            scheduled_time: newScheduledTime.toISOString(),
-            status: ReminderStatus.UPCOMING,
-          };
-        }
-        return r;
-      })
+      prevReminders.filter((r) => r.id !== reminderId)
     );
 
     try {
@@ -305,10 +294,14 @@ export function useReminders() {
           reminderData.id
         }`
       );
-      // Update with server response to ensure consistency
-      setReminders((prevReminders) =>
-        prevReminders.map((r) => (r.id === reminderId ? reminderData : r))
-      );
+      // Add/update the Upcoming reminder from server response
+      // (the backend deletes the original and returns the Upcoming reminder)
+      setReminders((prevReminders) => {
+        // Remove any existing reminder with the same ID (in case it's an update)
+        const filtered = prevReminders.filter((r) => r.id !== reminderData.id);
+        // Add the new/updated Upcoming reminder
+        return [...filtered, reminderData];
+      });
       return reminderData;
     } catch (error) {
       console.error(

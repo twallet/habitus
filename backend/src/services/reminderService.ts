@@ -262,6 +262,8 @@ export class ReminderService {
       this.db
     );
 
+    let resultReminder: ReminderData;
+
     if (existingUpcoming) {
       // Update the existing Upcoming reminder's time
       const updatedReminder = await existingUpcoming.update(
@@ -275,7 +277,7 @@ export class ReminderService {
         `[${new Date().toISOString()}] REMINDER | Updated existing Upcoming reminder time for tracking ${trackingId}`
       );
 
-      return updatedReminder;
+      resultReminder = updatedReminder;
     } else {
       // No existing Upcoming reminder, create a new one with the snoozed time
       const newReminder = await this.createReminder(
@@ -288,8 +290,17 @@ export class ReminderService {
         `[${new Date().toISOString()}] REMINDER | Created new Upcoming reminder with snoozed time for tracking ${trackingId}`
       );
 
-      return newReminder;
+      resultReminder = newReminder;
     }
+
+    // Delete the original reminder that was snoozed
+    // This ensures pending reminders are removed when snoozed
+    await reminder.delete(this.db);
+    console.log(
+      `[${new Date().toISOString()}] REMINDER | Deleted original reminder ID ${reminderId} after snoozing`
+    );
+
+    return resultReminder;
   }
 
   /**

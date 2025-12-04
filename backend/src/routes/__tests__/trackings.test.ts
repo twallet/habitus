@@ -776,7 +776,6 @@ describe("Trackings Routes", () => {
         .set("Authorization", "Bearer test-token");
 
       expect(response.status).toBe(200);
-      expect(response.body.log).toContain("Total number of trackings: 0");
       expect(response.body.log).toContain(
         "No trackings found in the database."
       );
@@ -807,7 +806,6 @@ describe("Trackings Routes", () => {
         .set("Authorization", "Bearer test-token");
 
       expect(response.status).toBe(200);
-      expect(response.body.log).toContain("Total number of trackings: 1");
       expect(response.body.log).toContain("TRACKING #1");
       expect(response.body.log).toContain(`ID=${trackingId}`);
       expect(response.body.log).toContain("Question=Test Question");
@@ -851,7 +849,6 @@ describe("Trackings Routes", () => {
         .set("Authorization", "Bearer test-token");
 
       expect(response.status).toBe(200);
-      expect(response.body.log).toContain("Total number of trackings: 1");
       expect(response.body.log).toContain("TRACKING #1");
       expect(response.body.log).toContain("REMINDER");
       expect(response.body.log).toContain(`ID=${reminderId}`);
@@ -898,7 +895,6 @@ describe("Trackings Routes", () => {
         .set("Authorization", "Bearer test-token");
 
       expect(response.status).toBe(200);
-      expect(response.body.log).toContain("Total number of trackings: 2");
       expect(response.body.log).toContain("TRACKING #1");
       expect(response.body.log).toContain("TRACKING #2");
       expect(response.body.log).toContain("Question 1");

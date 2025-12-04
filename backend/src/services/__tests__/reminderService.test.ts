@@ -478,14 +478,13 @@ describe("ReminderService", () => {
       expect(diffMinutes).toBeLessThan(31);
       expect(snoozed.scheduled_time).not.toBe(originalUpcomingTime);
 
-      // Verify the Pending reminder still exists (not converted)
+      // Verify the Pending reminder was deleted after snoozing
       const pendingAfter = await Reminder.loadById(
         pendingReminder.id,
         testUserId,
         testDb
       );
-      expect(pendingAfter).not.toBeNull();
-      expect(pendingAfter!.status).toBe(ReminderStatus.PENDING);
+      expect(pendingAfter).toBeNull();
     });
 
     it("should create new Upcoming reminder when snoozing if no existing Upcoming", async () => {
@@ -521,6 +520,14 @@ describe("ReminderService", () => {
       const diffMinutes = (snoozedTime.getTime() - now.getTime()) / (1000 * 60);
       expect(diffMinutes).toBeGreaterThanOrEqual(29);
       expect(diffMinutes).toBeLessThan(31);
+
+      // Verify the Pending reminder was deleted after snoozing
+      const pendingAfter = await Reminder.loadById(
+        pendingReminder.id,
+        testUserId,
+        testDb
+      );
+      expect(pendingAfter).toBeNull();
     });
 
     it("should throw error if reminder not found", async () => {

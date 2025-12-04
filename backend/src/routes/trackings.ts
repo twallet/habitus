@@ -73,9 +73,6 @@ router.get(
 
       // Format output similar to PowerShell script with ANSI color codes
       const lines: string[] = [];
-      lines.push(
-        `${ANSI_GREEN}Total number of trackings: ${trackings.length}${ANSI_RESET}`
-      );
 
       if (trackings.length === 0) {
         lines.push(
