@@ -54,6 +54,7 @@ function App() {
     updateTracking,
     updateTrackingState,
     deleteTracking,
+    refreshTrackings,
   } = useTrackings();
 
   const { reminders, refreshReminders, removeRemindersForTracking } =
@@ -407,6 +408,37 @@ function App() {
   }, [removeRemindersForTracking, refreshReminders]);
 
   /**
+   * Refresh trackings when reminders reference missing trackings.
+   * This ensures that when reminders are loaded (e.g., via polling when an
+   * "Upcoming" reminder changes to "Pending"), they have access to the latest
+   * tracking data, preventing "Unknown tracking" displays.
+   * @internal
+   */
+  useEffect(() => {
+    if (reminders.length === 0 || trackingsLoading) {
+      return;
+    }
+
+    // Check if any reminder references a tracking that's not in the trackings array
+    const missingTrackingIds = reminders
+      .map((r) => r.tracking_id)
+      .filter((trackingId) => !trackings.some((t) => t.id === trackingId));
+
+    if (missingTrackingIds.length > 0) {
+      console.log(
+        `[${new Date().toISOString()}] FRONTEND_APP | Found ${missingTrackingIds.length} reminders with missing trackings (IDs: ${missingTrackingIds.join(', ')}), refreshing trackings`
+      );
+      // Refresh trackings immediately to ensure reminders can display correctly
+      refreshTrackings().catch((error) => {
+        console.error(
+          `[${new Date().toISOString()}] FRONTEND_APP | Error refreshing trackings:`,
+          error
+        );
+      });
+    }
+  }, [reminders, trackings, trackingsLoading, refreshTrackings]);
+
+  /**
    * Handle magic link verification from URL.
    * Checks URL for token and verifies it.
    * @internal
@@ -713,6 +745,9 @@ function App() {
     try {
       await createTracking(question, type, notes, icon, schedules, days);
       setShowTrackingForm(false);
+      // Refresh reminders immediately after creating tracking to ensure
+      // any reminder created by the backend is loaded with the correct tracking data
+      await refreshReminders();
       setMessage({
         text: 'Tracking created successfully',
         type: 'success',

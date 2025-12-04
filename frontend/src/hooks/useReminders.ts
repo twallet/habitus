@@ -336,7 +336,7 @@ export function useReminders() {
       `[${new Date().toISOString()}] FRONTEND_REMINDERS | Deleting reminder ID: ${reminderId}`
     );
 
-    // Optimistically remove the reminder from state immediately
+    // Optimistically remove the reminder from state immediately for instant UI feedback
     setReminders((prevReminders) =>
       prevReminders.filter((r) => r.id !== reminderId)
     );
@@ -346,8 +346,8 @@ export function useReminders() {
       console.log(
         `[${new Date().toISOString()}] FRONTEND_REMINDERS | Reminder deleted successfully: ID ${reminderId}`
       );
-      // Refresh reminders to get the new one created by the backend
-      await fetchReminders();
+      // Don't refresh immediately - the optimistic update already provides instant feedback
+      // The polling mechanism will refresh reminders soon enough to get any new reminder created by the backend
     } catch (error) {
       console.error(
         `[${new Date().toISOString()}] FRONTEND_REMINDERS | Error deleting reminder:`,

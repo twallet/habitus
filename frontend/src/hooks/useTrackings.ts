@@ -326,6 +326,14 @@ export function useTrackings() {
     }
   };
 
+  /**
+   * Refresh trackings from API.
+   * @public
+   */
+  const refreshTrackings = useCallback(async () => {
+    await loadTrackings();
+  }, [loadTrackings]);
+
   return {
     trackings,
     isLoading,
@@ -333,5 +341,6 @@ export function useTrackings() {
     updateTracking,
     updateTrackingState,
     deleteTracking,
+    refreshTrackings,
   };
 }
