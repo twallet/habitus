@@ -13,7 +13,6 @@ describe("citations", () => {
   it("should return a default message when no citations are provided", () => {
     // Mock empty citations array
     const originalCitations = [...citations];
-    // @ts-expect-error - Testing with empty array
     citations.length = 0;
 
     const result = getDailyCitation();
