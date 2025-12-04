@@ -121,9 +121,22 @@ When a tracking is deleted:
 
 A Reminder can exist in one of three statuses:
 
-- **Pending**: The reminder is due and waiting to be answered
-- **Answered**: The reminder has been answered by the user
+- **Pending**: The reminder is due and waiting to be completed or dismissed
+- **Answered**: The reminder has been completed or dismissed by the user
 - **Upcoming**: The reminder is set for a future time
+
+### Reminder Values
+
+A Reminder has a value field that indicates the outcome when it is answered:
+
+- **Completed**: The reminder was completed by the user
+- **Dismissed**: The reminder was dismissed by the user
+
+**Important Rules:**
+
+- The value field defaults to `"Dismissed"` when a reminder is created
+- The value is set when the reminder transitions from `Pending` to `Answered`
+- Once set, the value cannot be changed
 
 ### Status Transitions
 
@@ -139,16 +152,17 @@ Pending → Upcoming
 
 - Only one `Upcoming` reminder exists per tracking at any time
 - `Upcoming` → `Pending` transition happens automatically when `scheduled_time` passes
-- When a reminder is answered, a new `Upcoming` reminder is automatically created
+- When a reminder is completed or dismissed, a new `Upcoming` reminder is automatically created
 - Only `Pending` reminders can be snoozed (not `Answered` reminders)
+- The value field defaults to `"Dismissed"` when reminders are created
 
 ### Available Actions by Status
 
 **Pending Reminders:**
 
-- Answer the reminder (changes status to `Answered`)
+- Complete the reminder (changes status to `Answered`, sets value to `Completed`, creates new upcoming reminder)
+- Dismiss the reminder (changes status to `Answered`, sets value to `Dismissed`, creates new upcoming reminder)
 - Snooze the reminder (changes status to `Upcoming` with new time)
-- Skip the reminder (removes reminder and creates next one)
 
 **Upcoming Reminders:**
 
@@ -175,12 +189,16 @@ Reminders are automatically created:
 
 When a reminder is updated, the following fields can be changed:
 
-- `answer`: The user's answer (when answering a `Pending` reminder)
-- `notes`: Optional notes added when answering
-- `status`: Automatically changed when performing actions (answer, snooze)
+- `notes`: Optional notes (can be edited inline in the reminders table)
+- `status`: Automatically changed when performing actions (complete, dismiss, snooze)
+- `value`: Automatically set when completing (`Completed`) or dismissing (`Dismissed`) a reminder
 - `scheduled_time`: Automatically updated when snoozing
 
-**When a reminder is answered** (status changes to `"Answered"`):
+**When a reminder is completed** (status changes to `"Answered"`, value set to `"Completed"`):
+
+- A new `Upcoming` reminder is automatically created for the tracking
+
+**When a reminder is dismissed** (status changes to `"Answered"`, value set to `"Dismissed"`):
 
 - A new `Upcoming` reminder is automatically created for the tracking
 
@@ -188,13 +206,13 @@ When a reminder is updated, the following fields can be changed:
 
 When a `Pending` reminder is snoozed, the existing `Upcoming` reminder time is updated (current time + snooze minutes)
 
-### Reminder Skip
+### Reminder Dismiss
 
-When a reminder is skipped by the user:
+When a reminder is dismissed by the user:
 
-1. The reminder is removed from the database
-2. If there is no existing `Upcoming` reminder for the tracking, it is created
-3. The `Upcoming` reminder time is calculated, with the skipped reminder's `scheduled_time` excluded from next reminder calculation
+1. The reminder's status changes to `"Answered"` and value is set to `"Dismissed"`
+2. A new `Upcoming` reminder is automatically created for the tracking
+3. The `Upcoming` reminder time is calculated, with the dismissed reminder's `scheduled_time` excluded from next reminder calculation
 
 ### Reminder Deletion
 
@@ -371,17 +389,15 @@ Any state → [Deletion] (permanent removal from database)
 ### Reminder Lifecycle Summary
 
 ```
-Creation → Upcoming (always in the future)
+Creation → Upcoming (always in the future, value: Dismissed)
     ↓
 Upcoming → Pending (automatic when time passes)
     ↓
-Pending → Answered (user action)
+Pending → Answered (Complete: value=Completed, or Dismiss: value=Dismissed)
     ↓
 Answered → [New Upcoming created automatically]
     ↓
 Pending → Upcoming (snoozed, time updated)
-    ↓
-Pending → [Skipped] (creates next reminder)
 ```
 
 ### Key Principles

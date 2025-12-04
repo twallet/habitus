@@ -1,5 +1,10 @@
 import { vi } from "vitest";
-import { Reminder, ReminderStatus, ReminderData } from "../Reminder.js";
+import {
+  Reminder,
+  ReminderStatus,
+  ReminderValue,
+  ReminderData,
+} from "../Reminder.js";
 import { Database } from "../../db/database.js";
 import sqlite3 from "sqlite3";
 
@@ -53,6 +58,7 @@ async function createTestDatabase(): Promise<Database> {
               scheduled_time DATETIME NOT NULL,
               notes TEXT,
               status TEXT NOT NULL DEFAULT 'Pending' CHECK(status IN ('Pending', 'Answered', 'Upcoming')),
+              value TEXT NOT NULL DEFAULT 'Dismissed' CHECK(value IN ('Completed', 'Dismissed')),
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               FOREIGN KEY (tracking_id) REFERENCES trackings(id) ON DELETE CASCADE,
@@ -110,7 +116,7 @@ describe("Reminder Model", () => {
         tracking_id: trackingId,
         user_id: userId,
         scheduled_time: "2024-01-01T10:00:00Z",
-        answer: "Yes",
+        value: ReminderValue.COMPLETED,
         notes: "Some notes",
         status: ReminderStatus.ANSWERED,
         created_at: "2024-01-01T00:00:00Z",
@@ -123,7 +129,7 @@ describe("Reminder Model", () => {
       expect(reminder.tracking_id).toBe(trackingId);
       expect(reminder.user_id).toBe(userId);
       expect(reminder.scheduled_time).toBe("2024-01-01T10:00:00Z");
-      expect(reminder.answer).toBe("Yes");
+      expect(reminder.value).toBe(ReminderValue.COMPLETED);
       expect(reminder.notes).toBe("Some notes");
       expect(reminder.status).toBe(ReminderStatus.ANSWERED);
     });
@@ -140,7 +146,7 @@ describe("Reminder Model", () => {
       const reminder = new Reminder(reminderData);
 
       expect(reminder.id).toBe(1);
-      expect(reminder.answer).toBeUndefined();
+      expect(reminder.value).toBe(ReminderValue.DISMISSED); // Default value
       expect(reminder.notes).toBeUndefined();
       expect(reminder.status).toBe(ReminderStatus.PENDING);
     });
@@ -153,14 +159,14 @@ describe("Reminder Model", () => {
         tracking_id: trackingId,
         user_id: userId,
         scheduled_time: "2024-01-01T10:00:00Z",
-        answer: "  Yes  ",
+        value: ReminderValue.COMPLETED,
         notes: "  Some notes  ",
         status: ReminderStatus.ANSWERED,
       });
 
       const validated = reminder.validate();
 
-      expect(validated.answer).toBe("Yes");
+      expect(validated.value).toBe(ReminderValue.COMPLETED);
       expect(validated.notes).toBe("Some notes");
     });
 
@@ -218,7 +224,7 @@ describe("Reminder Model", () => {
         tracking_id: trackingId,
         user_id: userId,
         scheduled_time: "2024-01-01T11:00:00Z",
-        answer: "Yes",
+        value: ReminderValue.COMPLETED,
         status: ReminderStatus.ANSWERED,
       });
 
@@ -226,7 +232,7 @@ describe("Reminder Model", () => {
 
       expect(saved.id).toBe(reminderId);
       expect(saved.scheduled_time).toBe("2024-01-01T11:00:00Z");
-      expect(saved.answer).toBe("Yes");
+      expect(saved.value).toBe(ReminderValue.COMPLETED);
       expect(saved.status).toBe(ReminderStatus.ANSWERED);
     });
   });
@@ -234,12 +240,12 @@ describe("Reminder Model", () => {
   describe("loadById", () => {
     it("should load reminder by ID", async () => {
       const result = await db.run(
-        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, answer, status) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, value, status) VALUES (?, ?, ?, ?, ?)",
         [
           trackingId,
           userId,
           "2024-01-01T10:00:00Z",
-          "Yes",
+          ReminderValue.COMPLETED,
           ReminderStatus.ANSWERED,
         ]
       );
@@ -249,7 +255,7 @@ describe("Reminder Model", () => {
 
       expect(reminder).not.toBeNull();
       expect(reminder!.id).toBe(reminderId);
-      expect(reminder!.answer).toBe("Yes");
+      expect(reminder!.value).toBe(ReminderValue.COMPLETED);
       expect(reminder!.status).toBe(ReminderStatus.ANSWERED);
     });
 
@@ -296,6 +302,21 @@ describe("Reminder Model", () => {
       const reminder = await Reminder.loadByTrackingId(999, userId, db);
 
       expect(reminder).toBeNull();
+    });
+
+    it("should throw error for invalid value", () => {
+      expect(() => {
+        Reminder.validateValue("Invalid");
+      }).toThrow(TypeError);
+    });
+
+    it("should validate valid value", () => {
+      expect(Reminder.validateValue(ReminderValue.COMPLETED)).toBe(
+        ReminderValue.COMPLETED
+      );
+      expect(Reminder.validateValue(ReminderValue.DISMISSED)).toBe(
+        ReminderValue.DISMISSED
+      );
     });
   });
 

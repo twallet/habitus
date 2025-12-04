@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { flushSync } from "react-dom";
-import { ReminderData, ReminderStatus } from "../models/Reminder";
+import {
+  ReminderData,
+  ReminderStatus,
+  ReminderValue,
+} from "../models/Reminder";
 import { ApiClient } from "../config/api";
 
 /**
@@ -253,16 +257,14 @@ export function useReminders() {
   };
 
   /**
-   * Check or uncheck a reminder via API.
+   * Complete a reminder via API.
    * @param reminderId - The reminder ID
-   * @param checked - Whether to check (true) or uncheck (false) the reminder
    * @returns The updated reminder data
    * @throws Error if API request fails
    * @public
    */
-  const checkReminder = async (
-    reminderId: number,
-    checked: boolean
+  const completeReminder = async (
+    reminderId: number
   ): Promise<ReminderData> => {
     const token = localStorage.getItem(TOKEN_KEY);
     if (!token) {
@@ -273,24 +275,20 @@ export function useReminders() {
     apiClient.setToken(token);
 
     console.log(
-      `[${new Date().toISOString()}] FRONTEND_REMINDERS | ${
-        checked ? "Checking" : "Unchecking"
-      } reminder ID: ${reminderId}`
+      `[${new Date().toISOString()}] FRONTEND_REMINDERS | Completing reminder ID: ${reminderId}`
     );
 
     // Optimistically update the reminder in state immediately for instant UI feedback
-    // This ensures the badge count updates immediately when checking a reminder (status changes to ANSWERED)
+    // This ensures the badge count updates immediately when completing a reminder (status changes to ANSWERED)
     // Use flushSync to ensure the state update triggers an immediate re-render
-    const newStatus = checked
-      ? ReminderStatus.ANSWERED
-      : ReminderStatus.PENDING;
     flushSync(() => {
       setReminders((prevReminders) =>
         prevReminders.map((r) => {
           if (r.id === reminderId) {
             return {
               ...r,
-              status: newStatus,
+              status: ReminderStatus.ANSWERED,
+              value: ReminderValue.COMPLETED,
             };
           }
           return r;
@@ -299,11 +297,11 @@ export function useReminders() {
     });
 
     try {
-      const reminderData = await apiClient.checkReminder(reminderId, checked);
+      const reminderData = await apiClient.completeReminder(reminderId);
       console.log(
-        `[${new Date().toISOString()}] FRONTEND_REMINDERS | Reminder ${
-          checked ? "checked" : "unchecked"
-        } successfully: ID ${reminderData.id}`
+        `[${new Date().toISOString()}] FRONTEND_REMINDERS | Reminder completed successfully: ID ${
+          reminderData.id
+        }`
       );
       // Update with server response to ensure consistency
       setReminders((prevReminders) =>
@@ -312,9 +310,68 @@ export function useReminders() {
       return reminderData;
     } catch (error) {
       console.error(
-        `[${new Date().toISOString()}] FRONTEND_REMINDERS | Error ${
-          checked ? "checking" : "unchecking"
-        } reminder:`,
+        `[${new Date().toISOString()}] FRONTEND_REMINDERS | Error completing reminder:`,
+        error
+      );
+      // On error, refresh to restore correct state
+      await fetchReminders();
+      throw error;
+    }
+  };
+
+  /**
+   * Dismiss a reminder via API.
+   * @param reminderId - The reminder ID
+   * @returns The updated reminder data
+   * @throws Error if API request fails
+   * @public
+   */
+  const dismissReminder = async (reminderId: number): Promise<ReminderData> => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) {
+      throw new Error("Not authenticated");
+    }
+
+    // Sync token with apiClient before making the request
+    apiClient.setToken(token);
+
+    console.log(
+      `[${new Date().toISOString()}] FRONTEND_REMINDERS | Dismissing reminder ID: ${reminderId}`
+    );
+
+    // Optimistically update the reminder in state immediately for instant UI feedback
+    // This ensures the badge count updates immediately when dismissing a reminder (status changes to ANSWERED)
+    // Use flushSync to ensure the state update triggers an immediate re-render
+    flushSync(() => {
+      setReminders((prevReminders) =>
+        prevReminders.map((r) => {
+          if (r.id === reminderId) {
+            return {
+              ...r,
+              status: ReminderStatus.ANSWERED,
+              value: ReminderValue.DISMISSED,
+            };
+          }
+          return r;
+        })
+      );
+    });
+
+    try {
+      const reminderData = await apiClient.dismissReminder(reminderId);
+      console.log(
+        `[${new Date().toISOString()}] FRONTEND_REMINDERS | Reminder dismissed successfully: ID ${
+          reminderData.id
+        }`
+      );
+      // Update with server response to ensure consistency
+      setReminders((prevReminders) =>
+        prevReminders.map((r) => (r.id === reminderId ? reminderData : r))
+      );
+      return reminderData;
+    } catch (error) {
+      console.error(
+        `[${new Date().toISOString()}] FRONTEND_REMINDERS | Error dismissing reminder:`,
         error
       );
       // On error, refresh to restore correct state
@@ -447,7 +504,8 @@ export function useReminders() {
     reminders,
     isLoading,
     updateReminder,
-    checkReminder,
+    completeReminder,
+    dismissReminder,
     snoozeReminder,
     deleteReminder,
     refreshReminders,

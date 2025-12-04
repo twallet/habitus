@@ -150,6 +150,7 @@ db.all(
     '  r.scheduled_time, ' +
     '  r.notes, ' +
     '  r.status, ' +
+    '  r.value, ' +
     '  r.created_at, ' +
     '  r.updated_at ' +
     'FROM reminders r ' +
@@ -352,6 +353,7 @@ try {
                     
                     # Format notes (handle null/empty)
                     $notesStr = if ($reminder.notes) { $reminder.notes } else { "null" }
+                    $valueStr = if ($reminder.value) { $reminder.value } else { "null" }
                     
                     # Build reminder attributes string
                     $reminderAttrs = @(
@@ -360,6 +362,7 @@ try {
                         "UserID=$($reminder.user_id)",
                         "ScheduledTime=$scheduledTimeFormatted",
                         "Status=$($reminder.status)",
+                        "Value=$valueStr",
                         "Notes=$notesStr",
                         "Created=$($reminder.created_at)",
                         "Updated=$($reminder.updated_at)"

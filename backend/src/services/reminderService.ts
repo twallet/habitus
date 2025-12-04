@@ -1,5 +1,10 @@
 import { Database } from "../db/database.js";
-import { Reminder, ReminderData, ReminderStatus } from "../models/Reminder.js";
+import {
+  Reminder,
+  ReminderData,
+  ReminderStatus,
+  ReminderValue,
+} from "../models/Reminder.js";
 import {
   Tracking,
   TrackingData,
@@ -229,24 +234,20 @@ export class ReminderService {
   }
 
   /**
-   * Check or uncheck a reminder.
-   * When checked, status changes to ANSWERED. When unchecked, status stays PENDING.
+   * Complete a reminder.
+   * Sets status to ANSWERED and value to COMPLETED, then creates a new upcoming reminder.
    * @param reminderId - The reminder ID
    * @param userId - The user ID (for authorization)
-   * @param checked - Whether to check (true) or uncheck (false) the reminder
    * @returns Promise resolving to updated reminder data
    * @throws Error if reminder not found
    * @public
    */
-  async checkReminder(
+  async completeReminder(
     reminderId: number,
-    userId: number,
-    checked: boolean
+    userId: number
   ): Promise<ReminderData> {
     console.log(
-      `[${new Date().toISOString()}] REMINDER | ${
-        checked ? "Checking" : "Unchecking"
-      } reminder ID: ${reminderId} for userId: ${userId}`
+      `[${new Date().toISOString()}] REMINDER | Completing reminder ID: ${reminderId} for userId: ${userId}`
     );
 
     const existingReminder = await Reminder.loadById(
@@ -256,43 +257,150 @@ export class ReminderService {
     );
     if (!existingReminder) {
       console.warn(
-        `[${new Date().toISOString()}] REMINDER | Check failed: reminder not found for ID: ${reminderId} and userId: ${userId}`
+        `[${new Date().toISOString()}] REMINDER | Complete failed: reminder not found for ID: ${reminderId} and userId: ${userId}`
       );
       throw new Error("Reminder not found");
     }
 
     const trackingId = existingReminder.tracking_id;
-    const newStatus = checked
-      ? ReminderStatus.ANSWERED
-      : ReminderStatus.PENDING;
-    const isBeingChecked =
-      checked && existingReminder.status !== ReminderStatus.ANSWERED;
+    const isBeingCompleted =
+      existingReminder.status !== ReminderStatus.ANSWERED;
 
     const updatedReminder = await existingReminder.update(
-      { status: newStatus },
+      {
+        status: ReminderStatus.ANSWERED,
+        value: ReminderValue.COMPLETED,
+      },
       this.db
     );
 
-    // If reminder was checked (answered), create new Upcoming reminder
-    if (isBeingChecked) {
+    // If reminder was completed (answered), create new Upcoming reminder
+    if (isBeingCompleted) {
       try {
         await this.createNextReminderForTracking(trackingId, userId);
         console.log(
-          `[${new Date().toISOString()}] REMINDER | Created new Upcoming reminder after checking reminder ID ${reminderId}`
+          `[${new Date().toISOString()}] REMINDER | Created new Upcoming reminder after completing reminder ID ${reminderId}`
         );
       } catch (error) {
         // Log error but don't fail reminder update if next reminder creation fails
         console.error(
-          `[${new Date().toISOString()}] REMINDER | Failed to create next reminder after checking reminder ID ${reminderId}:`,
+          `[${new Date().toISOString()}] REMINDER | Failed to create next reminder after completing reminder ID ${reminderId}:`,
           error
         );
       }
     }
 
     console.log(
-      `[${new Date().toISOString()}] REMINDER | Reminder ${
-        checked ? "checked" : "unchecked"
-      } successfully: ID ${reminderId}`
+      `[${new Date().toISOString()}] REMINDER | Reminder completed successfully: ID ${reminderId}`
+    );
+
+    return updatedReminder;
+  }
+
+  /**
+   * Dismiss a reminder.
+   * Sets status to ANSWERED and value to DISMISSED, then creates a new upcoming reminder.
+   * @param reminderId - The reminder ID
+   * @param userId - The user ID (for authorization)
+   * @returns Promise resolving to updated reminder data
+   * @throws Error if reminder not found
+   * @public
+   */
+  async dismissReminder(
+    reminderId: number,
+    userId: number
+  ): Promise<ReminderData> {
+    console.log(
+      `[${new Date().toISOString()}] REMINDER | Dismissing reminder ID: ${reminderId} for userId: ${userId}`
+    );
+
+    const reminder = await Reminder.loadById(reminderId, userId, this.db);
+    if (!reminder) {
+      console.warn(
+        `[${new Date().toISOString()}] REMINDER | Dismiss failed: reminder not found for ID: ${reminderId} and userId: ${userId}`
+      );
+      throw new Error("Reminder not found");
+    }
+
+    const trackingId = reminder.tracking_id;
+    const dismissedTime = reminder.scheduled_time;
+
+    // Update reminder to ANSWERED with DISMISSED value
+    const updatedReminder = await reminder.update(
+      {
+        status: ReminderStatus.ANSWERED,
+        value: ReminderValue.DISMISSED,
+      },
+      this.db
+    );
+
+    // Create new upcoming reminder (same logic as deleteReminder)
+    try {
+      // Check if there's an existing Upcoming reminder for this tracking
+      const existingUpcoming = await Reminder.loadUpcomingByTrackingId(
+        trackingId,
+        userId,
+        this.db
+      );
+
+      if (existingUpcoming) {
+        // Update the existing upcoming reminder with the new time
+        const tracking = await Tracking.loadById(trackingId, userId, this.db);
+        if (!tracking) {
+          console.warn(
+            `[${new Date().toISOString()}] REMINDER | Tracking not found: ${trackingId}, cannot update upcoming reminder`
+          );
+          return updatedReminder;
+        }
+
+        // Only update if tracking is Running
+        if (tracking.state !== "Running") {
+          console.log(
+            `[${new Date().toISOString()}] REMINDER | Tracking ${trackingId} is not Running, deleting upcoming reminder instead of updating`
+          );
+          await existingUpcoming.delete(this.db);
+          return updatedReminder;
+        }
+
+        const { DaysPattern } = await import("../models/Tracking.js");
+        const daysPattern = tracking.days as DaysPattern | undefined;
+        if (!daysPattern) {
+          console.warn(
+            `[${new Date().toISOString()}] REMINDER | Tracking ${trackingId} has no days pattern, cannot update upcoming reminder`
+          );
+          return updatedReminder;
+        }
+
+        const nextTime = await this.calculateNextReminderTime(
+          trackingId,
+          userId,
+          new Date(dismissedTime)
+        );
+
+        if (nextTime) {
+          existingUpcoming.scheduled_time = nextTime;
+          await existingUpcoming.save(this.db);
+          console.log(
+            `[${new Date().toISOString()}] REMINDER | Updated existing Upcoming reminder with new time after dismissing reminder ID ${reminderId}`
+          );
+        }
+      } else {
+        // Create new upcoming reminder
+        await this.createNextReminderForTracking(trackingId, userId);
+        console.log(
+          `[${new Date().toISOString()}] REMINDER | Created new Upcoming reminder after dismissing reminder ID ${reminderId}`
+        );
+      }
+    } catch (error) {
+      // Log error but don't fail reminder update if next reminder creation fails
+      console.error(
+        `[${new Date().toISOString()}] REMINDER | Failed to create/update next reminder after dismissing reminder ID ${reminderId}:`,
+        error
+      );
+    }
+
+    console.log(
+      `[${new Date().toISOString()}] REMINDER | Reminder dismissed successfully: ID ${reminderId}`
     );
 
     return updatedReminder;

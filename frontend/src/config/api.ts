@@ -717,17 +717,31 @@ export class ApiClient {
   }
 
   /**
-   * Check or uncheck a reminder.
+   * Complete a reminder.
    * @param id - The reminder ID
-   * @param checked - Whether to check (true) or uncheck (false) the reminder
    * @returns Promise resolving to updated reminder data
    * @throws Error if request fails
    * @public
    */
-  async checkReminder(id: number, checked: boolean): Promise<ReminderData> {
-    return this.patch<ReminderData>(`${API_ENDPOINTS.reminders}/${id}/check`, {
-      checked,
-    });
+  async completeReminder(id: number): Promise<ReminderData> {
+    return this.patch<ReminderData>(
+      `${API_ENDPOINTS.reminders}/${id}/complete`,
+      {}
+    );
+  }
+
+  /**
+   * Dismiss a reminder.
+   * @param id - The reminder ID
+   * @returns Promise resolving to updated reminder data
+   * @throws Error if request fails
+   * @public
+   */
+  async dismissReminder(id: number): Promise<ReminderData> {
+    return this.patch<ReminderData>(
+      `${API_ENDPOINTS.reminders}/${id}/dismiss`,
+      {}
+    );
   }
 
   /**

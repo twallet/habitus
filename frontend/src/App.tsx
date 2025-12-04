@@ -58,7 +58,7 @@ function App() {
     refreshTrackings,
   } = useTrackings();
 
-  const { reminders, refreshReminders, removeRemindersForTracking, updateReminder, checkReminder, snoozeReminder, deleteReminder, isLoading: remindersLoading } =
+  const { reminders, refreshReminders, removeRemindersForTracking, updateReminder, completeReminder, dismissReminder, snoozeReminder, isLoading: remindersLoading } =
     useReminders();
 
   /**
@@ -1003,9 +1003,9 @@ function App() {
                   reminders={reminders}
                   isLoadingReminders={remindersLoading}
                   updateReminder={updateReminder}
-                  checkReminder={checkReminder}
+                  completeReminder={completeReminder}
+                  dismissReminder={dismissReminder}
                   snoozeReminder={snoozeReminder}
-                  deleteReminder={deleteReminder}
                   onCreate={() => setShowTrackingForm(true)}
                   onMessage={(text, type) => {
                     setMessage({

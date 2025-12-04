@@ -219,35 +219,28 @@ router.patch(
 );
 
 /**
- * PATCH /api/reminders/:id/check
- * Check or uncheck a reminder.
- * @route PATCH /api/reminders/:id/check
+ * PATCH /api/reminders/:id/complete
+ * Complete a reminder.
+ * @route PATCH /api/reminders/:id/complete
  * @header {string} Authorization - Bearer token
  * @param {number} id - The reminder ID
- * @body {boolean} checked - Whether the reminder should be checked (true) or unchecked (false)
  * @returns {ReminderData} Updated reminder data
  */
 router.patch(
-  "/:id/check",
+  "/:id/complete",
   authenticateToken,
   async (req: AuthRequest, res: Response) => {
     try {
       const reminderId = parseInt(req.params.id, 10);
       const userId = req.userId!;
-      const { checked } = req.body;
 
       if (isNaN(reminderId)) {
         return res.status(400).json({ error: "Invalid reminder ID" });
       }
 
-      if (typeof checked !== "boolean") {
-        return res.status(400).json({ error: "checked must be a boolean" });
-      }
-
-      const reminder = await getReminderServiceInstance().checkReminder(
+      const reminder = await getReminderServiceInstance().completeReminder(
         reminderId,
-        userId,
-        checked
+        userId
       );
 
       res.json(reminder);
@@ -259,10 +252,52 @@ router.patch(
         return res.status(404).json({ error: error.message });
       }
       console.error(
-        `[${new Date().toISOString()}] REMINDER_ROUTE | Error checking reminder:`,
+        `[${new Date().toISOString()}] REMINDER_ROUTE | Error completing reminder:`,
         error
       );
-      res.status(500).json({ error: "Error checking reminder" });
+      res.status(500).json({ error: "Error completing reminder" });
+    }
+  }
+);
+
+/**
+ * PATCH /api/reminders/:id/dismiss
+ * Dismiss a reminder.
+ * @route PATCH /api/reminders/:id/dismiss
+ * @header {string} Authorization - Bearer token
+ * @param {number} id - The reminder ID
+ * @returns {ReminderData} Updated reminder data
+ */
+router.patch(
+  "/:id/dismiss",
+  authenticateToken,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const reminderId = parseInt(req.params.id, 10);
+      const userId = req.userId!;
+
+      if (isNaN(reminderId)) {
+        return res.status(400).json({ error: "Invalid reminder ID" });
+      }
+
+      const reminder = await getReminderServiceInstance().dismissReminder(
+        reminderId,
+        userId
+      );
+
+      res.json(reminder);
+    } catch (error) {
+      if (error instanceof TypeError) {
+        return res.status(400).json({ error: error.message });
+      }
+      if (error instanceof Error && error.message === "Reminder not found") {
+        return res.status(404).json({ error: error.message });
+      }
+      console.error(
+        `[${new Date().toISOString()}] REMINDER_ROUTE | Error dismissing reminder:`,
+        error
+      );
+      res.status(500).json({ error: "Error dismissing reminder" });
     }
   }
 );

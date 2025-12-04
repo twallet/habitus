@@ -11,6 +11,15 @@ export enum ReminderStatus {
 }
 
 /**
+ * Reminder value enumeration.
+ * @public
+ */
+export enum ReminderValue {
+  COMPLETED = "Completed",
+  DISMISSED = "Dismissed",
+}
+
+/**
  * Reminder data interface.
  * @public
  */
@@ -21,6 +30,7 @@ export interface ReminderData {
   scheduled_time: string;
   notes?: string;
   status: ReminderStatus;
+  value: ReminderValue;
   created_at?: string;
   updated_at?: string;
 }
@@ -67,6 +77,12 @@ export class Reminder {
   status: ReminderStatus;
 
   /**
+   * Reminder value (Completed or Dismissed).
+   * @public
+   */
+  value: ReminderValue;
+
+  /**
    * Creation timestamp (optional).
    * @public
    */
@@ -90,6 +106,7 @@ export class Reminder {
     this.scheduled_time = data.scheduled_time;
     this.notes = data.notes;
     this.status = data.status || ReminderStatus.PENDING;
+    this.value = data.value || ReminderValue.DISMISSED;
     this.created_at = data.created_at;
     this.updated_at = data.updated_at;
   }
@@ -109,6 +126,7 @@ export class Reminder {
       this.notes = Reminder.validateNotes(this.notes);
     }
     this.status = Reminder.validateStatus(this.status);
+    this.value = Reminder.validateValue(this.value);
     return this;
   }
 
@@ -141,6 +159,11 @@ export class Reminder {
         values.push(this.status);
       }
 
+      if (this.value !== undefined) {
+        updates.push("value = ?");
+        values.push(this.value);
+      }
+
       updates.push("updated_at = CURRENT_TIMESTAMP");
       values.push(this.id, this.user_id);
 
@@ -155,13 +178,14 @@ export class Reminder {
     } else {
       // Create new reminder
       const result = await db.run(
-        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, notes, status) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, notes, status, value) VALUES (?, ?, ?, ?, ?, ?)",
         [
           this.tracking_id,
           this.user_id,
           this.scheduled_time,
           this.notes || null,
           this.status || ReminderStatus.PENDING,
+          this.value || ReminderValue.DISMISSED,
         ]
       );
 
@@ -200,6 +224,9 @@ export class Reminder {
     }
     if (updates.status !== undefined) {
       this.status = Reminder.validateStatus(updates.status);
+    }
+    if (updates.value !== undefined) {
+      this.value = Reminder.validateValue(updates.value);
     }
 
     return this.save(db);
@@ -240,6 +267,7 @@ export class Reminder {
       scheduled_time: this.scheduled_time,
       notes: this.notes,
       status: this.status,
+      value: this.value,
       created_at: this.created_at,
       updated_at: this.updated_at,
     };
@@ -265,10 +293,11 @@ export class Reminder {
       scheduled_time: string;
       notes: string | null;
       status: string;
+      value: string;
       created_at: string;
       updated_at: string;
     }>(
-      "SELECT id, tracking_id, user_id, scheduled_time, notes, status, created_at, updated_at FROM reminders WHERE id = ? AND user_id = ?",
+      "SELECT id, tracking_id, user_id, scheduled_time, notes, status, value, created_at, updated_at FROM reminders WHERE id = ? AND user_id = ?",
       [id, userId]
     );
 
@@ -283,6 +312,7 @@ export class Reminder {
       scheduled_time: row.scheduled_time,
       notes: row.notes || undefined,
       status: (row.status as ReminderStatus) || ReminderStatus.PENDING,
+      value: (row.value as ReminderValue) || ReminderValue.DISMISSED,
       created_at: row.created_at,
       updated_at: row.updated_at,
     });
@@ -303,10 +333,11 @@ export class Reminder {
       scheduled_time: string;
       notes: string | null;
       status: string;
+      value: string;
       created_at: string;
       updated_at: string;
     }>(
-      "SELECT id, tracking_id, user_id, scheduled_time, notes, status, created_at, updated_at FROM reminders WHERE user_id = ? ORDER BY scheduled_time ASC",
+      "SELECT id, tracking_id, user_id, scheduled_time, notes, status, value, created_at, updated_at FROM reminders WHERE user_id = ? ORDER BY scheduled_time ASC",
       [userId]
     );
 
@@ -319,6 +350,7 @@ export class Reminder {
           scheduled_time: row.scheduled_time,
           notes: row.notes || undefined,
           status: (row.status as ReminderStatus) || ReminderStatus.PENDING,
+          value: (row.value as ReminderValue) || ReminderValue.DISMISSED,
           created_at: row.created_at,
           updated_at: row.updated_at,
         })
@@ -345,10 +377,11 @@ export class Reminder {
       scheduled_time: string;
       notes: string | null;
       status: string;
+      value: string;
       created_at: string;
       updated_at: string;
     }>(
-      "SELECT id, tracking_id, user_id, scheduled_time, notes, status, created_at, updated_at FROM reminders WHERE tracking_id = ? AND user_id = ? ORDER BY scheduled_time ASC LIMIT 1",
+      "SELECT id, tracking_id, user_id, scheduled_time, notes, status, value, created_at, updated_at FROM reminders WHERE tracking_id = ? AND user_id = ? ORDER BY scheduled_time ASC LIMIT 1",
       [trackingId, userId]
     );
 
@@ -363,6 +396,7 @@ export class Reminder {
       scheduled_time: row.scheduled_time,
       notes: row.notes || undefined,
       status: (row.status as ReminderStatus) || ReminderStatus.PENDING,
+      value: (row.value as ReminderValue) || ReminderValue.DISMISSED,
       created_at: row.created_at,
       updated_at: row.updated_at,
     });
@@ -388,10 +422,11 @@ export class Reminder {
       scheduled_time: string;
       notes: string | null;
       status: string;
+      value: string;
       created_at: string;
       updated_at: string;
     }>(
-      "SELECT id, tracking_id, user_id, scheduled_time, notes, status, created_at, updated_at FROM reminders WHERE tracking_id = ? AND user_id = ? AND status = ? LIMIT 1",
+      "SELECT id, tracking_id, user_id, scheduled_time, notes, status, value, created_at, updated_at FROM reminders WHERE tracking_id = ? AND user_id = ? AND status = ? LIMIT 1",
       [trackingId, userId, ReminderStatus.UPCOMING]
     );
 
@@ -406,6 +441,7 @@ export class Reminder {
       scheduled_time: row.scheduled_time,
       notes: row.notes || undefined,
       status: (row.status as ReminderStatus) || ReminderStatus.PENDING,
+      value: (row.value as ReminderValue) || ReminderValue.DISMISSED,
       created_at: row.created_at,
       updated_at: row.updated_at,
     });
@@ -543,5 +579,30 @@ export class Reminder {
     }
 
     return normalizedStatus as ReminderStatus;
+  }
+
+  /**
+   * Validates a reminder value.
+   * @param value - The value to validate
+   * @returns The validated reminder value
+   * @throws {@link TypeError} If the value is invalid
+   * @public
+   */
+  static validateValue(value: string | ReminderValue): ReminderValue {
+    if (typeof value !== "string") {
+      throw new TypeError("Value must be a string");
+    }
+
+    const normalizedValue = value.trim();
+    if (
+      normalizedValue !== ReminderValue.COMPLETED &&
+      normalizedValue !== ReminderValue.DISMISSED
+    ) {
+      throw new TypeError(
+        `Value must be one of: "${ReminderValue.COMPLETED}", "${ReminderValue.DISMISSED}"`
+      );
+    }
+
+    return normalizedValue as ReminderValue;
   }
 }
