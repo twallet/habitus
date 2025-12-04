@@ -100,7 +100,8 @@ describe("RemindersList", () => {
         render(<RemindersList />);
 
         expect(screen.getByText("Did I exercise?")).toBeInTheDocument();
-        expect(screen.getByText("Pending")).toBeInTheDocument();
+        // Check that action buttons are present (indicating reminders are shown)
+        expect(screen.getByRole("button", { name: "Answer reminder" })).toBeInTheDocument();
     });
 
     it("should show answer when reminder has answer", () => {
@@ -186,21 +187,13 @@ describe("RemindersList", () => {
 
         render(<RemindersList />);
 
-        const statusBadge = screen.getByText("Pending");
-        await userEvent.click(statusBadge);
+        // Click the Answer/Edit action button directly
+        const answerButton = screen.getByRole("button", { name: "Answer reminder" });
+        await userEvent.click(answerButton);
 
-        // Wait for dropdown to open and find Answer button in the dropdown menu
-        const answerText = await screen.findByText((content, element) => {
-            return content === "Answer" && element?.closest(".status-dropdown-menu") !== null;
+        await waitFor(() => {
+            expect(screen.getByText("Answer reminder")).toBeInTheDocument();
         });
-        const answerButton = answerText.closest("button");
-        expect(answerButton).toBeTruthy();
-        if (answerButton) {
-            await userEvent.click(answerButton);
-            await waitFor(() => {
-                expect(screen.getByText("Answer reminder")).toBeInTheDocument();
-            });
-        }
     });
 
     it("should show skip confirmation when Skip is clicked", async () => {
@@ -228,21 +221,13 @@ describe("RemindersList", () => {
 
         render(<RemindersList />);
 
-        const statusBadge = screen.getByText("Pending");
-        await userEvent.click(statusBadge);
+        // Click the Skip action button directly
+        const skipButton = screen.getByRole("button", { name: "Skip reminder" });
+        await userEvent.click(skipButton);
 
-        // Wait for dropdown to open and find Skip button in the dropdown menu
-        const skipText = await screen.findByText((content, element) => {
-            return content === "Skip" && element?.closest(".status-dropdown-menu") !== null;
+        await waitFor(() => {
+            expect(screen.getByText("Skip reminder")).toBeInTheDocument();
         });
-        const skipButton = skipText.closest("button");
-        expect(skipButton).toBeTruthy();
-        if (skipButton) {
-            await userEvent.click(skipButton);
-            await waitFor(() => {
-                expect(screen.getByText("Skip reminder")).toBeInTheDocument();
-            });
-        }
     });
 
     it("should filter reminders by time", async () => {
@@ -480,22 +465,11 @@ describe("RemindersList", () => {
         const pendingCheckbox = screen.getByLabelText(/filter by status: pending/i);
         await userEvent.click(pendingCheckbox);
 
-        // Should only show pending reminder - check status badge in table rows
+        // Should only show pending reminder - check action buttons in table rows
         await waitFor(() => {
-            const statusBadges = screen.getAllByText("Pending");
-            // Filter to only status badges in table (not checkbox labels)
-            const tableStatusBadges = statusBadges.filter(el => {
-                const cell = el.closest('.cell-status');
-                return cell !== null;
-            });
-            expect(tableStatusBadges.length).toBe(1);
-            // Check that Answered status badge is not in table
-            const answeredBadges = screen.queryAllByText("Answered");
-            const answeredInTable = answeredBadges.filter(el => {
-                const cell = el.closest('.cell-status');
-                return cell !== null;
-            });
-            expect(answeredInTable.length).toBe(0);
+            // Pending reminders should have snooze button (only pending reminders show snooze)
+            const snoozeButtons = screen.getAllByRole("button", { name: "Snooze reminder" });
+            expect(snoozeButtons.length).toBe(1);
         });
     });
 
@@ -800,22 +774,14 @@ describe("RemindersList", () => {
 
         render(<RemindersList />);
 
-        const statusBadge = screen.getByText("Pending");
-        await userEvent.click(statusBadge);
+        // Click the Snooze action button directly
+        const snoozeButton = screen.getByRole("button", { name: "Snooze reminder" });
+        await userEvent.click(snoozeButton);
 
-        // Wait for dropdown to open and find Snooze button
-        const snoozeText = await screen.findByText((content, element) => {
-            return content === "Snooze" && element?.closest(".status-dropdown-menu") !== null;
+        // Snooze menu should appear
+        await waitFor(() => {
+            expect(screen.getByText("15 min")).toBeInTheDocument();
         });
-        const snoozeButton = snoozeText.closest("button");
-        expect(snoozeButton).toBeTruthy();
-        if (snoozeButton) {
-            await userEvent.click(snoozeButton);
-            // Snooze menu should appear
-            await waitFor(() => {
-                expect(screen.getByText("15 min")).toBeInTheDocument();
-            });
-        }
     });
 
     it("should call snoozeReminder when snooze option is clicked", async () => {
@@ -843,17 +809,9 @@ describe("RemindersList", () => {
 
         render(<RemindersList />);
 
-        const statusBadge = screen.getByText("Pending");
-        await userEvent.click(statusBadge);
-
-        // Open snooze menu
-        const snoozeText = await screen.findByText((content, element) => {
-            return content === "Snooze" && element?.closest(".status-dropdown-menu") !== null;
-        });
-        const snoozeButton = snoozeText.closest("button");
-        if (snoozeButton) {
-            await userEvent.click(snoozeButton);
-        }
+        // Click the Snooze action button directly
+        const snoozeButton = screen.getByRole("button", { name: "Snooze reminder" });
+        await userEvent.click(snoozeButton);
 
         // Click a snooze option
         const snoozeOption = await screen.findByText("30 min");
@@ -929,17 +887,9 @@ describe("RemindersList", () => {
 
         render(<RemindersList />);
 
-        const statusBadge = screen.getByText("Pending");
-        await userEvent.click(statusBadge);
-
-        // Open answer modal
-        const answerText = await screen.findByText((content, element) => {
-            return content === "Answer" && element?.closest(".status-dropdown-menu") !== null;
-        });
-        const answerButton = answerText.closest("button");
-        if (answerButton) {
-            await userEvent.click(answerButton);
-        }
+        // Click the Answer/Edit action button directly
+        const answerButton = screen.getByRole("button", { name: "Answer reminder" });
+        await userEvent.click(answerButton);
 
         // Wait for modal and try to save (this will fail)
         await waitFor(() => {
@@ -977,17 +927,9 @@ describe("RemindersList", () => {
 
         render(<RemindersList />);
 
-        const statusBadge = screen.getByText("Pending");
-        await userEvent.click(statusBadge);
-
-        // Open snooze menu
-        const snoozeText = await screen.findByText((content, element) => {
-            return content === "Snooze" && element?.closest(".status-dropdown-menu") !== null;
-        });
-        const snoozeButton = snoozeText.closest("button");
-        if (snoozeButton) {
-            await userEvent.click(snoozeButton);
-        }
+        // Click the Snooze action button directly
+        const snoozeButton = screen.getByRole("button", { name: "Snooze reminder" });
+        await userEvent.click(snoozeButton);
 
         // Click a snooze option
         const snoozeOption = await screen.findByText("15 min");
@@ -1028,17 +970,9 @@ describe("RemindersList", () => {
 
         render(<RemindersList />);
 
-        const statusBadge = screen.getByText("Pending");
-        await userEvent.click(statusBadge);
-
-        // Open skip confirmation
-        const skipText = await screen.findByText((content, element) => {
-            return content === "Skip" && element?.closest(".status-dropdown-menu") !== null;
-        });
-        const skipButton = skipText.closest("button");
-        if (skipButton) {
-            await userEvent.click(skipButton);
-        }
+        // Click the Skip action button directly
+        const skipButton = screen.getByRole("button", { name: "Skip reminder" });
+        await userEvent.click(skipButton);
 
         await waitFor(() => {
             expect(screen.getByText("Skip reminder")).toBeInTheDocument();
@@ -1082,14 +1016,9 @@ describe("RemindersList", () => {
 
         render(<RemindersList />);
 
-        const statusBadge = screen.getByText("Pending");
-        await userEvent.click(statusBadge);
-
-        // Should show Answer button
-        const answerText = await screen.findByText((content, element) => {
-            return content === "Answer" && element?.closest(".status-dropdown-menu") !== null;
-        });
-        expect(answerText).toBeInTheDocument();
+        // Should show Answer button (action button)
+        const answerButton = screen.getByRole("button", { name: "Answer reminder" });
+        expect(answerButton).toBeInTheDocument();
     });
 
     it("should show unknown tracking when tracking not found", () => {
@@ -1145,17 +1074,9 @@ describe("RemindersList", () => {
 
         render(<RemindersList />);
 
-        const statusBadge = screen.getByText("Pending");
-        await userEvent.click(statusBadge);
-
-        // Open skip confirmation
-        const skipText = await screen.findByText((content, element) => {
-            return content === "Skip" && element?.closest(".status-dropdown-menu") !== null;
-        });
-        const skipButton = skipText.closest("button");
-        if (skipButton) {
-            await userEvent.click(skipButton);
-        }
+        // Click the Skip action button directly
+        const skipButton = screen.getByRole("button", { name: "Skip reminder" });
+        await userEvent.click(skipButton);
 
         await waitFor(() => {
             expect(screen.getByText("Skip reminder")).toBeInTheDocument();

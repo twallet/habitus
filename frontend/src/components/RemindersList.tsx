@@ -411,12 +411,9 @@ export function RemindersList({ trackings: propTrackings, isLoadingTrackings: pr
     const isLoadingTrackings = propIsLoadingTrackings ?? hookIsLoadingTrackings;
     const [editingReminder, setEditingReminder] = useState<ReminderData | null>(null);
     const [reminderToDelete, setReminderToDelete] = useState<ReminderData | null>(null);
-    const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
     const [openSnoozeId, setOpenSnoozeId] = useState<number | null>(null);
-    const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right: number } | null>(null);
     const [snoozeMenuPosition, setSnoozeMenuPosition] = useState<{ top: number; right: number } | null>(null);
-    const dropdownRefs = useRef<Record<number, HTMLDivElement | null>>({});
-    const dropdownMenuRefs = useRef<Record<number, HTMLDivElement | null>>({});
+    const actionRefs = useRef<Record<number, HTMLDivElement | null>>({});
     const snoozeMenuRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
     // Filter and sort state
@@ -541,32 +538,6 @@ export function RemindersList({ trackings: propTrackings, isLoadingTrackings: pr
     };
 
     /**
-     * Toggle dropdown for a reminder.
-     * @param reminderId - Reminder ID
-     * @internal
-     */
-    const toggleDropdown = (reminderId: number) => {
-        if (openDropdownId === reminderId) {
-            setOpenDropdownId(null);
-            setDropdownPosition(null);
-        } else {
-            setOpenDropdownId(reminderId);
-            setOpenSnoozeId(null);
-            // Calculate position after state update
-            setTimeout(() => {
-                const container = dropdownRefs.current[reminderId];
-                if (container) {
-                    const rect = container.getBoundingClientRect();
-                    setDropdownPosition({
-                        top: rect.bottom + 4,
-                        right: window.innerWidth - rect.right,
-                    });
-                }
-            }, 0);
-        }
-    };
-
-    /**
      * Toggle snooze menu for a reminder.
      * @param reminderId - Reminder ID
      * @internal
@@ -577,11 +548,9 @@ export function RemindersList({ trackings: propTrackings, isLoadingTrackings: pr
             setSnoozeMenuPosition(null);
         } else {
             setOpenSnoozeId(reminderId);
-            setOpenDropdownId(null);
-            setDropdownPosition(null);
             // Calculate position after state update
             setTimeout(() => {
-                const container = dropdownRefs.current[reminderId];
+                const container = actionRefs.current[reminderId];
                 if (container) {
                     const rect = container.getBoundingClientRect();
                     setSnoozeMenuPosition({
@@ -603,8 +572,6 @@ export function RemindersList({ trackings: propTrackings, isLoadingTrackings: pr
         try {
             await snoozeReminder(reminderId, minutes);
             setOpenSnoozeId(null);
-            setOpenDropdownId(null);
-            setDropdownPosition(null);
             setSnoozeMenuPosition(null);
             // Badge updates immediately via optimistic update in useReminders hook
             if (onMessage) {
@@ -628,8 +595,6 @@ export function RemindersList({ trackings: propTrackings, isLoadingTrackings: pr
      */
     const handleAnswer = (reminder: ReminderData) => {
         setEditingReminder(reminder);
-        setOpenDropdownId(null);
-        setDropdownPosition(null);
     };
 
     /**
@@ -639,8 +604,6 @@ export function RemindersList({ trackings: propTrackings, isLoadingTrackings: pr
      */
     const handleDelete = (reminder: ReminderData) => {
         setReminderToDelete(reminder);
-        setOpenDropdownId(null);
-        setDropdownPosition(null);
     };
 
     /**
@@ -707,13 +670,8 @@ export function RemindersList({ trackings: propTrackings, isLoadingTrackings: pr
         const handleClickOutside = (event: MouseEvent) => {
             const target = event.target as Node;
 
-            // Check status dropdowns
-            for (const ref of Object.values(dropdownRefs.current)) {
-                if (ref && ref.contains(target)) {
-                    return;
-                }
-            }
-            for (const ref of Object.values(dropdownMenuRefs.current)) {
+            // Check action containers
+            for (const ref of Object.values(actionRefs.current)) {
                 if (ref && ref.contains(target)) {
                     return;
                 }
@@ -726,9 +684,7 @@ export function RemindersList({ trackings: propTrackings, isLoadingTrackings: pr
                 }
             }
 
-            setOpenDropdownId(null);
             setOpenSnoozeId(null);
-            setDropdownPosition(null);
             setSnoozeMenuPosition(null);
         };
 
@@ -978,29 +934,15 @@ export function RemindersList({ trackings: propTrackings, isLoadingTrackings: pr
                                         )}
                                     </button>
                                 </th>
-                                <th className="col-status">
-                                    <button
-                                        type="button"
-                                        className="sortable-header"
-                                        onClick={() => handleSortClick('status')}
-                                        aria-label="Sort by status"
-                                    >
-                                        Status
-                                        {sortColumn === 'status' && (
-                                            <span className="sort-indicator">
-                                                {sortDirection === 'asc' ? '↑' : '↓'}
-                                            </span>
-                                        )}
-                                    </button>
+                                <th className="col-actions">
+                                    Actions
                                 </th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredAndSortedReminders.map((reminder) => {
                                 const tracking = getTracking(reminder.tracking_id);
-                                const isDropdownOpen = openDropdownId === reminder.id;
                                 const isSnoozeOpen = openSnoozeId === reminder.id;
-                                const statusColorClass = ReminderFormatter.getStatusColorClass(reminder.status);
 
                                 return (
                                     <tr key={reminder.id} className="reminder-row">
@@ -1055,87 +997,47 @@ export function RemindersList({ trackings: propTrackings, isLoadingTrackings: pr
                                                 <span className="notes-empty">—</span>
                                             )}
                                         </td>
-                                        <td className="cell-status">
+                                        <td className="cell-actions">
                                             <div
-                                                className="status-dropdown-container"
+                                                className="actions-container"
                                                 ref={(el) => {
-                                                    dropdownRefs.current[reminder.id] = el;
+                                                    actionRefs.current[reminder.id] = el;
                                                 }}
                                             >
-                                                <button
-                                                    type="button"
-                                                    className={`status-badge ${statusColorClass} ${isDropdownOpen ? "open" : ""}`}
-                                                    onClick={() => toggleDropdown(reminder.id)}
-                                                    aria-label={`Current status: ${reminder.status}. Click to change status`}
-                                                    aria-expanded={isDropdownOpen}
-                                                >
-                                                    <span className="status-badge-text">{reminder.status}</span>
-                                                    <span className="status-badge-arrow">▼</span>
-                                                </button>
-                                                {isDropdownOpen && dropdownPosition && (
-                                                    <div
-                                                        className="status-dropdown-menu"
-                                                        ref={(el) => {
-                                                            dropdownMenuRefs.current[reminder.id] = el;
-                                                        }}
-                                                        style={{
-                                                            top: `${dropdownPosition.top}px`,
-                                                            right: `${dropdownPosition.right}px`,
-                                                        }}
+                                                <div className="actions-buttons">
+                                                    <button
+                                                        type="button"
+                                                        className="action-button action-edit"
+                                                        onClick={() => handleAnswer(reminder)}
+                                                        title={reminder.status === ReminderStatus.PENDING ? "Answer reminder" : "Edit reminder"}
+                                                        aria-label={reminder.status === ReminderStatus.PENDING ? "Answer reminder" : "Edit reminder"}
                                                     >
-                                                        {reminder.status === ReminderStatus.PENDING && (
-                                                            <>
-                                                                <button
-                                                                    type="button"
-                                                                    className="status-dropdown-item"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        toggleSnoozeMenu(reminder.id);
-                                                                    }}
-                                                                >
-                                                                    <span className="status-dropdown-icon">💤</span>
-                                                                    <span className="status-dropdown-label">Snooze</span>
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    className="status-dropdown-item"
-                                                                    onClick={() => handleAnswer(reminder)}
-                                                                >
-                                                                    <span className="status-dropdown-icon">✏️</span>
-                                                                    <span className="status-dropdown-label">Answer</span>
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    className="status-dropdown-item"
-                                                                    onClick={() => handleDelete(reminder)}
-                                                                >
-                                                                    <span className="status-dropdown-icon">⏭️</span>
-                                                                    <span className="status-dropdown-label">Skip</span>
-                                                                </button>
-                                                            </>
-                                                        )}
-                                                        {reminder.status === ReminderStatus.ANSWERED && (
-                                                            <>
-                                                                <button
-                                                                    type="button"
-                                                                    className="status-dropdown-item"
-                                                                    onClick={() => handleAnswer(reminder)}
-                                                                >
-                                                                    <span className="status-dropdown-icon">✏️</span>
-                                                                    <span className="status-dropdown-label">Edit</span>
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    className="status-dropdown-item"
-                                                                    onClick={() => handleDelete(reminder)}
-                                                                >
-                                                                    <span className="status-dropdown-icon">⏭️</span>
-                                                                    <span className="status-dropdown-label">Skip</span>
-                                                                </button>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                )}
+                                                        ✏️
+                                                    </button>
+                                                    {reminder.status === ReminderStatus.PENDING && (
+                                                        <button
+                                                            type="button"
+                                                            className="action-button action-snooze"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                toggleSnoozeMenu(reminder.id);
+                                                            }}
+                                                            title="Snooze reminder"
+                                                            aria-label="Snooze reminder"
+                                                        >
+                                                            💤
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        className="action-button action-skip"
+                                                        onClick={() => handleDelete(reminder)}
+                                                        title="Skip reminder"
+                                                        aria-label="Skip reminder"
+                                                    >
+                                                        ⏭️
+                                                    </button>
+                                                </div>
                                                 {isSnoozeOpen && snoozeMenuPosition && (
                                                     <div
                                                         className="snooze-menu"

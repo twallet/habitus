@@ -175,7 +175,7 @@
 }
 
 .cell-notes {
-  text-align: center;
+  text-align: left;
 }
 
 .notes-indicator {
@@ -186,103 +186,61 @@
   color: var(--text-secondary);
 }
 
-.cell-status {
-  position: relative;
+.col-actions {
+  text-align: center;
 }
 
-.status-dropdown-container {
+.cell-actions {
   position: relative;
-  display: inline-block;
+  text-align: center;
 }
 
-.status-badge {
+.actions-container {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border-color);
-  background: var(--bg-primary);
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: var(--transition);
+  justify-content: center;
 }
 
-.status-badge:hover {
-  background: var(--bg-secondary);
-}
-
-.status-badge.open {
-  background: var(--bg-secondary);
-}
-
-.status-badge-text {
-  font-weight: 500;
-}
-
-.status-badge-arrow {
-  font-size: 0.75rem;
-  transition: var(--transition);
-}
-
-.status-badge.open .status-badge-arrow {
-  transform: rotate(180deg);
-}
-
-.status-pending {
-  background: #fee2e2;
-  color: #991b1b;
-  border-color: #ef4444;
-}
-
-.status-answered {
-  background: #d4edda;
-  color: #155724;
-  border-color: #28a745;
-}
-
-.status-snoozed {
-  background: #fff3cd;
-  color: #856404;
-  border-color: #ffc107;
-}
-
-.status-dropdown-menu {
-  position: fixed;
-  min-width: 150px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-md);
-  z-index: 1000;
-  padding: 4px;
-}
-
-.status-dropdown-item {
+.actions-buttons {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 100%;
-  padding: 8px 12px;
-  border: none;
-  background: none;
-  text-align: left;
+}
+
+.action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: 1.1em;
   transition: var(--transition);
   color: var(--text-primary);
 }
 
-.status-dropdown-item:hover {
+.action-button:hover {
   background: var(--bg-secondary);
+  border-color: var(--text-primary);
+  transform: scale(1.1);
 }
 
-.status-dropdown-icon {
-  font-size: 1em;
+.action-button:active {
+  transform: scale(0.95);
 }
 
-.status-dropdown-label {
-  flex: 1;
+.action-button:focus {
+  outline: none;
+}
+
+.action-button:focus-visible {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 2px;
 }
 
 .snooze-menu {
