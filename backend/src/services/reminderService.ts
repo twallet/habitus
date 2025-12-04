@@ -55,17 +55,38 @@ export class ReminderService {
     }
 
     // Check and update expired upcoming reminders (only on valid reminders)
+    // This may create new Upcoming reminders, so we need to reload reminders after
+    const hadExpiredReminders = validReminders.some(
+      (r) =>
+        r.status === ReminderStatus.UPCOMING &&
+        new Date(r.scheduled_time) <= new Date()
+    );
     await this.updateExpiredUpcomingReminders(validReminders);
+
+    // If we updated expired reminders and created new ones, reload all reminders to include them
+    let finalReminders = validReminders;
+    if (hadExpiredReminders) {
+      const reloadedReminders = await Reminder.loadByUserId(userId, this.db);
+      const reloadedValidReminders = await this.filterOrphanedReminders(
+        reloadedReminders
+      );
+      finalReminders = reloadedValidReminders;
+      console.log(
+        `[${new Date().toISOString()}] REMINDER | Reloaded reminders after creating new Upcoming reminders, now have ${
+          finalReminders.length
+        } reminders`
+      );
+    }
 
     // Return all reminders (including future ones) for tooltip display
     // Frontend will filter them for display in RemindersList
     console.log(
       `[${new Date().toISOString()}] REMINDER | Returning ${
-        validReminders.length
+        finalReminders.length
       } valid reminders for userId: ${userId} (frontend will filter for display)`
     );
 
-    return validReminders.map((reminder) => reminder.toData());
+    return finalReminders.map((reminder) => reminder.toData());
   }
 
   /**
