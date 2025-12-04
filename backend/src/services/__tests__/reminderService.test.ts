@@ -418,15 +418,15 @@ describe("ReminderService", () => {
       expect(second).not.toBeNull();
       expect(second!.id).not.toBe(firstId); // Should be a new reminder
 
-      // Verify only one future reminder exists
+      // Verify only one future reminder exists (should be Upcoming)
       const allReminders = await Reminder.loadByUserId(testUserId, testDb);
-      const futurePendingReminders = allReminders.filter(
+      const futureUpcomingReminders = allReminders.filter(
         (r) =>
           r.tracking_id === testTrackingId &&
-          r.status === ReminderStatus.PENDING &&
+          r.status === ReminderStatus.UPCOMING &&
           new Date(r.scheduled_time) > new Date()
       );
-      expect(futurePendingReminders.length).toBe(1); // Only one future reminder should exist
+      expect(futureUpcomingReminders.length).toBe(1); // Only one future Upcoming reminder should exist
     });
 
     it("should not create reminder for non-Running tracking", async () => {
@@ -540,19 +540,19 @@ describe("ReminderService", () => {
       expect(newReminder!.status).toBe(ReminderStatus.UPCOMING);
     });
 
-    it("should delete existing future Pending reminder and create new unique one", async () => {
-      // Create a Pending reminder for the tracking
-      const pendingTime = new Date(
+    it("should delete existing future Upcoming reminder and create new unique one", async () => {
+      // Create an Upcoming reminder for the tracking
+      const upcomingTime = new Date(
         Date.now() + 24 * 60 * 60 * 1000
       ).toISOString(); // Tomorrow
-      const pendingReminder = new Reminder({
+      const upcomingReminder = new Reminder({
         id: 0,
         tracking_id: testTrackingId,
         user_id: testUserId,
-        scheduled_time: pendingTime,
-        status: ReminderStatus.PENDING,
+        scheduled_time: upcomingTime,
+        status: ReminderStatus.UPCOMING,
       });
-      await pendingReminder.save(testDb);
+      await upcomingReminder.save(testDb);
 
       // Try to create next reminder
       const result = await reminderService.createNextReminderForTracking(
@@ -560,9 +560,9 @@ describe("ReminderService", () => {
         testUserId
       );
 
-      // Verify the existing Pending reminder is deleted and a new one is created
+      // Verify the existing Upcoming reminder is deleted and a new one is created
       const oldReminder = await Reminder.loadById(
-        pendingReminder.id,
+        upcomingReminder.id,
         testUserId,
         testDb
       );
@@ -570,8 +570,8 @@ describe("ReminderService", () => {
 
       // Verify a new reminder was created
       expect(result).not.toBeNull();
-      expect(result!.id).not.toBe(pendingReminder.id); // Should be a new reminder
-      expect(result!.status).toBe(ReminderStatus.PENDING);
+      expect(result!.id).not.toBe(upcomingReminder.id); // Should be a new reminder
+      expect(result!.status).toBe(ReminderStatus.UPCOMING);
     });
   });
 

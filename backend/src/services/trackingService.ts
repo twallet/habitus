@@ -514,6 +514,7 @@ export class TrackingService {
 
   /**
    * Delete a tracking by ID.
+   * Also deletes all associated reminders to prevent orphaned data.
    * @param trackingId - The tracking ID to delete
    * @param userId - The user ID (for authorization)
    * @returns Promise resolving when tracking is deleted
@@ -525,6 +526,28 @@ export class TrackingService {
       `[${new Date().toISOString()}] TRACKING | Deleting tracking ID: ${trackingId} for userId: ${userId}`
     );
 
+    // Verify tracking exists and belongs to user before deleting
+    const existingTracking = await this.getTrackingById(trackingId, userId);
+    if (!existingTracking) {
+      console.warn(
+        `[${new Date().toISOString()}] TRACKING | Delete failed: tracking not found for ID: ${trackingId} and userId: ${userId}`
+      );
+      throw new Error("Tracking not found");
+    }
+
+    // Explicitly delete all reminders associated with this tracking
+    // This ensures data consistency even if foreign key constraints fail
+    const reminderDeleteResult = await this.db.run(
+      "DELETE FROM reminders WHERE tracking_id = ? AND user_id = ?",
+      [trackingId, userId]
+    );
+    console.log(
+      `[${new Date().toISOString()}] TRACKING | Deleted ${
+        reminderDeleteResult.changes
+      } reminder(s) for tracking ID: ${trackingId}`
+    );
+
+    // Delete the tracking
     const result = await this.db.run(
       "DELETE FROM trackings WHERE id = ? AND user_id = ?",
       [trackingId, userId]

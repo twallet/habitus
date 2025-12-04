@@ -616,6 +616,78 @@ export class ReminderService {
   }
 
   /**
+   * Clean up orphaned reminders (reminders whose tracking no longer exists).
+   * @param reminders - Array of reminder instances that are already identified as orphaned
+   * @param userId - The user ID
+   * @returns Promise resolving when cleanup is complete
+   * @private
+   */
+  private async cleanupOrphanedReminders(
+    reminders: Reminder[],
+    userId: number
+  ): Promise<void> {
+    if (reminders.length === 0) {
+      return;
+    }
+
+    console.log(
+      `[${new Date().toISOString()}] REMINDER | Cleaning up ${
+        reminders.length
+      } orphaned reminder(s)...`
+    );
+
+    // Delete orphaned reminders directly (they're already identified as orphaned)
+    for (const reminder of reminders) {
+      try {
+        await reminder.delete(this.db);
+        console.log(
+          `[${new Date().toISOString()}] REMINDER | Deleted orphaned reminder ID: ${
+            reminder.id
+          }`
+        );
+      } catch (error) {
+        console.error(
+          `[${new Date().toISOString()}] REMINDER | Error deleting orphaned reminder ID ${
+            reminder.id
+          }:`,
+          error
+        );
+      }
+    }
+
+    console.log(
+      `[${new Date().toISOString()}] REMINDER | Cleaned up ${
+        reminders.length
+      } orphaned reminder(s)`
+    );
+  }
+
+  /**
+   * Filter out orphaned reminders (reminders whose tracking no longer exists).
+   * @param reminders - Array of reminder instances to filter
+   * @returns Promise resolving to array of valid reminders
+   * @private
+   */
+  private async filterOrphanedReminders(
+    reminders: Reminder[]
+  ): Promise<Reminder[]> {
+    const validReminders: Reminder[] = [];
+
+    for (const reminder of reminders) {
+      const tracking = await Tracking.loadById(
+        reminder.tracking_id,
+        reminder.user_id,
+        this.db
+      );
+      if (tracking) {
+        validReminders.push(reminder);
+      }
+    }
+
+    return validReminders;
+  }
+
+  /**
    * Check and update expired upcoming reminders to Pending status.
    * @param reminders - Array of reminder instances to check
    * @returns Promise resolving when all updates are complete

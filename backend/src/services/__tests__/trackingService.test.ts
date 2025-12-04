@@ -732,14 +732,21 @@ describe("TrackingService", () => {
         "Running"
       );
 
-      // Verify a reminder was created
+      // Verify a reminder was created (should be Upcoming if time is in future)
       const reminder = await Reminder.loadByTrackingId(
         trackingId,
         testUserId,
         testDb
       );
       expect(reminder).not.toBeNull();
-      expect(reminder!.status).toBe(ReminderStatus.PENDING);
+      // The reminder should be Upcoming if scheduled time is in the future
+      const scheduledTime = new Date(reminder!.scheduled_time);
+      const now = new Date();
+      if (scheduledTime > now) {
+        expect(reminder!.status).toBe(ReminderStatus.UPCOMING);
+      } else {
+        expect(reminder!.status).toBe(ReminderStatus.PENDING);
+      }
     });
 
     it("should create next reminder when unarchiving from Archived", async () => {
@@ -772,14 +779,21 @@ describe("TrackingService", () => {
         "Running"
       );
 
-      // Verify a reminder was created
+      // Verify a reminder was created (should be Upcoming if time is in future)
       const reminder = await Reminder.loadByTrackingId(
         trackingId,
         testUserId,
         testDb
       );
       expect(reminder).not.toBeNull();
-      expect(reminder!.status).toBe(ReminderStatus.PENDING);
+      // The reminder should be Upcoming if scheduled time is in the future
+      const scheduledTime = new Date(reminder!.scheduled_time);
+      const now = new Date();
+      if (scheduledTime > now) {
+        expect(reminder!.status).toBe(ReminderStatus.UPCOMING);
+      } else {
+        expect(reminder!.status).toBe(ReminderStatus.PENDING);
+      }
     });
   });
 });

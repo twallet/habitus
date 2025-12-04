@@ -723,9 +723,9 @@ describe("RemindersList", () => {
         const statusHeader = screen.getByLabelText(/sort by status/i);
         await userEvent.click(statusHeader);
 
-        // Should be sorted alphabetically
-        const statuses = screen.getAllByText(/Pending|Upcoming/);
-        expect(statuses.length).toBe(2);
+        // Should be sorted alphabetically (only Pending reminders are shown, Upcoming are hidden)
+        const statuses = screen.getAllByText(/Pending/);
+        expect(statuses.length).toBe(1); // Only Pending reminders are displayed
     });
 
     it("should toggle sort direction", async () => {
@@ -1057,14 +1057,14 @@ describe("RemindersList", () => {
 
     // Note: Answered reminders are now hidden from the reminders table, so this test is no longer applicable
 
-    it("should show Answer button for snoozed reminders", async () => {
+    it("should show Answer button for pending reminders", async () => {
         const reminders: ReminderData[] = [
             {
                 id: 1,
                 tracking_id: 1,
                 user_id: 1,
-                scheduled_time: "2024-01-01T10:00:00Z",
-                status: ReminderStatus.UPCOMING,
+                scheduled_time: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago (past time)
+                status: ReminderStatus.PENDING,
             },
         ];
 
@@ -1082,7 +1082,7 @@ describe("RemindersList", () => {
 
         render(<RemindersList />);
 
-        const statusBadge = screen.getByText("Upcoming");
+        const statusBadge = screen.getByText("Pending");
         await userEvent.click(statusBadge);
 
         // Should show Answer button
