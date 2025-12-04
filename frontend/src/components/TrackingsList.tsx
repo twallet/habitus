@@ -1128,21 +1128,21 @@ export function TrackingsList({
                 <div className="trackings-list-content">
                     <div className="empty-state">
                         <p>
-                            No trackings yet.{" "}
+                            No trackings.{" "}
                             {onCreate ? (
                                 <>
                                     <button
                                         type="button"
                                         className="link-button"
                                         onClick={onCreate}
-                                        aria-label="Create your first tracking"
+                                        aria-label="Create a new tracking"
                                     >
-                                        Create your first tracking
+                                        Create a new tracking
                                     </button>{" "}
                                     to get started!
                                 </>
                             ) : (
-                                "Create your first tracking to get started!"
+                                "Create a new tracking to get started!"
                             )}
                         </p>
                     </div>

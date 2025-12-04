@@ -209,6 +209,21 @@ export function useReminders() {
       `[${new Date().toISOString()}] FRONTEND_REMINDERS | Updating reminder ID: ${reminderId}`
     );
 
+    // Optimistically update the reminder in state immediately for instant UI feedback
+    setReminders((prevReminders) =>
+      prevReminders.map((r) => {
+        if (r.id === reminderId) {
+          return {
+            ...r,
+            answer: answer !== undefined ? answer : r.answer,
+            notes: notes !== undefined ? notes : r.notes,
+            status: status !== undefined ? status : r.status,
+          };
+        }
+        return r;
+      })
+    );
+
     try {
       const reminderData = await apiClient.updateReminder(
         reminderId,
@@ -221,6 +236,7 @@ export function useReminders() {
           reminderData.id
         }`
       );
+      // Update with server response to ensure consistency
       setReminders((prevReminders) =>
         prevReminders.map((r) => (r.id === reminderId ? reminderData : r))
       );
@@ -230,6 +246,8 @@ export function useReminders() {
         `[${new Date().toISOString()}] FRONTEND_REMINDERS | Error updating reminder:`,
         error
       );
+      // On error, refresh to restore correct state
+      await fetchReminders();
       throw error;
     }
   };
@@ -258,6 +276,23 @@ export function useReminders() {
       `[${new Date().toISOString()}] FRONTEND_REMINDERS | Snoozing reminder ID: ${reminderId} for ${minutes} minutes`
     );
 
+    // Optimistically update the reminder in state immediately for instant UI feedback
+    // Calculate new scheduled time
+    const now = new Date();
+    const newScheduledTime = new Date(now.getTime() + minutes * 60 * 1000);
+    setReminders((prevReminders) =>
+      prevReminders.map((r) => {
+        if (r.id === reminderId) {
+          return {
+            ...r,
+            scheduled_time: newScheduledTime.toISOString(),
+            status: ReminderStatus.UPCOMING,
+          };
+        }
+        return r;
+      })
+    );
+
     try {
       const reminderData = await apiClient.snoozeReminder(reminderId, minutes);
       console.log(
@@ -265,6 +300,7 @@ export function useReminders() {
           reminderData.id
         }`
       );
+      // Update with server response to ensure consistency
       setReminders((prevReminders) =>
         prevReminders.map((r) => (r.id === reminderId ? reminderData : r))
       );
@@ -274,6 +310,8 @@ export function useReminders() {
         `[${new Date().toISOString()}] FRONTEND_REMINDERS | Error snoozing reminder:`,
         error
       );
+      // On error, refresh to restore correct state
+      await fetchReminders();
       throw error;
     }
   };

@@ -72,12 +72,6 @@ function App() {
    * Uses useMemo to ensure recalculation when reminders array changes.
    * @internal
    */
-  /**
-   * Calculate the number of pending reminders that have reached their scheduled time.
-   * This matches the filtering logic in RemindersList component.
-   * Uses useMemo to ensure recalculation when reminders array changes.
-   * @internal
-   */
   const pendingRemindersCount = useMemo(() => {
     const now = new Date();
     return reminders.filter((reminder) => {
