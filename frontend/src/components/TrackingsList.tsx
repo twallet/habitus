@@ -1222,7 +1222,7 @@ export function TrackingsList({
                                                 state: TrackingState.ARCHIVED,
                                                 icon: "📦",
                                                 label: "Archive",
-                                                tooltip: "Archive: Moves tracking to archived state and stops all reminder generation."
+                                                tooltip: "Archive: Moves tracking to archived state and stops all reminder generation. All pending and upcoming reminders will be deleted."
                                             },
                                             {
                                                 state: TrackingState.DELETED,
@@ -1243,7 +1243,7 @@ export function TrackingsList({
                                                 state: TrackingState.ARCHIVED,
                                                 icon: "📦",
                                                 label: "Archive",
-                                                tooltip: "Archive: Moves tracking to archived state and stops all reminder generation."
+                                                tooltip: "Archive: Moves tracking to archived state and stops all reminder generation. All pending and upcoming reminders will be deleted."
                                             },
                                             {
                                                 state: TrackingState.DELETED,

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { flushSync } from "react-dom";
 import { ReminderData, ReminderStatus } from "../models/Reminder";
 import { ApiClient } from "../config/api";
 
@@ -211,19 +212,22 @@ export function useReminders() {
 
     // Optimistically update the reminder in state immediately for instant UI feedback
     // This ensures the badge count updates immediately when answering a reminder (status changes to ANSWERED)
-    setReminders((prevReminders) =>
-      prevReminders.map((r) => {
-        if (r.id === reminderId) {
-          return {
-            ...r,
-            answer: answer !== undefined ? answer : r.answer,
-            notes: notes !== undefined ? notes : r.notes,
-            status: status !== undefined ? status : r.status,
-          };
-        }
-        return r;
-      })
-    );
+    // Use flushSync to ensure the state update triggers an immediate re-render
+    flushSync(() => {
+      setReminders((prevReminders) =>
+        prevReminders.map((r) => {
+          if (r.id === reminderId) {
+            return {
+              ...r,
+              answer: answer !== undefined ? answer : r.answer,
+              notes: notes !== undefined ? notes : r.notes,
+              status: status !== undefined ? status : r.status,
+            };
+          }
+          return r;
+        })
+      );
+    });
 
     try {
       const reminderData = await apiClient.updateReminder(
