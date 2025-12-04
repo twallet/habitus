@@ -285,7 +285,6 @@ try {
     
     # Display results
     Write-Host "Total number of trackings: $($result.count)" -ForegroundColor Green
-    Write-Host ""
     
     if ($result.trackings.Count -eq 0) {
         Write-Host "No trackings found in the database." -ForegroundColor Yellow
@@ -293,116 +292,93 @@ try {
         $trackingIndex = 0
         foreach ($tracking in $result.trackings) {
             $trackingIndex++
-            Write-Host ("=" * 100) -ForegroundColor Cyan
-            Write-Host "TRACKING #$trackingIndex" -ForegroundColor Cyan
-            Write-Host ("=" * 100) -ForegroundColor Cyan
             
-            # Tracking basic info
-            Write-Host "ID: $($tracking.id)" -ForegroundColor White
-            Write-Host "User: $($tracking.user_name) ($($tracking.user_email)) [ID: $($tracking.user_id)]" -ForegroundColor White
-            Write-Host "Question: $($tracking.question)" -ForegroundColor Yellow
-            Write-Host "Type: $($tracking.type)" -ForegroundColor White
-            Write-Host "State: $($tracking.state)" -ForegroundColor $(if ($tracking.state -eq "Running") { "Green" } elseif ($tracking.state -eq "Paused") { "Yellow" } else { "Gray" })
-            
-            if ($tracking.icon) {
-                Write-Host "Icon: $($tracking.icon)" -ForegroundColor White
+            # Add empty line before each tracking (except the first one)
+            if ($trackingIndex -gt 1) {
+                Write-Host ""
             }
             
-            if ($tracking.notes) {
-                $notesPreview = if ($tracking.notes.Length -gt 100) { $tracking.notes.Substring(0, 100) + "..." } else { $tracking.notes }
-                Write-Host "Notes: $notesPreview" -ForegroundColor Gray
-            }
-            
-            if ($tracking.days) {
-                Write-Host "Days Pattern: $($tracking.days)" -ForegroundColor Gray
-            }
-            
-            # Schedules
-            if ($tracking.schedules.Count -gt 0) {
-                Write-Host "Schedules:" -ForegroundColor Cyan
-                foreach ($schedule in $tracking.schedules) {
-                    $timeStr = "{0:D2}:{1:D2}" -f $schedule.hour, $schedule.minutes
-                    Write-Host "  - $timeStr" -ForegroundColor Gray
+            # Format schedules as comma-separated list
+            $schedulesStr = if ($tracking.schedules.Count -gt 0) {
+                $scheduleTimes = $tracking.schedules | ForEach-Object {
+                    "{0:D2}:{1:D2}" -f $_.hour, $_.minutes
                 }
+                $scheduleTimes -join ", "
             } else {
-                Write-Host "Schedules: None" -ForegroundColor Gray
+                "None"
             }
             
-            Write-Host "Created: $($tracking.created_at)" -ForegroundColor Gray
-            Write-Host "Updated: $($tracking.updated_at)" -ForegroundColor Gray
-            Write-Host ""
+            # Build tracking attributes string
+            $trackingAttrs = @(
+                "ID=$($tracking.id)",
+                "UserID=$($tracking.user_id)",
+                "UserName=$($tracking.user_name)",
+                "UserEmail=$($tracking.user_email)",
+                "Question=$($tracking.question)",
+                "Type=$($tracking.type)",
+                "State=$($tracking.state)",
+                "Icon=$($tracking.icon)",
+                "Days=$($tracking.days)",
+                "Schedules=[$schedulesStr]",
+                "Notes=$($tracking.notes)",
+                "Created=$($tracking.created_at)",
+                "Updated=$($tracking.updated_at)"
+            )
             
-            # Reminders
+            # Display tracking in one line
+            $stateColor = switch ($tracking.state) {
+                "Running" { "Green" }
+                "Paused" { "Yellow" }
+                default { "White" }
+            }
+            
+            Write-Host ("TRACKING #$trackingIndex : " + ($trackingAttrs -join " | ")) -ForegroundColor $stateColor
+            
+            # Display reminders with all attributes, indented
             if ($tracking.reminders.Count -gt 0) {
-                Write-Host "  REMINDERS ($($tracking.reminders.Count) total):" -ForegroundColor Green
-                Write-Host ("  " + "-" * 98) -ForegroundColor Green
-                Write-Host ("  {0,-5} {1,-19} {2,-10} {3,-15} {4}" -f "ID", "Scheduled Time", "Status", "Answer", "Notes") -ForegroundColor Green
-                Write-Host ("  " + "-" * 98) -ForegroundColor Green
-                
                 foreach ($reminder in $tracking.reminders) {
                     # Format scheduled time: convert ISO string to readable format
                     $scheduledTime = $reminder.scheduled_time
                     if ($scheduledTime) {
                         try {
                             $dateTime = [DateTime]::Parse($scheduledTime)
-                            $scheduledTimeFormatted = $dateTime.ToString("yyyy-MM-dd HH:mm")
+                            $scheduledTimeFormatted = $dateTime.ToString("yyyy-MM-dd HH:mm:ss")
                         } catch {
-                            # If parsing fails, truncate the ISO string
-                            $scheduledTimeFormatted = if ($scheduledTime.Length -gt 16) { $scheduledTime.Substring(0, 16) } else { $scheduledTime }
+                            # If parsing fails, use the ISO string as-is
+                            $scheduledTimeFormatted = $scheduledTime
                         }
                     } else {
-                        $scheduledTimeFormatted = "-"
+                        $scheduledTimeFormatted = "null"
                     }
                     
-                    $status = $reminder.status
-                    $answer = if ($reminder.answer) { 
-                        if ($reminder.answer.Length -gt 15) { $reminder.answer.Substring(0, 15) } else { $reminder.answer }
-                    } else { "-" }
-                    $notes = if ($reminder.notes) { 
-                        if ($reminder.notes.Length -gt 40) { $reminder.notes.Substring(0, 40) + "..." } else { $reminder.notes }
-                    } else { "-" }
+                    # Format answer and notes (handle null/empty)
+                    $answerStr = if ($reminder.answer) { $reminder.answer } else { "null" }
+                    $notesStr = if ($reminder.notes) { $reminder.notes } else { "null" }
                     
-                    $statusColor = switch ($status) {
+                    # Build reminder attributes string
+                    $reminderAttrs = @(
+                        "ID=$($reminder.id)",
+                        "TrackingID=$($reminder.tracking_id)",
+                        "UserID=$($reminder.user_id)",
+                        "ScheduledTime=$scheduledTimeFormatted",
+                        "Status=$($reminder.status)",
+                        "Answer=$answerStr",
+                        "Notes=$notesStr",
+                        "Created=$($reminder.created_at)",
+                        "Updated=$($reminder.updated_at)"
+                    )
+                    
+                    $statusColor = switch ($reminder.status) {
                         "Pending" { "Yellow" }
                         "Answered" { "Green" }
                         "Upcoming" { "Cyan" }
-                        default { "White" }
+                        default { "Gray" }
                     }
                     
-                    Write-Host ("  {0,-5} {1,-19} " -f $reminder.id, $scheduledTimeFormatted) -NoNewline
-                    Write-Host ("{0,-10}" -f $status) -ForegroundColor $statusColor -NoNewline
-                    Write-Host (" {0,-15} {1}" -f $answer, $notes)
+                    Write-Host ("  -> REMINDER : " + ($reminderAttrs -join " | ")) -ForegroundColor $statusColor
                 }
             } else {
-                Write-Host "  REMINDERS: None" -ForegroundColor Gray
-            }
-            
-            Write-Host ""
-        }
-        
-        Write-Host ("=" * 100) -ForegroundColor Cyan
-        Write-Host ""
-        
-        # Summary
-        $totalReminders = ($result.trackings | ForEach-Object { $_.reminders.Count } | Measure-Object -Sum).Sum
-        Write-Host "Summary:" -ForegroundColor Green
-        Write-Host "  Total Trackings: $($result.count)" -ForegroundColor White
-        Write-Host "  Total Reminders: $totalReminders" -ForegroundColor White
-        
-        $remindersByStatus = @{}
-        foreach ($tracking in $result.trackings) {
-            foreach ($reminder in $tracking.reminders) {
-                if (-not $remindersByStatus[$reminder.status]) {
-                    $remindersByStatus[$reminder.status] = 0
-                }
-                $remindersByStatus[$reminder.status]++
-            }
-        }
-        
-        if ($remindersByStatus.Count -gt 0) {
-            Write-Host "  Reminders by Status:" -ForegroundColor White
-            foreach ($status in $remindersByStatus.Keys | Sort-Object) {
-                Write-Host "    $status : $($remindersByStatus[$status])" -ForegroundColor Gray
+                Write-Host "  -> REMINDERS: None" -ForegroundColor Gray
             }
         }
     }

@@ -332,7 +332,7 @@ interface RemindersListProps {
  * @public
  */
 export function RemindersList({ onCreate: _onCreate, onMessage }: RemindersListProps = {}) {
-    const { reminders, isLoading, updateReminder, snoozeReminder, deleteReminder, refreshReminders } = useReminders();
+    const { reminders, isLoading, updateReminder, snoozeReminder, deleteReminder } = useReminders();
     const { trackings, isLoading: isLoadingTrackings } = useTrackings();
     const [editingReminder, setEditingReminder] = useState<ReminderData | null>(null);
     const [reminderToDelete, setReminderToDelete] = useState<ReminderData | null>(null);
@@ -530,8 +530,7 @@ export function RemindersList({ onCreate: _onCreate, onMessage }: RemindersListP
             setOpenDropdownId(null);
             setDropdownPosition(null);
             setSnoozeMenuPosition(null);
-            // Refresh reminders to get updated data
-            await refreshReminders();
+            // Badge updates immediately via optimistic update in useReminders hook
             if (onMessage) {
                 onMessage("Reminder snoozed successfully", "success");
             }
@@ -608,8 +607,7 @@ export function RemindersList({ onCreate: _onCreate, onMessage }: RemindersListP
         try {
             await updateReminder(reminderId, answer, notes, ReminderStatus.ANSWERED);
             setEditingReminder(null);
-            // Refresh reminders to get updated data
-            await refreshReminders();
+            // Badge updates immediately via optimistic update in useReminders hook
             if (onMessage) {
                 onMessage("Reminder answered successfully", "success");
             }

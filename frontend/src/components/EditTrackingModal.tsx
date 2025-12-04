@@ -357,7 +357,7 @@ export function EditTrackingModal({
                                     required
                                     disabled={isSubmitting}
                                 >
-                                    <option value={TrackingType.TRUE_FALSE}>🔘 Yes/No</option>
+                                    <option value={TrackingType.TRUE_FALSE}>🔘🟢 Yes/No</option>
                                     <option value={TrackingType.REGISTER}>🖊️ Text</option>
                                 </select>
                             </div>

@@ -363,7 +363,6 @@
   padding: 6px 12px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
-  background: var(--bg-primary);
   cursor: pointer;
   transition: var(--transition);
   font-size: 0.8125rem;
@@ -372,16 +371,6 @@
   user-select: none;
   min-width: 90px;
   width: 90px;
-}
-
-.status-badge:hover {
-  background: var(--bg-secondary);
-  border-color: var(--text-secondary);
-}
-
-.status-badge.open {
-  background: var(--bg-secondary);
-  border-color: var(--text-primary);
 }
 
 .status-badge-text {
@@ -399,44 +388,70 @@
 }
 
 /* State badge colors with pastel backgrounds */
-.state-badge-running {
-  color: #10b981;
+.status-badge.state-badge-running {
+  color: #047857;
   border-color: #10b981;
   background: #d1fae5;
 }
 
-.state-badge-running:hover {
+.status-badge.state-badge-running:hover {
   background: #a7f3d0;
   border-color: #059669;
 }
 
-.state-badge-paused {
-  color: #b45309;
+.status-badge.state-badge-running.open {
+  background: #a7f3d0;
+  border-color: #059669;
+}
+
+.status-badge.state-badge-paused {
+  color: #92400e;
   border-color: #d97706;
   background: #fef3c7;
 }
 
-.state-badge-paused:hover {
+.status-badge.state-badge-paused:hover {
   background: #fde68a;
   border-color: #b45309;
-  color: #92400e;
+  color: #78350f;
 }
 
-.state-badge-archived {
-  color: #6b7280;
+.status-badge.state-badge-paused.open {
+  background: #fde68a;
+  border-color: #b45309;
+}
+
+.status-badge.state-badge-archived {
+  color: #374151;
   border-color: #6b7280;
   background: #f3f4f6;
 }
 
-.state-badge-archived:hover {
+.status-badge.state-badge-archived:hover {
   background: #e5e7eb;
   border-color: #4b5563;
 }
 
-.state-badge-deleted {
-  color: #ef4444;
-  border-color: #ef4444;
-  background: #fee2e2;
+.status-badge.state-badge-archived.open {
+  background: #e5e7eb;
+  border-color: #4b5563;
+}
+
+/* Default state badge styling */
+.status-badge.state-badge-default {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+.status-badge.state-badge-default:hover {
+  background: var(--bg-secondary);
+  border-color: var(--text-secondary);
+}
+
+.status-badge.state-badge-default.open {
+  background: var(--bg-secondary);
+  border-color: var(--text-primary);
 }
 
 .status-dropdown-menu {

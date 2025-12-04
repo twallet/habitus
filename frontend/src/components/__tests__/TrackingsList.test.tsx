@@ -95,7 +95,7 @@ describe("TrackingsList", () => {
 
         expect(screen.getByText("Did I exercise today?")).toBeInTheDocument();
         expect(screen.getByText("Did I meditate?")).toBeInTheDocument();
-        expect(screen.getByText("🔘")).toBeInTheDocument();
+        expect(screen.getByText("🔘🟢")).toBeInTheDocument();
         expect(screen.getByText("🖊️")).toBeInTheDocument();
     });
 
@@ -483,7 +483,7 @@ describe("TrackingsList", () => {
             />
         );
 
-        const typeCell = screen.getByText("🔘");
+        const typeCell = screen.getByText("🔘🟢");
         expect(typeCell).toHaveAttribute("title", "Yes/No");
     });
 

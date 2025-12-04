@@ -77,7 +77,7 @@ class TrackingFormatter {
     static getTypeEmoji(type: TrackingType): string {
         switch (type) {
             case TrackingType.TRUE_FALSE:
-                return "🔘";
+                return "🔘🟢";
             case TrackingType.REGISTER:
                 return "🖊️";
             default:
@@ -241,21 +241,6 @@ class TrackingFormatter {
             return text;
         }
         return text.substring(0, maxLength) + "...";
-    }
-
-    /**
-     * Format next reminder time for tooltip display.
-     * @param nextReminderTime - ISO datetime string or null
-     * @returns Formatted reminder time string
-     */
-    static formatNextReminderTime(nextReminderTime: string | null): string {
-        if (!nextReminderTime) {
-            return "No upcoming reminder";
-        }
-        const date = new Date(nextReminderTime);
-        const dateStr = date.toLocaleDateString();
-        const timeStr = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-        return `Next reminder: ${dateStr} ${timeStr}`;
     }
 
     /**
@@ -1298,7 +1283,10 @@ export function TrackingsList({
                                     <td className="cell-type" title={TrackingFormatter.getFullTypeLabel(tracking.type)}>
                                         {TrackingFormatter.getTypeEmoji(tracking.type)}
                                     </td>
-                                    <td className="cell-times" title={TrackingFormatter.formatAllTimes(tracking.schedules)}>
+                                    <td
+                                        className="cell-times"
+                                        title={!tracking.schedules || tracking.schedules.length === 0 || tracking.schedules.length > 1 ? TrackingFormatter.formatAllTimes(tracking.schedules) : undefined}
+                                    >
                                         {TrackingFormatter.formatTimesDisplay(tracking.schedules)}
                                     </td>
                                     <td
@@ -1307,10 +1295,7 @@ export function TrackingsList({
                                     >
                                         {TrackingFormatter.formatFrequency(tracking.days)}
                                     </td>
-                                    <td
-                                        className="cell-next-reminder"
-                                        title={TrackingFormatter.formatNextReminderTime(getNextReminderTime(tracking.id))}
-                                    >
+                                    <td className="cell-next-reminder">
                                         {TrackingFormatter.formatNextReminderTimeDisplay(getNextReminderTime(tracking.id))}
                                     </td>
                                     <td className="cell-status">
