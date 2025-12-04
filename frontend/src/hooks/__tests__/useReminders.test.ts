@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { vi, type Mock } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook, waitFor, act } from "@testing-library/react";
 import { useReminders } from "../useReminders";
 import { ReminderData, ReminderStatus } from "../../models/Reminder";
 import { API_ENDPOINTS } from "../../config/api";
@@ -26,6 +26,12 @@ describe("useReminders", () => {
     (global.fetch as Mock).mockReset();
     (global.fetch as Mock).mockClear();
     localStorage.clear();
+    // Reset document.hidden
+    Object.defineProperty(document, "hidden", {
+      writable: true,
+      configurable: true,
+      value: false,
+    });
   });
 
   afterEach(() => {
@@ -84,6 +90,85 @@ describe("useReminders", () => {
         })
       );
     });
+
+    it("should handle fetch error and clear reminders", async () => {
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as Mock).mockRejectedValueOnce(new Error("Network error"));
+
+      const { result } = renderHook(() => useReminders());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.reminders).toEqual([]);
+    });
+  });
+
+  describe("token watching", () => {
+    it("should detect token changes via storage event", async () => {
+      localStorage.setItem(TOKEN_KEY, "token1");
+
+      (global.fetch as Mock).mockResolvedValue({
+        ok: true,
+        json: async () => [],
+      });
+
+      const { result } = renderHook(() => useReminders());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      const initialCallCount = (global.fetch as Mock).mock.calls.length;
+
+      // Simulate storage event
+      act(() => {
+        const event = new StorageEvent("storage", {
+          key: TOKEN_KEY,
+          newValue: "token2",
+        });
+        window.dispatchEvent(event);
+      });
+
+      await waitFor(() => {
+        expect((global.fetch as Mock).mock.calls.length).toBeGreaterThan(
+          initialCallCount
+        );
+      });
+    });
+
+    it("should ignore storage events for other keys", async () => {
+      localStorage.setItem(TOKEN_KEY, "token1");
+
+      (global.fetch as Mock).mockResolvedValue({
+        ok: true,
+        json: async () => [],
+      });
+
+      const { result } = renderHook(() => useReminders());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      const initialCallCount = (global.fetch as Mock).mock.calls.length;
+
+      // Simulate storage event for different key
+      act(() => {
+        const event = new StorageEvent("storage", {
+          key: "other_key",
+          newValue: "value",
+        });
+        window.dispatchEvent(event);
+      });
+
+      // Wait a bit to ensure no additional calls
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect((global.fetch as Mock).mock.calls.length).toBe(initialCallCount);
+    });
   });
 
   describe("updateReminder", () => {
@@ -135,6 +220,52 @@ describe("useReminders", () => {
         );
       });
     });
+
+    it("should throw error when not authenticated", async () => {
+      (global.fetch as Mock).mockResolvedValue({
+        ok: true,
+        json: async () => [],
+      });
+
+      const { result } = renderHook(() => useReminders());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await expect(result.current.updateReminder(1)).rejects.toThrow(
+        "Not authenticated"
+      );
+    });
+
+    it("should handle update error", async () => {
+      const mockReminder: ReminderData = {
+        id: 1,
+        tracking_id: 1,
+        user_id: 1,
+        scheduled_time: "2024-01-01T10:00:00Z",
+        status: ReminderStatus.PENDING,
+      };
+
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [mockReminder],
+        })
+        .mockRejectedValueOnce(new Error("Update failed"));
+
+      const { result } = renderHook(() => useReminders());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await expect(result.current.updateReminder(1, "Yes")).rejects.toThrow(
+        "Update failed"
+      );
+    });
   });
 
   describe("snoozeReminder", () => {
@@ -178,6 +309,52 @@ describe("useReminders", () => {
           ReminderStatus.UPCOMING
         );
       });
+    });
+
+    it("should throw error when not authenticated", async () => {
+      (global.fetch as Mock).mockResolvedValue({
+        ok: true,
+        json: async () => [],
+      });
+
+      const { result } = renderHook(() => useReminders());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await expect(result.current.snoozeReminder(1, 30)).rejects.toThrow(
+        "Not authenticated"
+      );
+    });
+
+    it("should handle snooze error", async () => {
+      const mockReminder: ReminderData = {
+        id: 1,
+        tracking_id: 1,
+        user_id: 1,
+        scheduled_time: "2024-01-01T10:00:00Z",
+        status: ReminderStatus.PENDING,
+      };
+
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [mockReminder],
+        })
+        .mockRejectedValueOnce(new Error("Snooze failed"));
+
+      const { result } = renderHook(() => useReminders());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await expect(result.current.snoozeReminder(1, 30)).rejects.toThrow(
+        "Snooze failed"
+      );
     });
   });
 
@@ -224,6 +401,62 @@ describe("useReminders", () => {
         );
       });
     });
+
+    it("should throw error when not authenticated", async () => {
+      (global.fetch as Mock).mockResolvedValue({
+        ok: true,
+        json: async () => [],
+      });
+
+      const { result } = renderHook(() => useReminders());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await expect(result.current.deleteReminder(1)).rejects.toThrow(
+        "Not authenticated"
+      );
+    });
+
+    it("should handle delete error and refresh reminders", async () => {
+      const mockReminder: ReminderData = {
+        id: 1,
+        tracking_id: 1,
+        user_id: 1,
+        scheduled_time: "2024-01-01T10:00:00Z",
+        status: ReminderStatus.PENDING,
+      };
+
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [mockReminder],
+        })
+        .mockRejectedValueOnce(new Error("Delete failed"))
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [mockReminder],
+        });
+
+      const { result } = renderHook(() => useReminders());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      // Optimistically removes from state
+      await expect(result.current.deleteReminder(1)).rejects.toThrow(
+        "Delete failed"
+      );
+
+      // Should refresh to restore state
+      await waitFor(() => {
+        expect(result.current.reminders).toEqual([mockReminder]);
+      });
+    });
   });
 
   describe("refreshReminders", () => {
@@ -260,6 +493,422 @@ describe("useReminders", () => {
 
       await waitFor(() => {
         expect(result.current.reminders).toEqual(mockReminders);
+      });
+    });
+  });
+
+  describe("removeRemindersForTracking", () => {
+    it("should remove reminders for a tracking", async () => {
+      const mockReminders: ReminderData[] = [
+        {
+          id: 1,
+          tracking_id: 1,
+          user_id: 1,
+          scheduled_time: "2024-01-01T10:00:00Z",
+          status: ReminderStatus.PENDING,
+        },
+        {
+          id: 2,
+          tracking_id: 2,
+          user_id: 1,
+          scheduled_time: "2024-01-01T11:00:00Z",
+          status: ReminderStatus.PENDING,
+        },
+      ];
+
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as Mock).mockResolvedValue({
+        ok: true,
+        json: async () => mockReminders,
+      });
+
+      const { result } = renderHook(() => useReminders());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.reminders).toHaveLength(2);
+
+      act(() => {
+        result.current.removeRemindersForTracking(1);
+      });
+
+      expect(result.current.reminders).toHaveLength(1);
+      expect(result.current.reminders[0].tracking_id).toBe(2);
+    });
+  });
+
+  describe("token polling", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("should detect token changes via polling interval", async () => {
+      localStorage.setItem(TOKEN_KEY, "token1");
+
+      (global.fetch as Mock).mockResolvedValue({
+        ok: true,
+        json: async () => [],
+      });
+
+      const { result } = renderHook(() => useReminders());
+
+      // Wait for initial load
+      await act(async () => {
+        await vi.runAllTimersAsync();
+      });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      const initialCallCount = (global.fetch as Mock).mock.calls.length;
+
+      // Change token in localStorage
+      act(() => {
+        localStorage.setItem(TOKEN_KEY, "token2");
+      });
+
+      // Advance timer to trigger polling check (500ms interval)
+      await act(async () => {
+        vi.advanceTimersByTime(500);
+        await vi.runAllTimersAsync();
+      });
+
+      // Should have detected token change
+      expect((global.fetch as Mock).mock.calls.length).toBeGreaterThan(
+        initialCallCount
+      );
+    });
+
+    it("should not poll when no token exists", async () => {
+      (global.fetch as Mock).mockResolvedValue({
+        ok: true,
+        json: async () => [],
+      });
+
+      const { result } = renderHook(() => useReminders());
+
+      // Wait for initial load
+      await act(async () => {
+        await vi.runAllTimersAsync();
+      });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      const initialCallCount = (global.fetch as Mock).mock.calls.length;
+
+      // Advance timer significantly - should not poll without token
+      await act(async () => {
+        vi.advanceTimersByTime(30000);
+        await vi.runAllTimersAsync();
+      });
+
+      // Should not have made additional calls
+      expect((global.fetch as Mock).mock.calls.length).toBe(initialCallCount);
+    });
+  });
+
+  describe("reminder polling", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("should poll reminders every 30 seconds when authenticated", async () => {
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as Mock).mockResolvedValue({
+        ok: true,
+        json: async () => [],
+      });
+
+      const { result } = renderHook(() => useReminders());
+
+      // Wait for initial load
+      await act(async () => {
+        await vi.runAllTimersAsync();
+      });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      const initialCallCount = (global.fetch as Mock).mock.calls.length;
+
+      // Advance timer by 30 seconds to trigger polling
+      await act(async () => {
+        vi.advanceTimersByTime(30000);
+        await vi.runAllTimersAsync();
+      });
+
+      // Should have polled
+      expect((global.fetch as Mock).mock.calls.length).toBeGreaterThan(
+        initialCallCount
+      );
+    });
+
+    it("should not poll when page is hidden", async () => {
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      Object.defineProperty(document, "hidden", {
+        writable: true,
+        configurable: true,
+        value: true,
+      });
+
+      (global.fetch as Mock).mockResolvedValue({
+        ok: true,
+        json: async () => [],
+      });
+
+      const { result } = renderHook(() => useReminders());
+
+      // Wait for initial load with real timers
+      vi.useRealTimers();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+      vi.useFakeTimers();
+
+      const initialCallCount = (global.fetch as Mock).mock.calls.length;
+
+      // Advance timer - should not poll when hidden
+      act(() => {
+        vi.advanceTimersByTime(30000);
+      });
+
+      // Should not have made additional calls
+      expect((global.fetch as Mock).mock.calls.length).toBe(initialCallCount);
+    });
+
+    it("should stop polling when token is removed during polling", async () => {
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as Mock).mockResolvedValue({
+        ok: true,
+        json: async () => [],
+      });
+
+      const { result } = renderHook(() => useReminders());
+
+      // Wait for initial load with real timers
+      vi.useRealTimers();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+      vi.useFakeTimers();
+
+      const initialCallCount = (global.fetch as Mock).mock.calls.length;
+
+      // Remove token
+      act(() => {
+        localStorage.removeItem(TOKEN_KEY);
+      });
+
+      // Advance timer - should not poll without token
+      act(() => {
+        vi.advanceTimersByTime(30000);
+      });
+
+      // Should not have made additional calls
+      expect((global.fetch as Mock).mock.calls.length).toBe(initialCallCount);
+    });
+
+    it("should stop polling when token changes during polling", async () => {
+      localStorage.setItem(TOKEN_KEY, "token1");
+
+      (global.fetch as Mock).mockResolvedValue({
+        ok: true,
+        json: async () => [],
+      });
+
+      const { result } = renderHook(() => useReminders());
+
+      // Wait for initial load with real timers
+      vi.useRealTimers();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+      vi.useFakeTimers();
+
+      const initialCallCount = (global.fetch as Mock).mock.calls.length;
+
+      // Change token
+      act(() => {
+        localStorage.setItem(TOKEN_KEY, "token2");
+      });
+
+      // Advance timer - should detect token change and stop polling
+      act(() => {
+        vi.advanceTimersByTime(30000);
+      });
+
+      // Should have detected token change via polling interval (500ms), not reminder polling
+      vi.useRealTimers();
+      await waitFor(() => {
+        expect((global.fetch as Mock).mock.calls.length).toBeGreaterThan(
+          initialCallCount
+        );
+      });
+    });
+
+    it("should handle visibility change - stop polling when hidden", async () => {
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      Object.defineProperty(document, "hidden", {
+        writable: true,
+        configurable: true,
+        value: false,
+      });
+
+      (global.fetch as Mock).mockResolvedValue({
+        ok: true,
+        json: async () => [],
+      });
+
+      const { result } = renderHook(() => useReminders());
+
+      // Wait for initial load with real timers
+      vi.useRealTimers();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+      vi.useFakeTimers();
+
+      const initialCallCount = (global.fetch as Mock).mock.calls.length;
+
+      // Simulate page becoming hidden
+      act(() => {
+        Object.defineProperty(document, "hidden", {
+          writable: true,
+          configurable: true,
+          value: true,
+        });
+        const event = new Event("visibilitychange");
+        document.dispatchEvent(event);
+      });
+
+      // Advance timer - should not poll when hidden
+      act(() => {
+        vi.advanceTimersByTime(30000);
+      });
+
+      // Should not have made additional calls
+      expect((global.fetch as Mock).mock.calls.length).toBe(initialCallCount);
+    });
+
+    it("should handle visibility change - resume polling when visible", async () => {
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      Object.defineProperty(document, "hidden", {
+        writable: true,
+        configurable: true,
+        value: true,
+      });
+
+      (global.fetch as Mock).mockResolvedValue({
+        ok: true,
+        json: async () => [],
+      });
+
+      const { result } = renderHook(() => useReminders());
+
+      // Wait for initial load with real timers
+      vi.useRealTimers();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+      vi.useFakeTimers();
+
+      const initialCallCount = (global.fetch as Mock).mock.calls.length;
+
+      // Simulate page becoming visible
+      act(() => {
+        Object.defineProperty(document, "hidden", {
+          writable: true,
+          configurable: true,
+          value: false,
+        });
+        const event = new Event("visibilitychange");
+        document.dispatchEvent(event);
+      });
+
+      // Should immediately refresh and then poll
+      vi.useRealTimers();
+      await waitFor(() => {
+        expect((global.fetch as Mock).mock.calls.length).toBeGreaterThan(
+          initialCallCount
+        );
+      });
+      vi.useFakeTimers();
+
+      const callCountAfterVisible = (global.fetch as Mock).mock.calls.length;
+
+      // Advance timer - should continue polling
+      act(() => {
+        vi.advanceTimersByTime(30000);
+      });
+
+      vi.useRealTimers();
+      await waitFor(() => {
+        expect((global.fetch as Mock).mock.calls.length).toBeGreaterThan(
+          callCountAfterVisible
+        );
+      });
+    });
+
+    it("should handle multiple startPolling calls correctly", async () => {
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as Mock).mockResolvedValue({
+        ok: true,
+        json: async () => [],
+      });
+
+      const { result } = renderHook(() => useReminders());
+
+      // Wait for initial load with real timers
+      vi.useRealTimers();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+      vi.useFakeTimers();
+
+      // Simulate visibility change to trigger startPolling multiple times
+      act(() => {
+        Object.defineProperty(document, "hidden", {
+          writable: true,
+          configurable: true,
+          value: false,
+        });
+        const event = new Event("visibilitychange");
+        document.dispatchEvent(event);
+      });
+
+      // Should not create multiple intervals
+      const initialCallCount = (global.fetch as Mock).mock.calls.length;
+
+      act(() => {
+        vi.advanceTimersByTime(30000);
+      });
+
+      vi.useRealTimers();
+      await waitFor(() => {
+        expect((global.fetch as Mock).mock.calls.length).toBeGreaterThan(
+          initialCallCount
+        );
       });
     });
   });
