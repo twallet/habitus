@@ -661,46 +661,7 @@ describe("RemindersList", () => {
         });
     });
 
-    it("should sort reminders by status", async () => {
-        const reminders: ReminderData[] = [
-            {
-                id: 1,
-                tracking_id: 1,
-                user_id: 1,
-                scheduled_time: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-                status: ReminderStatus.UPCOMING,
-            },
-            {
-                id: 2,
-                tracking_id: 1,
-                user_id: 1,
-                scheduled_time: new Date(Date.now() - 1800000).toISOString(), // 30 minutes ago
-                status: ReminderStatus.PENDING,
-            },
-        ];
-
-        (useRemindersModule.useReminders as any).mockReturnValue({
-            reminders,
-            isLoading: false,
-            updateReminder: mockUpdateReminder,
-            snoozeReminder: mockSnoozeReminder,
-            deleteReminder: mockDeleteReminder,
-            refreshReminders: mockRefreshReminders,
-        });
-        (useTrackingsModule.useTrackings as any).mockReturnValue({
-            trackings: [mockTracking],
-        });
-
-        render(<RemindersList />);
-
-        // Click status header to sort
-        const statusHeader = screen.getByLabelText(/sort by status/i);
-        await userEvent.click(statusHeader);
-
-        // Should be sorted alphabetically (only Pending reminders are shown, Upcoming are hidden)
-        const statuses = screen.getAllByText(/Pending/);
-        expect(statuses.length).toBe(1); // Only Pending reminders are displayed
-    });
+    // Note: Status column has been removed and replaced with Actions column, so status sorting is no longer available
 
     it("should toggle sort direction", async () => {
         const reminders: ReminderData[] = [
@@ -978,8 +939,8 @@ describe("RemindersList", () => {
             expect(screen.getByText("Skip reminder")).toBeInTheDocument();
         });
 
-        // Confirm skip
-        const confirmButton = screen.getByRole("button", { name: /skip/i });
+        // Confirm skip - find the button in the modal (not the action button)
+        const confirmButton = screen.getByRole("button", { name: "Skip" });
         await userEvent.click(confirmButton);
 
         await waitFor(() => {
