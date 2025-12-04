@@ -717,6 +717,7 @@ export class ReminderService {
 
   /**
    * Check and update expired upcoming reminders to Pending status.
+   * Also creates new Upcoming reminders for trackings whose reminders became Pending.
    * @param reminders - Array of reminder instances to check
    * @returns Promise resolving when all updates are complete
    * @private
@@ -726,6 +727,8 @@ export class ReminderService {
   ): Promise<void> {
     const now = new Date();
     const updatePromises: Promise<ReminderData>[] = [];
+    const trackingIdsToCreateNext: Set<number> = new Set();
+    const userIdsByTrackingId: Map<number, number> = new Map();
 
     for (const reminder of reminders) {
       if (reminder.status === ReminderStatus.UPCOMING) {
@@ -739,6 +742,9 @@ export class ReminderService {
           updatePromises.push(
             reminder.update({ status: ReminderStatus.PENDING }, this.db)
           );
+          // Track which trackings need a new Upcoming reminder created
+          trackingIdsToCreateNext.add(reminder.tracking_id);
+          userIdsByTrackingId.set(reminder.tracking_id, reminder.user_id);
         }
       }
     }
@@ -750,6 +756,25 @@ export class ReminderService {
           updatePromises.length
         } expired upcoming reminder(s) to Pending status`
       );
+
+      // Create new Upcoming reminders for trackings whose reminders became Pending
+      for (const trackingId of trackingIdsToCreateNext) {
+        const userId = userIdsByTrackingId.get(trackingId);
+        if (userId) {
+          try {
+            await this.createNextReminderForTracking(trackingId, userId);
+            console.log(
+              `[${new Date().toISOString()}] REMINDER | Created new Upcoming reminder for tracking ${trackingId} after expired reminder became Pending`
+            );
+          } catch (error) {
+            // Log error but don't fail the update process
+            console.error(
+              `[${new Date().toISOString()}] REMINDER | Failed to create next reminder for tracking ${trackingId} after expired reminder became Pending:`,
+              error
+            );
+          }
+        }
+      }
     }
   }
 
