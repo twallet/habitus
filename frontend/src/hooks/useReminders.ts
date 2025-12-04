@@ -210,6 +210,7 @@ export function useReminders() {
     );
 
     // Optimistically update the reminder in state immediately for instant UI feedback
+    // This ensures the badge count updates immediately when answering a reminder (status changes to ANSWERED)
     setReminders((prevReminders) =>
       prevReminders.map((r) => {
         if (r.id === reminderId) {
