@@ -711,17 +711,31 @@ export function RemindersList({
         notes: string
     ) => {
         try {
+            // Check if reminder is already answered to determine the message
+            const reminder = reminders.find((r) => r.id === reminderId);
+            const isAlreadyAnswered = reminder?.status === ReminderStatus.ANSWERED;
+
             await updateReminder(reminderId, answer, notes, ReminderStatus.ANSWERED);
             setEditingReminder(null);
             // Badge updates immediately via optimistic update in useReminders hook
             if (onMessage) {
-                onMessage("Reminder answered successfully", "success");
+                if (isAlreadyAnswered) {
+                    onMessage("Reminder updated successfully", "success");
+                } else {
+                    onMessage("Reminder answered successfully", "success");
+                }
             }
         } catch (error) {
             console.error("Error updating reminder:", error);
             if (onMessage) {
+                const reminder = reminders.find((r) => r.id === reminderId);
+                const isAlreadyAnswered = reminder?.status === ReminderStatus.ANSWERED;
                 onMessage(
-                    error instanceof Error ? error.message : "Error answering reminder",
+                    error instanceof Error
+                        ? error.message
+                        : isAlreadyAnswered
+                            ? "Error updating reminder"
+                            : "Error answering reminder",
                     "error"
                 );
             }

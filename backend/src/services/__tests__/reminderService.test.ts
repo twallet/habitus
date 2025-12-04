@@ -569,6 +569,60 @@ describe("ReminderService", () => {
         reminderService.deleteReminder(999, testUserId)
       ).rejects.toThrow("Reminder not found");
     });
+
+    it("should update existing upcoming reminder instead of deleting it", async () => {
+      // Create a pending reminder to delete
+      const scheduledTime = new Date(Date.now() - 3600000).toISOString(); // 1 hour ago
+      const pendingReminder = await reminderService.createReminder(
+        testTrackingId,
+        testUserId,
+        scheduledTime
+      );
+
+      // Create an upcoming reminder that should be updated
+      const upcomingTime = new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30 minutes from now
+      const upcomingReminder = new Reminder({
+        id: 0,
+        tracking_id: testTrackingId,
+        user_id: testUserId,
+        scheduled_time: upcomingTime,
+        status: ReminderStatus.UPCOMING,
+      });
+      await upcomingReminder.save(testDb);
+      const upcomingReminderId = upcomingReminder.id;
+
+      // Verify upcoming reminder exists
+      const beforeUpcoming = await Reminder.loadUpcomingByTrackingId(
+        testTrackingId,
+        testUserId,
+        testDb
+      );
+      expect(beforeUpcoming).not.toBeNull();
+      expect(beforeUpcoming!.id).toBe(upcomingReminderId);
+      expect(beforeUpcoming!.scheduled_time).toBe(upcomingTime);
+
+      // Delete the pending reminder
+      await reminderService.deleteReminder(pendingReminder.id, testUserId);
+
+      // Verify the pending reminder was deleted
+      const deletedPending = await Reminder.loadById(
+        pendingReminder.id,
+        testUserId,
+        testDb
+      );
+      expect(deletedPending).toBeNull();
+
+      // Verify the upcoming reminder was updated (not deleted) with a new time
+      const afterUpcoming = await Reminder.loadUpcomingByTrackingId(
+        testTrackingId,
+        testUserId,
+        testDb
+      );
+      expect(afterUpcoming).not.toBeNull();
+      expect(afterUpcoming!.id).toBe(upcomingReminderId); // Same ID, not deleted
+      expect(afterUpcoming!.scheduled_time).not.toBe(upcomingTime); // Time was updated
+      expect(afterUpcoming!.status).toBe(ReminderStatus.UPCOMING); // Status should remain UPCOMING if new time is in future
+    });
   });
 
   describe("createNextReminderForTracking", () => {

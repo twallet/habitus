@@ -327,14 +327,70 @@ export class ReminderService {
     // Delete the reminder
     await reminder.delete(this.db);
 
-    // Delete any existing Upcoming reminder for this tracking
-    await Reminder.deleteUpcomingByTrackingId(trackingId, userId, this.db);
+    // Check if there's an existing Upcoming reminder for this tracking
+    const existingUpcoming = await Reminder.loadUpcomingByTrackingId(
+      trackingId,
+      userId,
+      this.db
+    );
 
-    // Create next reminder, excluding the deleted time
-    await this.createNextReminderForTracking(trackingId, userId, deletedTime);
+    if (existingUpcoming) {
+      // Update the existing upcoming reminder with the new time
+      const tracking = await Tracking.loadById(trackingId, userId, this.db);
+      if (!tracking) {
+        console.warn(
+          `[${new Date().toISOString()}] REMINDER | Tracking not found: ${trackingId}, cannot update upcoming reminder`
+        );
+        return;
+      }
+
+      // Only update if tracking is Running
+      if (tracking.state !== "Running") {
+        console.log(
+          `[${new Date().toISOString()}] REMINDER | Tracking ${trackingId} is not Running, deleting upcoming reminder instead of updating`
+        );
+        await existingUpcoming.delete(this.db);
+        return;
+      }
+
+      // Calculate next reminder time, excluding the deleted time
+      const nextTime = await this.calculateNextReminderTime(
+        tracking.toData(),
+        deletedTime
+      );
+
+      if (nextTime) {
+        const now = new Date();
+        const nextTimeDate = new Date(nextTime);
+        // Update the existing reminder's scheduled_time
+        // Status should remain UPCOMING if the new time is still in the future
+        const status =
+          nextTimeDate > now ? ReminderStatus.UPCOMING : ReminderStatus.PENDING;
+
+        await existingUpcoming.update(
+          { scheduled_time: nextTime, status: status },
+          this.db
+        );
+
+        console.log(
+          `[${new Date().toISOString()}] REMINDER | Updated existing upcoming reminder ID ${
+            existingUpcoming.id
+          } with new time for tracking ${trackingId}`
+        );
+      } else {
+        // No valid next time found, delete the upcoming reminder
+        console.warn(
+          `[${new Date().toISOString()}] REMINDER | No valid next time found for tracking ${trackingId}, deleting upcoming reminder`
+        );
+        await existingUpcoming.delete(this.db);
+      }
+    } else {
+      // No existing upcoming reminder, create a new one
+      await this.createNextReminderForTracking(trackingId, userId, deletedTime);
+    }
 
     console.log(
-      `[${new Date().toISOString()}] REMINDER | Reminder deleted and next one created: ID ${reminderId}`
+      `[${new Date().toISOString()}] REMINDER | Reminder deleted and next one handled: ID ${reminderId}`
     );
   }
 
