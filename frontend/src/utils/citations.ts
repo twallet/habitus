@@ -10,7 +10,7 @@
  * Each citation should be a string with the quote text.
  * Citations are used sequentially by day number (day 1 = citation[0], day 2 = citation[1], etc.)
  */
-export const citations: string[] = [
+const CITATIONS_DATA: string[] = [
   "Winners disciplined. - Thomas Peterffy",
   "Where your habits go, your life follows. - Craig Groeschel",
   "Simple daily disciplines equal success. - Jim Rohn",
@@ -380,26 +380,98 @@ export const citations: string[] = [
 ];
 
 /**
- * Get the citation for today based on the day of the year.
- * Uses citations sequentially by day number (day 1 = citation[0], day 2 = citation[1], etc.)
- * For leap years (366 days), uses citation[365]. For non-leap years (365 days), uses citation[364] on day 365.
- * @returns The citation string for today
+ * Citation manager class for managing daily citations.
+ * Provides functionality to retrieve citations based on the day of the year.
+ * @public
  */
-export function getDailyCitation(): string {
-  const now = new Date();
-  const startOfYear = new Date(now.getFullYear(), 0, 1);
-  const dayOfYear =
-    Math.floor(
-      (now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24)
-    ) + 1;
+export class CitationManager {
+  /**
+   * Default message returned when no citations are available.
+   * @public
+   */
+  static readonly DEFAULT_MESSAGE: string =
+    "Welcome to Habitus - Your daily habit tracker";
 
-  // If no citations provided, return a default message
-  if (citations.length === 0) {
-    return "Welcome to Habitus - Your daily habit tracker";
+  /**
+   * Array of citations managed by this instance.
+   * @private
+   */
+  private citations: string[];
+
+  /**
+   * Create a new CitationManager instance.
+   * @param citations - Optional array of citations. If not provided, uses the default citations.
+   * @public
+   */
+  constructor(citations?: string[]) {
+    this.citations = citations ?? [...CITATIONS_DATA];
   }
 
-  // Use citation by day number (day 1 = index 0, day 2 = index 1, etc.)
-  // For non-leap years, day 365 uses citation[364]. For leap years, day 366 uses citation[365].
-  const citationIndex = Math.min(dayOfYear - 1, citations.length - 1);
-  return citations[citationIndex];
+  /**
+   * Get the citation for today based on the day of the year.
+   * Uses citations sequentially by day number (day 1 = citation[0], day 2 = citation[1], etc.)
+   * For leap years (366 days), uses citation[365]. For non-leap years (365 days), uses citation[364] on day 365.
+   * @returns The citation string for today
+   * @public
+   */
+  getDailyCitation(): string {
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    const dayOfYear =
+      Math.floor(
+        (now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24)
+      ) + 1;
+
+    // If no citations provided, return a default message
+    if (this.citations.length === 0) {
+      return CitationManager.DEFAULT_MESSAGE;
+    }
+
+    // Use citation by day number (day 1 = index 0, day 2 = index 1, etc.)
+    // For non-leap years, day 365 uses citation[364]. For leap years, day 366 uses citation[365].
+    const citationIndex = Math.min(dayOfYear - 1, this.citations.length - 1);
+    return this.citations[citationIndex];
+  }
+
+  /**
+   * Get all citations managed by this instance.
+   * @returns A copy of the citations array
+   * @public
+   */
+  getCitations(): string[] {
+    return [...this.citations];
+  }
+
+  /**
+   * Get the number of citations managed by this instance.
+   * @returns The number of citations
+   * @public
+   */
+  getCitationCount(): number {
+    return this.citations.length;
+  }
 }
+
+/**
+ * Default citation manager instance for convenience.
+ * @public
+ */
+export const citationManager = new CitationManager();
+
+/**
+ * Get the citation for today using the default citation manager.
+ * Convenience function for backward compatibility.
+ * @returns The citation string for today
+ * @public
+ */
+export function getDailyCitation(): string {
+  return citationManager.getDailyCitation();
+}
+
+/**
+ * Get all citations from the default citation manager.
+ * Convenience function for backward compatibility.
+ * @returns A copy of the citations array
+ * @public
+ */
+export const citations: string[] = citationManager.getCitations();
