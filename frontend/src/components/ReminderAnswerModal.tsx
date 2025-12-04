@@ -41,6 +41,12 @@ export function ReminderAnswerModal({
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
+        // Validate that answer is provided
+        if (!answer.trim()) {
+            setError("Answer is required");
+            return;
+        }
+
         setIsSubmitting(true);
         setError(null);
 
@@ -104,38 +110,14 @@ export function ReminderAnswerModal({
                     )}
 
                     <div className="form-group">
-                        <div className="form-label-row">
-                            <label>
-                                Time{" "}
-                                <button
-                                    type="button"
-                                    className="field-help"
-                                    aria-label="Time help"
-                                    title="The scheduled time for this reminder"
-                                >
-                                    ?
-                                </button>
-                            </label>
-                        </div>
+                        <label>Time</label>
                         <div className="form-field-readonly">
                             {ReminderFormatter.formatDateTime(reminder.scheduled_time)}
                         </div>
                     </div>
 
                     <div className="form-group">
-                        <div className="form-label-row">
-                            <label>
-                                Tracking{" "}
-                                <button
-                                    type="button"
-                                    className="field-help"
-                                    aria-label="Tracking help"
-                                    title="The tracking this reminder belongs to"
-                                >
-                                    ?
-                                </button>
-                            </label>
-                        </div>
+                        <label>Tracking</label>
                         <div className="form-field-readonly">
                             {tracking ? (
                                 <>
@@ -153,26 +135,14 @@ export function ReminderAnswerModal({
                     <div className="form-group">
                         <div className="form-label-row">
                             <label htmlFor="reminder-answer">
-                                Answer{" "}
-                                <button
-                                    type="button"
-                                    className="field-help"
-                                    aria-label="Answer help"
-                                    title={
-                                        tracking?.type === TrackingType.TRUE_FALSE
-                                            ? "Click Yes or No to answer"
-                                            : "Enter your answer as text"
-                                    }
-                                >
-                                    ?
-                                </button>
+                                Answer <span className="required-asterisk">*</span>
                             </label>
                         </div>
                         {tracking && tracking.type === TrackingType.TRUE_FALSE ? (
                             <div className="yes-no-buttons">
                                 <button
                                     type="button"
-                                    className={`yes-no-button ${answer === "Yes" ? "selected" : ""}`}
+                                    className={`yes-no-button yes-button ${answer === "Yes" ? "selected" : ""}`}
                                     onClick={() => handleYesNoClick("yes")}
                                     disabled={isSubmitting}
                                 >
@@ -180,7 +150,7 @@ export function ReminderAnswerModal({
                                 </button>
                                 <button
                                     type="button"
-                                    className={`yes-no-button ${answer === "No" ? "selected" : ""}`}
+                                    className={`yes-no-button no-button ${answer === "No" ? "selected" : ""}`}
                                     onClick={() => handleYesNoClick("no")}
                                     disabled={isSubmitting}
                                 >

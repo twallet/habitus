@@ -26,11 +26,10 @@
 .yes-no-buttons {
   display: flex;
   gap: 12px;
+  justify-content: flex-start;
 }
 
 .yes-no-button {
-  flex: 1;
-  min-width: 140px;
   padding: 12px 24px;
   border: 2px solid var(--border-color);
   border-radius: var(--radius);
@@ -40,33 +39,68 @@
   font-weight: 500;
   cursor: pointer;
   transition: var(--transition);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: 44px;
   white-space: nowrap;
+  width: auto;
 }
 
-.yes-no-button:hover:not(:disabled) {
-  background: var(--bg-secondary);
-  border-color: var(--primary-color);
+.yes-no-button.yes-button {
+  background: #d4edda;
+  border-color: #28a745;
+  color: #155724;
+}
+
+.yes-no-button.yes-button:hover:not(:disabled) {
+  background: #c3e6cb;
+  border-color: #218838;
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
 }
 
-.yes-no-button.selected {
-  background: var(--primary-color);
-  border-color: var(--primary-color);
+.yes-no-button.yes-button.selected {
+  background: #28a745;
+  border-color: #28a745;
   color: white;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(0, 90, 127, 0.2);
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
 }
 
-.yes-no-button.selected:hover:not(:disabled) {
-  background: var(--primary-hover);
-  border-color: var(--primary-hover);
+.yes-no-button.yes-button.selected:hover:not(:disabled) {
+  background: #218838;
+  border-color: #218838;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 90, 127, 0.3);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+}
+
+.yes-no-button.no-button {
+  background: #f8d7da;
+  border-color: #dc3545;
+  color: #721c24;
+}
+
+.yes-no-button.no-button:hover:not(:disabled) {
+  background: #f5c6cb;
+  border-color: #c82333;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(220, 53, 69, 0.2);
+}
+
+.yes-no-button.no-button.selected {
+  background: #dc3545;
+  border-color: #dc3545;
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+}
+
+.yes-no-button.no-button.selected:hover:not(:disabled) {
+  background: #c82333;
+  border-color: #c82333;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
 }
 
 .yes-no-button:disabled {
