@@ -391,6 +391,12 @@ interface RemindersListProps {
     isLoadingTrackings?: boolean;
     onCreate?: () => void;
     onMessage?: (text: string, type: 'success' | 'error') => void;
+    // Optional props to share reminders state with parent component (for immediate badge updates)
+    reminders?: ReminderData[];
+    isLoadingReminders?: boolean;
+    updateReminder?: (reminderId: number, answer?: string, notes?: string, status?: ReminderStatus) => Promise<ReminderData>;
+    snoozeReminder?: (reminderId: number, minutes: number) => Promise<ReminderData>;
+    deleteReminder?: (reminderId: number) => Promise<void>;
 }
 
 /**
@@ -400,13 +406,42 @@ interface RemindersListProps {
  * @param props.isLoadingTrackings - Optional loading state for trackings
  * @param props.onCreate - Optional callback when create tracking link is clicked
  * @param props.onMessage - Optional callback to display success/error messages
+ * @param props.reminders - Optional array of reminder data (if not provided, will use useReminders hook)
+ * @param props.isLoadingReminders - Optional loading state for reminders
+ * @param props.updateReminder - Optional function to update a reminder (if not provided, will use useReminders hook)
+ * @param props.snoozeReminder - Optional function to snooze a reminder (if not provided, will use useReminders hook)
+ * @param props.deleteReminder - Optional function to delete a reminder (if not provided, will use useReminders hook)
  * @public
  */
-export function RemindersList({ trackings: propTrackings, isLoadingTrackings: propIsLoadingTrackings, onCreate: _onCreate, onMessage }: RemindersListProps = {}) {
-    const { reminders, isLoading, updateReminder, snoozeReminder, deleteReminder } = useReminders();
+export function RemindersList({
+    trackings: propTrackings,
+    isLoadingTrackings: propIsLoadingTrackings,
+    onCreate: _onCreate,
+    onMessage,
+    reminders: propReminders,
+    isLoadingReminders: propIsLoadingReminders,
+    updateReminder: propUpdateReminder,
+    snoozeReminder: propSnoozeReminder,
+    deleteReminder: propDeleteReminder
+}: RemindersListProps = {}) {
+    // Use hook only if props not provided (for backward compatibility)
+    const hookReminders = useReminders();
+    const {
+        reminders: hookRemindersData,
+        isLoading: hookIsLoading,
+        updateReminder: hookUpdateReminder,
+        snoozeReminder: hookSnoozeReminder,
+        deleteReminder: hookDeleteReminder
+    } = hookReminders;
+
     const { trackings: hookTrackings, isLoading: hookIsLoadingTrackings } = useTrackings();
 
     // Use props if provided, otherwise use hook data
+    const reminders = propReminders ?? hookRemindersData;
+    const isLoading = propIsLoadingReminders ?? hookIsLoading;
+    const updateReminder = propUpdateReminder ?? hookUpdateReminder;
+    const snoozeReminder = propSnoozeReminder ?? hookSnoozeReminder;
+    const deleteReminder = propDeleteReminder ?? hookDeleteReminder;
     const trackings = propTrackings ?? hookTrackings;
     const isLoadingTrackings = propIsLoadingTrackings ?? hookIsLoadingTrackings;
     const [editingReminder, setEditingReminder] = useState<ReminderData | null>(null);
