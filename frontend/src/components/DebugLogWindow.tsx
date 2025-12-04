@@ -3,6 +3,46 @@ import { API_BASE_URL } from '../config/api';
 import './DebugLogWindow.css';
 
 /**
+ * Converts ANSI color codes to HTML spans with CSS colors.
+ * @param text - Text containing ANSI escape codes
+ * @returns HTML string with color spans
+ * @internal
+ */
+function ansiToHtml(text: string): string {
+    // Escape HTML special characters
+    const escapeHtml = (str: string): string => {
+        const map: Record<string, string> = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;',
+        };
+        return str.replace(/[&<>"']/g, (m) => map[m]);
+    };
+
+    // Replace ANSI codes with HTML spans (matching PowerShell colors)
+    let html = escapeHtml(text);
+
+    // Replace ANSI codes with HTML spans
+    html = html.replace(/\x1b\[32m/g, '<span style="color: #4ec9b0">'); // Green
+    html = html.replace(/\x1b\[33m/g, '<span style="color: #dcdcaa">'); // Yellow
+    html = html.replace(/\x1b\[36m/g, '<span style="color: #4ec9b0">'); // Cyan
+    html = html.replace(/\x1b\[37m/g, '<span style="color: #d4d4d4">'); // White
+    html = html.replace(/\x1b\[90m/g, '<span style="color: #808080">'); // Gray
+    html = html.replace(/\x1b\[0m/g, '</span>'); // Reset
+
+    // Close any unclosed spans at the end
+    const openSpans = (html.match(/<span/g) || []).length;
+    const closeSpans = (html.match(/<\/span>/g) || []).length;
+    for (let i = 0; i < openSpans - closeSpans; i++) {
+        html += '</span>';
+    }
+
+    return html;
+}
+
+/**
  * Debug log window component that displays trackings and reminders debug information.
  * Automatically refreshes when trackings or reminders change.
  * @public
@@ -11,7 +51,7 @@ export function DebugLogWindow() {
     const [logContent, setLogContent] = useState<string>('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const logRef = useRef<HTMLPreElement>(null);
+    const logRef = useRef<HTMLDivElement>(null);
 
     /**
      * Fetch debug log from API.
@@ -132,9 +172,17 @@ export function DebugLogWindow() {
                         </button>
                     </div>
                 ) : (
-                    <pre ref={logRef} className="debug-log-text">
-                        {logContent || (isLoading ? 'Loading...' : 'Click Refresh to load debug log')}
-                    </pre>
+                    <div
+                        ref={logRef}
+                        className="debug-log-text"
+                        dangerouslySetInnerHTML={{
+                            __html: logContent
+                                ? ansiToHtml(logContent)
+                                : isLoading
+                                    ? 'Loading...'
+                                    : 'Click Refresh to load debug log',
+                        }}
+                    />
                 )}
             </div>
         </div>

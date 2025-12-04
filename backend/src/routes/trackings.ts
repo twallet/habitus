@@ -60,12 +60,24 @@ router.get(
         remindersByTracking.set(reminder.tracking_id, trackingReminders);
       });
 
-      // Format output similar to PowerShell script
+      // ANSI color codes matching PowerShell colors
+      const ANSI_RESET = "\x1b[0m";
+      const ANSI_GREEN = "\x1b[32m";
+      const ANSI_YELLOW = "\x1b[33m";
+      const ANSI_CYAN = "\x1b[36m";
+      const ANSI_WHITE = "\x1b[37m";
+      const ANSI_GRAY = "\x1b[90m";
+
+      // Format output similar to PowerShell script with ANSI color codes
       const lines: string[] = [];
-      lines.push(`Total number of trackings: ${trackings.length}`);
+      lines.push(
+        `${ANSI_GREEN}Total number of trackings: ${trackings.length}${ANSI_RESET}`
+      );
 
       if (trackings.length === 0) {
-        lines.push("No trackings found in the database.");
+        lines.push(
+          `${ANSI_YELLOW}No trackings found in the database.${ANSI_RESET}`
+        );
       } else {
         trackings.forEach((tracking, index) => {
           if (index > 0) {
@@ -100,7 +112,19 @@ router.get(
             `Updated=${tracking.updated_at}`,
           ];
 
-          lines.push(`TRACKING #${index + 1} : ${trackingAttrs.join(" | ")}`);
+          // Determine color based on tracking state
+          const stateColor =
+            tracking.state === "Running"
+              ? ANSI_GREEN
+              : tracking.state === "Paused"
+              ? ANSI_YELLOW
+              : ANSI_WHITE;
+
+          lines.push(
+            `${stateColor}TRACKING #${index + 1} : ${trackingAttrs.join(
+              " | "
+            )}${ANSI_RESET}`
+          );
 
           // Display reminders
           const trackingReminders = remindersByTracking.get(tracking.id) || [];
@@ -130,10 +154,24 @@ router.get(
                 `Updated=${reminder.updated_at}`,
               ];
 
-              lines.push(`  -> REMINDER : ${reminderAttrs.join(" | ")}`);
+              // Determine color based on reminder status
+              const statusColor =
+                reminder.status === "Pending"
+                  ? ANSI_YELLOW
+                  : reminder.status === "Answered"
+                  ? ANSI_GREEN
+                  : reminder.status === "Upcoming"
+                  ? ANSI_CYAN
+                  : ANSI_GRAY;
+
+              lines.push(
+                `${statusColor}  -> REMINDER : ${reminderAttrs.join(
+                  " | "
+                )}${ANSI_RESET}`
+              );
             });
           } else {
-            lines.push("  -> REMINDERS: None");
+            lines.push(`${ANSI_GRAY}  -> REMINDERS: None${ANSI_RESET}`);
           }
         });
       }

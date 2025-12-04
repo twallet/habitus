@@ -70,6 +70,10 @@
   line-height: inherit;
 }
 
+.debug-log-text span {
+  color: inherit;
+}
+
 .debug-log-error {
   color: #f48771;
   padding: 8px;

@@ -4,6 +4,8 @@ import express from "express";
 import sqlite3 from "sqlite3";
 import { Database } from "../../db/database.js";
 import { TrackingService } from "../../services/trackingService.js";
+import { ReminderService } from "../../services/reminderService.js";
+import { AiService } from "../../services/aiService.js";
 import { TrackingType, TrackingState } from "../../models/Tracking.js";
 import * as authMiddlewareModule from "../../middleware/authMiddleware.js";
 import * as servicesModule from "../../services/index.js";
@@ -22,6 +24,7 @@ vi.mock("../../services/index.js", () => ({
     getUserService: vi.fn(),
     getEmailService: vi.fn(),
     getAiService: vi.fn(),
+    getReminderService: vi.fn(),
     initializeServices: vi.fn(),
   },
 }));
@@ -131,12 +134,16 @@ describe("Trackings Routes", () => {
   let app: express.Application;
   let testDb: Database;
   let trackingService: TrackingService;
+  let reminderService: ReminderService;
+  let aiService: AiService;
   let testUserId: number;
 
   beforeEach(async () => {
     // Create a fresh in-memory database for each test
     testDb = await createTestDatabase();
     trackingService = new TrackingService(testDb);
+    reminderService = new ReminderService(testDb);
+    aiService = new AiService();
 
     // Create a test user
     const userResult = await testDb.run(
@@ -161,6 +168,17 @@ describe("Trackings Routes", () => {
       servicesModule.ServiceManager,
       "getTrackingService"
     ).mockReturnValue(trackingService);
+
+    // Mock getReminderService to return our test service
+    vi.spyOn(
+      servicesModule.ServiceManager,
+      "getReminderService"
+    ).mockReturnValue(reminderService);
+
+    // Mock getAiService to return our test service
+    vi.spyOn(servicesModule.ServiceManager, "getAiService").mockReturnValue(
+      aiService
+    );
 
     // Create Express app with routes
     app = express();
@@ -204,6 +222,25 @@ describe("Trackings Routes", () => {
       expect(questions).toContain("Question 1");
       expect(questions).toContain("Question 2");
     });
+
+    it("should return 500 when service throws error", async () => {
+      // Mock service to throw error
+      vi.spyOn(
+        servicesModule.ServiceManager,
+        "getTrackingService"
+      ).mockReturnValue({
+        getTrackingsByUserId: vi
+          .fn()
+          .mockRejectedValue(new Error("Database error")),
+      } as any);
+
+      const response = await request(app)
+        .get("/api/trackings")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe("Error fetching trackings");
+    });
   });
 
   describe("GET /api/trackings/:id", () => {
@@ -231,6 +268,32 @@ describe("Trackings Routes", () => {
       expect(response.body.id).toBe(trackingId);
       expect(response.body.question).toBe("Test Question");
       expect(response.body.type).toBe("true_false");
+    });
+
+    it("should return 400 for invalid tracking ID", async () => {
+      const response = await request(app)
+        .get("/api/trackings/invalid")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Invalid tracking ID");
+    });
+
+    it("should return 500 when service throws error", async () => {
+      // Mock service to throw error
+      vi.spyOn(
+        servicesModule.ServiceManager,
+        "getTrackingService"
+      ).mockReturnValue({
+        getTrackingById: vi.fn().mockRejectedValue(new Error("Database error")),
+      } as any);
+
+      const response = await request(app)
+        .get("/api/trackings/1")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe("Error fetching tracking");
     });
   });
 
@@ -333,6 +396,52 @@ describe("Trackings Routes", () => {
 
       expect(response.status).toBe(400);
     });
+
+    it("should return 400 when service throws TypeError", async () => {
+      // Mock service to throw TypeError
+      vi.spyOn(
+        servicesModule.ServiceManager,
+        "getTrackingService"
+      ).mockReturnValue({
+        createTracking: vi
+          .fn()
+          .mockRejectedValue(new TypeError("Invalid input")),
+      } as any);
+
+      const response = await request(app)
+        .post("/api/trackings")
+        .set("Authorization", "Bearer test-token")
+        .send({
+          question: "Test question",
+          type: "true_false",
+          schedules: [{ hour: 9, minutes: 0 }],
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Invalid input");
+    });
+
+    it("should return 500 when service throws non-TypeError", async () => {
+      // Mock service to throw generic error
+      vi.spyOn(
+        servicesModule.ServiceManager,
+        "getTrackingService"
+      ).mockReturnValue({
+        createTracking: vi.fn().mockRejectedValue(new Error("Database error")),
+      } as any);
+
+      const response = await request(app)
+        .post("/api/trackings")
+        .set("Authorization", "Bearer test-token")
+        .send({
+          question: "Test question",
+          type: "true_false",
+          schedules: [{ hour: 9, minutes: 0 }],
+        });
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe("Error creating tracking");
+    });
   });
 
   describe("PUT /api/trackings/:id", () => {
@@ -381,6 +490,90 @@ describe("Trackings Routes", () => {
       expect(response.status).toBe(400);
       expect(response.body.error).toContain("No fields to update");
     });
+
+    it("should return 400 for invalid tracking ID", async () => {
+      const response = await request(app)
+        .put("/api/trackings/invalid")
+        .set("Authorization", "Bearer test-token")
+        .send({
+          question: "New Question",
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Invalid tracking ID");
+    });
+
+    it("should return 400 when schedules is empty array", async () => {
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", "true_false"]
+      );
+      const trackingId = result.lastID;
+
+      const response = await request(app)
+        .put(`/api/trackings/${trackingId}`)
+        .set("Authorization", "Bearer test-token")
+        .send({
+          schedules: [],
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain("non-empty array");
+    });
+
+    it("should return 400 when service throws TypeError", async () => {
+      // Mock service to throw TypeError
+      vi.spyOn(
+        servicesModule.ServiceManager,
+        "getTrackingService"
+      ).mockReturnValue({
+        updateTracking: vi
+          .fn()
+          .mockRejectedValue(new TypeError("Invalid input")),
+      } as any);
+
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", "true_false"]
+      );
+      const trackingId = result.lastID;
+
+      const response = await request(app)
+        .put(`/api/trackings/${trackingId}`)
+        .set("Authorization", "Bearer test-token")
+        .send({
+          question: "New Question",
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Invalid input");
+    });
+
+    it("should return 500 when service throws generic error", async () => {
+      // Mock service to throw generic error
+      vi.spyOn(
+        servicesModule.ServiceManager,
+        "getTrackingService"
+      ).mockReturnValue({
+        updateTracking: vi.fn().mockRejectedValue(new Error("Database error")),
+      } as any);
+
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", "true_false"]
+      );
+      const trackingId = result.lastID;
+
+      const response = await request(app)
+        .put(`/api/trackings/${trackingId}`)
+        .set("Authorization", "Bearer test-token")
+        .send({
+          question: "New Question",
+        });
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe("Error updating tracking");
+    });
   });
 
   describe("DELETE /api/trackings/:id", () => {
@@ -413,6 +606,32 @@ describe("Trackings Routes", () => {
 
       expect(response.status).toBe(404);
       expect(response.body.error).toContain("not found");
+    });
+
+    it("should return 400 for invalid tracking ID", async () => {
+      const response = await request(app)
+        .delete("/api/trackings/invalid")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Invalid tracking ID");
+    });
+
+    it("should return 500 when service throws non-404 error", async () => {
+      // Mock service to throw generic error
+      vi.spyOn(
+        servicesModule.ServiceManager,
+        "getTrackingService"
+      ).mockReturnValue({
+        deleteTracking: vi.fn().mockRejectedValue(new Error("Database error")),
+      } as any);
+
+      const response = await request(app)
+        .delete("/api/trackings/1")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe("Error deleting tracking");
     });
   });
 
@@ -547,6 +766,366 @@ describe("Trackings Routes", () => {
 
       expect(response.status).toBe(400);
       expect(response.body.error).toContain("Invalid tracking ID");
+    });
+  });
+
+  describe("GET /api/trackings/debug", () => {
+    it("should return debug log with no trackings", async () => {
+      const response = await request(app)
+        .get("/api/trackings/debug")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("Total number of trackings: 0");
+      expect(response.body.log).toContain(
+        "No trackings found in the database."
+      );
+    });
+
+    it("should return debug log with trackings and no reminders", async () => {
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type, icon, days, notes) VALUES (?, ?, ?, ?, ?, ?)",
+        [
+          testUserId,
+          "Test Question",
+          "true_false",
+          "🏃",
+          "1111111",
+          "Test notes",
+        ]
+      );
+      const trackingId = result.lastID;
+
+      // Insert schedule
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 9, 0]
+      );
+
+      const response = await request(app)
+        .get("/api/trackings/debug")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("Total number of trackings: 1");
+      expect(response.body.log).toContain("TRACKING #1");
+      expect(response.body.log).toContain(`ID=${trackingId}`);
+      expect(response.body.log).toContain("Question=Test Question");
+      expect(response.body.log).toContain("Type=true_false");
+      expect(response.body.log).toContain("Icon=🏃");
+      expect(response.body.log).toContain("Days=1111111");
+      expect(response.body.log).toContain("Notes=Test notes");
+      expect(response.body.log).toContain("Schedules=[09:00]");
+      expect(response.body.log).toContain("REMINDERS: None");
+    });
+
+    it("should return debug log with trackings and reminders", async () => {
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", "true_false"]
+      );
+      const trackingId = result.lastID;
+
+      // Insert schedule
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 9, 0]
+      );
+
+      // Insert reminder
+      const reminderResult = await testDb.run(
+        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, answer, notes, status) VALUES (?, ?, ?, ?, ?, ?)",
+        [
+          trackingId,
+          testUserId,
+          "2024-01-01 09:00:00",
+          "Yes",
+          "Reminder notes",
+          "Answered",
+        ]
+      );
+      const reminderId = reminderResult.lastID;
+
+      const response = await request(app)
+        .get("/api/trackings/debug")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("Total number of trackings: 1");
+      expect(response.body.log).toContain("TRACKING #1");
+      expect(response.body.log).toContain("REMINDER");
+      expect(response.body.log).toContain(`ID=${reminderId}`);
+      expect(response.body.log).toContain(`TrackingID=${trackingId}`);
+      expect(response.body.log).toContain(`UserID=${testUserId}`);
+      expect(response.body.log).toContain("Answer=Yes");
+      expect(response.body.log).toContain("Notes=Reminder notes");
+      expect(response.body.log).toContain("Status=Answered");
+    });
+
+    it("should return debug log with multiple trackings and reminders", async () => {
+      // Insert first tracking
+      const result1 = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
+        [testUserId, "Question 1", "true_false"]
+      );
+      const trackingId1 = result1.lastID;
+
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId1, 9, 0]
+      );
+
+      // Insert second tracking
+      const result2 = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
+        [testUserId, "Question 2", "register"]
+      );
+      const trackingId2 = result2.lastID;
+
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId2, 10, 30]
+      );
+
+      // Insert reminder for first tracking
+      await testDb.run(
+        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status) VALUES (?, ?, ?, ?)",
+        [trackingId1, testUserId, "2024-01-01 09:00:00", "Pending"]
+      );
+
+      const response = await request(app)
+        .get("/api/trackings/debug")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("Total number of trackings: 2");
+      expect(response.body.log).toContain("TRACKING #1");
+      expect(response.body.log).toContain("TRACKING #2");
+      expect(response.body.log).toContain("Question 1");
+      expect(response.body.log).toContain("Question 2");
+    });
+
+    it("should handle trackings with null icon, days, and notes", async () => {
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", "true_false"]
+      );
+      const trackingId = result.lastID;
+
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 9, 0]
+      );
+
+      const response = await request(app)
+        .get("/api/trackings/debug")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("Icon=null");
+      expect(response.body.log).toContain("Days=null");
+      expect(response.body.log).toContain("Notes=null");
+    });
+
+    it("should handle trackings with multiple schedules", async () => {
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", "true_false"]
+      );
+      const trackingId = result.lastID;
+
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 9, 0]
+      );
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 14, 30]
+      );
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 20, 15]
+      );
+
+      const response = await request(app)
+        .get("/api/trackings/debug")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("Schedules=[09:00, 14:30, 20:15]");
+    });
+
+    it("should handle reminders with null answer and notes", async () => {
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", "true_false"]
+      );
+      const trackingId = result.lastID;
+
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 9, 0]
+      );
+
+      await testDb.run(
+        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, answer, notes, status) VALUES (?, ?, ?, ?, ?, ?)",
+        [trackingId, testUserId, "2024-01-01 09:00:00", null, null, "Pending"]
+      );
+
+      const response = await request(app)
+        .get("/api/trackings/debug")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("REMINDER");
+      expect(response.body.log).toContain("Answer=null");
+      expect(response.body.log).toContain("Notes=null");
+    });
+
+    it("should return 500 when service throws error", async () => {
+      // Mock service to throw error
+      vi.spyOn(
+        servicesModule.ServiceManager,
+        "getTrackingService"
+      ).mockReturnValue({
+        getTrackingsByUserId: vi
+          .fn()
+          .mockRejectedValue(new Error("Database error")),
+      } as any);
+
+      const response = await request(app)
+        .get("/api/trackings/debug")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe("Error generating debug log");
+    });
+  });
+
+  describe("POST /api/trackings/suggest-emoji", () => {
+    beforeEach(() => {
+      // Set up environment for AI service
+      process.env.PERPLEXITY_API_KEY = "test-api-key";
+    });
+
+    afterEach(() => {
+      delete process.env.PERPLEXITY_API_KEY;
+    });
+
+    it("should suggest emoji for valid question", async () => {
+      // Mock fetch for AI service
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          choices: [{ message: { content: "🏃" } }],
+        }),
+      }) as any;
+
+      const response = await request(app)
+        .post("/api/trackings/suggest-emoji")
+        .set("Authorization", "Bearer test-token")
+        .send({ question: "Did I exercise today?" });
+
+      expect(response.status).toBe(200);
+      expect(response.body.emoji).toBe("🏃");
+    });
+
+    it("should return 400 when question is missing", async () => {
+      const response = await request(app)
+        .post("/api/trackings/suggest-emoji")
+        .set("Authorization", "Bearer test-token")
+        .send({});
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Question is required");
+    });
+
+    it("should return 400 when question is empty string", async () => {
+      const response = await request(app)
+        .post("/api/trackings/suggest-emoji")
+        .set("Authorization", "Bearer test-token")
+        .send({ question: "" });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Question is required");
+    });
+
+    it("should return 400 when question is only whitespace", async () => {
+      const response = await request(app)
+        .post("/api/trackings/suggest-emoji")
+        .set("Authorization", "Bearer test-token")
+        .send({ question: "   " });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Question is required");
+    });
+
+    it("should return 400 when question is not a string", async () => {
+      const response = await request(app)
+        .post("/api/trackings/suggest-emoji")
+        .set("Authorization", "Bearer test-token")
+        .send({ question: 123 });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Question is required");
+    });
+
+    it("should return 503 when API key is not configured", async () => {
+      delete process.env.PERPLEXITY_API_KEY;
+
+      const response = await request(app)
+        .post("/api/trackings/suggest-emoji")
+        .set("Authorization", "Bearer test-token")
+        .send({ question: "Did I exercise today?" });
+
+      expect(response.status).toBe(503);
+      expect(response.body.error).toContain("not available");
+      expect(response.body.error).toContain("PERPLEXITY_API_KEY");
+    });
+
+    it("should return 500 when AI service throws generic error", async () => {
+      // Mock AI service to throw error
+      vi.spyOn(servicesModule.ServiceManager, "getAiService").mockReturnValue({
+        suggestEmoji: vi.fn().mockRejectedValue(new Error("API error")),
+      } as any);
+
+      const response = await request(app)
+        .post("/api/trackings/suggest-emoji")
+        .set("Authorization", "Bearer test-token")
+        .send({ question: "Did I exercise today?" });
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe("API error");
+    });
+
+    it("should return 500 when AI service throws non-Error", async () => {
+      // Mock AI service to throw non-Error
+      vi.spyOn(servicesModule.ServiceManager, "getAiService").mockReturnValue({
+        suggestEmoji: vi.fn().mockRejectedValue("String error"),
+      } as any);
+
+      const response = await request(app)
+        .post("/api/trackings/suggest-emoji")
+        .set("Authorization", "Bearer test-token")
+        .send({ question: "Did I exercise today?" });
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe("Error suggesting emoji");
+    });
+
+    it("should trim question before sending to AI service", async () => {
+      const suggestEmojiSpy = vi.fn().mockResolvedValue("🏃");
+      vi.spyOn(servicesModule.ServiceManager, "getAiService").mockReturnValue({
+        suggestEmoji: suggestEmojiSpy,
+      } as any);
+
+      const response = await request(app)
+        .post("/api/trackings/suggest-emoji")
+        .set("Authorization", "Bearer test-token")
+        .send({ question: "  Did I exercise today?  " });
+
+      expect(response.status).toBe(200);
+      expect(suggestEmojiSpy).toHaveBeenCalledWith("Did I exercise today?");
     });
   });
 });
