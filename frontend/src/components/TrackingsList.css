@@ -350,41 +350,19 @@
   position: relative;
 }
 
-.status-dropdown-container {
-  position: relative;
-  display: inline-block;
-}
-
 .status-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
   padding: 6px 12px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
-  cursor: pointer;
-  transition: var(--transition);
   font-size: 0.8125rem;
   font-weight: 500;
   white-space: nowrap;
   user-select: none;
   min-width: 90px;
   width: 90px;
-}
-
-.status-badge-text {
-  display: inline-block;
-}
-
-.status-badge-arrow {
-  display: inline-block;
-  font-size: 0.7rem;
-  transition: transform var(--transition);
-}
-
-.status-badge.open .status-badge-arrow {
-  transform: rotate(180deg);
 }
 
 /* State badge colors with pastel backgrounds */
@@ -394,47 +372,16 @@
   background: #c8e6c9;
 }
 
-.status-badge.state-badge-running:hover {
-  background: #a5d6a7;
-  border-color: #66bb6a;
-}
-
-.status-badge.state-badge-running.open {
-  background: #a5d6a7;
-  border-color: #66bb6a;
-}
-
 .status-badge.state-badge-paused {
   color: #92400e;
   border-color: #d97706;
   background: #fef3c7;
 }
 
-.status-badge.state-badge-paused:hover {
-  background: #fde68a;
-  border-color: #b45309;
-  color: #78350f;
-}
-
-.status-badge.state-badge-paused.open {
-  background: #fde68a;
-  border-color: #b45309;
-}
-
 .status-badge.state-badge-archived {
   color: #374151;
   border-color: #6b7280;
-  background: #f3f4f6;
-}
-
-.status-badge.state-badge-archived:hover {
-  background: #e5e7eb;
-  border-color: #4b5563;
-}
-
-.status-badge.state-badge-archived.open {
-  background: #e5e7eb;
-  border-color: #4b5563;
+  background: #d1d5db;
 }
 
 /* Default state badge styling */
@@ -444,74 +391,62 @@
   border-color: var(--border-color);
 }
 
-.status-badge.state-badge-default:hover {
-  background: var(--bg-secondary);
-  border-color: var(--text-secondary);
+/* Actions column styles */
+.col-actions {
+  text-align: left;
 }
 
-.status-badge.state-badge-default.open {
-  background: var(--bg-secondary);
-  border-color: var(--text-primary);
+.cell-actions {
+  position: relative;
+  text-align: left;
 }
 
-.status-dropdown-menu {
-  position: fixed;
-  min-width: 160px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  z-index: 1000;
-  overflow: hidden;
-  margin-top: 4px;
+.actions-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
 }
 
-.status-dropdown-item {
+.actions-buttons {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 100%;
-  padding: 10px 12px;
-  background: none;
-  border: none;
-  text-align: left;
+}
+
+.action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: #e5e7eb;
   cursor: pointer;
+  font-size: 1.1em;
   transition: var(--transition);
-  font-size: 0.875rem;
   color: var(--text-primary);
-  font-family: inherit;
 }
 
-.status-dropdown-item:hover:not(:disabled) {
-  background: var(--bg-secondary);
+.action-button:hover {
+  background: #d1d5db;
+  border-color: var(--text-primary);
+  transform: scale(1.1);
 }
 
-.status-dropdown-item:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.action-button:active {
+  transform: scale(0.95);
 }
 
-.status-dropdown-item.current {
-  background: var(--bg-secondary);
-  font-weight: 500;
+.action-button:focus {
+  outline: none;
 }
 
-.status-dropdown-icon {
-  font-size: 1rem;
-  display: inline-block;
-  width: 20px;
-  text-align: center;
-}
-
-.status-dropdown-label {
-  flex: 1;
-}
-
-.status-dropdown-current {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  font-style: italic;
+.action-button:focus-visible {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 2px;
 }
 
 .empty-state {
@@ -591,11 +526,6 @@
 
   .trackings-table th.col-next-reminder {
     display: none;
-  }
-
-  .status-dropdown-menu {
-    right: auto;
-    left: 0;
   }
 
   .status-badge {

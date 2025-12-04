@@ -187,19 +187,19 @@
 }
 
 .col-actions {
-  text-align: center;
+  text-align: left;
 }
 
 .cell-actions {
   position: relative;
-  text-align: center;
+  text-align: left;
 }
 
 .actions-container {
   position: relative;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 .actions-buttons {
@@ -217,7 +217,7 @@
   padding: 0;
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
-  background: var(--bg-primary);
+  background: #e5e7eb;
   cursor: pointer;
   font-size: 1.1em;
   transition: var(--transition);
@@ -225,7 +225,7 @@
 }
 
 .action-button:hover {
-  background: var(--bg-secondary);
+  background: #d1d5db;
   border-color: var(--text-primary);
   transform: scale(1.1);
 }

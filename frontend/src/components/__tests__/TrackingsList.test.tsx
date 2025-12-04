@@ -721,12 +721,8 @@ describe("TrackingsList", () => {
             />
         );
 
-        // Find the status badge and open dropdown
-        const statusBadge = screen.getByRole("button", { name: /current status: archived/i });
-        await user.click(statusBadge);
-
-        // Find the delete button in the dropdown
-        const deleteButton = await screen.findByRole("button", { name: /change state to deleted/i });
+        // Find the delete action button
+        const deleteButton = screen.getByRole("button", { name: /delete/i });
         await user.click(deleteButton);
 
         // Modal should appear
@@ -758,12 +754,8 @@ describe("TrackingsList", () => {
             />
         );
 
-        // Find the status badge and open dropdown
-        const statusBadge = screen.getByRole("button", { name: /current status: paused/i });
-        await user.click(statusBadge);
-
-        // Find the resume button in the dropdown
-        const resumeButton = await screen.findByRole("button", { name: /change state to running/i });
+        // Find the resume action button
+        const resumeButton = screen.getByRole("button", { name: /resume/i });
         await user.click(resumeButton);
 
         // Modal should NOT appear, state change should happen immediately
@@ -800,12 +792,8 @@ describe("TrackingsList", () => {
             />
         );
 
-        // Find the status badge and open dropdown
-        const statusBadge = screen.getByRole("button", { name: /current status: archived/i });
-        await user.click(statusBadge);
-
-        // Click delete button in dropdown
-        const deleteButton = await screen.findByRole("button", { name: /change state to deleted/i });
+        // Find the delete action button
+        const deleteButton = screen.getByRole("button", { name: /delete/i });
         await user.click(deleteButton);
 
         // Wait for modal to appear
@@ -846,12 +834,8 @@ describe("TrackingsList", () => {
             />
         );
 
-        // Find the status badge and open dropdown
-        const statusBadge = screen.getByRole("button", { name: /current status: archived/i });
-        await user.click(statusBadge);
-
-        // Click delete button in dropdown
-        const deleteButton = await screen.findByRole("button", { name: /change state to deleted/i });
+        // Find the delete action button
+        const deleteButton = screen.getByRole("button", { name: /delete/i });
         await user.click(deleteButton);
 
         // Wait for modal to appear

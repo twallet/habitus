@@ -439,6 +439,27 @@ export function RemindersList({ trackings: propTrackings, isLoadingTrackings: pr
         return trackings.find((t) => t.id === trackingId);
     }, [trackings]);
 
+    /**
+     * Get the next reminder time for a tracking after skipping the current one.
+     * @param trackingId - Tracking ID
+     * @returns Next reminder scheduled time (ISO string) or null if not found
+     * @internal
+     */
+    const getNextReminderTime = useCallback((trackingId: number): string | null => {
+        const now = new Date();
+        const upcomingReminders = reminders
+            .filter((reminder) =>
+                reminder.tracking_id === trackingId &&
+                (reminder.status === ReminderStatus.PENDING || reminder.status === ReminderStatus.UPCOMING) &&
+                new Date(reminder.scheduled_time) > now
+            )
+            .sort((a, b) =>
+                new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime()
+            );
+
+        return upcomingReminders.length > 0 ? upcomingReminders[0].scheduled_time : null;
+    }, [reminders]);
+
     // Filter reminders for display: only show Pending reminders whose scheduled time has been reached
     // Answered reminders are hidden (they should not appear in the reminders table)
     // Upcoming reminders are hidden (they have future times and should not be shown)
@@ -570,12 +591,13 @@ export function RemindersList({ trackings: propTrackings, isLoadingTrackings: pr
      */
     const handleSnooze = async (reminderId: number, minutes: number) => {
         try {
-            await snoozeReminder(reminderId, minutes);
+            const updatedReminder = await snoozeReminder(reminderId, minutes);
             setOpenSnoozeId(null);
             setSnoozeMenuPosition(null);
             // Badge updates immediately via optimistic update in useReminders hook
             if (onMessage) {
-                onMessage("Reminder snoozed successfully", "success");
+                const formattedTime = ReminderFormatter.formatDateTime(updatedReminder.scheduled_time);
+                onMessage(`Reminder snoozed successfully (Next: ${formattedTime})`, "success");
             }
         } catch (error) {
             console.error("Error snoozing reminder:", error);
@@ -615,10 +637,19 @@ export function RemindersList({ trackings: propTrackings, isLoadingTrackings: pr
             return;
         }
         try {
+            const trackingId = reminderToDelete.tracking_id;
+            // Get next reminder time before deletion (if there's already an upcoming reminder)
+            const nextTime = getNextReminderTime(trackingId);
             await deleteReminder(reminderToDelete.id);
             setReminderToDelete(null);
             if (onMessage) {
-                onMessage("Reminder skipped successfully", "success");
+                if (nextTime) {
+                    const formattedTime = ReminderFormatter.formatDateTime(nextTime);
+                    onMessage(`Reminder skipped successfully (Next: ${formattedTime})`, "success");
+                } else {
+                    // Backend will create a new reminder, but we don't know its time yet
+                    onMessage("Reminder skipped successfully", "success");
+                }
             }
         } catch (error) {
             console.error("Error deleting reminder:", error);
@@ -1022,7 +1053,7 @@ export function RemindersList({ trackings: propTrackings, isLoadingTrackings: pr
                                                                 e.stopPropagation();
                                                                 toggleSnoozeMenu(reminder.id);
                                                             }}
-                                                            title="Snooze reminder"
+                                                            title="Snooze reminder (click to see options)"
                                                             aria-label="Snooze reminder"
                                                         >
                                                             💤
@@ -1032,7 +1063,14 @@ export function RemindersList({ trackings: propTrackings, isLoadingTrackings: pr
                                                         type="button"
                                                         className="action-button action-skip"
                                                         onClick={() => handleDelete(reminder)}
-                                                        title="Skip reminder"
+                                                        title={(() => {
+                                                            const nextTime = getNextReminderTime(reminder.tracking_id);
+                                                            if (nextTime) {
+                                                                const formattedTime = ReminderFormatter.formatDateTime(nextTime);
+                                                                return `Skip reminder (Next: ${formattedTime})`;
+                                                            }
+                                                            return "Skip reminder";
+                                                        })()}
                                                         aria-label="Skip reminder"
                                                     >
                                                         ⏭️

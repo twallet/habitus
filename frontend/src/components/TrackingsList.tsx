@@ -656,10 +656,7 @@ export function TrackingsList({
     const { trackings: hookTrackings, isLoading: hookIsLoading, updateTrackingState: hookUpdateTrackingState, deleteTracking: hookDeleteTracking, createTracking: hookCreateTracking } = useTrackings();
     const { reminders, refreshReminders } = useReminders();
     const [trackingToDelete, setTrackingToDelete] = useState<TrackingData | null>(null);
-    const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
-    const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right: number } | null>(null);
-    const dropdownRefs = useRef<Record<number, HTMLDivElement | null>>({});
-    const dropdownMenuRefs = useRef<Record<number, HTMLDivElement | null>>({});
+    const actionRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
     // Filter and sort state
     const [filterState, setFilterState] = useState<FilterState>({
@@ -838,35 +835,6 @@ export function TrackingsList({
         }
     };
 
-    /**
-     * Handle click outside dropdown to close it.
-     * @internal
-     */
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (openDropdownId !== null) {
-                const dropdownElement = dropdownRefs.current[openDropdownId];
-                const dropdownMenuElement = dropdownMenuRefs.current[openDropdownId];
-                const target = event.target as Node;
-                if (
-                    dropdownElement &&
-                    !dropdownElement.contains(target) &&
-                    dropdownMenuElement &&
-                    !dropdownMenuElement.contains(target)
-                ) {
-                    setOpenDropdownId(null);
-                    setDropdownPosition(null);
-                }
-            }
-        };
-
-        if (openDropdownId !== null) {
-            document.addEventListener("mousedown", handleClickOutside);
-            return () => {
-                document.removeEventListener("mousedown", handleClickOutside);
-            };
-        }
-    }, [openDropdownId]);
 
     /**
      * Handle confirmed deletion.
@@ -897,48 +865,19 @@ export function TrackingsList({
     };
 
     /**
-     * Toggle dropdown for a specific tracking.
-     * @param trackingId - The tracking ID
-     * @internal
-     */
-    const toggleDropdown = (trackingId: number) => {
-        if (openDropdownId === trackingId) {
-            setOpenDropdownId(null);
-            setDropdownPosition(null);
-        } else {
-            setOpenDropdownId(trackingId);
-            // Calculate position after state update
-            setTimeout(() => {
-                const container = dropdownRefs.current[trackingId];
-                if (container) {
-                    const rect = container.getBoundingClientRect();
-                    setDropdownPosition({
-                        top: rect.bottom + 4,
-                        right: window.innerWidth - rect.right,
-                    });
-                }
-            }, 0);
-        }
-    };
-
-    /**
-     * Handle state transition click.
+     * Handle action button click.
      * Shows confirmation modal for deletion.
      * @param trackingId - The tracking ID
      * @param newState - The new state to transition to
      * @internal
      */
-    const handleStateChange = (trackingId: number, newState: TrackingState) => {
+    const handleActionClick = (trackingId: number, newState: TrackingState) => {
         // Find the tracking to get its current state
         const tracking = trackings.find((t) => t.id === trackingId);
         if (!tracking) {
             console.error("Tracking not found for state change");
             return;
         }
-
-        // Close dropdown
-        setOpenDropdownId(null);
-        setDropdownPosition(null);
 
         // Show confirmation modal for deletion
         if (newState === TrackingState.DELETED) {
@@ -1257,15 +1196,83 @@ export function TrackingsList({
                                     )}
                                 </button>
                             </th>
+                            <th className="col-actions">
+                                Actions
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
                         {filteredAndSortedTrackings.map((tracking) => {
                             const currentState = tracking.state || TrackingState.RUNNING;
-                            const validTransitions = StateTransitionHelper.getValidTransitions(currentState);
                             const stateLabel = StateTransitionHelper.getStateLabel(currentState);
-                            const isDropdownOpen = openDropdownId === tracking.id;
                             const stateColorClass = StateTransitionHelper.getStateColorClass(currentState);
+
+                            // Determine which actions to show based on current state
+                            const getActionsForState = (state: TrackingState) => {
+                                switch (state) {
+                                    case TrackingState.RUNNING:
+                                        return [
+                                            {
+                                                state: TrackingState.PAUSED,
+                                                icon: "⏸️",
+                                                label: "Pause",
+                                                tooltip: "Pause: Stops generating new reminders. Existing reminders remain active."
+                                            },
+                                            {
+                                                state: TrackingState.ARCHIVED,
+                                                icon: "📦",
+                                                label: "Archive",
+                                                tooltip: "Archive: Moves tracking to archived state and stops all reminder generation."
+                                            },
+                                            {
+                                                state: TrackingState.DELETED,
+                                                icon: "🗑️",
+                                                label: "Delete",
+                                                tooltip: "Delete: Permanently removes this tracking and all its reminders. This action cannot be undone."
+                                            },
+                                        ];
+                                    case TrackingState.PAUSED:
+                                        return [
+                                            {
+                                                state: TrackingState.RUNNING,
+                                                icon: "▶️",
+                                                label: "Resume",
+                                                tooltip: "Resume: Restarts reminder generation according to the tracking schedule."
+                                            },
+                                            {
+                                                state: TrackingState.ARCHIVED,
+                                                icon: "📦",
+                                                label: "Archive",
+                                                tooltip: "Archive: Moves tracking to archived state and stops all reminder generation."
+                                            },
+                                            {
+                                                state: TrackingState.DELETED,
+                                                icon: "🗑️",
+                                                label: "Delete",
+                                                tooltip: "Delete: Permanently removes this tracking and all its reminders. This action cannot be undone."
+                                            },
+                                        ];
+                                    case TrackingState.ARCHIVED:
+                                        return [
+                                            {
+                                                state: TrackingState.RUNNING,
+                                                icon: "▶️",
+                                                label: "Resume",
+                                                tooltip: "Resume: Restarts reminder generation according to the tracking schedule."
+                                            },
+                                            {
+                                                state: TrackingState.DELETED,
+                                                icon: "🗑️",
+                                                label: "Delete",
+                                                tooltip: "Delete: Permanently removes this tracking and all its reminders. This action cannot be undone."
+                                            },
+                                        ];
+                                    default:
+                                        return [];
+                                }
+                            };
+
+                            const availableActions = getActionsForState(currentState);
 
                             return (
                                 <tr key={tracking.id} className="tracking-row">
@@ -1304,54 +1311,31 @@ export function TrackingsList({
                                         {TrackingFormatter.formatNextReminderTimeDisplay(getNextReminderTime(tracking.id))}
                                     </td>
                                     <td className="cell-status">
+                                        <span className={`status-badge ${stateColorClass}`}>
+                                            {stateLabel}
+                                        </span>
+                                    </td>
+                                    <td className="cell-actions">
                                         <div
-                                            className="status-dropdown-container"
+                                            className="actions-container"
                                             ref={(el) => {
-                                                dropdownRefs.current[tracking.id] = el;
+                                                actionRefs.current[tracking.id] = el;
                                             }}
                                         >
-                                            <button
-                                                type="button"
-                                                className={`status-badge ${stateColorClass} ${isDropdownOpen ? "open" : ""}`}
-                                                onClick={() => toggleDropdown(tracking.id)}
-                                                aria-label={`Current status: ${stateLabel}. Click to change status`}
-                                                aria-expanded={isDropdownOpen}
-                                            >
-                                                <span className="status-badge-text">{stateLabel}</span>
-                                                <span className="status-badge-arrow">▼</span>
-                                            </button>
-                                            {isDropdownOpen && dropdownPosition && (
-                                                <div
-                                                    className="status-dropdown-menu"
-                                                    ref={(el) => {
-                                                        dropdownMenuRefs.current[tracking.id] = el;
-                                                    }}
-                                                    style={{
-                                                        top: `${dropdownPosition.top}px`,
-                                                        right: `${dropdownPosition.right}px`,
-                                                    }}
-                                                >
-                                                    {validTransitions
-                                                        .filter((targetState) => targetState !== currentState)
-                                                        .map((targetState) => {
-                                                            const actionVerb = StateTransitionHelper.getActionVerb(targetState);
-                                                            const targetIcon = StateTransitionHelper.getTransitionIcon(targetState);
-                                                            const targetLabel = StateTransitionHelper.getStateLabel(targetState);
-                                                            return (
-                                                                <button
-                                                                    key={targetState}
-                                                                    type="button"
-                                                                    className="status-dropdown-item"
-                                                                    onClick={() => handleStateChange(tracking.id, targetState)}
-                                                                    aria-label={`Change state to ${targetLabel}`}
-                                                                >
-                                                                    <span className="status-dropdown-icon">{targetIcon}</span>
-                                                                    <span className="status-dropdown-label">{actionVerb}</span>
-                                                                </button>
-                                                            );
-                                                        })}
-                                                </div>
-                                            )}
+                                            <div className="actions-buttons">
+                                                {availableActions.map((action) => (
+                                                    <button
+                                                        key={action.state}
+                                                        type="button"
+                                                        className="action-button"
+                                                        onClick={() => handleActionClick(tracking.id, action.state)}
+                                                        title={action.tooltip}
+                                                        aria-label={action.label}
+                                                    >
+                                                        {action.icon}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>
