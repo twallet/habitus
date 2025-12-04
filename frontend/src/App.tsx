@@ -76,12 +76,11 @@ function App() {
       if (reminder.status === ReminderStatus.ANSWERED) {
         return false;
       }
-      const scheduledTime = new Date(reminder.scheduled_time);
-      // Hide Snoozed reminders until their scheduled time is reached
-      // When their time is reached, backend will update them to Pending status
-      if (reminder.status === ReminderStatus.SNOOZED) {
-        return scheduledTime <= now;
+      // Hide Upcoming reminders - they have future times and should not be shown
+      if (reminder.status === ReminderStatus.UPCOMING) {
+        return false;
       }
+      const scheduledTime = new Date(reminder.scheduled_time);
       // For Pending reminders, only count if scheduled time has been reached
       return reminder.status === ReminderStatus.PENDING && scheduledTime <= now;
     }).length;

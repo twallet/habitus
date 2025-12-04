@@ -95,7 +95,7 @@ async function createTestDatabase(): Promise<Database> {
               scheduled_time DATETIME NOT NULL,
               answer TEXT,
               notes TEXT,
-              status TEXT NOT NULL DEFAULT 'Pending' CHECK(status IN ('Pending', 'Answered', 'Snoozed')),
+              status TEXT NOT NULL DEFAULT 'Pending' CHECK(status IN ('Pending', 'Answered', 'Upcoming')),
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               FOREIGN KEY (tracking_id) REFERENCES trackings(id) ON DELETE CASCADE,
@@ -287,7 +287,7 @@ describe("Reminders Routes", () => {
         })
         .expect(200);
 
-      expect(response.body.status).toBe(ReminderStatus.SNOOZED);
+      expect(response.body.status).toBe(ReminderStatus.UPCOMING);
     });
 
     it("should return 400 for invalid minutes", async () => {

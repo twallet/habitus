@@ -7,7 +7,7 @@ import { Database } from "../db/database.js";
 export enum ReminderStatus {
   PENDING = "Pending",
   ANSWERED = "Answered",
-  SNOOZED = "Snoozed",
+  UPCOMING = "Upcoming",
 }
 
 /**
@@ -396,6 +396,72 @@ export class Reminder {
   }
 
   /**
+   * Load Upcoming reminder by tracking ID for a user.
+   * @param trackingId - Tracking ID
+   * @param userId - User ID (for authorization)
+   * @param db - Database instance
+   * @returns Promise resolving to Reminder instance or null if not found
+   * @public
+   */
+  static async loadUpcomingByTrackingId(
+    trackingId: number,
+    userId: number,
+    db: Database
+  ): Promise<Reminder | null> {
+    const row = await db.get<{
+      id: number;
+      tracking_id: number;
+      user_id: number;
+      scheduled_time: string;
+      answer: string | null;
+      notes: string | null;
+      status: string;
+      created_at: string;
+      updated_at: string;
+    }>(
+      "SELECT id, tracking_id, user_id, scheduled_time, answer, notes, status, created_at, updated_at FROM reminders WHERE tracking_id = ? AND user_id = ? AND status = ? LIMIT 1",
+      [trackingId, userId, ReminderStatus.UPCOMING]
+    );
+
+    if (!row) {
+      return null;
+    }
+
+    return new Reminder({
+      id: row.id,
+      tracking_id: row.tracking_id,
+      user_id: row.user_id,
+      scheduled_time: row.scheduled_time,
+      answer: row.answer || undefined,
+      notes: row.notes || undefined,
+      status: (row.status as ReminderStatus) || ReminderStatus.PENDING,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    });
+  }
+
+  /**
+   * Delete all Upcoming reminders for a tracking.
+   * @param trackingId - Tracking ID
+   * @param userId - User ID (for authorization)
+   * @param db - Database instance
+   * @returns Promise resolving to number of deleted reminders
+   * @public
+   */
+  static async deleteUpcomingByTrackingId(
+    trackingId: number,
+    userId: number,
+    db: Database
+  ): Promise<number> {
+    const result = await db.run(
+      "DELETE FROM reminders WHERE tracking_id = ? AND user_id = ? AND status = ?",
+      [trackingId, userId, ReminderStatus.UPCOMING]
+    );
+
+    return result.changes;
+  }
+
+  /**
    * Validates a tracking ID.
    * @param trackingId - The tracking ID to validate
    * @returns The validated tracking ID
@@ -521,10 +587,10 @@ export class Reminder {
     if (
       normalizedStatus !== ReminderStatus.PENDING &&
       normalizedStatus !== ReminderStatus.ANSWERED &&
-      normalizedStatus !== ReminderStatus.SNOOZED
+      normalizedStatus !== ReminderStatus.UPCOMING
     ) {
       throw new TypeError(
-        `Status must be one of: "${ReminderStatus.PENDING}", "${ReminderStatus.ANSWERED}", "${ReminderStatus.SNOOZED}"`
+        `Status must be one of: "${ReminderStatus.PENDING}", "${ReminderStatus.ANSWERED}", "${ReminderStatus.UPCOMING}"`
       );
     }
 

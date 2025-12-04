@@ -69,7 +69,7 @@ async function createTestDatabase(): Promise<Database> {
               scheduled_time DATETIME NOT NULL,
               answer TEXT,
               notes TEXT,
-              status TEXT NOT NULL DEFAULT 'Pending' CHECK(status IN ('Pending', 'Answered', 'Snoozed')),
+              status TEXT NOT NULL DEFAULT 'Pending' CHECK(status IN ('Pending', 'Answered', 'Upcoming')),
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               FOREIGN KEY (tracking_id) REFERENCES trackings(id) ON DELETE CASCADE,
@@ -182,7 +182,7 @@ describe("ReminderService", () => {
       expect(reminders[1].scheduled_time).toBe(scheduledTime2);
     });
 
-    it("should update expired snoozed reminders to Pending", async () => {
+    it("should update expired upcoming reminders to Pending", async () => {
       // Create a reminder and snooze it to a past time
       const pastTime = new Date(Date.now() - 60000).toISOString(); // 1 minute ago
       const created = await reminderService.createReminder(
@@ -191,13 +191,13 @@ describe("ReminderService", () => {
         pastTime
       );
 
-      // Manually set status to SNOOZED with past scheduled_time
+      // Manually set status to UPCOMING with past scheduled_time
       await testDb.run(
         "UPDATE reminders SET status = ?, scheduled_time = ? WHERE id = ?",
-        [ReminderStatus.SNOOZED, pastTime, created.id]
+        [ReminderStatus.UPCOMING, pastTime, created.id]
       );
 
-      // Fetch reminders - should update expired snoozed reminder to Pending
+      // Fetch reminders - should update expired upcoming reminder to Pending
       const reminders = await reminderService.getRemindersByUserId(testUserId);
 
       const updatedReminder = reminders.find((r) => r.id === created.id);
@@ -205,7 +205,7 @@ describe("ReminderService", () => {
       expect(updatedReminder!.status).toBe(ReminderStatus.PENDING);
     });
 
-    it("should not update non-expired snoozed reminders", async () => {
+    it("should not update non-expired upcoming reminders", async () => {
       // Create a reminder and snooze it to a future time
       const futureTime = new Date(Date.now() + 3600000).toISOString(); // 1 hour from now
       const created = await reminderService.createReminder(
@@ -214,26 +214,26 @@ describe("ReminderService", () => {
         futureTime
       );
 
-      // Manually set status to SNOOZED with future scheduled_time
+      // Manually set status to UPCOMING with future scheduled_time
       await testDb.run(
         "UPDATE reminders SET status = ?, scheduled_time = ? WHERE id = ?",
-        [ReminderStatus.SNOOZED, futureTime, created.id]
+        [ReminderStatus.UPCOMING, futureTime, created.id]
       );
 
-      // Fetch reminders - snoozed reminders should appear even if scheduled_time is in the future
+      // Fetch reminders - upcoming reminders should appear even if scheduled_time is in the future
       const reminders = await reminderService.getRemindersByUserId(testUserId);
       const reminder = reminders.find((r) => r.id === created.id);
-      expect(reminder).not.toBeUndefined(); // Snoozed reminders should appear
-      expect(reminder!.status).toBe(ReminderStatus.SNOOZED); // Should not be updated to Pending
+      expect(reminder).not.toBeUndefined(); // Upcoming reminders should appear
+      expect(reminder!.status).toBe(ReminderStatus.UPCOMING); // Should not be updated to Pending
 
-      // Verify the reminder still exists in the database with SNOOZED status
+      // Verify the reminder still exists in the database with UPCOMING status
       const reminderFromDb = await Reminder.loadById(
         created.id,
         testUserId,
         testDb
       );
       expect(reminderFromDb).not.toBeNull();
-      expect(reminderFromDb!.status).toBe(ReminderStatus.SNOOZED);
+      expect(reminderFromDb!.status).toBe(ReminderStatus.UPCOMING);
     });
   });
 
@@ -261,7 +261,7 @@ describe("ReminderService", () => {
       expect(reminder).toBeNull();
     });
 
-    it("should update expired snoozed reminder to Pending", async () => {
+    it("should update expired upcoming reminder to Pending", async () => {
       // Create a reminder and snooze it to a past time
       const pastTime = new Date(Date.now() - 60000).toISOString(); // 1 minute ago
       const created = await reminderService.createReminder(
@@ -270,13 +270,13 @@ describe("ReminderService", () => {
         pastTime
       );
 
-      // Manually set status to SNOOZED with past scheduled_time
+      // Manually set status to UPCOMING with past scheduled_time
       await testDb.run(
         "UPDATE reminders SET status = ?, scheduled_time = ? WHERE id = ?",
-        [ReminderStatus.SNOOZED, pastTime, created.id]
+        [ReminderStatus.UPCOMING, pastTime, created.id]
       );
 
-      // Fetch reminder by ID - should update expired snoozed reminder to Pending
+      // Fetch reminder by ID - should update expired upcoming reminder to Pending
       const reminder = await reminderService.getReminderById(
         created.id,
         testUserId
@@ -335,7 +335,7 @@ describe("ReminderService", () => {
         30
       );
 
-      expect(snoozed.status).toBe(ReminderStatus.SNOOZED);
+      expect(snoozed.status).toBe(ReminderStatus.UPCOMING);
       const snoozedTime = new Date(snoozed.scheduled_time);
       const originalTime = new Date(scheduledTime);
       const diffMinutes =
@@ -499,26 +499,26 @@ describe("ReminderService", () => {
       expect(newReminder!.scheduled_time).not.toBe(scheduledTime);
     });
 
-    it("should delete snoozed reminder and create new one when tracking's scheduled time arrives", async () => {
-      // Create a snoozed reminder for the tracking
-      const snoozedTime = new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30 minutes from now
-      const snoozedReminder = new Reminder({
+    it("should delete upcoming reminder and create new one when tracking's scheduled time arrives", async () => {
+      // Create an upcoming reminder for the tracking
+      const upcomingTime = new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30 minutes from now
+      const upcomingReminder = new Reminder({
         id: 0,
         tracking_id: testTrackingId,
         user_id: testUserId,
-        scheduled_time: snoozedTime,
-        status: ReminderStatus.SNOOZED,
+        scheduled_time: upcomingTime,
+        status: ReminderStatus.UPCOMING,
       });
-      await snoozedReminder.save(testDb);
+      await upcomingReminder.save(testDb);
 
-      // Verify snoozed reminder exists
-      const beforeReminder = await Reminder.loadByTrackingId(
+      // Verify upcoming reminder exists
+      const beforeReminder = await Reminder.loadUpcomingByTrackingId(
         testTrackingId,
         testUserId,
         testDb
       );
       expect(beforeReminder).not.toBeNull();
-      expect(beforeReminder!.status).toBe(ReminderStatus.SNOOZED);
+      expect(beforeReminder!.status).toBe(ReminderStatus.UPCOMING);
 
       // Create next reminder (simulating tracking's scheduled time arriving)
       const newReminder = await reminderService.createNextReminderForTracking(
@@ -526,18 +526,18 @@ describe("ReminderService", () => {
         testUserId
       );
 
-      // Verify snoozed reminder was deleted
-      const deletedSnoozed = await Reminder.loadById(
-        snoozedReminder.id,
+      // Verify upcoming reminder was deleted
+      const deletedUpcoming = await Reminder.loadById(
+        upcomingReminder.id,
         testUserId,
         testDb
       );
-      expect(deletedSnoozed).toBeNull();
+      expect(deletedUpcoming).toBeNull();
 
       // Verify new reminder was created
       expect(newReminder).not.toBeNull();
-      expect(newReminder!.id).not.toBe(snoozedReminder.id);
-      expect(newReminder!.status).toBe(ReminderStatus.PENDING);
+      expect(newReminder!.id).not.toBe(upcomingReminder.id);
+      expect(newReminder!.status).toBe(ReminderStatus.UPCOMING);
     });
 
     it("should delete existing future Pending reminder and create new unique one", async () => {

@@ -699,7 +699,7 @@ export function TrackingsList({
         const upcomingReminders = reminders
             .filter((reminder) =>
                 reminder.tracking_id === trackingId &&
-                (reminder.status === ReminderStatus.PENDING || reminder.status === ReminderStatus.SNOOZED) &&
+                (reminder.status === ReminderStatus.PENDING || reminder.status === ReminderStatus.UPCOMING) &&
                 new Date(reminder.scheduled_time) > now
             )
             .sort((a, b) =>

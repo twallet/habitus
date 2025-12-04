@@ -76,7 +76,7 @@ async function createTestDatabase(): Promise<Database> {
               scheduled_time DATETIME NOT NULL,
               answer TEXT,
               notes TEXT,
-              status TEXT NOT NULL DEFAULT 'Pending' CHECK(status IN ('Pending', 'Answered', 'Snoozed')),
+              status TEXT NOT NULL DEFAULT 'Pending' CHECK(status IN ('Pending', 'Answered', 'Upcoming')),
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               FOREIGN KEY (tracking_id) REFERENCES trackings(id) ON DELETE CASCADE,
@@ -528,7 +528,7 @@ describe("TrackingService", () => {
       ).rejects.toThrow(TypeError);
     });
 
-    it("should delete Pending and Snoozed reminders when archiving", async () => {
+    it("should delete Pending and Upcoming reminders when archiving", async () => {
       // Create tracking with schedule
       const trackingResult = await testDb.run(
         "INSERT INTO trackings (user_id, question, type, state, days) VALUES (?, ?, ?, ?, ?)",
@@ -563,15 +563,15 @@ describe("TrackingService", () => {
       });
       await pendingReminder.save(testDb);
 
-      // Create Snoozed reminder
-      const snoozedReminder = new Reminder({
+      // Create Upcoming reminder
+      const upcomingReminder = new Reminder({
         id: 0,
         tracking_id: trackingId,
         user_id: testUserId,
         scheduled_time: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-        status: ReminderStatus.SNOOZED,
+        status: ReminderStatus.UPCOMING,
       });
-      await snoozedReminder.save(testDb);
+      await upcomingReminder.save(testDb);
 
       // Create Answered reminder (should not be deleted)
       const answeredReminder = new Reminder({
@@ -592,14 +592,14 @@ describe("TrackingService", () => {
         "Archived"
       );
 
-      // Verify Pending and Snoozed reminders are deleted
+      // Verify Pending and Upcoming reminders are deleted
       const pendingAfter = await Reminder.loadById(
         pendingReminder.id,
         testUserId,
         testDb
       );
-      const snoozedAfter = await Reminder.loadById(
-        snoozedReminder.id,
+      const upcomingAfter = await Reminder.loadById(
+        upcomingReminder.id,
         testUserId,
         testDb
       );
@@ -610,11 +610,11 @@ describe("TrackingService", () => {
       );
 
       expect(pendingAfter).toBeNull();
-      expect(snoozedAfter).toBeNull();
+      expect(upcomingAfter).toBeNull();
       expect(answeredAfter).not.toBeNull(); // Answered reminder should remain
     });
 
-    it("should delete future Pending/Snoozed reminders when pausing", async () => {
+    it("should delete Upcoming reminders when pausing", async () => {
       // Create tracking with schedule
       const trackingResult = await testDb.run(
         "INSERT INTO trackings (user_id, question, type, state, days) VALUES (?, ?, ?, ?, ?)",
@@ -649,15 +649,15 @@ describe("TrackingService", () => {
       });
       await pendingReminder.save(testDb);
 
-      // Create future Snoozed reminder
-      const snoozedReminder = new Reminder({
+      // Create future Upcoming reminder
+      const upcomingReminder = new Reminder({
         id: 0,
         tracking_id: trackingId,
         user_id: testUserId,
         scheduled_time: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-        status: ReminderStatus.SNOOZED,
+        status: ReminderStatus.UPCOMING,
       });
-      await snoozedReminder.save(testDb);
+      await upcomingReminder.save(testDb);
 
       // Create past-due Answered reminder (should be kept)
       const answeredReminder = new Reminder({
@@ -679,14 +679,14 @@ describe("TrackingService", () => {
         "Paused"
       );
 
-      // Verify future reminders are deleted
+      // Verify Upcoming reminders are deleted, but Pending and Answered are kept
       const pendingAfter = await Reminder.loadById(
         pendingReminder.id,
         testUserId,
         testDb
       );
-      const snoozedAfter = await Reminder.loadById(
-        snoozedReminder.id,
+      const upcomingAfter = await Reminder.loadById(
+        upcomingReminder.id,
         testUserId,
         testDb
       );
@@ -697,8 +697,8 @@ describe("TrackingService", () => {
         testDb
       );
 
-      expect(pendingAfter).toBeNull(); // Future Pending should be deleted
-      expect(snoozedAfter).toBeNull(); // Future Snoozed should be deleted
+      expect(upcomingAfter).toBeNull(); // Upcoming should be deleted
+      expect(pendingAfter).not.toBeNull(); // Pending should remain
       expect(answeredAfter).not.toBeNull(); // Answered reminder should remain
     });
 

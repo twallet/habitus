@@ -43,8 +43,8 @@ export class ReminderService {
       } reminders for userId: ${userId}`
     );
 
-    // Check and update expired snoozed reminders
-    await this.updateExpiredSnoozedReminders(reminders);
+    // Check and update expired upcoming reminders
+    await this.updateExpiredUpcomingReminders(reminders);
 
     // Return all reminders (including future ones) for tooltip display
     // Frontend will filter them for display in RemindersList
@@ -81,8 +81,8 @@ export class ReminderService {
       return null;
     }
 
-    // Check and update expired snoozed reminder
-    await this.updateExpiredSnoozedReminders([reminder]);
+    // Check and update expired upcoming reminder
+    await this.updateExpiredUpcomingReminders([reminder]);
 
     console.log(
       `[${new Date().toISOString()}] REMINDER | Reminder found: ID ${
@@ -111,12 +111,18 @@ export class ReminderService {
       `[${new Date().toISOString()}] REMINDER | Creating reminder for trackingId: ${trackingId}, userId: ${userId}`
     );
 
+    // Determine status based on scheduled time
+    const now = new Date();
+    const scheduledDate = new Date(scheduledTime);
+    const status =
+      scheduledDate > now ? ReminderStatus.UPCOMING : ReminderStatus.PENDING;
+
     const reminder = new Reminder({
       id: 0,
       tracking_id: trackingId,
       user_id: userId,
       scheduled_time: scheduledTime,
-      status: ReminderStatus.PENDING,
+      status: status,
     });
 
     const savedReminder = await reminder.save(this.db);
@@ -124,7 +130,7 @@ export class ReminderService {
     console.log(
       `[${new Date().toISOString()}] REMINDER | Reminder created successfully: ID ${
         savedReminder.id
-      }`
+      } with status ${status}`
     );
 
     return savedReminder;
@@ -160,7 +166,28 @@ export class ReminderService {
       throw new Error("Reminder not found");
     }
 
+    const trackingId = existingReminder.tracking_id;
+    const isBeingAnswered =
+      updates.status === ReminderStatus.ANSWERED &&
+      existingReminder.status !== ReminderStatus.ANSWERED;
+
     const updatedReminder = await existingReminder.update(updates, this.db);
+
+    // If reminder was answered, create new Upcoming reminder
+    if (isBeingAnswered) {
+      try {
+        await this.createNextReminderForTracking(trackingId, userId);
+        console.log(
+          `[${new Date().toISOString()}] REMINDER | Created new Upcoming reminder after answering reminder ID ${reminderId}`
+        );
+      } catch (error) {
+        // Log error but don't fail reminder update if next reminder creation fails
+        console.error(
+          `[${new Date().toISOString()}] REMINDER | Failed to create next reminder after answering reminder ID ${reminderId}:`,
+          error
+        );
+      }
+    }
 
     console.log(
       `[${new Date().toISOString()}] REMINDER | Reminder updated successfully: ID ${reminderId}`
@@ -194,11 +221,15 @@ export class ReminderService {
 
     const now = new Date();
     const snoozedTime = new Date(now.getTime() + snoozeMinutes * 60 * 1000);
+    const trackingId = reminder.tracking_id;
+
+    // Delete any existing Upcoming reminder for this tracking to ensure only one
+    await Reminder.deleteUpcomingByTrackingId(trackingId, userId, this.db);
 
     const updatedReminder = await reminder.update(
       {
         scheduled_time: snoozedTime.toISOString(),
-        status: ReminderStatus.SNOOZED,
+        status: ReminderStatus.UPCOMING,
         answer: undefined,
         notes: undefined,
       },
@@ -235,6 +266,9 @@ export class ReminderService {
 
     // Delete the reminder
     await reminder.delete(this.db);
+
+    // Delete any existing Upcoming reminder for this tracking
+    await Reminder.deleteUpcomingByTrackingId(trackingId, userId, this.db);
 
     // Create next reminder, excluding the deleted time
     await this.createNextReminderForTracking(trackingId, userId, deletedTime);
@@ -582,23 +616,23 @@ export class ReminderService {
   }
 
   /**
-   * Check and update expired snoozed reminders to Pending status.
+   * Check and update expired upcoming reminders to Pending status.
    * @param reminders - Array of reminder instances to check
    * @returns Promise resolving when all updates are complete
    * @private
    */
-  private async updateExpiredSnoozedReminders(
+  private async updateExpiredUpcomingReminders(
     reminders: Reminder[]
   ): Promise<void> {
     const now = new Date();
     const updatePromises: Promise<ReminderData>[] = [];
 
     for (const reminder of reminders) {
-      if (reminder.status === ReminderStatus.SNOOZED) {
+      if (reminder.status === ReminderStatus.UPCOMING) {
         const scheduledTime = new Date(reminder.scheduled_time);
         if (scheduledTime <= now) {
           console.log(
-            `[${new Date().toISOString()}] REMINDER | Updating expired snoozed reminder ID ${
+            `[${new Date().toISOString()}] REMINDER | Updating expired upcoming reminder ID ${
               reminder.id
             } to Pending status`
           );
@@ -614,7 +648,7 @@ export class ReminderService {
       console.log(
         `[${new Date().toISOString()}] REMINDER | Updated ${
           updatePromises.length
-        } expired snoozed reminder(s) to Pending status`
+        } expired upcoming reminder(s) to Pending status`
       );
     }
   }
@@ -666,45 +700,20 @@ export class ReminderService {
       return null;
     }
 
-    const now = new Date().toISOString();
-
-    // Delete ALL future Pending reminders for this tracking to ensure uniqueness
-    // This includes any duplicates that might exist
-    const deleteResult = await this.db.run(
-      `DELETE FROM reminders 
-       WHERE tracking_id = ? 
-       AND user_id = ? 
-       AND status = ? 
-       AND scheduled_time > ?`,
-      [trackingId, userId, ReminderStatus.PENDING, now]
-    );
-
-    if (deleteResult.changes > 0) {
-      console.log(
-        `[${new Date().toISOString()}] REMINDER | Deleted ${
-          deleteResult.changes
-        } existing future Pending reminder(s) for trackingId: ${trackingId} to ensure uniqueness`
-      );
-    }
-
-    // Handle Snoozed reminder if it exists
-    const existingSnoozed = await Reminder.loadByTrackingId(
+    // Delete any existing Upcoming reminders for this tracking to ensure only one
+    const deletedCount = await Reminder.deleteUpcomingByTrackingId(
       trackingId,
       userId,
       this.db
     );
 
-    if (existingSnoozed && existingSnoozed.status === ReminderStatus.SNOOZED) {
-      // If there's a Snoozed reminder, delete it first
+    if (deletedCount > 0) {
       console.log(
-        `[${new Date().toISOString()}] REMINDER | Deleting snoozed reminder ID ${
-          existingSnoozed.id
-        } for trackingId: ${trackingId} as tracking's scheduled time has arrived`
+        `[${new Date().toISOString()}] REMINDER | Deleted ${deletedCount} existing Upcoming reminder(s) for trackingId: ${trackingId} to ensure uniqueness`
       );
-      await existingSnoozed.delete(this.db);
     }
 
-    // Create the new unique future reminder
+    // Create the new unique future reminder (will be created with UPCOMING status if time is in future)
     const reminder = await this.createReminder(trackingId, userId, nextTime);
 
     console.log(

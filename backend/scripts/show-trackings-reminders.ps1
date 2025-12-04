@@ -365,7 +365,7 @@ try {
                     $statusColor = switch ($status) {
                         "Pending" { "Yellow" }
                         "Answered" { "Green" }
-                        "Snoozed" { "Cyan" }
+                        "Upcoming" { "Cyan" }
                         default { "White" }
                     }
                     

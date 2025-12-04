@@ -317,31 +317,61 @@ export class TrackingService {
       throw new Error("Failed to retrieve updated tracking");
     }
 
-    // If schedules or days pattern changed, recreate reminder
+    // If schedules or days pattern changed, update Upcoming reminder if needed
     const schedulesChanged = schedules !== undefined;
     const daysChanged = days !== undefined;
-    if (schedulesChanged || daysChanged) {
+    if ((schedulesChanged || daysChanged) && tracking.state === "Running") {
       try {
-        // Delete existing reminder if it exists
-        const { Reminder } = await import("../models/Reminder.js");
-        const existingReminder = await Reminder.loadByTrackingId(
+        const { Reminder, ReminderStatus } = await import(
+          "../models/Reminder.js"
+        );
+        // Check if Upcoming reminder exists
+        const existingUpcoming = await Reminder.loadUpcomingByTrackingId(
           trackingId,
           userId,
           this.db
         );
-        if (existingReminder) {
-          await existingReminder.delete(this.db);
-        }
 
-        // Create new reminder with updated schedule/days
-        await this.reminderService.createNextReminderForTracking(
-          trackingId,
-          userId
+        // Calculate new next time
+        const nextTime = await this.reminderService.calculateNextReminderTime(
+          tracking
         );
+
+        if (nextTime) {
+          if (existingUpcoming) {
+            // If Upcoming exists, check if the new time differs
+            if (existingUpcoming.scheduled_time !== nextTime) {
+              // Update or replace the Upcoming reminder
+              // Delete existing Upcoming first to ensure only one
+              await Reminder.deleteUpcomingByTrackingId(
+                trackingId,
+                userId,
+                this.db
+              );
+              // Create new Upcoming reminder with updated time
+              await this.reminderService.createNextReminderForTracking(
+                trackingId,
+                userId
+              );
+              console.log(
+                `[${new Date().toISOString()}] TRACKING | Updated Upcoming reminder for tracking ${trackingId} with new time`
+              );
+            }
+          } else {
+            // No Upcoming reminder exists, create one
+            await this.reminderService.createNextReminderForTracking(
+              trackingId,
+              userId
+            );
+            console.log(
+              `[${new Date().toISOString()}] TRACKING | Created Upcoming reminder for tracking ${trackingId}`
+            );
+          }
+        }
       } catch (error) {
-        // Log error but don't fail tracking update if reminder recreation fails
+        // Log error but don't fail tracking update if reminder update fails
         console.error(
-          `[${new Date().toISOString()}] TRACKING | Failed to recreate reminder for tracking ${trackingId}:`,
+          `[${new Date().toISOString()}] TRACKING | Failed to update reminder for tracking ${trackingId}:`,
           error
         );
       }
@@ -401,37 +431,45 @@ export class TrackingService {
     );
 
     // Handle reminder cleanup and creation based on state transition
-    if (
-      validatedNewState === TrackingState.ARCHIVED ||
-      validatedNewState === TrackingState.PAUSED
-    ) {
-      // When archiving or pausing: Delete all future Pending and Snoozed reminders
+    const { Reminder } = await import("../models/Reminder.js");
+    if (validatedNewState === TrackingState.PAUSED) {
+      // When pausing: Delete Upcoming reminders (keep Pending and Answered)
+      const deletedCount = await Reminder.deleteUpcomingByTrackingId(
+        trackingId,
+        userId,
+        this.db
+      );
+
+      if (deletedCount > 0) {
+        console.log(
+          `[${new Date().toISOString()}] TRACKING | Deleted ${deletedCount} Upcoming reminder(s) for paused tracking ${trackingId}`
+        );
+      }
+    } else if (validatedNewState === TrackingState.ARCHIVED) {
+      // When archiving: Delete Upcoming and Pending reminders (keep Answered)
       const { ReminderStatus } = await import("../models/Reminder.js");
       const now = new Date().toISOString();
 
-      // Delete future reminders (scheduled_time > now) with Pending or Snoozed status
+      // Delete all Upcoming reminders
+      const deletedUpcoming = await Reminder.deleteUpcomingByTrackingId(
+        trackingId,
+        userId,
+        this.db
+      );
+
+      // Delete all Pending reminders
       const result = await this.db.run(
         `DELETE FROM reminders 
          WHERE tracking_id = ? 
          AND user_id = ? 
-         AND status IN (?, ?) 
-         AND scheduled_time > ?`,
-        [
-          trackingId,
-          userId,
-          ReminderStatus.PENDING,
-          ReminderStatus.SNOOZED,
-          now,
-        ]
+         AND status = ?`,
+        [trackingId, userId, ReminderStatus.PENDING]
       );
 
-      if (result.changes > 0) {
+      const totalDeleted = deletedUpcoming + result.changes;
+      if (totalDeleted > 0) {
         console.log(
-          `[${new Date().toISOString()}] TRACKING | Deleted ${
-            result.changes
-          } future Pending/Snoozed reminder(s) for ${
-            validatedNewState === TrackingState.ARCHIVED ? "archived" : "paused"
-          } tracking ${trackingId}`
+          `[${new Date().toISOString()}] TRACKING | Deleted ${totalDeleted} Upcoming/Pending reminder(s) for archived tracking ${trackingId}`
         );
       }
     } else if (

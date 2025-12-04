@@ -293,8 +293,8 @@ export class ReminderFormatter {
                 return "status-pending";
             case ReminderStatus.ANSWERED:
                 return "status-answered";
-            case ReminderStatus.SNOOZED:
-                return "status-snoozed";
+            case ReminderStatus.UPCOMING:
+                return "status-upcoming";
             default:
                 return "";
         }
@@ -366,9 +366,9 @@ export function RemindersList({ onCreate: _onCreate, onMessage }: RemindersListP
         return trackings.find((t) => t.id === trackingId);
     };
 
-    // Filter reminders for display: only show those whose scheduled time has been reached
+    // Filter reminders for display: only show Pending reminders whose scheduled time has been reached
     // Answered reminders are hidden (they should not appear in the reminders table)
-    // Snoozed reminders are hidden until their scheduled time is reached (then backend updates them to Pending)
+    // Upcoming reminders are hidden (they have future times and should not be shown)
     // For Pending reminders, only show if scheduled time has been reached
     const now = new Date();
     const remindersForDisplay = reminders.filter((reminder) => {
@@ -376,14 +376,13 @@ export function RemindersList({ onCreate: _onCreate, onMessage }: RemindersListP
         if (reminder.status === ReminderStatus.ANSWERED) {
             return false;
         }
-        const scheduledTime = new Date(reminder.scheduled_time);
-        // Hide Snoozed reminders until their scheduled time is reached
-        // When their time is reached, backend will update them to Pending status
-        if (reminder.status === ReminderStatus.SNOOZED) {
-            return scheduledTime <= now;
+        // Hide Upcoming reminders - they have future times and should not be shown
+        if (reminder.status === ReminderStatus.UPCOMING) {
+            return false;
         }
+        const scheduledTime = new Date(reminder.scheduled_time);
         // For Pending reminders, only show if scheduled time has been reached
-        return scheduledTime <= now;
+        return reminder.status === ReminderStatus.PENDING && scheduledTime <= now;
     });
 
     // Apply filters and sorting
@@ -767,11 +766,11 @@ export function RemindersList({ onCreate: _onCreate, onMessage }: RemindersListP
                         <label className="filter-checkbox-label">
                             <input
                                 type="checkbox"
-                                checked={filterState.status.includes(ReminderStatus.SNOOZED)}
-                                onChange={() => handleCheckboxFilterChange('status', ReminderStatus.SNOOZED)}
-                                aria-label="Filter by status: Snoozed"
+                                checked={filterState.status.includes(ReminderStatus.UPCOMING)}
+                                onChange={() => handleCheckboxFilterChange('status', ReminderStatus.UPCOMING)}
+                                aria-label="Filter by status: Upcoming"
                             />
-                            <span>Snoozed</span>
+                            <span>Upcoming</span>
                         </label>
                     </div>
                 </div>
@@ -1026,26 +1025,6 @@ export function RemindersList({ onCreate: _onCreate, onMessage }: RemindersListP
                                                                 >
                                                                     <span className="status-dropdown-icon">✏️</span>
                                                                     <span className="status-dropdown-label">Edit</span>
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    className="status-dropdown-item"
-                                                                    onClick={() => handleDelete(reminder)}
-                                                                >
-                                                                    <span className="status-dropdown-icon">⏭️</span>
-                                                                    <span className="status-dropdown-label">Skip</span>
-                                                                </button>
-                                                            </>
-                                                        )}
-                                                        {reminder.status === ReminderStatus.SNOOZED && (
-                                                            <>
-                                                                <button
-                                                                    type="button"
-                                                                    className="status-dropdown-item"
-                                                                    onClick={() => handleAnswer(reminder)}
-                                                                >
-                                                                    <span className="status-dropdown-icon">✏️</span>
-                                                                    <span className="status-dropdown-label">Answer</span>
                                                                 </button>
                                                                 <button
                                                                     type="button"

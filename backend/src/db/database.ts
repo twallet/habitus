@@ -188,7 +188,7 @@ export class Database {
               scheduled_time DATETIME NOT NULL,
               answer TEXT,
               notes TEXT,
-              status TEXT NOT NULL DEFAULT 'Pending' CHECK(status IN ('Pending', 'Answered', 'Snoozed')),
+              status TEXT NOT NULL DEFAULT 'Pending' CHECK(status IN ('Pending', 'Answered', 'Upcoming')),
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               FOREIGN KEY (tracking_id) REFERENCES trackings(id) ON DELETE CASCADE,

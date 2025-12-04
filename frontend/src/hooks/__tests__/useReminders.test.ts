@@ -147,9 +147,9 @@ describe("useReminders", () => {
         status: ReminderStatus.PENDING,
       };
 
-      const snoozedReminder: ReminderData = {
+      const upcomingReminder: ReminderData = {
         ...mockReminder,
-        status: ReminderStatus.SNOOZED,
+        status: ReminderStatus.UPCOMING,
         scheduled_time: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
       };
 
@@ -162,7 +162,7 @@ describe("useReminders", () => {
         })
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => snoozedReminder,
+          json: async () => upcomingReminder,
         });
 
       const { result } = renderHook(() => useReminders());
@@ -174,7 +174,9 @@ describe("useReminders", () => {
       await result.current.snoozeReminder(1, 30);
 
       await waitFor(() => {
-        expect(result.current.reminders[0].status).toBe(ReminderStatus.SNOOZED);
+        expect(result.current.reminders[0].status).toBe(
+          ReminderStatus.UPCOMING
+        );
       });
     });
   });

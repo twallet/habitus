@@ -5,7 +5,7 @@
 export enum ReminderStatus {
   PENDING = "Pending",
   ANSWERED = "Answered",
-  SNOOZED = "Snoozed",
+  UPCOMING = "Upcoming",
 }
 
 /**

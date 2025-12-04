@@ -694,7 +694,7 @@ describe("RemindersList", () => {
                 tracking_id: 1,
                 user_id: 1,
                 scheduled_time: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-                status: ReminderStatus.SNOOZED,
+                status: ReminderStatus.UPCOMING,
             },
             {
                 id: 2,
@@ -724,7 +724,7 @@ describe("RemindersList", () => {
         await userEvent.click(statusHeader);
 
         // Should be sorted alphabetically
-        const statuses = screen.getAllByText(/Pending|Snoozed/);
+        const statuses = screen.getAllByText(/Pending|Upcoming/);
         expect(statuses.length).toBe(2);
     });
 
@@ -1064,7 +1064,7 @@ describe("RemindersList", () => {
                 tracking_id: 1,
                 user_id: 1,
                 scheduled_time: "2024-01-01T10:00:00Z",
-                status: ReminderStatus.SNOOZED,
+                status: ReminderStatus.UPCOMING,
             },
         ];
 
@@ -1082,7 +1082,7 @@ describe("RemindersList", () => {
 
         render(<RemindersList />);
 
-        const statusBadge = screen.getByText("Snoozed");
+        const statusBadge = screen.getByText("Upcoming");
         await userEvent.click(statusBadge);
 
         // Should show Answer button
