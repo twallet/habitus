@@ -312,6 +312,11 @@ export function useTrackings() {
       setTrackings((prevTrackings) =>
         prevTrackings.filter((t) => t.id !== trackingId)
       );
+      // Dispatch event to notify that a tracking was deleted
+      // This allows other components (like App.tsx) to refresh reminders
+      window.dispatchEvent(
+        new CustomEvent("trackingDeleted", { detail: { trackingId } })
+      );
     } catch (error) {
       console.error(
         `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Error deleting tracking:`,

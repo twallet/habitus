@@ -14,6 +14,7 @@ import { useTrackings } from './hooks/useTrackings';
 import { useReminders } from './hooks/useReminders';
 import { TrackingData, TrackingType, TrackingState } from './models/Tracking';
 import { ReminderStatus } from './models/Reminder';
+import { getDailyCitation } from './utils/citations';
 import './App.css';
 
 /**
@@ -55,7 +56,15 @@ function App() {
     deleteTracking,
   } = useTrackings();
 
-  const { reminders } = useReminders();
+  const { reminders, refreshReminders, removeRemindersForTracking } =
+    useReminders();
+
+  /**
+   * Get the daily citation for the tooltip.
+   * Updates when the day changes (recalculated on each render, but will be the same throughout the day).
+   * @internal
+   */
+  const dailyCitation = getDailyCitation();
 
   /**
    * Calculate the number of pending reminders that have reached their scheduled time.
@@ -375,6 +384,33 @@ function App() {
       window.removeEventListener('resize', scheduleUpdate);
     };
   }, [activeTab, trackings, trackingsLoading]);
+
+  /**
+   * Listen for tracking deletion events and update reminders accordingly.
+   * When a tracking is deleted, optimistically remove its reminders for immediate UI feedback,
+   * then refresh reminders from the backend to ensure consistency.
+   * @internal
+   */
+  useEffect(() => {
+    const handleTrackingDeleted = (event: Event) => {
+      const customEvent = event as CustomEvent<{ trackingId: number }>;
+      const trackingId = customEvent.detail.trackingId;
+      console.log(
+        `[${new Date().toISOString()}] FRONTEND_APP | Tracking deleted event received for tracking ID: ${trackingId}, updating reminders`
+      );
+      // Optimistically remove reminders for the deleted tracking
+      removeRemindersForTracking(trackingId);
+      // Refresh reminders from backend to ensure consistency
+      // The backend will have cleaned up orphaned reminders
+      refreshReminders();
+    };
+
+    window.addEventListener("trackingDeleted", handleTrackingDeleted);
+
+    return () => {
+      window.removeEventListener("trackingDeleted", handleTrackingDeleted);
+    };
+  }, [removeRemindersForTracking, refreshReminders]);
 
   /**
    * Handle magic link verification from URL.
@@ -754,7 +790,13 @@ function App() {
       <div className="container">
         <header>
           <h1>
-            <img src="/assets/images/te-verde.png" alt="🌱" style={{ height: '1em', width: 'auto', verticalAlign: 'baseline', marginRight: '0.4em', display: 'inline-block' }} />
+            <img
+              src="/assets/images/te-verde.png"
+              alt="🌱"
+              className="habitus-icon"
+              style={{ height: '1em', width: 'auto', verticalAlign: 'baseline', marginRight: '0.4em', display: 'inline-block' }}
+              title={dailyCitation}
+            />
             Habitus
           </h1>
         </header>
@@ -804,7 +846,13 @@ function App() {
       <header className="app-header">
         <div>
           <h1>
-            <img src="/assets/images/te-verde.png" alt="🌱" style={{ height: '1em', width: 'auto', verticalAlign: 'baseline', marginRight: '0.4em', display: 'inline-block' }} />
+            <img
+              src="/assets/images/te-verde.png"
+              alt="🌱"
+              className="habitus-icon"
+              style={{ height: '1em', width: 'auto', verticalAlign: 'baseline', marginRight: '0.4em', display: 'inline-block' }}
+              title={dailyCitation}
+            />
             Habitus
           </h1>
         </div>

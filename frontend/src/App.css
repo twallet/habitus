@@ -120,6 +120,14 @@ header h1 {
   line-height: 1;
 }
 
+.habitus-icon {
+  position: relative;
+}
+
+.habitus-icon:hover {
+  opacity: 0.9;
+}
+
 .subtitle {
   color: var(--text-secondary);
   font-size: 1rem;

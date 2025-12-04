@@ -329,6 +329,18 @@ export function useReminders() {
     await fetchReminders();
   }, [fetchReminders]);
 
+  /**
+   * Optimistically remove reminders for a deleted tracking.
+   * This provides immediate UI feedback while the backend cleans up orphaned reminders.
+   * @param trackingId - The tracking ID whose reminders should be removed
+   * @public
+   */
+  const removeRemindersForTracking = useCallback((trackingId: number) => {
+    setReminders((prevReminders) =>
+      prevReminders.filter((r) => r.tracking_id !== trackingId)
+    );
+  }, []);
+
   return {
     reminders,
     isLoading,
@@ -336,5 +348,6 @@ export function useReminders() {
     snoozeReminder,
     deleteReminder,
     refreshReminders,
+    removeRemindersForTracking,
   };
 }
