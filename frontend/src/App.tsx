@@ -892,186 +892,187 @@ function App() {
   console.log(`[${new Date().toISOString()}] FRONTEND_APP | User authenticated and loaded: ${user.email} (ID: ${user.id}), rendering main app`);
 
   return (
-    <div className="container" ref={containerRef}>
-      <header className="app-header">
-        <div>
-          <h1>
-            <img
-              src="/assets/images/te-verde.png"
-              alt="🌱"
-              className="habitus-icon"
-              style={{ height: '1em', width: 'auto', verticalAlign: 'baseline', marginRight: '0.4em', display: 'inline-block' }}
-              title={dailyCitation}
-            />
-            Habitus
-          </h1>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '16px' }}>
-          <button
-            type="button"
-            className="fab"
-            onClick={() => setShowTrackingForm(true)}
-            aria-label="Create tracking"
-            title="Create tracking"
-          >
-            +
-          </button>
-          {user && (
-            <UserMenu
-              user={user}
-              onEditProfile={handleEditProfile}
-              onChangeEmail={handleChangeEmail}
-              onLogout={handleLogout}
-              onDeleteUser={handleDeleteUser}
+    <>
+      <div className="container" ref={containerRef}>
+        <header className="app-header">
+          <div>
+            <h1>
+              <img
+                src="/assets/images/te-verde.png"
+                alt="🌱"
+                className="habitus-icon"
+                style={{ height: '1em', width: 'auto', verticalAlign: 'baseline', marginRight: '0.4em', display: 'inline-block' }}
+                title={dailyCitation}
+              />
+              Habitus
+            </h1>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '16px' }}>
+            <button
+              type="button"
+              className="fab"
+              onClick={() => setShowTrackingForm(true)}
+              aria-label="Create tracking"
+              title="Create tracking"
+            >
+              +
+            </button>
+            {user && (
+              <UserMenu
+                user={user}
+                onEditProfile={handleEditProfile}
+                onChangeEmail={handleChangeEmail}
+                onLogout={handleLogout}
+                onDeleteUser={handleDeleteUser}
+              />
+            )}
+          </div>
+        </header>
+
+        <main>
+          {message && (
+            <Message
+              text={message.text}
+              type={message.type}
+              onHide={handleHideMessage}
             />
           )}
-        </div>
-      </header>
 
-      <main>
-        {message && (
-          <Message
-            text={message.text}
-            type={message.type}
-            onHide={handleHideMessage}
+          <div className="tabs-container">
+            <div className="tabs-header">
+              <button
+                type="button"
+                className={`tab-button ${activeTab === 'trackings' ? 'active' : ''}`}
+                onClick={() => setActiveTab('trackings')}
+              >
+                Trackings
+                {runningTrackingsCount > 0 && (
+                  <span className="tab-badge tab-badge-green" aria-label={`${runningTrackingsCount} running trackings`}>
+                    {runningTrackingsCount}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                className={`tab-button ${activeTab === 'reminders' ? 'active' : ''}`}
+                onClick={() => setActiveTab('reminders')}
+              >
+                Reminders
+                {pendingRemindersCount > 0 && (
+                  <span className="tab-badge" aria-label={`${pendingRemindersCount} pending reminders`}>
+                    {pendingRemindersCount}
+                  </span>
+                )}
+              </button>
+            </div>
+            <div className="tabs-content">
+              <div
+                className="trackings-view"
+                ref={trackingsViewRef}
+                style={{
+                  display: activeTab === 'trackings' ? 'block' : 'none',
+                }}
+              >
+                <TrackingsList
+                  trackings={trackings}
+                  onEdit={handleEditTracking}
+                  onCreate={() => setShowTrackingForm(true)}
+                  isLoading={trackingsLoading}
+                  onStateChange={async (trackingId, newState) => {
+                    await updateTrackingState(trackingId, newState);
+                    // Refresh reminders immediately after tracking state change to reflect any changes
+                    await refreshReminders();
+                  }}
+                  onDelete={deleteTracking}
+                  onStateChangeSuccess={(message) => {
+                    setMessage({
+                      text: message,
+                      type: 'success',
+                    });
+                  }}
+                />
+              </div>
+              <div
+                className="reminders-view"
+                ref={remindersViewRef}
+                style={{
+                  display: activeTab === 'reminders' ? 'block' : 'none',
+                }}
+              >
+                <RemindersList
+                  trackings={trackings}
+                  isLoadingTrackings={trackingsLoading}
+                  onCreate={() => setShowTrackingForm(true)}
+                  onMessage={(text, type) => {
+                    setMessage({
+                      text,
+                      type,
+                    });
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </main>
+
+
+        {showEditProfile && user && (
+          <EditProfileModal
+            user={user}
+            onClose={() => setShowEditProfile(false)}
+            onSave={handleSaveProfile}
           />
         )}
 
-        <div className="tabs-container">
-          <div className="tabs-header">
-            <button
-              type="button"
-              className={`tab-button ${activeTab === 'trackings' ? 'active' : ''}`}
-              onClick={() => setActiveTab('trackings')}
-            >
-              Trackings
-              {runningTrackingsCount > 0 && (
-                <span className="tab-badge tab-badge-green" aria-label={`${runningTrackingsCount} running trackings`}>
-                  {runningTrackingsCount}
-                </span>
-              )}
-            </button>
-            <button
-              type="button"
-              className={`tab-button ${activeTab === 'reminders' ? 'active' : ''}`}
-              onClick={() => setActiveTab('reminders')}
-            >
-              Reminders
-              {pendingRemindersCount > 0 && (
-                <span className="tab-badge" aria-label={`${pendingRemindersCount} pending reminders`}>
-                  {pendingRemindersCount}
-                </span>
-              )}
-            </button>
-          </div>
-          <div className="tabs-content">
-            <div
-              className="trackings-view"
-              ref={trackingsViewRef}
-              style={{
-                display: activeTab === 'trackings' ? 'block' : 'none',
-              }}
-            >
-              <TrackingsList
-                trackings={trackings}
-                onEdit={handleEditTracking}
-                onCreate={() => setShowTrackingForm(true)}
-                isLoading={trackingsLoading}
-                onStateChange={async (trackingId, newState) => {
-                  await updateTrackingState(trackingId, newState);
-                  // Refresh reminders immediately after tracking state change to reflect any changes
-                  await refreshReminders();
-                }}
-                onDelete={deleteTracking}
-                onStateChangeSuccess={(message) => {
-                  setMessage({
-                    text: message,
-                    type: 'success',
-                  });
-                }}
-              />
-            </div>
-            <div
-              className="reminders-view"
-              ref={remindersViewRef}
-              style={{
-                display: activeTab === 'reminders' ? 'block' : 'none',
-              }}
-            >
-              <RemindersList
-                trackings={trackings}
-                isLoadingTrackings={trackingsLoading}
-                onCreate={() => setShowTrackingForm(true)}
-                onMessage={(text, type) => {
-                  setMessage({
-                    text,
-                    type,
-                  });
-                }}
+        {showChangeEmail && user && (
+          <ChangeEmailModal
+            user={user}
+            onClose={() => setShowChangeEmail(false)}
+            onRequestEmailChange={handleRequestEmailChange}
+          />
+        )}
+
+        {showDeleteConfirmation && user && (
+          <DeleteUserConfirmationModal
+            userName={user.name}
+            onClose={() => setShowDeleteConfirmation(false)}
+            onConfirm={handleConfirmDeleteUser}
+          />
+        )}
+
+        {showTrackingForm && (
+          <div className="modal-overlay" onClick={() => setShowTrackingForm(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>Create tracking</h2>
+                <button
+                  type="button"
+                  className="modal-close"
+                  onClick={() => setShowTrackingForm(false)}
+                  aria-label="Close"
+                >
+                  ×
+                </button>
+              </div>
+              <TrackingForm
+                onSubmit={handleCreateTracking}
+                onCancel={() => setShowTrackingForm(false)}
+                isSubmitting={trackingsLoading}
               />
             </div>
           </div>
-        </div>
+        )}
 
-        <DebugLogWindow />
-      </main>
-
-
-      {showEditProfile && user && (
-        <EditProfileModal
-          user={user}
-          onClose={() => setShowEditProfile(false)}
-          onSave={handleSaveProfile}
-        />
-      )}
-
-      {showChangeEmail && user && (
-        <ChangeEmailModal
-          user={user}
-          onClose={() => setShowChangeEmail(false)}
-          onRequestEmailChange={handleRequestEmailChange}
-        />
-      )}
-
-      {showDeleteConfirmation && user && (
-        <DeleteUserConfirmationModal
-          userName={user.name}
-          onClose={() => setShowDeleteConfirmation(false)}
-          onConfirm={handleConfirmDeleteUser}
-        />
-      )}
-
-      {showTrackingForm && (
-        <div className="modal-overlay" onClick={() => setShowTrackingForm(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Create tracking</h2>
-              <button
-                type="button"
-                className="modal-close"
-                onClick={() => setShowTrackingForm(false)}
-                aria-label="Close"
-              >
-                ×
-              </button>
-            </div>
-            <TrackingForm
-              onSubmit={handleCreateTracking}
-              onCancel={() => setShowTrackingForm(false)}
-              isSubmitting={trackingsLoading}
-            />
-          </div>
-        </div>
-      )}
-
-      {editingTracking && (
-        <EditTrackingModal
-          tracking={editingTracking}
-          onClose={() => setEditingTracking(null)}
-          onSave={handleSaveTracking}
-        />
-      )}
-    </div>
+        {editingTracking && (
+          <EditTrackingModal
+            tracking={editingTracking}
+            onClose={() => setEditingTracking(null)}
+            onSave={handleSaveTracking}
+          />
+        )}
+      </div>
+      <DebugLogWindow />
+    </>
   );
 }
 

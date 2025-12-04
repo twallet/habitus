@@ -2,8 +2,7 @@
   background-color: #1e1e1e;
   color: #d4d4d4;
   border-radius: 8px;
-  margin-top: 20px;
-  margin-bottom: 20px;
+  margin: 20px auto;
   overflow: hidden;
   font-family: "Consolas", "Monaco", "Courier New", monospace;
   font-size: 12px;
@@ -12,6 +11,7 @@
   min-height: 100px;
   display: block;
   width: 100%;
+  max-width: 1200px;
   border: 2px solid #3e3e42;
 }
 
