@@ -145,8 +145,17 @@
   font-size: 1.2em;
 }
 
+.col-type {
+  text-align: center;
+}
+
+.col-type .sortable-header {
+  justify-content: center;
+}
+
 .cell-type {
   white-space: nowrap;
+  text-align: center;
 }
 
 .type-text {

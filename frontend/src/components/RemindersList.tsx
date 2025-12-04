@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { ReminderData, ReminderStatus } from "../models/Reminder";
 import { TrackingData, TrackingType } from "../models/Tracking";
 import { useReminders } from "../hooks/useReminders";
@@ -337,7 +337,23 @@ export class ReminderFormatter {
     }
 
     /**
-     * Get full type label for display.
+     * Get type emoji for display.
+     * @param type - Tracking type
+     * @returns Type emoji
+     */
+    static getTypeEmoji(type: TrackingType): string {
+        switch (type) {
+            case TrackingType.TRUE_FALSE:
+                return "🔘🟢";
+            case TrackingType.REGISTER:
+                return "🖊️";
+            default:
+                return "";
+        }
+    }
+
+    /**
+     * Get full type label for tooltip.
      * @param type - Tracking type
      * @returns Full type label
      */
@@ -409,13 +425,14 @@ export function RemindersList({ onCreate: _onCreate, onMessage }: RemindersListP
 
     /**
      * Get tracking for a reminder.
+     * Uses trackings from useTrackings hook, which updates automatically when trackings change.
      * @param trackingId - Tracking ID
      * @returns Tracking data or undefined
      * @internal
      */
-    const getTracking = (trackingId: number): TrackingData | undefined => {
+    const getTracking = useCallback((trackingId: number): TrackingData | undefined => {
         return trackings.find((t) => t.id === trackingId);
-    };
+    }, [trackings]);
 
     // Filter reminders for display: only show Pending reminders whose scheduled time has been reached
     // Answered reminders are hidden (they should not appear in the reminders table)
@@ -995,10 +1012,10 @@ export function RemindersList({ onCreate: _onCreate, onMessage }: RemindersListP
                                                 "Unknown tracking"
                                             )}
                                         </td>
-                                        <td className="cell-type">
+                                        <td className="cell-type" title={tracking ? ReminderFormatter.getFullTypeLabel(tracking.type) : undefined}>
                                             {tracking ? (
                                                 <span className="type-text">
-                                                    {ReminderFormatter.getFullTypeLabel(tracking.type)}
+                                                    {ReminderFormatter.getTypeEmoji(tracking.type)}
                                                 </span>
                                             ) : (
                                                 <span className="type-empty">—</span>
@@ -1020,6 +1037,7 @@ export function RemindersList({ onCreate: _onCreate, onMessage }: RemindersListP
                                                     className="link-button"
                                                     onClick={() => handleAnswer(reminder)}
                                                     aria-label="Answer reminder"
+                                                    title="No answer yet. Click to answer"
                                                 >
                                                     No answer
                                                 </button>
