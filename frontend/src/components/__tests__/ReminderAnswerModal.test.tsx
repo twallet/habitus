@@ -3,7 +3,7 @@ import { vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ReminderAnswerModal } from "../ReminderAnswerModal";
-import { ReminderData, ReminderStatus } from "../../models/Reminder";
+import { ReminderData, ReminderStatus, ReminderValue } from "../../models/Reminder";
 import { TrackingData } from "../../models/Tracking";
 
 describe("ReminderAnswerModal", () => {
@@ -16,6 +16,7 @@ describe("ReminderAnswerModal", () => {
         user_id: 1,
         scheduled_time: "2024-01-01T10:00:00Z",
         status: ReminderStatus.PENDING,
+        value: ReminderValue.COMPLETED,
     };
 
     const mockTracking: TrackingData = {
@@ -135,7 +136,6 @@ describe("ReminderAnswerModal", () => {
     it("should prefill answer and notes when editing", () => {
         const answeredReminder: ReminderData = {
             ...mockReminder,
-            answer: "Yes",
             notes: "Some notes",
             status: ReminderStatus.ANSWERED,
         };

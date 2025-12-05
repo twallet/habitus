@@ -3,7 +3,7 @@ import { vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RemindersList } from "../RemindersList";
-import { ReminderData, ReminderStatus } from "../../models/Reminder";
+import { ReminderData, ReminderStatus, ReminderValue } from "../../models/Reminder";
 import { TrackingData } from "../../models/Tracking";
 import * as useRemindersModule from "../../hooks/useReminders";
 import * as useTrackingsModule from "../../hooks/useTrackings";
@@ -81,6 +81,7 @@ describe("RemindersList", () => {
                 user_id: 1,
                 scheduled_time: "2024-01-01T10:00:00Z",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
         ];
 
@@ -112,6 +113,7 @@ describe("RemindersList", () => {
                 scheduled_time: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
                 answer: "Yes",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
         ];
 
@@ -141,6 +143,7 @@ describe("RemindersList", () => {
                 scheduled_time: "2024-01-01T10:00:00Z",
                 notes: "Some notes",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
         ];
 
@@ -169,6 +172,7 @@ describe("RemindersList", () => {
                 user_id: 1,
                 scheduled_time: "2024-01-01T10:00:00Z",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
         ];
 
@@ -203,6 +207,7 @@ describe("RemindersList", () => {
                 user_id: 1,
                 scheduled_time: "2024-01-01T10:00:00Z",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
         ];
 
@@ -237,6 +242,7 @@ describe("RemindersList", () => {
                 user_id: 1,
                 scheduled_time: "2024-01-01T10:00:00Z",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
             {
                 id: 2,
@@ -244,6 +250,7 @@ describe("RemindersList", () => {
                 user_id: 1,
                 scheduled_time: "2024-02-01T10:00:00Z",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
         ];
 
@@ -291,6 +298,7 @@ describe("RemindersList", () => {
                 user_id: 1,
                 scheduled_time: "2024-01-01T10:00:00Z",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
             {
                 id: 2,
@@ -298,6 +306,7 @@ describe("RemindersList", () => {
                 user_id: 1,
                 scheduled_time: "2024-01-01T11:00:00Z",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
         ];
 
@@ -337,6 +346,7 @@ describe("RemindersList", () => {
                 scheduled_time: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
                 answer: "Yes",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
             {
                 id: 2,
@@ -345,6 +355,7 @@ describe("RemindersList", () => {
                 scheduled_time: new Date(Date.now() - 1800000).toISOString(), // 30 minutes ago
                 answer: "No",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
         ];
 
@@ -384,6 +395,7 @@ describe("RemindersList", () => {
                 scheduled_time: "2024-01-01T10:00:00Z",
                 notes: "Great workout",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
             {
                 id: 2,
@@ -392,6 +404,7 @@ describe("RemindersList", () => {
                 scheduled_time: "2024-01-01T11:00:00Z",
                 notes: "Tired",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
         ];
 
@@ -431,6 +444,7 @@ describe("RemindersList", () => {
                 user_id: 1,
                 scheduled_time: "2024-01-01T10:00:00Z",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
             {
                 id: 2,
@@ -438,6 +452,7 @@ describe("RemindersList", () => {
                 user_id: 1,
                 scheduled_time: "2024-01-01T11:00:00Z",
                 status: ReminderStatus.ANSWERED,
+                value: ReminderValue.COMPLETED,
             },
         ];
 
@@ -479,6 +494,7 @@ describe("RemindersList", () => {
                 user_id: 1,
                 scheduled_time: "2024-01-01T10:00:00Z",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
         ];
 
@@ -528,6 +544,7 @@ describe("RemindersList", () => {
                 user_id: 1,
                 scheduled_time: "2024-01-02T10:00:00Z",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
             {
                 id: 2,
@@ -535,6 +552,7 @@ describe("RemindersList", () => {
                 user_id: 1,
                 scheduled_time: "2024-01-01T10:00:00Z",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
         ];
 
@@ -575,6 +593,7 @@ describe("RemindersList", () => {
                 user_id: 1,
                 scheduled_time: "2024-01-01T10:00:00Z",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
             {
                 id: 2,
@@ -582,6 +601,7 @@ describe("RemindersList", () => {
                 user_id: 1,
                 scheduled_time: "2024-01-01T11:00:00Z",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
         ];
 
@@ -617,6 +637,7 @@ describe("RemindersList", () => {
                 scheduled_time: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
                 answer: "No",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
             {
                 id: 2,
@@ -625,6 +646,7 @@ describe("RemindersList", () => {
                 scheduled_time: new Date(Date.now() - 1800000).toISOString(), // 30 minutes ago
                 answer: "Yes",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
         ];
 
@@ -668,6 +690,7 @@ describe("RemindersList", () => {
                 user_id: 1,
                 scheduled_time: "2024-01-01T10:00:00Z",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
             {
                 id: 2,
@@ -675,6 +698,7 @@ describe("RemindersList", () => {
                 user_id: 1,
                 scheduled_time: "2024-01-02T10:00:00Z",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
         ];
 
@@ -715,6 +739,7 @@ describe("RemindersList", () => {
                 user_id: 1,
                 scheduled_time: "2024-01-01T10:00:00Z",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
         ];
 
@@ -750,6 +775,7 @@ describe("RemindersList", () => {
                 user_id: 1,
                 scheduled_time: "2024-01-01T10:00:00Z",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
         ];
 
@@ -788,6 +814,7 @@ describe("RemindersList", () => {
                 user_id: 1,
                 scheduled_time: "2024-01-01T10:00:00Z",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
         ];
 
@@ -825,6 +852,7 @@ describe("RemindersList", () => {
                 user_id: 1,
                 scheduled_time: "2024-01-01T10:00:00Z",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
         ];
 
@@ -865,6 +893,7 @@ describe("RemindersList", () => {
                 user_id: 1,
                 scheduled_time: "2024-01-01T10:00:00Z",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
         ];
 
@@ -908,6 +937,7 @@ describe("RemindersList", () => {
                 user_id: 1,
                 scheduled_time: "2024-01-01T10:00:00Z",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
         ];
 
@@ -957,6 +987,7 @@ describe("RemindersList", () => {
                 user_id: 1,
                 scheduled_time: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago (past time)
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
         ];
 
@@ -987,6 +1018,7 @@ describe("RemindersList", () => {
                 user_id: 1,
                 scheduled_time: "2024-01-01T10:00:00Z",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
         ];
 
@@ -1015,6 +1047,7 @@ describe("RemindersList", () => {
                 user_id: 1,
                 scheduled_time: "2024-01-01T10:00:00Z",
                 status: ReminderStatus.PENDING,
+                value: ReminderValue.COMPLETED,
             },
         ];
 
@@ -1058,6 +1091,7 @@ describe("RemindersList", () => {
                     user_id: 1,
                     scheduled_time: new Date(Date.now() - 3600000).toISOString(),
                     status: ReminderStatus.PENDING,
+                    value: ReminderValue.COMPLETED,
                 },
             ];
 
@@ -1068,6 +1102,7 @@ describe("RemindersList", () => {
                     user_id: 1,
                     scheduled_time: new Date(Date.now() - 3600000).toISOString(),
                     status: ReminderStatus.PENDING,
+                    value: ReminderValue.COMPLETED,
                 },
             ];
 
@@ -1115,6 +1150,7 @@ describe("RemindersList", () => {
                     user_id: 1,
                     scheduled_time: new Date(Date.now() - 3600000).toISOString(),
                     status: ReminderStatus.PENDING,
+                    value: ReminderValue.COMPLETED,
                 },
             ];
 
@@ -1168,6 +1204,7 @@ describe("RemindersList", () => {
                     user_id: 1,
                     scheduled_time: new Date(Date.now() - 3600000).toISOString(),
                     status: ReminderStatus.PENDING,
+                    value: ReminderValue.COMPLETED,
                 },
             ];
 
@@ -1211,6 +1248,7 @@ describe("RemindersList", () => {
                     user_id: 1,
                     scheduled_time: new Date(Date.now() - 3600000).toISOString(),
                     status: ReminderStatus.PENDING,
+                    value: ReminderValue.COMPLETED,
                 },
             ];
 

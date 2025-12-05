@@ -78,6 +78,8 @@ describe('App', () => {
       reminders: [],
       isLoading: false,
       updateReminder: vi.fn(),
+      completeReminder: vi.fn(),
+      dismissReminder: vi.fn(),
       snoozeReminder: vi.fn(),
       deleteReminder: vi.fn(),
       refreshReminders: vi.fn(),
