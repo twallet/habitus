@@ -21,6 +21,7 @@ describe("RemindersList", () => {
     const mockUpdateReminder = vi.fn().mockResolvedValue(undefined);
     const mockSnoozeReminder = vi.fn().mockResolvedValue(undefined);
     const mockCompleteReminder = vi.fn().mockResolvedValue(undefined);
+    const mockDismissReminder = vi.fn().mockResolvedValue(undefined);
     const mockDeleteReminder = vi.fn().mockResolvedValue(undefined);
     const mockRefreshReminders = vi.fn().mockResolvedValue(undefined);
 
@@ -39,6 +40,7 @@ describe("RemindersList", () => {
             updateReminder: mockUpdateReminder,
             snoozeReminder: mockSnoozeReminder,
             completeReminder: mockCompleteReminder,
+            dismissReminder: mockDismissReminder,
             deleteReminder: mockDeleteReminder,
             refreshReminders: mockRefreshReminders,
         });
@@ -1035,7 +1037,7 @@ describe("RemindersList", () => {
         expect(screen.getByText("Unknown tracking")).toBeInTheDocument();
     });
 
-    it("should call deleteReminder when Dismiss is clicked", async () => {
+    it("should call dismissReminder when Dismiss is clicked", async () => {
         const reminders: ReminderData[] = [
             {
                 id: 1,
@@ -1052,6 +1054,8 @@ describe("RemindersList", () => {
             isLoading: false,
             updateReminder: mockUpdateReminder,
             snoozeReminder: mockSnoozeReminder,
+            completeReminder: mockCompleteReminder,
+            dismissReminder: mockDismissReminder,
             deleteReminder: mockDeleteReminder,
             refreshReminders: mockRefreshReminders,
         });
@@ -1066,7 +1070,7 @@ describe("RemindersList", () => {
         await userEvent.click(dismissButton);
 
         await waitFor(() => {
-            expect(mockDeleteReminder).toHaveBeenCalledWith(1);
+            expect(mockDismissReminder).toHaveBeenCalledWith(1);
         });
     });
 
