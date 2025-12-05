@@ -1310,7 +1310,7 @@ describe("RemindersList", () => {
 
             await waitFor(() => {
                 expect(propDismissReminder).toHaveBeenCalledWith(1);
-                expect(mockDeleteReminder).not.toHaveBeenCalled();
+                expect(mockDismissReminder).not.toHaveBeenCalled();
             });
         });
     });
