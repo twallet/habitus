@@ -967,9 +967,10 @@ export function TrackingsList({
                     </div>
                 </div>
             </div>
-            ) : null;
+        </div>
+    ) : null;
 
-            if (visibleTrackings.length === 0) {
+    if (visibleTrackings.length === 0) {
         return (
             <div className="trackings-list">
                 <div className="trackings-list-content">
@@ -995,10 +996,10 @@ export function TrackingsList({
                     </div>
                 </div>
             </div>
-            );
+        );
     }
 
-            if (filteredAndSortedTrackings.length === 0) {
+    if (filteredAndSortedTrackings.length === 0) {
         return (
             <div className="trackings-list">
                 <div className="trackings-list-content">
@@ -1011,250 +1012,250 @@ export function TrackingsList({
                     </div>
                 </div>
             </div>
-            );
+        );
     }
 
-            return (
-            <div className="trackings-list">
-                <div className="trackings-list-content">
-                    {filterPanel}
-                    <table className="trackings-table">
-                        <thead>
-                            <tr>
-                                <th className="col-tracking">
-                                    <div className="header-with-filter">
-                                        {filterToggleButton}
+    return (
+        <div className="trackings-list">
+            <div className="trackings-list-content">
+                {filterPanel}
+                <table className="trackings-table">
+                    <thead>
+                        <tr>
+                            <th className="col-tracking">
+                                <div className="header-with-filter">
+                                    {filterToggleButton}
+                                    <button
+                                        type="button"
+                                        className="sortable-header"
+                                        onClick={() => handleSortClick('tracking')}
+                                        aria-label="Sort by tracking"
+                                    >
+                                        Tracking
+                                        {sortColumn === 'tracking' && (
+                                            <span className="sort-indicator">
+                                                {sortDirection === 'asc' ? '↑' : '↓'}
+                                            </span>
+                                        )}
+                                    </button>
+                                </div>
+                            </th>
+                            <th className="col-times">
+                                <button
+                                    type="button"
+                                    className="sortable-header"
+                                    onClick={() => handleSortClick('times')}
+                                    aria-label="Sort by times"
+                                >
+                                    Times
+                                    {sortColumn === 'times' && (
+                                        <span className="sort-indicator">
+                                            {sortDirection === 'asc' ? '↑' : '↓'}
+                                        </span>
+                                    )}
+                                </button>
+                            </th>
+                            <th className="col-frequency">
+                                <button
+                                    type="button"
+                                    className="sortable-header"
+                                    onClick={() => handleSortClick('frequency')}
+                                    aria-label="Sort by frequency"
+                                >
+                                    Frequency
+                                    {sortColumn === 'frequency' && (
+                                        <span className="sort-indicator">
+                                            {sortDirection === 'asc' ? '↑' : '↓'}
+                                        </span>
+                                    )}
+                                </button>
+                            </th>
+                            <th className="col-next-reminder">
+                                <button
+                                    type="button"
+                                    className="sortable-header"
+                                    onClick={() => handleSortClick('next-reminder')}
+                                    aria-label="Sort by next reminder"
+                                >
+                                    Next reminder
+                                    {sortColumn === 'next-reminder' && (
+                                        <span className="sort-indicator">
+                                            {sortDirection === 'asc' ? '↑' : '↓'}
+                                        </span>
+                                    )}
+                                </button>
+                            </th>
+                            <th className="col-status">
+                                <button
+                                    type="button"
+                                    className="sortable-header"
+                                    onClick={() => handleSortClick('status')}
+                                    aria-label="Sort by status"
+                                >
+                                    Status
+                                    {sortColumn === 'status' && (
+                                        <span className="sort-indicator">
+                                            {sortDirection === 'asc' ? '↑' : '↓'}
+                                        </span>
+                                    )}
+                                </button>
+                            </th>
+                            <th className="col-actions">
+                                Actions
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filteredAndSortedTrackings.map((tracking) => {
+                            const currentState = tracking.state || TrackingState.RUNNING;
+                            const stateLabel = StateTransitionHelper.getStateLabel(currentState);
+                            const stateColorClass = StateTransitionHelper.getStateColorClass(currentState);
+
+                            // Determine which actions to show based on current state
+                            const getActionsForState = (state: TrackingState) => {
+                                switch (state) {
+                                    case TrackingState.RUNNING:
+                                        return [
+                                            {
+                                                state: TrackingState.PAUSED,
+                                                icon: "⏸️",
+                                                label: "Pause",
+                                                tooltip: "Pause: Stops generating new reminders. Existing reminders remain active."
+                                            },
+                                            {
+                                                state: TrackingState.ARCHIVED,
+                                                icon: "📦",
+                                                label: "Archive",
+                                                tooltip: "Archive: Moves tracking to archived state and stops all reminder generation. All pending and upcoming reminders will be deleted."
+                                            },
+                                            {
+                                                state: TrackingState.DELETED,
+                                                icon: "🗑️",
+                                                label: "Delete",
+                                                tooltip: "Delete: Permanently removes this tracking and all its reminders. This action cannot be undone."
+                                            },
+                                        ];
+                                    case TrackingState.PAUSED:
+                                        return [
+                                            {
+                                                state: TrackingState.RUNNING,
+                                                icon: "▶️",
+                                                label: "Resume",
+                                                tooltip: "Resume: Restarts reminder generation according to the tracking schedule."
+                                            },
+                                            {
+                                                state: TrackingState.ARCHIVED,
+                                                icon: "📦",
+                                                label: "Archive",
+                                                tooltip: "Archive: Moves tracking to archived state and stops all reminder generation. All pending and upcoming reminders will be deleted."
+                                            },
+                                            {
+                                                state: TrackingState.DELETED,
+                                                icon: "🗑️",
+                                                label: "Delete",
+                                                tooltip: "Delete: Permanently removes this tracking and all its reminders. This action cannot be undone."
+                                            },
+                                        ];
+                                    case TrackingState.ARCHIVED:
+                                        return [
+                                            {
+                                                state: TrackingState.RUNNING,
+                                                icon: "▶️",
+                                                label: "Resume",
+                                                tooltip: "Resume: Restarts reminder generation according to the tracking schedule."
+                                            },
+                                            {
+                                                state: TrackingState.DELETED,
+                                                icon: "🗑️",
+                                                label: "Delete",
+                                                tooltip: "Delete: Permanently removes this tracking and all its reminders. This action cannot be undone."
+                                            },
+                                        ];
+                                    default:
+                                        return [];
+                                }
+                            };
+
+                            const availableActions = getActionsForState(currentState);
+
+                            return (
+                                <tr key={tracking.id} className="tracking-row">
+                                    <td className="cell-tracking">
+                                        {tracking.icon && (
+                                            <span className="tracking-icon">
+                                                {tracking.icon}
+                                            </span>
+                                        )}
                                         <button
                                             type="button"
-                                            className="sortable-header"
-                                            onClick={() => handleSortClick('tracking')}
-                                            aria-label="Sort by tracking"
+                                            className="tracking-name-link"
+                                            onClick={() => onEdit(tracking)}
+                                            aria-label={`Edit tracking: ${tracking.question}`}
+                                            title={`${tracking.question}. Click to edit`}
                                         >
-                                            Tracking
-                                            {sortColumn === 'tracking' && (
-                                                <span className="sort-indicator">
-                                                    {sortDirection === 'asc' ? '↑' : '↓'}
-                                                </span>
-                                            )}
+                                            {TrackingFormatter.truncateText(tracking.question, 50)}
                                         </button>
-                                    </div>
-                                </th>
-                                <th className="col-times">
-                                    <button
-                                        type="button"
-                                        className="sortable-header"
-                                        onClick={() => handleSortClick('times')}
-                                        aria-label="Sort by times"
+                                    </td>
+                                    <td
+                                        className="cell-times"
+                                        title={!tracking.schedules || tracking.schedules.length === 0 || tracking.schedules.length > 1 ? TrackingFormatter.formatAllTimes(tracking.schedules) : undefined}
                                     >
-                                        Times
-                                        {sortColumn === 'times' && (
-                                            <span className="sort-indicator">
-                                                {sortDirection === 'asc' ? '↑' : '↓'}
-                                            </span>
-                                        )}
-                                    </button>
-                                </th>
-                                <th className="col-frequency">
-                                    <button
-                                        type="button"
-                                        className="sortable-header"
-                                        onClick={() => handleSortClick('frequency')}
-                                        aria-label="Sort by frequency"
+                                        {TrackingFormatter.formatTimesDisplay(tracking.schedules)}
+                                    </td>
+                                    <td
+                                        className="cell-frequency"
+                                        title={getNextReminderTime(tracking.id) ? undefined : "No upcoming reminder"}
                                     >
-                                        Frequency
-                                        {sortColumn === 'frequency' && (
-                                            <span className="sort-indicator">
-                                                {sortDirection === 'asc' ? '↑' : '↓'}
-                                            </span>
-                                        )}
-                                    </button>
-                                </th>
-                                <th className="col-next-reminder">
-                                    <button
-                                        type="button"
-                                        className="sortable-header"
-                                        onClick={() => handleSortClick('next-reminder')}
-                                        aria-label="Sort by next reminder"
-                                    >
-                                        Next reminder
-                                        {sortColumn === 'next-reminder' && (
-                                            <span className="sort-indicator">
-                                                {sortDirection === 'asc' ? '↑' : '↓'}
-                                            </span>
-                                        )}
-                                    </button>
-                                </th>
-                                <th className="col-status">
-                                    <button
-                                        type="button"
-                                        className="sortable-header"
-                                        onClick={() => handleSortClick('status')}
-                                        aria-label="Sort by status"
-                                    >
-                                        Status
-                                        {sortColumn === 'status' && (
-                                            <span className="sort-indicator">
-                                                {sortDirection === 'asc' ? '↑' : '↓'}
-                                            </span>
-                                        )}
-                                    </button>
-                                </th>
-                                <th className="col-actions">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredAndSortedTrackings.map((tracking) => {
-                                const currentState = tracking.state || TrackingState.RUNNING;
-                                const stateLabel = StateTransitionHelper.getStateLabel(currentState);
-                                const stateColorClass = StateTransitionHelper.getStateColorClass(currentState);
-
-                                // Determine which actions to show based on current state
-                                const getActionsForState = (state: TrackingState) => {
-                                    switch (state) {
-                                        case TrackingState.RUNNING:
-                                            return [
-                                                {
-                                                    state: TrackingState.PAUSED,
-                                                    icon: "⏸️",
-                                                    label: "Pause",
-                                                    tooltip: "Pause: Stops generating new reminders. Existing reminders remain active."
-                                                },
-                                                {
-                                                    state: TrackingState.ARCHIVED,
-                                                    icon: "📦",
-                                                    label: "Archive",
-                                                    tooltip: "Archive: Moves tracking to archived state and stops all reminder generation. All pending and upcoming reminders will be deleted."
-                                                },
-                                                {
-                                                    state: TrackingState.DELETED,
-                                                    icon: "🗑️",
-                                                    label: "Delete",
-                                                    tooltip: "Delete: Permanently removes this tracking and all its reminders. This action cannot be undone."
-                                                },
-                                            ];
-                                        case TrackingState.PAUSED:
-                                            return [
-                                                {
-                                                    state: TrackingState.RUNNING,
-                                                    icon: "▶️",
-                                                    label: "Resume",
-                                                    tooltip: "Resume: Restarts reminder generation according to the tracking schedule."
-                                                },
-                                                {
-                                                    state: TrackingState.ARCHIVED,
-                                                    icon: "📦",
-                                                    label: "Archive",
-                                                    tooltip: "Archive: Moves tracking to archived state and stops all reminder generation. All pending and upcoming reminders will be deleted."
-                                                },
-                                                {
-                                                    state: TrackingState.DELETED,
-                                                    icon: "🗑️",
-                                                    label: "Delete",
-                                                    tooltip: "Delete: Permanently removes this tracking and all its reminders. This action cannot be undone."
-                                                },
-                                            ];
-                                        case TrackingState.ARCHIVED:
-                                            return [
-                                                {
-                                                    state: TrackingState.RUNNING,
-                                                    icon: "▶️",
-                                                    label: "Resume",
-                                                    tooltip: "Resume: Restarts reminder generation according to the tracking schedule."
-                                                },
-                                                {
-                                                    state: TrackingState.DELETED,
-                                                    icon: "🗑️",
-                                                    label: "Delete",
-                                                    tooltip: "Delete: Permanently removes this tracking and all its reminders. This action cannot be undone."
-                                                },
-                                            ];
-                                        default:
-                                            return [];
-                                    }
-                                };
-
-                                const availableActions = getActionsForState(currentState);
-
-                                return (
-                                    <tr key={tracking.id} className="tracking-row">
-                                        <td className="cell-tracking">
-                                            {tracking.icon && (
-                                                <span className="tracking-icon">
-                                                    {tracking.icon}
-                                                </span>
-                                            )}
-                                            <button
-                                                type="button"
-                                                className="tracking-name-link"
-                                                onClick={() => onEdit(tracking)}
-                                                aria-label={`Edit tracking: ${tracking.question}`}
-                                                title={`${tracking.question}. Click to edit`}
-                                            >
-                                                {TrackingFormatter.truncateText(tracking.question, 50)}
-                                            </button>
-                                        </td>
-                                        <td
-                                            className="cell-times"
-                                            title={!tracking.schedules || tracking.schedules.length === 0 || tracking.schedules.length > 1 ? TrackingFormatter.formatAllTimes(tracking.schedules) : undefined}
+                                        {TrackingFormatter.formatFrequency(tracking.days)}
+                                    </td>
+                                    <td className="cell-next-reminder">
+                                        {TrackingFormatter.formatNextReminderTimeDisplay(getNextReminderTime(tracking.id))}
+                                    </td>
+                                    <td className="cell-status">
+                                        <span className={`status-badge ${stateColorClass}`}>
+                                            {stateLabel}
+                                        </span>
+                                    </td>
+                                    <td className="cell-actions">
+                                        <div
+                                            className="actions-container"
+                                            ref={(el) => {
+                                                actionRefs.current[tracking.id] = el;
+                                            }}
                                         >
-                                            {TrackingFormatter.formatTimesDisplay(tracking.schedules)}
-                                        </td>
-                                        <td
-                                            className="cell-frequency"
-                                            title={getNextReminderTime(tracking.id) ? undefined : "No upcoming reminder"}
-                                        >
-                                            {TrackingFormatter.formatFrequency(tracking.days)}
-                                        </td>
-                                        <td className="cell-next-reminder">
-                                            {TrackingFormatter.formatNextReminderTimeDisplay(getNextReminderTime(tracking.id))}
-                                        </td>
-                                        <td className="cell-status">
-                                            <span className={`status-badge ${stateColorClass}`}>
-                                                {stateLabel}
-                                            </span>
-                                        </td>
-                                        <td className="cell-actions">
-                                            <div
-                                                className="actions-container"
-                                                ref={(el) => {
-                                                    actionRefs.current[tracking.id] = el;
-                                                }}
-                                            >
-                                                <div className="actions-buttons">
-                                                    {availableActions.map((action) => (
-                                                        <button
-                                                            key={action.state}
-                                                            type="button"
-                                                            className="action-button"
-                                                            onClick={() => handleActionClick(tracking.id, action.state)}
-                                                            title={action.tooltip}
-                                                            aria-label={action.label}
-                                                        >
-                                                            {action.icon}
-                                                        </button>
-                                                    ))}
-                                                </div>
+                                            <div className="actions-buttons">
+                                                {availableActions.map((action) => (
+                                                    <button
+                                                        key={action.state}
+                                                        type="button"
+                                                        className="action-button"
+                                                        onClick={() => handleActionClick(tracking.id, action.state)}
+                                                        title={action.tooltip}
+                                                        aria-label={action.label}
+                                                    >
+                                                        {action.icon}
+                                                    </button>
+                                                ))}
                                             </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-                {trackingToDelete && (
-                    <DeleteTrackingConfirmationModal
-                        tracking={trackingToDelete}
-                        onClose={() => setTrackingToDelete(null)}
-                        onConfirm={handleConfirmDelete}
-                    />
-                )}
+                                        </div>
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
             </div>
-            );
+            {trackingToDelete && (
+                <DeleteTrackingConfirmationModal
+                    tracking={trackingToDelete}
+                    onClose={() => setTrackingToDelete(null)}
+                    onConfirm={handleConfirmDelete}
+                />
+            )}
+        </div>
+    );
 }
 
-            // Default export for compatibility
-            export default TrackingsList;
+// Default export for compatibility
+export default TrackingsList;
 
