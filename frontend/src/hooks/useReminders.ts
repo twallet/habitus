@@ -6,12 +6,7 @@ import {
   ReminderValue,
 } from "../models/Reminder";
 import { ApiClient } from "../config/api";
-
-/**
- * Authentication token storage key.
- * @private
- */
-const TOKEN_KEY = "habitus_token";
+import { tokenManager } from "./base/TokenManager.js";
 
 /**
  * Custom hook for managing reminders with API persistence.
@@ -24,30 +19,25 @@ export function useReminders() {
   const [isLoading, setIsLoading] = useState(false);
   const [apiClient] = useState(() => {
     const client = new ApiClient();
-    // Set token from localStorage if available
-    const token = localStorage.getItem(TOKEN_KEY);
+    // Set token from tokenManager if available
+    const token = tokenManager.getToken();
     if (token) {
       client.setToken(token);
     }
     return client;
   });
-  // Track token to detect authentication state changes
-  const [currentToken, setCurrentToken] = useState<string | null>(() =>
-    localStorage.getItem(TOKEN_KEY)
-  );
 
   /**
    * Load reminders from API.
    * @internal
    */
   const fetchReminders = useCallback(async () => {
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = tokenManager.getToken();
     if (!token) {
       console.warn(
         `[${new Date().toISOString()}] FRONTEND_REMINDERS | No auth token found, clearing reminders`
       );
       setReminders([]);
-      setCurrentToken(null);
       return;
     }
 
@@ -67,14 +57,12 @@ export function useReminders() {
         } reminders from API`
       );
       setReminders(loadedReminders);
-      setCurrentToken(token);
     } catch (error) {
       console.error(
         `[${new Date().toISOString()}] FRONTEND_REMINDERS | Error loading reminders:`,
         error
       );
       setReminders([]);
-      setCurrentToken(null);
     } finally {
       setIsLoading(false);
     }
@@ -89,35 +77,25 @@ export function useReminders() {
   }, [fetchReminders]);
 
   /**
-   * Watch for token changes in localStorage (login/logout).
-   * Polls localStorage to detect changes in the same tab.
+   * Watch for token changes using TokenManager.
    * @internal
    */
   useEffect(() => {
-    const checkTokenChange = () => {
-      const token = localStorage.getItem(TOKEN_KEY);
-      if (token !== currentToken) {
-        // Token changed, reload reminders
-        fetchReminders();
-      }
-    };
+    // Poll for token changes (handles same-tab login/logout)
+    const stopPolling = tokenManager.startPolling(() => {
+      fetchReminders();
+    });
 
-    // Check for token changes periodically (handles same-tab login/logout)
-    const interval = setInterval(checkTokenChange, 500);
-
-    // Also listen for storage events (handles cross-tab changes)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === TOKEN_KEY) {
-        fetchReminders();
-      }
-    };
-    window.addEventListener("storage", handleStorageChange);
+    // Listen for storage events (handles cross-tab changes)
+    const unsubscribe = tokenManager.onTokenChange(() => {
+      fetchReminders();
+    });
 
     return () => {
-      clearInterval(interval);
-      window.removeEventListener("storage", handleStorageChange);
+      stopPolling();
+      unsubscribe();
     };
-  }, [currentToken, fetchReminders]);
+  }, [fetchReminders]);
 
   /**
    * Automatically refresh reminders periodically to detect when scheduled times are reached.
@@ -126,7 +104,7 @@ export function useReminders() {
    * @internal
    */
   useEffect(() => {
-    if (!currentToken) {
+    if (!tokenManager.hasToken()) {
       // Don't poll if not authenticated
       return;
     }
@@ -139,9 +117,9 @@ export function useReminders() {
         return;
       }
 
-      const token = localStorage.getItem(TOKEN_KEY);
-      if (!token || token !== currentToken) {
-        // Token changed or removed, stop polling
+      const token = tokenManager.getToken();
+      if (!token) {
+        // Token removed, stop polling
         return;
       }
       // Refresh reminders to get any that have reached their scheduled time
@@ -184,7 +162,7 @@ export function useReminders() {
       stopPolling();
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [currentToken, fetchReminders]);
+  }, [fetchReminders]);
 
   /**
    * Update a reminder via API.
@@ -200,7 +178,7 @@ export function useReminders() {
     notes?: string,
     status?: ReminderStatus
   ): Promise<ReminderData> => {
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = tokenManager.getToken();
     if (!token) {
       throw new Error("Not authenticated");
     }
@@ -266,7 +244,7 @@ export function useReminders() {
   const completeReminder = async (
     reminderId: number
   ): Promise<ReminderData> => {
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = tokenManager.getToken();
     if (!token) {
       throw new Error("Not authenticated");
     }
@@ -327,7 +305,7 @@ export function useReminders() {
    * @public
    */
   const dismissReminder = async (reminderId: number): Promise<ReminderData> => {
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = tokenManager.getToken();
     if (!token) {
       throw new Error("Not authenticated");
     }
@@ -392,7 +370,7 @@ export function useReminders() {
     reminderId: number,
     minutes: number
   ): Promise<ReminderData> => {
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = tokenManager.getToken();
     if (!token) {
       throw new Error("Not authenticated");
     }
@@ -445,7 +423,7 @@ export function useReminders() {
    * @public
    */
   const deleteReminder = async (reminderId: number): Promise<void> => {
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = tokenManager.getToken();
     if (!token) {
       throw new Error("Not authenticated");
     }

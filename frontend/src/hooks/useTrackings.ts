@@ -1,12 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { TrackingData, TrackingState, DaysPattern } from "../models/Tracking";
 import { ApiClient } from "../config/api";
-
-/**
- * Authentication token storage key.
- * @private
- */
-const TOKEN_KEY = "habitus_token";
+import { tokenManager } from "./base/TokenManager.js";
 
 /**
  * Custom hook for managing trackings with API persistence.
@@ -19,30 +14,25 @@ export function useTrackings() {
   const [isLoading, setIsLoading] = useState(false);
   const [apiClient] = useState(() => {
     const client = new ApiClient();
-    // Set token from localStorage if available
-    const token = localStorage.getItem(TOKEN_KEY);
+    // Set token from tokenManager if available
+    const token = tokenManager.getToken();
     if (token) {
       client.setToken(token);
     }
     return client;
   });
-  // Track token to detect authentication state changes
-  const [currentToken, setCurrentToken] = useState<string | null>(() =>
-    localStorage.getItem(TOKEN_KEY)
-  );
 
   /**
    * Load trackings from API.
    * @internal
    */
   const loadTrackings = useCallback(async () => {
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = tokenManager.getToken();
     if (!token) {
       console.warn(
         `[${new Date().toISOString()}] FRONTEND_TRACKINGS | No auth token found, clearing trackings`
       );
       setTrackings([]);
-      setCurrentToken(null);
       return;
     }
 
@@ -62,21 +52,19 @@ export function useTrackings() {
         } trackings from API`
       );
       setTrackings(loadedTrackings);
-      setCurrentToken(token);
     } catch (error) {
       console.error(
         `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Error loading trackings:`,
         error
       );
       setTrackings([]);
-      setCurrentToken(null);
     } finally {
       setIsLoading(false);
     }
   }, [apiClient]);
 
   /**
-   * Load trackings on mount and when token changes.
+   * Load trackings on mount.
    * @internal
    */
   useEffect(() => {
@@ -84,35 +72,25 @@ export function useTrackings() {
   }, [loadTrackings]);
 
   /**
-   * Watch for token changes in localStorage (login/logout).
-   * Polls localStorage to detect changes in the same tab.
+   * Watch for token changes using TokenManager.
    * @internal
    */
   useEffect(() => {
-    const checkTokenChange = () => {
-      const token = localStorage.getItem(TOKEN_KEY);
-      if (token !== currentToken) {
-        // Token changed, reload trackings
-        loadTrackings();
-      }
-    };
+    // Poll for token changes (handles same-tab login/logout)
+    const stopPolling = tokenManager.startPolling(() => {
+      loadTrackings();
+    });
 
-    // Check for token changes periodically (handles same-tab login/logout)
-    const interval = setInterval(checkTokenChange, 500);
-
-    // Also listen for storage events (handles cross-tab changes)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === TOKEN_KEY) {
-        loadTrackings();
-      }
-    };
-    window.addEventListener("storage", handleStorageChange);
+    // Listen for storage events (handles cross-tab changes)
+    const unsubscribe = tokenManager.onTokenChange(() => {
+      loadTrackings();
+    });
 
     return () => {
-      clearInterval(interval);
-      window.removeEventListener("storage", handleStorageChange);
+      stopPolling();
+      unsubscribe();
     };
-  }, [currentToken, loadTrackings]);
+  }, [loadTrackings]);
 
   /**
    * Create a new tracking via API.
@@ -133,7 +111,7 @@ export function useTrackings() {
     schedules: Array<{ hour: number; minutes: number }>,
     days: DaysPattern
   ): Promise<TrackingData> => {
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = tokenManager.getToken();
     if (!token) {
       throw new Error("Not authenticated");
     }
@@ -190,7 +168,7 @@ export function useTrackings() {
     icon?: string,
     schedules?: Array<{ hour: number; minutes: number }>
   ): Promise<TrackingData> => {
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = tokenManager.getToken();
     if (!token) {
       throw new Error("Not authenticated");
     }
@@ -241,7 +219,7 @@ export function useTrackings() {
     trackingId: number,
     state: TrackingState
   ): Promise<TrackingData> => {
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = tokenManager.getToken();
     if (!token) {
       throw new Error("Not authenticated");
     }
@@ -283,7 +261,7 @@ export function useTrackings() {
    * @public
    */
   const deleteTracking = async (trackingId: number): Promise<void> => {
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = tokenManager.getToken();
     if (!token) {
       throw new Error("Not authenticated");
     }

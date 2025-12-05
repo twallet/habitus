@@ -7,14 +7,16 @@ import {
 } from "../models/Tracking.js";
 import { TrackingSchedule } from "../models/TrackingSchedule.js";
 import { ReminderService } from "./reminderService.js";
+import { BaseEntityService } from "./base/BaseEntityService.js";
+import { TrackingLifecycleManager } from "./lifecycle/TrackingLifecycleManager.js";
 
 /**
  * Service for tracking-related database operations.
  * @public
  */
-export class TrackingService {
-  private db: Database;
+export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
   private reminderService: ReminderService;
+  private lifecycleManager: TrackingLifecycleManager;
 
   /**
    * Create a new TrackingService instance.
@@ -22,34 +24,71 @@ export class TrackingService {
    * @public
    */
   constructor(db: Database) {
-    this.db = db;
+    super(db);
     this.reminderService = new ReminderService(db);
+    this.lifecycleManager = new TrackingLifecycleManager(
+      db,
+      this.reminderService
+    );
+  }
+
+  /**
+   * Load entity model by ID.
+   * @param id - The tracking ID
+   * @param userId - The user ID (for authorization)
+   * @returns Promise resolving to tracking model or null if not found
+   * @protected
+   */
+  protected async loadModelById(
+    id: number,
+    userId: number
+  ): Promise<Tracking | null> {
+    return await Tracking.loadById(id, userId, this.db);
+  }
+
+  /**
+   * Load all entity models for a user.
+   * @param userId - The user ID
+   * @returns Promise resolving to array of tracking models
+   * @protected
+   */
+  protected async loadModelsByUserId(userId: number): Promise<Tracking[]> {
+    return await Tracking.loadByUserId(userId, this.db);
+  }
+
+  /**
+   * Convert entity model to data object.
+   * @param model - The tracking model instance
+   * @returns Tracking data object
+   * @protected
+   */
+  protected toData(model: Tracking): TrackingData {
+    return model.toData();
+  }
+
+  /**
+   * Get entity name for logging purposes.
+   * @returns Entity name
+   * @protected
+   */
+  protected getEntityName(): string {
+    return "TRACKING";
   }
 
   /**
    * Get all trackings for a user.
+   * Delegates to base class getAllByUserId method.
    * @param userId - The user ID
    * @returns Promise resolving to array of tracking data
    * @public
    */
   async getTrackingsByUserId(userId: number): Promise<TrackingData[]> {
-    console.log(
-      `[${new Date().toISOString()}] TRACKING | Fetching trackings for userId: ${userId}`
-    );
-
-    const trackings = await Tracking.loadByUserId(userId, this.db);
-
-    console.log(
-      `[${new Date().toISOString()}] TRACKING | Retrieved ${
-        trackings.length
-      } trackings for userId: ${userId}`
-    );
-
-    return trackings.map((tracking) => tracking.toData());
+    return this.getAllByUserId(userId);
   }
 
   /**
    * Get a tracking by ID.
+   * Delegates to base class getById method.
    * @param trackingId - The tracking ID
    * @param userId - The user ID (for authorization)
    * @returns Promise resolving to tracking data or null if not found
@@ -59,26 +98,7 @@ export class TrackingService {
     trackingId: number,
     userId: number
   ): Promise<TrackingData | null> {
-    console.log(
-      `[${new Date().toISOString()}] TRACKING | Fetching tracking by ID: ${trackingId} for userId: ${userId}`
-    );
-
-    const tracking = await Tracking.loadById(trackingId, userId, this.db);
-
-    if (!tracking) {
-      console.log(
-        `[${new Date().toISOString()}] TRACKING | Tracking not found for ID: ${trackingId} and userId: ${userId}`
-      );
-      return null;
-    }
-
-    console.log(
-      `[${new Date().toISOString()}] TRACKING | Tracking found: ID ${
-        tracking.id
-      }, question: ${tracking.question}`
-    );
-
-    return tracking.toData();
+    return this.getById(trackingId, userId);
   }
 
   /**
@@ -164,21 +184,8 @@ export class TrackingService {
       }`
     );
 
-    // Create initial reminder for the tracking
-    try {
-      await this.reminderService.createNextReminderForTracking(
-        tracking.id,
-        validatedUserId
-      );
-    } catch (error) {
-      // Log error but don't fail tracking creation if reminder creation fails
-      console.error(
-        `[${new Date().toISOString()}] TRACKING | Failed to create reminder for tracking ${
-          tracking.id
-        }:`,
-        error
-      );
-    }
+    // Execute onCreate lifecycle hooks (creates initial reminder)
+    await this.lifecycleManager.onCreate(tracking);
 
     return tracking;
   }
@@ -405,84 +412,15 @@ export class TrackingService {
     // Validate new state
     const validatedNewState = Tracking.validateState(newState);
 
-    // Validate state transition
+    // Validate state transition using lifecycle manager
     const currentState = existingTracking.state || TrackingState.RUNNING;
-    Tracking.validateStateTransition(
-      currentState as TrackingState,
-      validatedNewState
-    );
+    await this.lifecycleManager.transition(existingTracking, validatedNewState);
 
     // Update state in database
     await this.db.run(
       "UPDATE trackings SET state = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?",
       [validatedNewState, trackingId, userId]
     );
-
-    // Handle reminder cleanup and creation based on state transition
-    const { Reminder } = await import("../models/Reminder.js");
-    if (validatedNewState === TrackingState.PAUSED) {
-      // When pausing: Delete Upcoming reminders (keep Pending and Answered)
-      const deletedCount = await Reminder.deleteUpcomingByTrackingId(
-        trackingId,
-        userId,
-        this.db
-      );
-
-      if (deletedCount > 0) {
-        console.log(
-          `[${new Date().toISOString()}] TRACKING | Deleted ${deletedCount} Upcoming reminder(s) for paused tracking ${trackingId}`
-        );
-      }
-    } else if (validatedNewState === TrackingState.ARCHIVED) {
-      // When archiving: Delete Upcoming and Pending reminders (keep Answered)
-      const { ReminderStatus } = await import("../models/Reminder.js");
-      const now = new Date().toISOString();
-
-      // Delete all Upcoming reminders
-      const deletedUpcoming = await Reminder.deleteUpcomingByTrackingId(
-        trackingId,
-        userId,
-        this.db
-      );
-
-      // Delete all Pending reminders
-      const result = await this.db.run(
-        `DELETE FROM reminders 
-         WHERE tracking_id = ? 
-         AND user_id = ? 
-         AND status = ?`,
-        [trackingId, userId, ReminderStatus.PENDING]
-      );
-
-      const totalDeleted = deletedUpcoming + result.changes;
-      if (totalDeleted > 0) {
-        console.log(
-          `[${new Date().toISOString()}] TRACKING | Deleted ${totalDeleted} Upcoming/Pending reminder(s) for archived tracking ${trackingId}`
-        );
-      }
-    } else if (
-      validatedNewState === TrackingState.RUNNING &&
-      (currentState === TrackingState.PAUSED ||
-        currentState === TrackingState.ARCHIVED)
-    ) {
-      // When resuming (Paused → Running) or unarchiving (Archived → Running):
-      // Create next reminder (only if time is in future, handled by createNextReminderForTracking)
-      try {
-        await this.reminderService.createNextReminderForTracking(
-          trackingId,
-          userId
-        );
-        console.log(
-          `[${new Date().toISOString()}] TRACKING | Created next reminder for resumed/unarchived tracking ${trackingId}`
-        );
-      } catch (error) {
-        // Log error but don't fail state update if reminder creation fails
-        console.error(
-          `[${new Date().toISOString()}] TRACKING | Failed to create reminder for tracking ${trackingId} after state transition:`,
-          error
-        );
-      }
-    }
 
     // Retrieve updated tracking
     const tracking = await this.getTrackingById(trackingId, userId);
@@ -492,6 +430,13 @@ export class TrackingService {
       );
       throw new Error("Failed to retrieve updated tracking");
     }
+
+    // Execute lifecycle hooks after state change with updated tracking
+    await this.lifecycleManager.afterStateChange(
+      tracking,
+      currentState as TrackingState,
+      validatedNewState
+    );
 
     console.log(
       `[${new Date().toISOString()}] TRACKING | Tracking state updated successfully: ID ${trackingId} to state ${validatedNewState}`

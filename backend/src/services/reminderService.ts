@@ -12,13 +12,15 @@ import {
   DaysPatternType,
 } from "../models/Tracking.js";
 import { TrackingSchedule } from "../models/TrackingSchedule.js";
+import { BaseEntityService } from "./base/BaseEntityService.js";
+import { ReminderLifecycleManager } from "./lifecycle/ReminderLifecycleManager.js";
 
 /**
  * Service for reminder-related database operations.
  * @public
  */
-export class ReminderService {
-  private db: Database;
+export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
+  private lifecycleManager: ReminderLifecycleManager;
 
   /**
    * Create a new ReminderService instance.
@@ -26,21 +28,66 @@ export class ReminderService {
    * @public
    */
   constructor(db: Database) {
-    this.db = db;
+    super(db);
+    this.lifecycleManager = new ReminderLifecycleManager(this);
+  }
+
+  /**
+   * Load entity model by ID.
+   * @param id - The reminder ID
+   * @param userId - The user ID (for authorization)
+   * @returns Promise resolving to reminder model or null if not found
+   * @protected
+   */
+  protected async loadModelById(
+    id: number,
+    userId: number
+  ): Promise<Reminder | null> {
+    return await Reminder.loadById(id, userId, this.db);
+  }
+
+  /**
+   * Load all entity models for a user.
+   * @param userId - The user ID
+   * @returns Promise resolving to array of reminder models
+   * @protected
+   */
+  protected async loadModelsByUserId(userId: number): Promise<Reminder[]> {
+    return await Reminder.loadByUserId(userId, this.db);
+  }
+
+  /**
+   * Convert entity model to data object.
+   * @param model - The reminder model instance
+   * @returns Reminder data object
+   * @protected
+   */
+  protected toData(model: Reminder): ReminderData {
+    return model.toData();
+  }
+
+  /**
+   * Get entity name for logging purposes.
+   * @returns Entity name
+   * @protected
+   */
+  protected getEntityName(): string {
+    return "REMINDER";
   }
 
   /**
    * Get all reminders for a user.
+   * Overrides base method to include custom filtering and cleanup logic.
    * @param userId - The user ID
    * @returns Promise resolving to array of reminder data
    * @public
    */
-  async getRemindersByUserId(userId: number): Promise<ReminderData[]> {
+  async getAllByUserId(userId: number): Promise<ReminderData[]> {
     console.log(
       `[${new Date().toISOString()}] REMINDER | Fetching reminders for userId: ${userId}`
     );
 
-    const reminders = await Reminder.loadByUserId(userId, this.db);
+    const reminders = await this.loadModelsByUserId(userId);
 
     console.log(
       `[${new Date().toISOString()}] REMINDER | Retrieved ${
@@ -71,7 +118,7 @@ export class ReminderService {
     // If we updated expired reminders and created new ones, reload all reminders to include them
     let finalReminders = validReminders;
     if (hadExpiredReminders) {
-      const reloadedReminders = await Reminder.loadByUserId(userId, this.db);
+      const reloadedReminders = await this.loadModelsByUserId(userId);
       const reloadedValidReminders = await this.filterOrphanedReminders(
         reloadedReminders
       );
@@ -91,11 +138,23 @@ export class ReminderService {
       } valid reminders for userId: ${userId} (frontend will filter for display)`
     );
 
-    return finalReminders.map((reminder) => reminder.toData());
+    return finalReminders.map((reminder) => this.toData(reminder));
+  }
+
+  /**
+   * Get all reminders for a user.
+   * Delegates to base class getAllByUserId method.
+   * @param userId - The user ID
+   * @returns Promise resolving to array of reminder data
+   * @public
+   */
+  async getRemindersByUserId(userId: number): Promise<ReminderData[]> {
+    return this.getAllByUserId(userId);
   }
 
   /**
    * Get a reminder by ID.
+   * Delegates to base class getById method with custom expired reminder handling.
    * @param reminderId - The reminder ID
    * @param userId - The user ID (for authorization)
    * @returns Promise resolving to reminder data or null if not found
@@ -109,7 +168,7 @@ export class ReminderService {
       `[${new Date().toISOString()}] REMINDER | Fetching reminder by ID: ${reminderId} for userId: ${userId}`
     );
 
-    const reminder = await Reminder.loadById(reminderId, userId, this.db);
+    const reminder = await this.loadModelById(reminderId, userId);
 
     if (!reminder) {
       console.log(
@@ -127,7 +186,7 @@ export class ReminderService {
       }`
     );
 
-    return reminder.toData();
+    return this.toData(reminder);
   }
 
   /**
@@ -203,27 +262,27 @@ export class ReminderService {
       throw new Error("Reminder not found");
     }
 
-    const trackingId = existingReminder.tracking_id;
-    const isBeingAnswered =
-      updates.status === ReminderStatus.ANSWERED &&
-      existingReminder.status !== ReminderStatus.ANSWERED;
+    const existingStatus = existingReminder.status;
+    const newStatus =
+      updates.status !== undefined ? updates.status : existingStatus;
+
+    // Validate status transition if status is being changed
+    if (newStatus !== existingStatus) {
+      await this.lifecycleManager.transition(
+        existingReminder.toData(),
+        newStatus
+      );
+    }
 
     const updatedReminder = await existingReminder.update(updates, this.db);
 
-    // If reminder was answered, create new Upcoming reminder
-    if (isBeingAnswered) {
-      try {
-        await this.createNextReminderForTracking(trackingId, userId);
-        console.log(
-          `[${new Date().toISOString()}] REMINDER | Created new Upcoming reminder after answering reminder ID ${reminderId}`
-        );
-      } catch (error) {
-        // Log error but don't fail reminder update if next reminder creation fails
-        console.error(
-          `[${new Date().toISOString()}] REMINDER | Failed to create next reminder after answering reminder ID ${reminderId}:`,
-          error
-        );
-      }
+    // Execute lifecycle hooks after status change if status changed
+    if (newStatus !== existingStatus) {
+      await this.lifecycleManager.afterStateChange(
+        updatedReminder,
+        existingStatus,
+        newStatus
+      );
     }
 
     console.log(
@@ -262,9 +321,15 @@ export class ReminderService {
       throw new Error("Reminder not found");
     }
 
-    const trackingId = existingReminder.tracking_id;
-    const isBeingCompleted =
-      existingReminder.status !== ReminderStatus.ANSWERED;
+    const existingStatus = existingReminder.status;
+
+    // Validate status transition
+    if (existingStatus !== ReminderStatus.ANSWERED) {
+      await this.lifecycleManager.transition(
+        existingReminder.toData(),
+        ReminderStatus.ANSWERED
+      );
+    }
 
     const updatedReminder = await existingReminder.update(
       {
@@ -274,20 +339,13 @@ export class ReminderService {
       this.db
     );
 
-    // If reminder was completed (answered), create new Upcoming reminder
-    if (isBeingCompleted) {
-      try {
-        await this.createNextReminderForTracking(trackingId, userId);
-        console.log(
-          `[${new Date().toISOString()}] REMINDER | Created new Upcoming reminder after completing reminder ID ${reminderId}`
-        );
-      } catch (error) {
-        // Log error but don't fail reminder update if next reminder creation fails
-        console.error(
-          `[${new Date().toISOString()}] REMINDER | Failed to create next reminder after completing reminder ID ${reminderId}:`,
-          error
-        );
-      }
+    // Execute lifecycle hooks after status change
+    if (existingStatus !== ReminderStatus.ANSWERED) {
+      await this.lifecycleManager.afterStateChange(
+        updatedReminder,
+        existingStatus,
+        ReminderStatus.ANSWERED
+      );
     }
 
     console.log(
@@ -324,6 +382,15 @@ export class ReminderService {
 
     const trackingId = reminder.tracking_id;
     const dismissedTime = reminder.scheduled_time;
+    const existingStatus = reminder.status;
+
+    // Validate status transition
+    if (existingStatus !== ReminderStatus.ANSWERED) {
+      await this.lifecycleManager.transition(
+        reminder.toData(),
+        ReminderStatus.ANSWERED
+      );
+    }
 
     // Update reminder to ANSWERED with DISMISSED value
     const updatedReminder = await reminder.update(
@@ -333,6 +400,10 @@ export class ReminderService {
       },
       this.db
     );
+
+    // Note: We don't call lifecycle hook here because dismissReminder has custom logic
+    // below for updating existing upcoming reminders, which is more optimized than
+    // creating a new one. The lifecycle validation above ensures the transition is valid.
 
     // Create new upcoming reminder (same logic as deleteReminder)
     try {
