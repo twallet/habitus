@@ -198,7 +198,7 @@ describe("RemindersList", () => {
         });
     });
 
-    it("should show skip confirmation when Skip is clicked", async () => {
+    it("should dismiss reminder when Dismiss is clicked", async () => {
         const reminders: ReminderData[] = [
             {
                 id: 1,
@@ -224,12 +224,12 @@ describe("RemindersList", () => {
 
         render(<RemindersList />);
 
-        // Click the Skip action button directly
-        const skipButton = screen.getByRole("button", { name: "Skip reminder" });
-        await userEvent.click(skipButton);
+        // Click the Dismiss action button directly
+        const dismissButton = screen.getByRole("button", { name: "Dismiss reminder" });
+        await userEvent.click(dismissButton);
 
         await waitFor(() => {
-            expect(screen.getByText("Skip reminder")).toBeInTheDocument();
+            expect(mockDeleteReminder).toHaveBeenCalledWith(1);
         });
     });
 
@@ -953,20 +953,12 @@ describe("RemindersList", () => {
 
         render(<RemindersList />);
 
-        // Click the Skip action button directly
-        const skipButton = screen.getByRole("button", { name: "Skip reminder" });
-        await userEvent.click(skipButton);
+        // Click the Dismiss action button directly
+        const dismissButton = screen.getByRole("button", { name: "Dismiss reminder" });
+        await userEvent.click(dismissButton);
 
         await waitFor(() => {
-            expect(screen.getByText("Skip reminder")).toBeInTheDocument();
-        });
-
-        // Confirm skip - find the button in the modal (not the action button)
-        const confirmButton = screen.getByRole("button", { name: "Skip" });
-        await userEvent.click(confirmButton);
-
-        await waitFor(() => {
-            expect(errorDeleteReminder).toHaveBeenCalled();
+            expect(errorDeleteReminder).toHaveBeenCalledWith(1);
         });
 
         consoleErrorSpy.mockRestore();
@@ -1034,7 +1026,7 @@ describe("RemindersList", () => {
         expect(screen.getByText("Unknown tracking")).toBeInTheDocument();
     });
 
-    it("should close delete confirmation modal when Cancel is clicked", async () => {
+    it("should call deleteReminder when Dismiss is clicked", async () => {
         const reminders: ReminderData[] = [
             {
                 id: 1,
@@ -1060,20 +1052,12 @@ describe("RemindersList", () => {
 
         render(<RemindersList />);
 
-        // Click the Skip action button directly
-        const skipButton = screen.getByRole("button", { name: "Skip reminder" });
-        await userEvent.click(skipButton);
+        // Click the Dismiss action button directly
+        const dismissButton = screen.getByRole("button", { name: "Dismiss reminder" });
+        await userEvent.click(dismissButton);
 
         await waitFor(() => {
-            expect(screen.getByText("Skip reminder")).toBeInTheDocument();
-        });
-
-        // Click Cancel
-        const cancelButton = screen.getByRole("button", { name: /cancel/i });
-        await userEvent.click(cancelButton);
-
-        await waitFor(() => {
-            expect(screen.queryByText("Skip reminder")).not.toBeInTheDocument();
+            expect(mockDeleteReminder).toHaveBeenCalledWith(1);
         });
     });
 

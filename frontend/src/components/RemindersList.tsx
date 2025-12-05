@@ -379,7 +379,7 @@ export function RemindersList({
     }, [trackings]);
 
     /**
-     * Get the next reminder time for a tracking after skipping the current one.
+     * Get the next reminder time for a tracking after dismissing the current one.
      * @param trackingId - Tracking ID
      * @returns Next reminder scheduled time (ISO string) or null if not found
      * @internal
