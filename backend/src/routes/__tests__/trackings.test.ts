@@ -778,7 +778,6 @@ describe("Trackings Routes", () => {
       expect(response.body.log).toContain("TRACKING #1");
       expect(response.body.log).toContain(`ID=${trackingId}`);
       expect(response.body.log).toContain("Question=Test Question");
-      expect(response.body.log).toContain("Type=true_false");
       expect(response.body.log).toContain("Icon=🏃");
       expect(response.body.log).toContain("Days=1111111");
       expect(response.body.log).toContain("Notes=Test notes");
@@ -823,7 +822,7 @@ describe("Trackings Routes", () => {
       expect(response.body.log).toContain(`ID=${reminderId}`);
       expect(response.body.log).toContain(`TrackingID=${trackingId}`);
       expect(response.body.log).toContain(`UserID=${testUserId}`);
-      expect(response.body.log).toContain("Answer=Yes");
+      expect(response.body.log).toContain("Answer=Completed");
       expect(response.body.log).toContain("Notes=Reminder notes");
       expect(response.body.log).toContain("Status=Answered");
     });

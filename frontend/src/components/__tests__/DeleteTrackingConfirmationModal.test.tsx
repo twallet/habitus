@@ -3,7 +3,7 @@ import { vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DeleteTrackingConfirmationModal } from '../DeleteTrackingConfirmationModal';
-import { TrackingData, TrackingType } from '../../models/Tracking';
+import { TrackingData } from '../../models/Tracking';
 
 describe('DeleteTrackingConfirmationModal', () => {
     const mockOnClose = vi.fn();
@@ -12,7 +12,6 @@ describe('DeleteTrackingConfirmationModal', () => {
         id: 1,
         user_id: 1,
         question: 'Did I exercise today?',
-        type: TrackingType.TRUE_FALSE,
     };
 
     beforeEach(() => {

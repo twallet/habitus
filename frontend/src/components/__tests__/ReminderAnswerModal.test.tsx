@@ -4,7 +4,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ReminderAnswerModal } from "../ReminderAnswerModal";
 import { ReminderData, ReminderStatus } from "../../models/Reminder";
-import { TrackingData, TrackingType } from "../../models/Tracking";
+import { TrackingData } from "../../models/Tracking";
 
 describe("ReminderAnswerModal", () => {
     const mockOnClose = vi.fn();
@@ -22,7 +22,6 @@ describe("ReminderAnswerModal", () => {
         id: 1,
         user_id: 1,
         question: "Did I exercise?",
-        type: TrackingType.TRUE_FALSE,
         icon: "💪",
     };
 
@@ -65,7 +64,6 @@ describe("ReminderAnswerModal", () => {
     it("should show text field for register type", () => {
         const registerTracking: TrackingData = {
             ...mockTracking,
-            type: TrackingType.REGISTER,
         };
 
         render(

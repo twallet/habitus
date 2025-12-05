@@ -4,7 +4,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RemindersList } from "../RemindersList";
 import { ReminderData, ReminderStatus } from "../../models/Reminder";
-import { TrackingData, TrackingType } from "../../models/Tracking";
+import { TrackingData } from "../../models/Tracking";
 import * as useRemindersModule from "../../hooks/useReminders";
 import * as useTrackingsModule from "../../hooks/useTrackings";
 
@@ -27,7 +27,6 @@ describe("RemindersList", () => {
         id: 1,
         user_id: 1,
         question: "Did I exercise?",
-        type: TrackingType.TRUE_FALSE,
         icon: "💪",
     };
 
@@ -283,7 +282,6 @@ describe("RemindersList", () => {
             id: 2,
             user_id: 1,
             question: "Did I meditate?",
-            type: TrackingType.TRUE_FALSE,
         };
 
         const reminders: ReminderData[] = [
@@ -568,7 +566,6 @@ describe("RemindersList", () => {
             id: 2,
             user_id: 1,
             question: "Did I meditate?",
-            type: TrackingType.TRUE_FALSE,
         };
 
         const reminders: ReminderData[] = [

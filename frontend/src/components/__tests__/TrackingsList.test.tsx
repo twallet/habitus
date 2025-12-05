@@ -3,7 +3,7 @@ import { vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { TrackingsList } from "../TrackingsList";
-import { TrackingData, TrackingType, DaysPatternType, TrackingState } from "../../models/Tracking";
+import { TrackingData, DaysPatternType, TrackingState } from "../../models/Tracking";
 import { ReminderData, ReminderStatus } from "../../models/Reminder";
 import * as useTrackingsModule from "../../hooks/useTrackings";
 import * as useRemindersModule from "../../hooks/useReminders";
@@ -26,7 +26,6 @@ describe("TrackingsList", () => {
         id: 1,
         user_id: 1,
         question: "Test question",
-        type: TrackingType.TRUE_FALSE,
     });
 
     beforeEach(() => {
@@ -77,13 +76,11 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise today?",
-                type: TrackingType.TRUE_FALSE,
             },
             {
                 id: 2,
                 user_id: 1,
                 question: "Did I meditate?",
-                type: TrackingType.REGISTER,
             },
         ];
 
@@ -106,7 +103,6 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                type: TrackingType.TRUE_FALSE,
             },
         ];
 
@@ -131,7 +127,6 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                type: TrackingType.TRUE_FALSE,
                 icon: "💪",
             },
         ];
@@ -156,7 +151,6 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                type: TrackingType.TRUE_FALSE,
             },
         ];
 
@@ -179,7 +173,6 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                type: TrackingType.TRUE_FALSE,
                 schedules: [
                     { id: 1, tracking_id: 1, hour: 9, minutes: 0 },
                 ],
@@ -202,7 +195,6 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                type: TrackingType.TRUE_FALSE,
                 schedules: [
                     { id: 1, tracking_id: 1, hour: 9, minutes: 0 },
                     { id: 2, tracking_id: 1, hour: 14, minutes: 30 },
@@ -227,7 +219,6 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                type: TrackingType.TRUE_FALSE,
                 schedules: [
                     { id: 1, tracking_id: 1, hour: 9, minutes: 0 },
                     { id: 2, tracking_id: 1, hour: 14, minutes: 30 },
@@ -253,7 +244,6 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: longQuestion,
-                type: TrackingType.TRUE_FALSE,
             },
         ];
 
@@ -275,7 +265,6 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: longQuestion,
-                type: TrackingType.TRUE_FALSE,
                 icon: "💪",
             },
         ];
@@ -301,7 +290,6 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: longQuestion,
-                type: TrackingType.TRUE_FALSE,
             },
         ];
 
@@ -322,7 +310,6 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                type: TrackingType.TRUE_FALSE,
                 days: {
                     pattern_type: DaysPatternType.INTERVAL,
                     interval_value: 1,
@@ -347,7 +334,6 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                type: TrackingType.TRUE_FALSE,
                 days: {
                     pattern_type: DaysPatternType.DAY_OF_WEEK,
                     days: [1, 3, 5], // Monday, Wednesday, Friday
@@ -371,7 +357,6 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                type: TrackingType.TRUE_FALSE,
                 days: {
                     pattern_type: DaysPatternType.DAY_OF_MONTH,
                     type: "day_number",
@@ -396,7 +381,6 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                type: TrackingType.TRUE_FALSE,
                 days: {
                     pattern_type: DaysPatternType.DAY_OF_YEAR,
                     type: "date",
@@ -422,7 +406,6 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                type: TrackingType.TRUE_FALSE,
             },
         ];
 
@@ -442,7 +425,6 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                type: TrackingType.TRUE_FALSE,
                 days: {
                     pattern_type: DaysPatternType.DAY_OF_WEEK,
                     days: [1, 3, 5],
@@ -473,7 +455,6 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                type: TrackingType.TRUE_FALSE,
             },
         ];
 
@@ -495,7 +476,6 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                type: TrackingType.TRUE_FALSE,
             },
         ];
 
@@ -550,7 +530,6 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise today?",
-                type: TrackingType.REGISTER,
                 icon: "🏋️",
                 notes: "<p>Exercise notes</p>",
                 schedules: [
@@ -587,7 +566,6 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                type: TrackingType.TRUE_FALSE,
             },
         ];
 
@@ -609,7 +587,6 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                type: TrackingType.TRUE_FALSE,
                 days: {
                     pattern_type: DaysPatternType.INTERVAL,
                     interval_value: 2,
@@ -634,7 +611,6 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                type: TrackingType.TRUE_FALSE,
                 days: {
                     pattern_type: DaysPatternType.DAY_OF_MONTH,
                     type: "last_day",
@@ -658,7 +634,6 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                type: TrackingType.TRUE_FALSE,
                 days: {
                     pattern_type: DaysPatternType.DAY_OF_MONTH,
                     type: "weekday_ordinal",
@@ -684,7 +659,6 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                type: TrackingType.TRUE_FALSE,
                 days: {
                     pattern_type: DaysPatternType.DAY_OF_WEEK,
                     days: [0, 1, 2, 3, 4, 5, 6], // All days
@@ -710,7 +684,6 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                type: TrackingType.TRUE_FALSE,
                 state: TrackingState.ARCHIVED,
             },
         ];
@@ -742,7 +715,6 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                type: TrackingType.TRUE_FALSE,
                 state: TrackingState.PAUSED,
             },
         ];
@@ -773,7 +745,6 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                type: TrackingType.TRUE_FALSE,
                 state: TrackingState.ARCHIVED,
             },
         ];
@@ -823,7 +794,6 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                type: TrackingType.TRUE_FALSE,
                 state: TrackingState.ARCHIVED,
             },
         ];
@@ -860,14 +830,12 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                type: TrackingType.TRUE_FALSE,
                 state: TrackingState.RUNNING,
             },
             {
                 id: 2,
                 user_id: 1,
                 question: "Did I meditate?",
-                type: TrackingType.TRUE_FALSE,
                 state: TrackingState.DELETED,
             },
         ];
@@ -931,7 +899,6 @@ describe("TrackingsList", () => {
                     id: 1,
                     user_id: 1,
                     question: "Test question",
-                    type: TrackingType.TRUE_FALSE,
                     state: TrackingState.RUNNING,
                 },
             ];
@@ -958,7 +925,6 @@ describe("TrackingsList", () => {
                     id: 1,
                     user_id: 1,
                     question: "Test question",
-                    type: TrackingType.TRUE_FALSE,
                     state: TrackingState.RUNNING,
                 },
             ];
@@ -987,7 +953,6 @@ describe("TrackingsList", () => {
                     id: 1,
                     user_id: 1,
                     question: "Test question",
-                    type: TrackingType.TRUE_FALSE,
                     state: TrackingState.RUNNING,
                 },
             ];
@@ -1017,7 +982,6 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise today?",
-                type: TrackingType.TRUE_FALSE,
                 state: TrackingState.RUNNING,
                 schedules: [{ id: 1, tracking_id: 1, hour: 8, minutes: 0 }],
                 days: { pattern_type: DaysPatternType.INTERVAL, interval_value: 1, interval_unit: "days" },
@@ -1026,7 +990,6 @@ describe("TrackingsList", () => {
                 id: 2,
                 user_id: 1,
                 question: "Did I meditate?",
-                type: TrackingType.REGISTER,
                 state: TrackingState.PAUSED,
                 schedules: [{ id: 2, tracking_id: 2, hour: 9, minutes: 30 }],
                 days: { pattern_type: DaysPatternType.DAY_OF_WEEK, days: [1, 3, 5] },
@@ -1035,7 +998,6 @@ describe("TrackingsList", () => {
                 id: 3,
                 user_id: 1,
                 question: "Did I read a book?",
-                type: TrackingType.TRUE_FALSE,
                 state: TrackingState.ARCHIVED,
                 schedules: [{ id: 3, tracking_id: 3, hour: 20, minutes: 0 }],
                 days: { pattern_type: DaysPatternType.INTERVAL, interval_value: 1, interval_unit: "days" },
@@ -1208,7 +1170,6 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Zebra question",
-                type: TrackingType.REGISTER,
                 state: TrackingState.ARCHIVED,
                 schedules: [{ id: 1, tracking_id: 1, hour: 10, minutes: 0 }],
             },
@@ -1216,7 +1177,6 @@ describe("TrackingsList", () => {
                 id: 2,
                 user_id: 1,
                 question: "Apple question",
-                type: TrackingType.TRUE_FALSE,
                 state: TrackingState.RUNNING,
                 schedules: [{ id: 2, tracking_id: 2, hour: 8, minutes: 0 }],
             },
@@ -1224,7 +1184,6 @@ describe("TrackingsList", () => {
                 id: 3,
                 user_id: 1,
                 question: "Banana question",
-                type: TrackingType.TRUE_FALSE,
                 state: TrackingState.PAUSED,
                 schedules: [{ id: 3, tracking_id: 3, hour: 9, minutes: 30 }],
             },
@@ -1391,21 +1350,18 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Alpha exercise",
-                type: TrackingType.TRUE_FALSE,
                 state: TrackingState.RUNNING,
             },
             {
                 id: 2,
                 user_id: 1,
                 question: "Beta exercise",
-                type: TrackingType.TRUE_FALSE,
                 state: TrackingState.RUNNING,
             },
             {
                 id: 3,
                 user_id: 1,
                 question: "Gamma meditation",
-                type: TrackingType.REGISTER,
                 state: TrackingState.RUNNING,
             },
         ];
@@ -1455,7 +1411,6 @@ describe("TrackingsList", () => {
                         id: 1,
                         user_id: 1,
                         question: "Did I exercise?",
-                        type: TrackingType.TRUE_FALSE,
                         state: TrackingState.RUNNING,
                     },
                 ];
@@ -1523,7 +1478,6 @@ describe("TrackingsList", () => {
                         id: 1,
                         user_id: 1,
                         question: "Did I exercise?",
-                        type: TrackingType.TRUE_FALSE,
                         state: TrackingState.RUNNING,
                     },
                 ];
@@ -1594,7 +1548,6 @@ describe("TrackingsList", () => {
                         id: 1,
                         user_id: 1,
                         question: "Did I exercise?",
-                        type: TrackingType.TRUE_FALSE,
                         state: TrackingState.RUNNING,
                     },
                 ];
@@ -1675,7 +1628,6 @@ describe("TrackingsList", () => {
                         id: 1,
                         user_id: 1,
                         question: "Did I exercise?",
-                        type: TrackingType.TRUE_FALSE,
                         state: TrackingState.RUNNING,
                     },
                 ];
@@ -1697,7 +1649,6 @@ describe("TrackingsList", () => {
                         id: 1,
                         user_id: 1,
                         question: "Did I exercise?",
-                        type: TrackingType.TRUE_FALSE,
                         state: TrackingState.RUNNING,
                         schedules: [{ id: 1, tracking_id: 1, hour: 9, minutes: 0 }],
                     },
@@ -1721,7 +1672,6 @@ describe("TrackingsList", () => {
                         id: 1,
                         user_id: 1,
                         question: "Did I exercise?",
-                        type: TrackingType.TRUE_FALSE,
                         state: TrackingState.RUNNING,
                         schedules: [{ id: 1, tracking_id: 1, hour: 10, minutes: 30 }],
                         updated_at: new Date().toISOString(),
@@ -1745,7 +1695,6 @@ describe("TrackingsList", () => {
                         id: 1,
                         user_id: 1,
                         question: "Did I exercise?",
-                        type: TrackingType.TRUE_FALSE,
                         state: TrackingState.RUNNING,
                         days: {
                             pattern_type: DaysPatternType.DAY_OF_WEEK,
@@ -1772,7 +1721,6 @@ describe("TrackingsList", () => {
                         id: 1,
                         user_id: 1,
                         question: "Did I exercise?",
-                        type: TrackingType.TRUE_FALSE,
                         state: TrackingState.RUNNING,
                         days: {
                             pattern_type: DaysPatternType.DAY_OF_WEEK,
@@ -1799,7 +1747,6 @@ describe("TrackingsList", () => {
                         id: 1,
                         user_id: 1,
                         question: "Did I exercise?",
-                        type: TrackingType.TRUE_FALSE,
                         state: TrackingState.RUNNING,
                     },
                 ];
@@ -1842,7 +1789,6 @@ describe("TrackingsList", () => {
                         id: 1,
                         user_id: 1,
                         question: "Did I exercise?",
-                        type: TrackingType.TRUE_FALSE,
                         state: TrackingState.PAUSED,
                     },
                 ];
@@ -1865,7 +1811,6 @@ describe("TrackingsList", () => {
                         id: 1,
                         user_id: 1,
                         question: "Did I exercise?",
-                        type: TrackingType.TRUE_FALSE,
                         state: TrackingState.RUNNING,
                     },
                 ];
@@ -1887,7 +1832,6 @@ describe("TrackingsList", () => {
                         id: 1,
                         user_id: 1,
                         question: "Did I exercise?",
-                        type: TrackingType.TRUE_FALSE,
                         state: TrackingState.RUNNING,
                     },
                 ];
@@ -1910,7 +1854,6 @@ describe("TrackingsList", () => {
                         id: 1,
                         user_id: 1,
                         question: "Did I exercise?",
-                        type: TrackingType.TRUE_FALSE,
                         state: TrackingState.PAUSED,
                     },
                 ];
@@ -1932,7 +1875,6 @@ describe("TrackingsList", () => {
                         id: 1,
                         user_id: 1,
                         question: "Did I exercise?",
-                        type: TrackingType.TRUE_FALSE,
                         state: TrackingState.PAUSED,
                     },
                 ];
@@ -1960,7 +1902,6 @@ describe("TrackingsList", () => {
                         id: 1,
                         user_id: 1,
                         question: "Did I exercise?",
-                        type: TrackingType.TRUE_FALSE,
                         state: TrackingState.RUNNING,
                     },
                 ];
@@ -2001,7 +1942,6 @@ describe("TrackingsList", () => {
                         id: 1,
                         user_id: 1,
                         question: "Did I exercise?",
-                        type: TrackingType.TRUE_FALSE,
                         state: TrackingState.ARCHIVED,
                     },
                 ];
@@ -2031,7 +1971,6 @@ describe("TrackingsList", () => {
                         id: 1,
                         user_id: 1,
                         question: "Did I exercise?",
-                        type: TrackingType.TRUE_FALSE,
                         state: TrackingState.RUNNING,
                     },
                 ];
@@ -2081,7 +2020,6 @@ describe("TrackingsList", () => {
                         id: 1,
                         user_id: 1,
                         question: "Did I exercise?",
-                        type: TrackingType.TRUE_FALSE,
                         state: TrackingState.RUNNING,
                     },
                 ];
@@ -2131,7 +2069,6 @@ describe("TrackingsList", () => {
                         id: 1,
                         user_id: 1,
                         question: "Did I exercise?",
-                        type: TrackingType.TRUE_FALSE,
                         state: TrackingState.RUNNING,
                     },
                 ];
@@ -2181,7 +2118,6 @@ describe("TrackingsList", () => {
                         id: 1,
                         user_id: 1,
                         question: "Did I exercise?",
-                        type: TrackingType.TRUE_FALSE,
                         state: TrackingState.RUNNING,
                     },
                 ];
@@ -2219,7 +2155,6 @@ describe("TrackingsList", () => {
                         id: 1,
                         user_id: 1,
                         question: "Did I exercise?",
-                        type: TrackingType.TRUE_FALSE,
                         state: TrackingState.RUNNING,
                     },
                 ];

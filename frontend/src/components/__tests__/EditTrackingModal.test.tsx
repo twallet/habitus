@@ -3,7 +3,7 @@ import { vi } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { EditTrackingModal } from '../EditTrackingModal';
-import { TrackingData, TrackingType, DaysPatternType } from '../../models/Tracking';
+import { TrackingData, DaysPatternType } from '../../models/Tracking';
 
 describe('EditTrackingModal', () => {
   const defaultDaysPattern = {
@@ -15,7 +15,6 @@ describe('EditTrackingModal', () => {
   const mockTracking: TrackingData = {
     id: 1,
     question: 'Did I exercise today?',
-    type: TrackingType.TRUE_FALSE,
     notes: 'Some notes',
     user_id: 1,
     schedules: [{ id: 1, tracking_id: 1, hour: 9, minutes: 0 }],
@@ -78,21 +77,6 @@ describe('EditTrackingModal', () => {
   });
 
 
-  it('should update type when select changes', async () => {
-    const user = userEvent.setup();
-    render(
-      <EditTrackingModal
-        tracking={mockTracking}
-        onClose={mockOnClose}
-        onSave={mockOnSave}
-      />
-    );
-
-    const typeSelect = screen.getByRole('combobox', { name: /^type \*/i });
-    await user.selectOptions(typeSelect, TrackingType.REGISTER);
-
-    expect(typeSelect).toHaveValue(TrackingType.REGISTER);
-  });
 
   it('should update notes when input changes', async () => {
     const user = userEvent.setup();
@@ -184,34 +168,6 @@ describe('EditTrackingModal', () => {
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 
-  it('should submit form with updated type', async () => {
-    const user = userEvent.setup();
-    render(
-      <EditTrackingModal
-        tracking={mockTracking}
-        onClose={mockOnClose}
-        onSave={mockOnSave}
-      />
-    );
-
-    const typeSelect = screen.getByRole('combobox', { name: /^type \*/i });
-    await user.selectOptions(typeSelect, TrackingType.REGISTER);
-
-    const saveButton = screen.getByRole('button', { name: /^save$/i });
-    await user.click(saveButton);
-
-    await waitFor(() => {
-      expect(mockOnSave).toHaveBeenCalledWith(
-        1,
-        defaultDaysPattern,
-        undefined,
-        TrackingType.REGISTER,
-        undefined,
-        undefined,
-        undefined,
-      );
-    });
-  });
 
   it('should show loading state when submitting', async () => {
     const user = userEvent.setup();

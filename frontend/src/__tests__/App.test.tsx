@@ -7,7 +7,6 @@ import { API_ENDPOINTS } from '../config/api';
 import { useAuth } from '../hooks/useAuth';
 import { useTrackings } from '../hooks/useTrackings';
 import { useReminders } from '../hooks/useReminders';
-import { TrackingType } from '../models/Tracking';
 
 // Mock fetch
 global.fetch = vi.fn();
@@ -1014,7 +1013,6 @@ describe('App', () => {
       id: 1,
       user_id: 1,
       question: 'Did you exercise?',
-      type: TrackingType.TRUE_FALSE,
       notes: undefined,
     };
 
@@ -1069,7 +1067,6 @@ describe('App', () => {
       id: 1,
       user_id: 1,
       question: 'Did you exercise?',
-      type: TrackingType.TRUE_FALSE,
       notes: undefined,
       schedules: [{ id: 1, tracking_id: 1, hour: 9, minutes: 0 }],
     };
@@ -1457,7 +1454,6 @@ describe('App', () => {
       id: 1,
       user_id: 1,
       question: 'Did you exercise?',
-      type: TrackingType.TRUE_FALSE,
       notes: undefined,
       schedules: [{ id: 1, tracking_id: 1, hour: 9, minutes: 0 }],
     };
