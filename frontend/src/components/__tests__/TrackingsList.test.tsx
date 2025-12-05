@@ -93,8 +93,6 @@ describe("TrackingsList", () => {
 
         expect(screen.getByText("Did I exercise today?")).toBeInTheDocument();
         expect(screen.getByText("Did I meditate?")).toBeInTheDocument();
-        expect(screen.getByText("🔘🟢")).toBeInTheDocument();
-        expect(screen.getByText("🖊️")).toBeInTheDocument();
     });
 
     it("should call onEdit when tracking name is clicked", () => {
@@ -449,27 +447,6 @@ describe("TrackingsList", () => {
         expect(frequencyCell).toHaveAttribute("title", "No upcoming reminder");
     });
 
-    it("should display full type label in tooltip", () => {
-        const trackings: TrackingData[] = [
-            {
-                id: 1,
-                user_id: 1,
-                question: "Did I exercise?",
-            },
-        ];
-
-        render(
-            <TrackingsList
-                trackings={trackings}
-                onEdit={mockOnEdit}
-            />
-        );
-
-        const typeCell = screen.getByText("🔘🟢");
-        expect(typeCell).toHaveAttribute("title", "Yes/No");
-    });
-
-
     it("should display table headers", () => {
         const trackings: TrackingData[] = [
             {
@@ -487,9 +464,9 @@ describe("TrackingsList", () => {
         );
 
         expect(screen.getByText("Tracking")).toBeInTheDocument();
-        expect(screen.getByText("Type")).toBeInTheDocument();
         expect(screen.getByText("Times")).toBeInTheDocument();
         expect(screen.getByText("Frequency")).toBeInTheDocument();
+        expect(screen.getByText("Next reminder")).toBeInTheDocument();
         expect(screen.getByText("Status")).toBeInTheDocument();
     });
 
@@ -555,7 +532,6 @@ describe("TrackingsList", () => {
         const trackingCell = screen.getByText("Did I exercise today?").closest(".cell-tracking");
         expect(trackingCell?.textContent).toContain("🏋️");
         expect(trackingCell?.textContent).toContain("Did I exercise today?");
-        expect(screen.getByText("🖊️")).toBeInTheDocument();
         expect(screen.getByText(/09:00 \+1/)).toBeInTheDocument();
         expect(screen.getByText("Mon, Wed, Fri")).toBeInTheDocument();
     });
@@ -1024,26 +1000,6 @@ describe("TrackingsList", () => {
             expect(screen.queryByText("Did I read a book?")).not.toBeInTheDocument();
         });
 
-        it("should filter by type using checkboxes", async () => {
-            const user = userEvent.setup();
-            render(
-                <TrackingsList
-                    trackings={trackings}
-                    onEdit={mockOnEdit}
-                />
-            );
-
-            const showFiltersButton = screen.getByRole("button", { name: /show filters/i });
-            await user.click(showFiltersButton);
-
-            const yesNoCheckbox = screen.getByLabelText("Filter by type: Yes/No");
-            await user.click(yesNoCheckbox);
-
-            expect(screen.getByText("Did I exercise today?")).toBeInTheDocument();
-            expect(screen.getByText("Did I read a book?")).toBeInTheDocument();
-            expect(screen.queryByText("Did I meditate?")).not.toBeInTheDocument();
-        });
-
         it("should filter by times", async () => {
             const user = userEvent.setup();
             render(
@@ -1137,8 +1093,8 @@ describe("TrackingsList", () => {
             const trackingInput = screen.getByLabelText("Filter by tracking");
             await user.type(trackingInput, "exercise");
 
-            const yesNoCheckbox = screen.getByLabelText("Filter by type: Yes/No");
-            await user.click(yesNoCheckbox);
+            const runningCheckbox = screen.getByLabelText("Filter by status: Running");
+            await user.click(runningCheckbox);
 
             expect(screen.getByText("Did I exercise today?")).toBeInTheDocument();
             expect(screen.queryByText("Did I meditate?")).not.toBeInTheDocument();
@@ -1227,26 +1183,6 @@ describe("TrackingsList", () => {
             expect(dataRows[0]).toHaveTextContent("Zebra question");
             expect(dataRows[1]).toHaveTextContent("Banana question");
             expect(dataRows[2]).toHaveTextContent("Apple question");
-        });
-
-        it("should sort by type", async () => {
-            const user = userEvent.setup();
-            render(
-                <TrackingsList
-                    trackings={trackings}
-                    onEdit={mockOnEdit}
-                />
-            );
-
-            const typeHeader = screen.getByLabelText("Sort by type");
-            await user.click(typeHeader);
-
-            const rows = screen.getAllByRole("row");
-            const dataRows = rows.slice(1);
-            // "register" comes before "true_false" alphabetically
-            expect(dataRows[0]).toHaveTextContent("Zebra question");
-            expect(dataRows[1]).toHaveTextContent("Apple question");
-            expect(dataRows[2]).toHaveTextContent("Banana question");
         });
 
         it("should sort by times", async () => {
