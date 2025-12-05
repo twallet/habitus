@@ -4,7 +4,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { TrackingsList } from "../TrackingsList";
 import { TrackingData, DaysPatternType, TrackingState } from "../../models/Tracking";
-import { ReminderData, ReminderStatus } from "../../models/Reminder";
+import { ReminderData, ReminderStatus, ReminderValue } from "../../models/Reminder";
 import * as useTrackingsModule from "../../hooks/useTrackings";
 import * as useRemindersModule from "../../hooks/useReminders";
 
