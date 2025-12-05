@@ -112,36 +112,8 @@ describe("RemindersList", () => {
         expect(screen.getByRole("button", { name: "Complete reminder" })).toBeInTheDocument();
     });
 
-    it("should show answer when reminder has answer", () => {
-        const reminders: ReminderData[] = [
-            {
-                id: 1,
-                tracking_id: 1,
-                user_id: 1,
-                scheduled_time: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-                status: ReminderStatus.PENDING,
-                value: ReminderValue.COMPLETED,
-            },
-        ];
-
-        (useRemindersModule.useReminders as any).mockReturnValue({
-            reminders,
-            isLoading: false,
-            updateReminder: mockUpdateReminder,
-            snoozeReminder: mockSnoozeReminder,
-            completeReminder: mockCompleteReminder,
-            dismissReminder: mockDismissReminder,
-            deleteReminder: mockDeleteReminder,
-            refreshReminders: mockRefreshReminders,
-        });
-        (useTrackingsModule.useTrackings as any).mockReturnValue({
-            trackings: [mockTracking],
-        });
-
-        render(<RemindersList />);
-
-        expect(screen.getByText("🟢Yes")).toBeInTheDocument();
-    });
+    // Note: The component no longer displays answers in the reminders table.
+    // Answers are now handled through the Complete reminder action, not displayed as a column.
 
     it("should show notes indicator when reminder has notes", () => {
         const reminders: ReminderData[] = [
@@ -172,7 +144,8 @@ describe("RemindersList", () => {
 
         render(<RemindersList />);
 
-        expect(screen.getByText("📝")).toBeInTheDocument();
+        // The component shows "📝 Some notes", so we need to look for text containing the emoji
+        expect(screen.getByText(/📝/)).toBeInTheDocument();
     });
 
     it("should complete reminder when Complete is clicked", async () => {
@@ -355,54 +328,7 @@ describe("RemindersList", () => {
         expect(screen.queryByText("Did I meditate?")).not.toBeInTheDocument();
     });
 
-    it("should filter reminders by answer", async () => {
-        const reminders: ReminderData[] = [
-            {
-                id: 1,
-                tracking_id: 1,
-                user_id: 1,
-                scheduled_time: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-                status: ReminderStatus.PENDING,
-                value: ReminderValue.COMPLETED,
-            },
-            {
-                id: 2,
-                tracking_id: 1,
-                user_id: 1,
-                scheduled_time: new Date(Date.now() - 1800000).toISOString(), // 30 minutes ago
-                status: ReminderStatus.PENDING,
-                value: ReminderValue.COMPLETED,
-            },
-        ];
-
-        (useRemindersModule.useReminders as any).mockReturnValue({
-            reminders,
-            isLoading: false,
-            updateReminder: mockUpdateReminder,
-            snoozeReminder: mockSnoozeReminder,
-            completeReminder: mockCompleteReminder,
-            dismissReminder: mockDismissReminder,
-            deleteReminder: mockDeleteReminder,
-            refreshReminders: mockRefreshReminders,
-        });
-        (useTrackingsModule.useTrackings as any).mockReturnValue({
-            trackings: [mockTracking],
-        });
-
-        render(<RemindersList />);
-
-        // Open filters
-        const filterButton = screen.getByLabelText(/show filters/i);
-        await userEvent.click(filterButton);
-
-        // Filter by answer
-        const answerInput = screen.getByLabelText(/filter by answer/i);
-        await userEvent.type(answerInput, "Yes");
-
-        // Should only show reminder with "Yes" answer
-        expect(screen.getByText("🟢Yes")).toBeInTheDocument();
-        expect(screen.queryByText("🔘No")).not.toBeInTheDocument();
-    });
+    // Note: Answer filter has been removed from the component, so this test is no longer applicable
 
     it("should filter reminders by notes", async () => {
         const reminders: ReminderData[] = [
@@ -451,8 +377,9 @@ describe("RemindersList", () => {
         await userEvent.type(notesInput, "workout");
 
         // Should only show reminder with "workout" in notes
-        expect(screen.getByText("📝")).toBeInTheDocument();
-        const notesIndicators = screen.getAllByText("📝");
+        // The component shows "📝 Great workout", so we need to look for text containing the emoji
+        expect(screen.getByText(/📝.*Great workout/i)).toBeInTheDocument();
+        const notesIndicators = screen.getAllByText(/📝/);
         expect(notesIndicators.length).toBe(1);
     });
 
@@ -540,9 +467,9 @@ describe("RemindersList", () => {
         const filterButton = screen.getByLabelText(/show filters/i);
         await userEvent.click(filterButton);
 
-        // Set a filter that will hide all reminders
-        const answerInput = screen.getByLabelText(/filter by answer/i);
-        await userEvent.type(answerInput, "nonexistent");
+        // Set a filter that will hide all reminders (using tracking filter instead of answer)
+        const trackingInput = screen.getByLabelText(/filter by tracking/i);
+        await userEvent.type(trackingInput, "nonexistent");
 
         // Verify filter is active - should show empty state
         await waitFor(() => {
@@ -656,57 +583,7 @@ describe("RemindersList", () => {
         expect(rows.length).toBe(2);
     });
 
-    it("should sort reminders by answer", async () => {
-        const reminders: ReminderData[] = [
-            {
-                id: 1,
-                tracking_id: 1,
-                user_id: 1,
-                scheduled_time: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-                status: ReminderStatus.PENDING,
-                value: ReminderValue.COMPLETED,
-            },
-            {
-                id: 2,
-                tracking_id: 1,
-                user_id: 1,
-                scheduled_time: new Date(Date.now() - 1800000).toISOString(), // 30 minutes ago
-                status: ReminderStatus.PENDING,
-                value: ReminderValue.COMPLETED,
-            },
-        ];
-
-        (useRemindersModule.useReminders as any).mockReturnValue({
-            reminders,
-            isLoading: false,
-            updateReminder: mockUpdateReminder,
-            snoozeReminder: mockSnoozeReminder,
-            completeReminder: mockCompleteReminder,
-            dismissReminder: mockDismissReminder,
-            deleteReminder: mockDeleteReminder,
-            refreshReminders: mockRefreshReminders,
-        });
-        (useTrackingsModule.useTrackings as any).mockReturnValue({
-            trackings: [mockTracking],
-        });
-
-        render(<RemindersList />);
-
-        // Click answer header to sort
-        const answerHeader = screen.getByLabelText(/sort by answer/i);
-        await userEvent.click(answerHeader);
-
-        // Should be sorted alphabetically - check answer cells specifically
-        await waitFor(() => {
-            const answerCells = screen.getAllByText(/^🟢Yes$|^🔘No$/);
-            // Filter to only exact matches in answer cells (not in other places)
-            const exactAnswers = answerCells.filter(el => {
-                const cell = el.closest('.cell-answer');
-                return cell !== null;
-            });
-            expect(exactAnswers.length).toBe(2);
-        });
-    });
+    // Note: Answer column has been removed from the component, so answer sorting is no longer available
 
     // Note: Status column has been removed and replaced with Actions column, so status sorting is no longer available
 
@@ -872,12 +749,14 @@ describe("RemindersList", () => {
         const filterButton = screen.getByLabelText(/show filters/i);
         await userEvent.click(filterButton);
 
-        // Filter by answer that doesn't exist
-        const answerInput = screen.getByLabelText(/filter by answer/i);
-        await userEvent.type(answerInput, "nonexistent");
+        // Filter by tracking that doesn't exist (using tracking filter instead of answer)
+        const trackingInput = screen.getByLabelText(/filter by tracking/i);
+        await userEvent.type(trackingInput, "nonexistent");
 
         // Should show empty state
-        expect(screen.getByText(/no reminders match the current filters/i)).toBeInTheDocument();
+        await waitFor(() => {
+            expect(screen.getByText(/no reminders match the current filters/i)).toBeInTheDocument();
+        });
     });
 
     it("should handle error when updating reminder fails", async () => {

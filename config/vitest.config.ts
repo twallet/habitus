@@ -29,6 +29,8 @@ export default defineConfig({
       "frontend/src/**/*.test.{ts,tsx}",
       "frontend/src/**/*.spec.{ts,tsx}",
     ],
+    // Use verbose reporter by default for better visibility
+    reporter: process.env.CI ? ["verbose"] : ["verbose"],
     // Exclude node_modules and dist
     exclude: ["**/node_modules/**", "**/dist/**"],
     // Coverage configuration

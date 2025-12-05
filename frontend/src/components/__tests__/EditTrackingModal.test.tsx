@@ -162,7 +162,6 @@ describe('EditTrackingModal', () => {
         undefined,
         undefined,
         undefined,
-        undefined,
       );
     });
     expect(mockOnClose).toHaveBeenCalledTimes(1);
@@ -359,7 +358,6 @@ describe('EditTrackingModal', () => {
         defaultDaysPattern,
         undefined,
         undefined,
-        undefined,
         '', // Empty string to clear the icon
         undefined,
       );
@@ -392,7 +390,6 @@ describe('EditTrackingModal', () => {
       expect(mockOnSave).toHaveBeenCalledWith(
         1,
         defaultDaysPattern,
-        undefined,
         undefined,
         undefined,
         '🏋️',

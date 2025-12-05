@@ -72,8 +72,9 @@ describe("ReminderAnswerModal", () => {
             />
         );
 
-        const yesButton = screen.getByText("🟢 Yes");
-        await userEvent.click(yesButton);
+        // The component now uses a textarea for answer input, not buttons
+        const answerTextarea = screen.getByPlaceholderText("Enter your answer...");
+        await userEvent.type(answerTextarea, "Yes");
 
         const saveButton = screen.getByText("Save");
         await userEvent.click(saveButton);
