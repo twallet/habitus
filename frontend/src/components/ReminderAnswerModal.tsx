@@ -1,6 +1,6 @@
 import { useState, FormEvent, useRef } from "react";
 import { ReminderData } from "../models/Reminder";
-import { TrackingData, TrackingType } from "../models/Tracking";
+import { TrackingData } from "../models/Tracking";
 import { ReminderFormatter } from "./RemindersList";
 import "./ReminderAnswerModal.css";
 import "./EditTrackingModal.css";
@@ -64,15 +64,6 @@ export function ReminderAnswerModal({
     };
 
     // Escape key and overlay click to close modal are disabled
-
-    /**
-     * Handle Yes/No button click for true_false type.
-     * @param value - "yes" or "no"
-     * @internal
-     */
-    const handleYesNoClick = (value: "yes" | "no") => {
-        setAnswer(value === "yes" ? "Yes" : "No");
-    };
 
     return (
         <div className="modal-overlay">
@@ -138,42 +129,21 @@ export function ReminderAnswerModal({
                                     type="button"
                                     className="field-help"
                                     aria-label="Answer help"
-                                    title={tracking?.type === TrackingType.TRUE_FALSE ? "Click Yes or No to answer" : "Maximum length: 500 characters"}
+                                    title="Maximum length: 500 characters"
                                 >
                                     ?
                                 </button>
                             </label>
                         </div>
-                        {tracking && tracking.type === TrackingType.TRUE_FALSE ? (
-                            <div className="yes-no-buttons">
-                                <button
-                                    type="button"
-                                    className={`yes-no-button yes-button ${answer === "Yes" ? "selected" : ""}`}
-                                    onClick={() => handleYesNoClick("yes")}
-                                    disabled={isSubmitting}
-                                >
-                                    🟢 Yes
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`yes-no-button no-button ${answer === "No" ? "selected" : ""}`}
-                                    onClick={() => handleYesNoClick("no")}
-                                    disabled={isSubmitting}
-                                >
-                                    🔘 No
-                                </button>
-                            </div>
-                        ) : (
-                            <textarea
-                                id="reminder-answer"
-                                name="answer"
-                                placeholder="Enter your answer..."
-                                value={answer}
-                                onChange={(e) => setAnswer(e.target.value)}
-                                disabled={isSubmitting}
-                                rows={3}
-                            />
-                        )}
+                        <textarea
+                            id="reminder-answer"
+                            name="answer"
+                            placeholder="Enter your answer..."
+                            value={answer}
+                            onChange={(e) => setAnswer(e.target.value)}
+                            disabled={isSubmitting}
+                            rows={3}
+                        />
                     </div>
 
                     <div className="form-group">

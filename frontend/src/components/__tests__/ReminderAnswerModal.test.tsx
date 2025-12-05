@@ -48,29 +48,11 @@ describe("ReminderAnswerModal", () => {
         expect(trackingField).toBeInTheDocument();
     });
 
-    it("should show Yes/No buttons for true_false type", () => {
+    it("should show text field for answer input", () => {
         render(
             <ReminderAnswerModal
                 reminder={mockReminder}
                 tracking={mockTracking}
-                onClose={mockOnClose}
-                onSave={mockOnSave}
-            />
-        );
-
-        expect(screen.getByText("🟢 Yes")).toBeInTheDocument();
-        expect(screen.getByText("🔘 No")).toBeInTheDocument();
-    });
-
-    it("should show text field for register type", () => {
-        const registerTracking: TrackingData = {
-            ...mockTracking,
-        };
-
-        render(
-            <ReminderAnswerModal
-                reminder={mockReminder}
-                tracking={registerTracking}
                 onClose={mockOnClose}
                 onSave={mockOnSave}
             />
@@ -165,8 +147,8 @@ describe("ReminderAnswerModal", () => {
             />
         );
 
-        const yesButton = screen.getByText("🟢 Yes");
-        await userEvent.click(yesButton);
+        const answerTextarea = screen.getByPlaceholderText("Enter your answer...");
+        await userEvent.type(answerTextarea, "Yes");
 
         const notesTextarea = screen.getByPlaceholderText(
             "Add any additional notes..."
