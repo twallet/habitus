@@ -27,7 +27,7 @@ export function ReminderAnswerModal({
     onClose,
     onSave,
 }: ReminderAnswerModalProps) {
-    const [answer, setAnswer] = useState(reminder.answer || "");
+    const [answer, setAnswer] = useState("");
     const [notes, setNotes] = useState(reminder.notes || "");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);

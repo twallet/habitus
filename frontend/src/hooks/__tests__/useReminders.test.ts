@@ -255,7 +255,6 @@ describe("useReminders", () => {
 
       const updatedReminder: ReminderData = {
         ...mockReminder,
-        answer: "Yes",
         notes: "Some notes",
         status: ReminderStatus.ANSWERED,
       };
@@ -286,7 +285,6 @@ describe("useReminders", () => {
       );
 
       await waitFor(() => {
-        expect(result.current.reminders[0].answer).toBe("Yes");
         expect(result.current.reminders[0].status).toBe(
           ReminderStatus.ANSWERED
         );
