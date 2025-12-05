@@ -55,6 +55,8 @@ describe("RemindersList", () => {
             isLoading: true,
             updateReminder: mockUpdateReminder,
             snoozeReminder: mockSnoozeReminder,
+            completeReminder: mockCompleteReminder,
+            dismissReminder: mockDismissReminder,
             deleteReminder: mockDeleteReminder,
             refreshReminders: mockRefreshReminders,
         });
@@ -94,6 +96,8 @@ describe("RemindersList", () => {
             isLoading: false,
             updateReminder: mockUpdateReminder,
             snoozeReminder: mockSnoozeReminder,
+            completeReminder: mockCompleteReminder,
+            dismissReminder: mockDismissReminder,
             deleteReminder: mockDeleteReminder,
             refreshReminders: mockRefreshReminders,
         });
@@ -125,6 +129,8 @@ describe("RemindersList", () => {
             isLoading: false,
             updateReminder: mockUpdateReminder,
             snoozeReminder: mockSnoozeReminder,
+            completeReminder: mockCompleteReminder,
+            dismissReminder: mockDismissReminder,
             deleteReminder: mockDeleteReminder,
             refreshReminders: mockRefreshReminders,
         });
@@ -155,6 +161,8 @@ describe("RemindersList", () => {
             isLoading: false,
             updateReminder: mockUpdateReminder,
             snoozeReminder: mockSnoozeReminder,
+            completeReminder: mockCompleteReminder,
+            dismissReminder: mockDismissReminder,
             deleteReminder: mockDeleteReminder,
             refreshReminders: mockRefreshReminders,
         });
@@ -265,6 +273,8 @@ describe("RemindersList", () => {
             isLoading: false,
             updateReminder: mockUpdateReminder,
             snoozeReminder: mockSnoozeReminder,
+            completeReminder: mockCompleteReminder,
+            dismissReminder: mockDismissReminder,
             deleteReminder: mockDeleteReminder,
             refreshReminders: mockRefreshReminders,
         });
@@ -321,6 +331,8 @@ describe("RemindersList", () => {
             isLoading: false,
             updateReminder: mockUpdateReminder,
             snoozeReminder: mockSnoozeReminder,
+            completeReminder: mockCompleteReminder,
+            dismissReminder: mockDismissReminder,
             deleteReminder: mockDeleteReminder,
             refreshReminders: mockRefreshReminders,
         });
@@ -368,6 +380,8 @@ describe("RemindersList", () => {
             isLoading: false,
             updateReminder: mockUpdateReminder,
             snoozeReminder: mockSnoozeReminder,
+            completeReminder: mockCompleteReminder,
+            dismissReminder: mockDismissReminder,
             deleteReminder: mockDeleteReminder,
             refreshReminders: mockRefreshReminders,
         });
@@ -417,6 +431,8 @@ describe("RemindersList", () => {
             isLoading: false,
             updateReminder: mockUpdateReminder,
             snoozeReminder: mockSnoozeReminder,
+            completeReminder: mockCompleteReminder,
+            dismissReminder: mockDismissReminder,
             deleteReminder: mockDeleteReminder,
             refreshReminders: mockRefreshReminders,
         });
@@ -465,6 +481,8 @@ describe("RemindersList", () => {
             isLoading: false,
             updateReminder: mockUpdateReminder,
             snoozeReminder: mockSnoozeReminder,
+            completeReminder: mockCompleteReminder,
+            dismissReminder: mockDismissReminder,
             deleteReminder: mockDeleteReminder,
             refreshReminders: mockRefreshReminders,
         });
@@ -507,6 +525,8 @@ describe("RemindersList", () => {
             isLoading: false,
             updateReminder: mockUpdateReminder,
             snoozeReminder: mockSnoozeReminder,
+            completeReminder: mockCompleteReminder,
+            dismissReminder: mockDismissReminder,
             deleteReminder: mockDeleteReminder,
             refreshReminders: mockRefreshReminders,
         });
@@ -565,6 +585,8 @@ describe("RemindersList", () => {
             isLoading: false,
             updateReminder: mockUpdateReminder,
             snoozeReminder: mockSnoozeReminder,
+            completeReminder: mockCompleteReminder,
+            dismissReminder: mockDismissReminder,
             deleteReminder: mockDeleteReminder,
             refreshReminders: mockRefreshReminders,
         });
@@ -614,6 +636,8 @@ describe("RemindersList", () => {
             isLoading: false,
             updateReminder: mockUpdateReminder,
             snoozeReminder: mockSnoozeReminder,
+            completeReminder: mockCompleteReminder,
+            dismissReminder: mockDismissReminder,
             deleteReminder: mockDeleteReminder,
             refreshReminders: mockRefreshReminders,
         });
@@ -657,6 +681,8 @@ describe("RemindersList", () => {
             isLoading: false,
             updateReminder: mockUpdateReminder,
             snoozeReminder: mockSnoozeReminder,
+            completeReminder: mockCompleteReminder,
+            dismissReminder: mockDismissReminder,
             deleteReminder: mockDeleteReminder,
             refreshReminders: mockRefreshReminders,
         });
@@ -709,6 +735,8 @@ describe("RemindersList", () => {
             isLoading: false,
             updateReminder: mockUpdateReminder,
             snoozeReminder: mockSnoozeReminder,
+            completeReminder: mockCompleteReminder,
+            dismissReminder: mockDismissReminder,
             deleteReminder: mockDeleteReminder,
             refreshReminders: mockRefreshReminders,
         });
@@ -750,6 +778,8 @@ describe("RemindersList", () => {
             isLoading: false,
             updateReminder: mockUpdateReminder,
             snoozeReminder: mockSnoozeReminder,
+            completeReminder: mockCompleteReminder,
+            dismissReminder: mockDismissReminder,
             deleteReminder: mockDeleteReminder,
             refreshReminders: mockRefreshReminders,
         });
@@ -786,6 +816,8 @@ describe("RemindersList", () => {
             isLoading: false,
             updateReminder: mockUpdateReminder,
             snoozeReminder: mockSnoozeReminder,
+            completeReminder: mockCompleteReminder,
+            dismissReminder: mockDismissReminder,
             deleteReminder: mockDeleteReminder,
             refreshReminders: mockRefreshReminders,
         });
@@ -825,6 +857,8 @@ describe("RemindersList", () => {
             isLoading: false,
             updateReminder: mockUpdateReminder,
             snoozeReminder: mockSnoozeReminder,
+            completeReminder: mockCompleteReminder,
+            dismissReminder: mockDismissReminder,
             deleteReminder: mockDeleteReminder,
             refreshReminders: mockRefreshReminders,
         });
@@ -996,6 +1030,8 @@ describe("RemindersList", () => {
             isLoading: false,
             updateReminder: mockUpdateReminder,
             snoozeReminder: mockSnoozeReminder,
+            completeReminder: mockCompleteReminder,
+            dismissReminder: mockDismissReminder,
             deleteReminder: mockDeleteReminder,
             refreshReminders: mockRefreshReminders,
         });
@@ -1027,6 +1063,8 @@ describe("RemindersList", () => {
             isLoading: false,
             updateReminder: mockUpdateReminder,
             snoozeReminder: mockSnoozeReminder,
+            completeReminder: mockCompleteReminder,
+            dismissReminder: mockDismissReminder,
             deleteReminder: mockDeleteReminder,
             refreshReminders: mockRefreshReminders,
         });
@@ -1105,6 +1143,8 @@ describe("RemindersList", () => {
                 isLoading: false,
                 updateReminder: mockUpdateReminder,
                 snoozeReminder: mockSnoozeReminder,
+                completeReminder: mockCompleteReminder,
+                dismissReminder: mockDismissReminder,
                 deleteReminder: mockDeleteReminder,
                 refreshReminders: mockRefreshReminders,
             });
@@ -1125,6 +1165,8 @@ describe("RemindersList", () => {
                 isLoading: false, // Hook says not loading
                 updateReminder: mockUpdateReminder,
                 snoozeReminder: mockSnoozeReminder,
+                completeReminder: mockCompleteReminder,
+                dismissReminder: mockDismissReminder,
                 deleteReminder: mockDeleteReminder,
                 refreshReminders: mockRefreshReminders,
             });
