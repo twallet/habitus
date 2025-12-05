@@ -1233,8 +1233,8 @@ describe("RemindersList", () => {
             });
         });
 
-        it("should use provided deleteReminder function instead of hook", async () => {
-            const propDeleteReminder = vi.fn().mockResolvedValue(undefined);
+        it("should use provided dismissReminder function instead of hook", async () => {
+            const propDismissReminder = vi.fn().mockResolvedValue(undefined);
 
             const reminders: ReminderData[] = [
                 {
@@ -1259,7 +1259,7 @@ describe("RemindersList", () => {
                 trackings: [mockTracking],
             });
 
-            render(<RemindersList reminders={reminders} deleteReminder={propDeleteReminder} />);
+            render(<RemindersList reminders={reminders} dismissReminder={propDismissReminder} />);
 
             const skipButton = screen.getByRole("button", { name: "Skip reminder" });
             await userEvent.click(skipButton);
@@ -1272,7 +1272,7 @@ describe("RemindersList", () => {
             await userEvent.click(confirmButton);
 
             await waitFor(() => {
-                expect(propDeleteReminder).toHaveBeenCalledWith(1);
+                expect(propDismissReminder).toHaveBeenCalledWith(1);
                 expect(mockDeleteReminder).not.toHaveBeenCalled();
             });
         });
