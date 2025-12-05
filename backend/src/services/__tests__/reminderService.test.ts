@@ -1,8 +1,12 @@
 import { vi } from "vitest";
 import sqlite3 from "sqlite3";
 import { ReminderService } from "../reminderService.js";
-import { Reminder, ReminderStatus } from "../../models/Reminder.js";
-import { TrackingType, DaysPatternType } from "../../models/Tracking.js";
+import {
+  Reminder,
+  ReminderStatus,
+  ReminderValue,
+} from "../../models/Reminder.js";
+import { DaysPatternType } from "../../models/Tracking.js";
 import { Database } from "../../db/database.js";
 import { TrackingSchedule } from "../../models/TrackingSchedule.js";
 
@@ -112,11 +116,10 @@ describe("ReminderService", () => {
     testUserId = userResult.lastID;
 
     const trackingResult = await testDb.run(
-      "INSERT INTO trackings (user_id, question, type, days, state) VALUES (?, ?, ?, ?, ?)",
+      "INSERT INTO trackings (user_id, question, days, state) VALUES (?, ?, ?, ?)",
       [
         testUserId,
         "Did I exercise?",
-        TrackingType.TRUE_FALSE,
         JSON.stringify({
           pattern_type: DaysPatternType.INTERVAL,
           interval_value: 1,
@@ -162,11 +165,10 @@ describe("ReminderService", () => {
     it("should delete orphaned reminders (reminders whose tracking no longer exists)", async () => {
       // Create a tracking
       const trackingResult = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type, days, state) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO trackings (user_id, question, days, state) VALUES (?, ?, ?, ?)",
         [
           testUserId,
           "Test Question",
-          TrackingType.TRUE_FALSE,
           JSON.stringify({
             pattern_type: DaysPatternType.INTERVAL,
             interval_value: 1,
@@ -383,18 +385,15 @@ describe("ReminderService", () => {
         created.id,
         testUserId,
         {
-          answer: "Yes",
           notes: "Some notes",
-          status: ReminderStatus.ANSWERED,
         }
       );
 
-      expect(updated.answer).toBe("Yes");
       expect(updated.notes).toBe("Some notes");
-      expect(updated.status).toBe(ReminderStatus.ANSWERED);
+      expect(updated.status).toBe(ReminderStatus.PENDING); // Status unchanged when only updating notes
     });
 
-    it("should create next Upcoming reminder when reminder is answered", async () => {
+    it("should create next Upcoming reminder when reminder is completed", async () => {
       const scheduledTime = new Date().toISOString();
       const created = await reminderService.createReminder(
         testTrackingId,
@@ -402,7 +401,7 @@ describe("ReminderService", () => {
         scheduledTime
       );
 
-      // Verify no Upcoming reminder exists before answering
+      // Verify no Upcoming reminder exists before completing
       const beforeUpcoming = await Reminder.loadUpcomingByTrackingId(
         testTrackingId,
         testUserId,
@@ -410,11 +409,15 @@ describe("ReminderService", () => {
       );
       expect(beforeUpcoming).toBeNull();
 
-      // Answer the reminder
-      await reminderService.updateReminder(created.id, testUserId, {
-        answer: "Yes",
-        status: ReminderStatus.ANSWERED,
-      });
+      // Complete the reminder
+      const completed = await reminderService.completeReminder(
+        created.id,
+        testUserId
+      );
+
+      // Verify the reminder was completed
+      expect(completed.status).toBe(ReminderStatus.ANSWERED);
+      expect(completed.value).toBe(ReminderValue.COMPLETED);
 
       // Verify a new Upcoming reminder was created
       const afterUpcoming = await Reminder.loadUpcomingByTrackingId(
@@ -430,7 +433,7 @@ describe("ReminderService", () => {
     it("should throw error if reminder not found", async () => {
       await expect(
         reminderService.updateReminder(999, testUserId, {
-          answer: "Yes",
+          notes: "Some notes",
         })
       ).rejects.toThrow("Reminder not found");
     });
@@ -695,11 +698,10 @@ describe("ReminderService", () => {
     it("should return null if no valid time found", async () => {
       // Create tracking without schedules
       const trackingResult = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type, days, state) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO trackings (user_id, question, days, state) VALUES (?, ?, ?, ?)",
         [
           testUserId,
           "Test tracking",
-          TrackingType.TRUE_FALSE,
           JSON.stringify({
             pattern_type: DaysPatternType.INTERVAL,
             interval_value: 1,
@@ -830,7 +832,6 @@ describe("ReminderService", () => {
         id: testTrackingId,
         user_id: testUserId,
         question: "Did I exercise?",
-        type: TrackingType.TRUE_FALSE,
         days: {
           pattern_type: DaysPatternType.INTERVAL,
           interval_value: 1,
@@ -860,7 +861,6 @@ describe("ReminderService", () => {
         id: testTrackingId,
         user_id: testUserId,
         question: "Did I exercise?",
-        type: TrackingType.TRUE_FALSE,
         days: {
           pattern_type: DaysPatternType.INTERVAL,
           interval_value: 1,
@@ -887,7 +887,6 @@ describe("ReminderService", () => {
         id: testTrackingId,
         user_id: testUserId,
         question: "Did I exercise?",
-        type: TrackingType.TRUE_FALSE,
         schedules: schedules.map((s: any) => ({
           id: s.id,
           tracking_id: s.tracking_id,
@@ -918,7 +917,6 @@ describe("ReminderService", () => {
         id: testTrackingId,
         user_id: testUserId,
         question: "Did I exercise?",
-        type: TrackingType.TRUE_FALSE,
         days: {
           pattern_type: DaysPatternType.INTERVAL,
           interval_value: 1,
@@ -953,7 +951,6 @@ describe("ReminderService", () => {
         id: testTrackingId,
         user_id: testUserId,
         question: "Did I exercise?",
-        type: TrackingType.TRUE_FALSE,
         days: {
           pattern_type: DaysPatternType.DAY_OF_WEEK,
           days: [1, 3, 5], // Monday, Wednesday, Friday
@@ -991,7 +988,6 @@ describe("ReminderService", () => {
         id: testTrackingId,
         user_id: testUserId,
         question: "Did I exercise?",
-        type: TrackingType.TRUE_FALSE,
         days: {
           pattern_type: DaysPatternType.DAY_OF_MONTH,
           type: "day_number" as const,
@@ -1025,7 +1021,6 @@ describe("ReminderService", () => {
         id: testTrackingId,
         user_id: testUserId,
         question: "Did I exercise?",
-        type: TrackingType.TRUE_FALSE,
         days: {
           pattern_type: DaysPatternType.DAY_OF_MONTH,
           type: "last_day" as const,
@@ -1063,7 +1058,6 @@ describe("ReminderService", () => {
         id: testTrackingId,
         user_id: testUserId,
         question: "Did I exercise?",
-        type: TrackingType.TRUE_FALSE,
         days: {
           pattern_type: DaysPatternType.DAY_OF_YEAR,
           type: "date" as const,
@@ -1106,7 +1100,6 @@ describe("ReminderService", () => {
           id: testTrackingId,
           user_id: testUserId,
           question: "Did I exercise?",
-          type: TrackingType.TRUE_FALSE,
           days: {
             pattern_type: DaysPatternType.INTERVAL,
             interval_value: testCase.value,
@@ -1139,7 +1132,6 @@ describe("ReminderService", () => {
         id: testTrackingId,
         user_id: testUserId,
         question: "Did I exercise?",
-        type: TrackingType.TRUE_FALSE,
         days: {
           pattern_type: DaysPatternType.INTERVAL,
           interval_value: 1,

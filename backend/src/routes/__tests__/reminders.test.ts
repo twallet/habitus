@@ -5,7 +5,6 @@ import sqlite3 from "sqlite3";
 import { Database } from "../../db/database.js";
 import { ReminderService } from "../../services/reminderService.js";
 import { ReminderStatus } from "../../models/Reminder.js";
-import { TrackingType } from "../../models/Tracking.js";
 import * as authMiddlewareModule from "../../middleware/authMiddleware.js";
 import * as servicesModule from "../../services/index.js";
 
@@ -139,8 +138,8 @@ describe("Reminders Routes", () => {
     testUserId = userResult.lastID;
 
     const trackingResult = await testDb.run(
-      "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-      [testUserId, "Did I exercise?", TrackingType.TRUE_FALSE]
+      "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+      [testUserId, "Did I exercise?"]
     );
     testTrackingId = trackingResult.lastID;
 
@@ -249,22 +248,19 @@ describe("Reminders Routes", () => {
       const response = await request(app)
         .put(`/api/reminders/${created.id}`)
         .send({
-          answer: "Yes",
           notes: "Some notes",
-          status: ReminderStatus.ANSWERED,
         })
         .expect(200);
 
-      expect(response.body.answer).toBe("Yes");
       expect(response.body.notes).toBe("Some notes");
-      expect(response.body.status).toBe(ReminderStatus.ANSWERED);
+      expect(response.body.status).toBe(ReminderStatus.PENDING); // Status unchanged when only updating notes
     });
 
     it("should return 404 if reminder not found", async () => {
       await request(app)
         .put("/api/reminders/999")
         .send({
-          answer: "Yes",
+          notes: "Some notes",
         })
         .expect(404);
     });
@@ -303,6 +299,50 @@ describe("Reminders Routes", () => {
           minutes: -1,
         })
         .expect(400);
+    });
+  });
+
+  describe("PATCH /api/reminders/:id/complete", () => {
+    it("should complete a reminder", async () => {
+      const scheduledTime = new Date().toISOString();
+      const created = await reminderService.createReminder(
+        testTrackingId,
+        testUserId,
+        scheduledTime
+      );
+
+      const response = await request(app)
+        .patch(`/api/reminders/${created.id}/complete`)
+        .expect(200);
+
+      expect(response.body.status).toBe(ReminderStatus.ANSWERED);
+      expect(response.body.value).toBe("Completed");
+    });
+
+    it("should return 404 if reminder not found", async () => {
+      await request(app).patch("/api/reminders/999/complete").expect(404);
+    });
+  });
+
+  describe("PATCH /api/reminders/:id/dismiss", () => {
+    it("should dismiss a reminder", async () => {
+      const scheduledTime = new Date().toISOString();
+      const created = await reminderService.createReminder(
+        testTrackingId,
+        testUserId,
+        scheduledTime
+      );
+
+      const response = await request(app)
+        .patch(`/api/reminders/${created.id}/dismiss`)
+        .expect(200);
+
+      expect(response.body.status).toBe(ReminderStatus.ANSWERED);
+      expect(response.body.value).toBe("Dismissed");
+    });
+
+    it("should return 404 if reminder not found", async () => {
+      await request(app).patch("/api/reminders/999/dismiss").expect(404);
     });
   });
 

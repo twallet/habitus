@@ -3,7 +3,7 @@ import { vi, type Mock } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { useTrackings } from "../useTrackings";
 import { API_ENDPOINTS } from "../../config/api";
-import { TrackingType, DaysPatternType } from "../../models/Tracking";
+import { DaysPatternType } from "../../models/Tracking";
 
 // Mock fetch
 global.fetch = vi.fn();
@@ -56,13 +56,11 @@ describe("useTrackings", () => {
         id: 1,
         user_id: 1,
         question: "Did I exercise?",
-        type: TrackingType.TRUE_FALSE,
       },
       {
         id: 2,
         user_id: 1,
         question: "Did I meditate?",
-        type: TrackingType.REGISTER,
       },
     ];
 
@@ -101,7 +99,6 @@ describe("useTrackings", () => {
           id: 1,
           user_id: 1,
           question: "Did I exercise?",
-          type: TrackingType.TRUE_FALSE,
         }),
       });
 
@@ -118,7 +115,6 @@ describe("useTrackings", () => {
     };
     const newTracking = await result.current.createTracking(
       "Did I exercise?",
-      TrackingType.TRUE_FALSE,
       undefined,
       undefined,
       [{ hour: 9, minutes: 0 }],
@@ -126,7 +122,6 @@ describe("useTrackings", () => {
     );
 
     expect(newTracking!.question).toBe("Did I exercise?");
-    expect(newTracking!.type).toBe(TrackingType.TRUE_FALSE);
     await waitFor(() => {
       expect(result.current.trackings).toHaveLength(1);
     });
@@ -138,7 +133,6 @@ describe("useTrackings", () => {
       id: 1,
       user_id: 1,
       question: "Old Question",
-      type: TrackingType.TRUE_FALSE,
     };
 
     (global.fetch as Mock)
@@ -189,7 +183,6 @@ describe("useTrackings", () => {
       id: 1,
       user_id: 1,
       question: "Question",
-      type: TrackingType.TRUE_FALSE,
     };
 
     (global.fetch as Mock)
@@ -264,7 +257,6 @@ describe("useTrackings", () => {
     await expect(
       result.current.createTracking(
         "Test Question",
-        TrackingType.TRUE_FALSE,
         undefined,
         undefined,
         [{ hour: 9, minutes: 0 }],
@@ -295,7 +287,6 @@ describe("useTrackings", () => {
     await expect(
       result.current.createTracking(
         "Test Question",
-        TrackingType.TRUE_FALSE,
         undefined,
         undefined,
         [{ hour: 9, minutes: 0 }],

@@ -1,11 +1,7 @@
 import { vi, type Mock } from "vitest";
 import { API_ENDPOINTS, API_BASE_URL, ApiClient } from "../api";
 import { UserData } from "../../models/User";
-import {
-  TrackingData,
-  TrackingType,
-  DaysPatternType,
-} from "../../models/Tracking";
+import { TrackingData, DaysPatternType } from "../../models/Tracking";
 
 // Mock fetch
 global.fetch = vi.fn();
@@ -397,7 +393,6 @@ describe("api", () => {
             id: 1,
             user_id: 1,
             question: "Did you exercise?",
-            type: TrackingType.TRUE_FALSE,
             notes: undefined,
           },
         ];
@@ -429,7 +424,6 @@ describe("api", () => {
           id: 1,
           user_id: 1,
           question: "Did you exercise?",
-          type: TrackingType.TRUE_FALSE,
           notes: undefined,
         };
 
@@ -440,7 +434,6 @@ describe("api", () => {
 
         const result = await apiClient.createTracking(
           "Did you exercise?",
-          TrackingType.TRUE_FALSE,
           undefined,
           undefined,
           [{ hour: 9, minutes: 0 }],
@@ -453,7 +446,6 @@ describe("api", () => {
             method: "POST",
             body: JSON.stringify({
               question: "Did you exercise?",
-              type: TrackingType.TRUE_FALSE,
               notes: undefined,
               icon: undefined,
               schedules: [{ hour: 9, minutes: 0 }],
@@ -475,7 +467,6 @@ describe("api", () => {
           id: 1,
           user_id: 1,
           question: "Did you meditate?",
-          type: TrackingType.TRUE_FALSE,
           notes: undefined,
         };
 
@@ -496,7 +487,6 @@ describe("api", () => {
             method: "PUT",
             body: JSON.stringify({
               question: "Did you meditate?",
-              type: undefined,
               notes: undefined,
               days: defaultDays,
             }),

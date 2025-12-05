@@ -99,8 +99,8 @@ describe("Reminder Model", () => {
     userId = userResult.lastID;
 
     const trackingResult = await db.run(
-      "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-      [userId, "Did I exercise?", "true_false"]
+      "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+      [userId, "Did I exercise?"]
     );
     trackingId = trackingResult.lastID;
   });

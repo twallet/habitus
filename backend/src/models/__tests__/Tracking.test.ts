@@ -1,7 +1,6 @@
 import { vi } from "vitest";
 import {
   Tracking,
-  TrackingType,
   TrackingState,
   TrackingData,
   DaysPatternType,
@@ -103,7 +102,6 @@ describe("Tracking Model", () => {
         id: 1,
         user_id: userId,
         question: "Did I exercise?",
-        type: TrackingType.TRUE_FALSE,
         notes: "Some notes",
         created_at: "2024-01-01T00:00:00Z",
         updated_at: "2024-01-01T00:00:00Z",
@@ -114,7 +112,6 @@ describe("Tracking Model", () => {
       expect(tracking.id).toBe(1);
       expect(tracking.user_id).toBe(userId);
       expect(tracking.question).toBe("Did I exercise?");
-      expect(tracking.type).toBe(TrackingType.TRUE_FALSE);
       expect(tracking.notes).toBe("Some notes");
     });
 
@@ -123,7 +120,6 @@ describe("Tracking Model", () => {
         id: 1,
         user_id: userId,
         question: "Did I exercise?",
-        type: TrackingType.TRUE_FALSE,
       };
 
       const tracking = new Tracking(trackingData);
@@ -140,7 +136,6 @@ describe("Tracking Model", () => {
         id: 1,
         user_id: userId,
         question: "  Did I exercise?  ",
-        type: TrackingType.TRUE_FALSE,
         notes: "  Some notes  ",
       });
 
@@ -155,18 +150,6 @@ describe("Tracking Model", () => {
         id: 1,
         user_id: userId,
         question: "",
-        type: TrackingType.TRUE_FALSE,
-      });
-
-      expect(() => tracking.validate()).toThrow(TypeError);
-    });
-
-    it("should throw error for invalid type", () => {
-      const tracking = new Tracking({
-        id: 1,
-        user_id: userId,
-        question: "Did I exercise?",
-        type: "invalid" as TrackingType,
       });
 
       expect(() => tracking.validate()).toThrow(TypeError);
@@ -179,20 +162,18 @@ describe("Tracking Model", () => {
         id: 0,
         user_id: userId,
         question: "Did I exercise?",
-        type: TrackingType.TRUE_FALSE,
       });
 
       const saved = await tracking.save(db);
 
       expect(saved.id).toBeGreaterThan(0);
       expect(saved.question).toBe("Did I exercise?");
-      expect(saved.type).toBe(TrackingType.TRUE_FALSE);
     });
 
     it("should update existing tracking when id is set", async () => {
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [userId, "Original question", TrackingType.TRUE_FALSE]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [userId, "Original question"]
       );
       const trackingId = result.lastID;
 
@@ -200,14 +181,12 @@ describe("Tracking Model", () => {
         id: trackingId,
         user_id: userId,
         question: "Updated question",
-        type: TrackingType.REGISTER,
       });
 
       const saved = await tracking.save(db);
 
       expect(saved.id).toBe(trackingId);
       expect(saved.question).toBe("Updated question");
-      expect(saved.type).toBe(TrackingType.REGISTER);
     });
 
     it("should throw error if creation fails", async () => {
@@ -215,7 +194,6 @@ describe("Tracking Model", () => {
         id: 0,
         user_id: userId,
         question: "Did I exercise?",
-        type: TrackingType.TRUE_FALSE,
       });
 
       // Close database to cause failure
@@ -228,8 +206,8 @@ describe("Tracking Model", () => {
   describe("update", () => {
     it("should update tracking fields", async () => {
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [userId, "Original question", TrackingType.TRUE_FALSE]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [userId, "Original question"]
       );
       const trackingId = result.lastID;
 
@@ -237,7 +215,6 @@ describe("Tracking Model", () => {
         id: trackingId,
         user_id: userId,
         question: "Original question",
-        type: TrackingType.TRUE_FALSE,
       });
 
       const updated = await tracking.update(
@@ -257,7 +234,6 @@ describe("Tracking Model", () => {
         id: 0,
         user_id: userId,
         question: "Did I exercise?",
-        type: TrackingType.TRUE_FALSE,
       });
 
       await expect(
@@ -269,8 +245,8 @@ describe("Tracking Model", () => {
   describe("delete", () => {
     it("should delete tracking from database", async () => {
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [userId, "Did I exercise?", TrackingType.TRUE_FALSE]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [userId, "Did I exercise?"]
       );
       const trackingId = result.lastID;
 
@@ -278,7 +254,6 @@ describe("Tracking Model", () => {
         id: trackingId,
         user_id: userId,
         question: "Did I exercise?",
-        type: TrackingType.TRUE_FALSE,
       });
 
       await tracking.delete(db);
@@ -294,7 +269,6 @@ describe("Tracking Model", () => {
         id: 0,
         user_id: userId,
         question: "Did I exercise?",
-        type: TrackingType.TRUE_FALSE,
       });
 
       await expect(tracking.delete(db)).rejects.toThrow(
@@ -307,7 +281,6 @@ describe("Tracking Model", () => {
         id: 999,
         user_id: userId,
         question: "Did I exercise?",
-        type: TrackingType.TRUE_FALSE,
       });
 
       await expect(tracking.delete(db)).rejects.toThrow("Tracking not found");
@@ -320,7 +293,6 @@ describe("Tracking Model", () => {
         id: 1,
         user_id: userId,
         question: "Did I exercise?",
-        type: TrackingType.TRUE_FALSE,
         notes: "Some notes",
         created_at: "2024-01-01T00:00:00Z",
         updated_at: "2024-01-01T00:00:00Z",
@@ -332,7 +304,6 @@ describe("Tracking Model", () => {
         id: 1,
         user_id: userId,
         question: "Did I exercise?",
-        type: TrackingType.TRUE_FALSE,
         notes: "Some notes",
         state: TrackingState.RUNNING,
         created_at: "2024-01-01T00:00:00Z",
@@ -344,8 +315,8 @@ describe("Tracking Model", () => {
   describe("loadById", () => {
     it("should load tracking by id", async () => {
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [userId, "Did I exercise?", TrackingType.TRUE_FALSE]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [userId, "Did I exercise?"]
       );
       const trackingId = result.lastID;
 
@@ -369,8 +340,8 @@ describe("Tracking Model", () => {
       const otherUserId = otherUserResult.lastID;
 
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [otherUserId, "Did I exercise?", TrackingType.TRUE_FALSE]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [otherUserId, "Did I exercise?"]
       );
       const trackingId = result.lastID;
 
@@ -382,13 +353,13 @@ describe("Tracking Model", () => {
   describe("loadByUserId", () => {
     it("should load all trackings for a user", async () => {
       const result1 = await db.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [userId, "Question 1", TrackingType.TRUE_FALSE]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [userId, "Question 1"]
       );
       const id1 = result1.lastID;
       const result2 = await db.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [userId, "Question 2", TrackingType.REGISTER]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [userId, "Question 2"]
       );
       const id2 = result2.lastID;
 
@@ -450,37 +421,6 @@ describe("Tracking Model", () => {
       expect(Tracking.validateQuestion(maxLengthQuestion)).toBe(
         maxLengthQuestion
       );
-    });
-  });
-
-  describe("validateType", () => {
-    it("should accept valid tracking types", () => {
-      expect(Tracking.validateType("true_false")).toBe(TrackingType.TRUE_FALSE);
-      expect(Tracking.validateType("register")).toBe(TrackingType.REGISTER);
-    });
-
-    it("should normalize type to lowercase", () => {
-      expect(Tracking.validateType("TRUE_FALSE")).toBe(TrackingType.TRUE_FALSE);
-      expect(Tracking.validateType("Register")).toBe(TrackingType.REGISTER);
-    });
-
-    it("should trim whitespace", () => {
-      expect(Tracking.validateType("  true_false  ")).toBe(
-        TrackingType.TRUE_FALSE
-      );
-      expect(Tracking.validateType("  register  ")).toBe(TrackingType.REGISTER);
-    });
-
-    it("should throw TypeError for invalid type", () => {
-      expect(() => Tracking.validateType("invalid")).toThrow(TypeError);
-      expect(() => Tracking.validateType("boolean")).toThrow(TypeError);
-      expect(() => Tracking.validateType("")).toThrow(TypeError);
-    });
-
-    it("should throw TypeError for non-string type", () => {
-      expect(() => Tracking.validateType(null as any)).toThrow(TypeError);
-      expect(() => Tracking.validateType(123 as any)).toThrow(TypeError);
-      expect(() => Tracking.validateType(undefined as any)).toThrow(TypeError);
     });
   });
 
@@ -972,7 +912,6 @@ describe("Tracking Model", () => {
         id: 1,
         user_id: userId,
         question: "Did I exercise?",
-        type: TrackingType.TRUE_FALSE,
         icon: "  😊  ",
       });
 
@@ -985,7 +924,6 @@ describe("Tracking Model", () => {
         id: 1,
         user_id: userId,
         question: "Did I exercise?",
-        type: TrackingType.TRUE_FALSE,
         days: {
           pattern_type: DaysPatternType.INTERVAL,
           interval_value: 2,
@@ -1006,7 +944,6 @@ describe("Tracking Model", () => {
         id: 1,
         user_id: userId,
         question: "Did I exercise?",
-        type: TrackingType.TRUE_FALSE,
         icon: "a".repeat(21),
       });
 
@@ -1018,7 +955,6 @@ describe("Tracking Model", () => {
         id: 1,
         user_id: userId,
         question: "Did I exercise?",
-        type: TrackingType.TRUE_FALSE,
         days: {
           pattern_type: DaysPatternType.INTERVAL,
         } as any,
@@ -1034,7 +970,6 @@ describe("Tracking Model", () => {
         id: 0,
         user_id: userId,
         question: "Did I exercise?",
-        type: TrackingType.TRUE_FALSE,
         notes: "Some notes",
         icon: "🏃",
         days: {
@@ -1058,8 +993,8 @@ describe("Tracking Model", () => {
 
     it("should update tracking with notes, icon, and days", async () => {
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [userId, "Original question", TrackingType.TRUE_FALSE]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [userId, "Original question"]
       );
       const trackingId = result.lastID;
 
@@ -1067,7 +1002,6 @@ describe("Tracking Model", () => {
         id: trackingId,
         user_id: userId,
         question: "Updated question",
-        type: TrackingType.REGISTER,
         notes: "Updated notes",
         icon: "✅",
         days: {
@@ -1089,11 +1023,10 @@ describe("Tracking Model", () => {
 
     it("should update tracking with null notes, icon, and days", async () => {
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question, type, notes, icon, days) VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO trackings (user_id, question, notes, icon, days) VALUES (?, ?, ?, ?, ?)",
         [
           userId,
           "Original question",
-          TrackingType.TRUE_FALSE,
           "Original notes",
           "🏃",
           JSON.stringify({
@@ -1109,7 +1042,6 @@ describe("Tracking Model", () => {
         id: trackingId,
         user_id: userId,
         question: "Updated question",
-        type: TrackingType.REGISTER,
         notes: undefined,
         icon: undefined,
         days: undefined,
@@ -1127,8 +1059,8 @@ describe("Tracking Model", () => {
   describe("update with all fields", () => {
     it("should update tracking with icon", async () => {
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [userId, "Original question", TrackingType.TRUE_FALSE]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [userId, "Original question"]
       );
       const trackingId = result.lastID;
 
@@ -1136,7 +1068,6 @@ describe("Tracking Model", () => {
         id: trackingId,
         user_id: userId,
         question: "Original question",
-        type: TrackingType.TRUE_FALSE,
       });
 
       const updated = await tracking.update({ icon: "🏃" }, db);
@@ -1146,8 +1077,8 @@ describe("Tracking Model", () => {
 
     it("should update tracking with days pattern", async () => {
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [userId, "Original question", TrackingType.TRUE_FALSE]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [userId, "Original question"]
       );
       const trackingId = result.lastID;
 
@@ -1155,7 +1086,6 @@ describe("Tracking Model", () => {
         id: trackingId,
         user_id: userId,
         question: "Original question",
-        type: TrackingType.TRUE_FALSE,
       });
 
       const daysPattern = {
@@ -1170,8 +1100,8 @@ describe("Tracking Model", () => {
 
     it("should update tracking with type", async () => {
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [userId, "Original question", TrackingType.TRUE_FALSE]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [userId, "Original question"]
       );
       const trackingId = result.lastID;
 
@@ -1179,21 +1109,20 @@ describe("Tracking Model", () => {
         id: trackingId,
         user_id: userId,
         question: "Original question",
-        type: TrackingType.TRUE_FALSE,
       });
 
       const updated = await tracking.update(
-        { type: TrackingType.REGISTER },
+        { notes: "Updated notes" },
         db
       );
 
-      expect(updated.type).toBe(TrackingType.REGISTER);
+      expect(updated.notes).toBe("Updated notes");
     });
 
     it("should update tracking with multiple fields", async () => {
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [userId, "Original question", TrackingType.TRUE_FALSE]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [userId, "Original question"]
       );
       const trackingId = result.lastID;
 
@@ -1201,7 +1130,6 @@ describe("Tracking Model", () => {
         id: trackingId,
         user_id: userId,
         question: "Original question",
-        type: TrackingType.TRUE_FALSE,
       });
 
       const daysPattern = {
@@ -1213,7 +1141,6 @@ describe("Tracking Model", () => {
       const updated = await tracking.update(
         {
           question: "Updated question",
-          type: TrackingType.REGISTER,
           notes: "Updated notes",
           icon: "✅",
           days: daysPattern,
@@ -1222,7 +1149,7 @@ describe("Tracking Model", () => {
       );
 
       expect(updated.question).toBe("Updated question");
-      expect(updated.type).toBe(TrackingType.REGISTER);
+      expect(updated.notes).toBe("Updated notes");
       expect(updated.notes).toBe("Updated notes");
       expect(updated.icon).toBe("✅");
       expect(updated.days).toEqual(daysPattern);
@@ -1237,11 +1164,10 @@ describe("Tracking Model", () => {
         interval_unit: "days",
       };
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question, type, days) VALUES (?, ?, ?, ?)",
+        "INSERT INTO trackings (user_id, question, days) VALUES (?, ?, ?)",
         [
           userId,
           "Did I exercise?",
-          TrackingType.TRUE_FALSE,
           JSON.stringify(daysPattern),
         ]
       );
@@ -1255,8 +1181,8 @@ describe("Tracking Model", () => {
 
     it("should handle invalid days JSON gracefully", async () => {
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question, type, days) VALUES (?, ?, ?, ?)",
-        [userId, "Did I exercise?", TrackingType.TRUE_FALSE, "invalid json"]
+        "INSERT INTO trackings (user_id, question, days) VALUES (?, ?, ?)",
+        [userId, "Did I exercise?", "invalid json"]
       );
       const trackingId = result.lastID;
 
@@ -1275,8 +1201,8 @@ describe("Tracking Model", () => {
 
     it("should load tracking without days", async () => {
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question, type, days) VALUES (?, ?, ?, ?)",
-        [userId, "Did I exercise?", TrackingType.TRUE_FALSE, null]
+        "INSERT INTO trackings (user_id, question, days) VALUES (?, ?, ?)",
+        [userId, "Did I exercise?", null]
       );
       const trackingId = result.lastID;
 
@@ -1299,20 +1225,18 @@ describe("Tracking Model", () => {
         days: [0, 6],
       };
       await db.run(
-        "INSERT INTO trackings (user_id, question, type, days) VALUES (?, ?, ?, ?)",
+        "INSERT INTO trackings (user_id, question, days) VALUES (?, ?, ?)",
         [
           userId,
           "Question 1",
-          TrackingType.TRUE_FALSE,
           JSON.stringify(daysPattern1),
         ]
       );
       await db.run(
-        "INSERT INTO trackings (user_id, question, type, days) VALUES (?, ?, ?, ?)",
+        "INSERT INTO trackings (user_id, question, days) VALUES (?, ?, ?)",
         [
           userId,
           "Question 2",
-          TrackingType.REGISTER,
           JSON.stringify(daysPattern2),
         ]
       );
@@ -1327,12 +1251,12 @@ describe("Tracking Model", () => {
 
     it("should handle invalid days JSON gracefully", async () => {
       await db.run(
-        "INSERT INTO trackings (user_id, question, type, days) VALUES (?, ?, ?, ?)",
-        [userId, "Question 1", TrackingType.TRUE_FALSE, "invalid json"]
+        "INSERT INTO trackings (user_id, question, days) VALUES (?, ?, ?)",
+        [userId, "Question 1", "invalid json"]
       );
       await db.run(
-        "INSERT INTO trackings (user_id, question, type, days) VALUES (?, ?, ?, ?)",
-        [userId, "Question 2", TrackingType.REGISTER, null]
+        "INSERT INTO trackings (user_id, question, days) VALUES (?, ?, ?)",
+        [userId, "Question 2", null]
       );
 
       const consoleErrorSpy = vi
@@ -1523,16 +1447,16 @@ describe("Tracking Model", () => {
   describe("loadByUserId filtering", () => {
     it("should filter out Deleted trackings", async () => {
       await db.run(
-        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
-        [userId, "Running tracking", TrackingType.TRUE_FALSE, "Running"]
+        "INSERT INTO trackings (user_id, question, state) VALUES (?, ?, ?)",
+        [userId, "Running tracking", "Running"]
       );
       await db.run(
-        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
-        [userId, "Paused tracking", TrackingType.TRUE_FALSE, "Paused"]
+        "INSERT INTO trackings (user_id, question, state) VALUES (?, ?, ?)",
+        [userId, "Paused tracking", "Paused"]
       );
       await db.run(
-        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
-        [userId, "Deleted tracking", TrackingType.TRUE_FALSE, "Deleted"]
+        "INSERT INTO trackings (user_id, question, state) VALUES (?, ?, ?)",
+        [userId, "Deleted tracking", "Deleted"]
       );
 
       const trackings = await Tracking.loadByUserId(userId, db);

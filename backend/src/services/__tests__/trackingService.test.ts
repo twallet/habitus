@@ -1,13 +1,13 @@
 import { vi } from "vitest";
 import sqlite3 from "sqlite3";
 import { TrackingService } from "../trackingService.js";
-import {
-  TrackingType,
-  TrackingState,
-  DaysPatternType,
-} from "../../models/Tracking.js";
+import { TrackingState, DaysPatternType } from "../../models/Tracking.js";
 import { Database } from "../../db/database.js";
-import { Reminder, ReminderStatus } from "../../models/Reminder.js";
+import {
+  Reminder,
+  ReminderStatus,
+  ReminderValue,
+} from "../../models/Reminder.js";
 
 /**
  * Create an in-memory database for testing.
@@ -137,14 +137,14 @@ describe("TrackingService", () => {
 
     it("should return all trackings for a user", async () => {
       await testDb.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [testUserId, "Question 1", TrackingType.TRUE_FALSE]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [testUserId, "Question 1"]
       );
       // Add small delay to ensure different timestamps
       await new Promise((resolve) => setTimeout(resolve, 10));
       await testDb.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [testUserId, "Question 2", TrackingType.REGISTER]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [testUserId, "Question 2"]
       );
 
       const trackings = await trackingService.getTrackingsByUserId(testUserId);
@@ -164,12 +164,12 @@ describe("TrackingService", () => {
       const otherUserId = otherUserResult.lastID;
 
       await testDb.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [testUserId, "My Question", TrackingType.TRUE_FALSE]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [testUserId, "My Question"]
       );
       await testDb.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [otherUserId, "Other Question", TrackingType.TRUE_FALSE]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [otherUserId, "Other Question"]
       );
 
       const trackings = await trackingService.getTrackingsByUserId(testUserId);
@@ -187,8 +187,8 @@ describe("TrackingService", () => {
 
     it("should return tracking for existing id", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [testUserId, "Test Question", TrackingType.TRUE_FALSE]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [testUserId, "Test Question"]
       );
       const trackingId = result.lastID;
 
@@ -200,7 +200,6 @@ describe("TrackingService", () => {
       expect(tracking).not.toBeNull();
       expect(tracking?.id).toBe(trackingId);
       expect(tracking?.question).toBe("Test Question");
-      expect(tracking?.type).toBe(TrackingType.TRUE_FALSE);
     });
 
     it("should return null for tracking belonging to different user", async () => {
@@ -211,8 +210,8 @@ describe("TrackingService", () => {
       const otherUserId = otherUserResult.lastID;
 
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [otherUserId, "Other Question", TrackingType.TRUE_FALSE]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [otherUserId, "Other Question"]
       );
       const trackingId = result.lastID;
 
@@ -230,7 +229,6 @@ describe("TrackingService", () => {
       const tracking = await trackingService.createTracking(
         testUserId,
         "Did I exercise today?",
-        TrackingType.TRUE_FALSE,
         undefined,
         undefined,
         [{ hour: 9, minutes: 0 }]
@@ -238,7 +236,6 @@ describe("TrackingService", () => {
 
       expect(tracking).not.toBeNull();
       expect(tracking.question).toBe("Did I exercise today?");
-      expect(tracking.type).toBe(TrackingType.TRUE_FALSE);
       expect(tracking.user_id).toBe(testUserId);
       expect(tracking.id).toBeGreaterThan(0);
       expect(tracking.schedules).toBeDefined();
@@ -251,7 +248,6 @@ describe("TrackingService", () => {
       const tracking = await trackingService.createTracking(
         testUserId,
         "Did I meditate?",
-        TrackingType.TRUE_FALSE,
         "Meditation notes",
         undefined,
         [{ hour: 10, minutes: 30 }]
@@ -264,37 +260,15 @@ describe("TrackingService", () => {
 
     it("should throw error for invalid question", async () => {
       await expect(
-        trackingService.createTracking(
-          testUserId,
-          "",
-          TrackingType.TRUE_FALSE,
-          undefined,
-          undefined,
-          [{ hour: 9, minutes: 0 }]
-        )
-      ).rejects.toThrow();
-    });
-
-    it("should throw error for invalid type", async () => {
-      await expect(
-        trackingService.createTracking(
-          testUserId,
-          "Valid question",
-          "invalid_type",
-          undefined,
-          undefined,
-          [{ hour: 9, minutes: 0 }]
-        )
+        trackingService.createTracking(testUserId, "", undefined, undefined, [
+          { hour: 9, minutes: 0 },
+        ])
       ).rejects.toThrow();
     });
 
     it("should throw error when no schedules provided", async () => {
       await expect(
-        trackingService.createTracking(
-          testUserId,
-          "Valid question",
-          TrackingType.TRUE_FALSE
-        )
+        trackingService.createTracking(testUserId, "Valid question")
       ).rejects.toThrow("At least one schedule is required");
     });
 
@@ -302,7 +276,6 @@ describe("TrackingService", () => {
       const tracking = await trackingService.createTracking(
         testUserId,
         "Did I exercise today?",
-        TrackingType.TRUE_FALSE,
         undefined,
         undefined,
         [{ hour: 9, minutes: 0 }],
@@ -335,7 +308,6 @@ describe("TrackingService", () => {
       const tracking = await trackingService.createTracking(
         testUserId,
         "Did I exercise today?",
-        TrackingType.TRUE_FALSE,
         undefined,
         undefined,
         [{ hour: 9, minutes: 0 }]
@@ -357,8 +329,8 @@ describe("TrackingService", () => {
   describe("updateTracking", () => {
     it("should update tracking question", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [testUserId, "Old Question", TrackingType.TRUE_FALSE]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [testUserId, "Old Question"]
       );
       const trackingId = result.lastID;
 
@@ -371,10 +343,10 @@ describe("TrackingService", () => {
       expect(updated.question).toBe("New Question");
     });
 
-    it("should update tracking type", async () => {
+    it("should update tracking notes", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [testUserId, "Question", TrackingType.TRUE_FALSE]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [testUserId, "Question"]
       );
       const trackingId = result.lastID;
 
@@ -382,10 +354,10 @@ describe("TrackingService", () => {
         trackingId,
         testUserId,
         undefined,
-        TrackingType.REGISTER
+        "Updated notes"
       );
 
-      expect(updated.type).toBe(TrackingType.REGISTER);
+      expect(updated.notes).toBe("Updated notes");
     });
 
     it("should throw error when tracking not found", async () => {
@@ -402,8 +374,8 @@ describe("TrackingService", () => {
       const otherUserId = otherUserResult.lastID;
 
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [otherUserId, "Question", TrackingType.TRUE_FALSE]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [otherUserId, "Question"]
       );
       const trackingId = result.lastID;
 
@@ -414,8 +386,8 @@ describe("TrackingService", () => {
 
     it("should throw error when no fields to update", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [testUserId, "Question", TrackingType.TRUE_FALSE]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [testUserId, "Question"]
       );
       const trackingId = result.lastID;
 
@@ -427,11 +399,10 @@ describe("TrackingService", () => {
     it("should update or create Upcoming reminder when schedules change and tracking is Running", async () => {
       // Create tracking with schedule and days pattern
       const trackingResult = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type, state, days) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO trackings (user_id, question, state, days) VALUES (?, ?, ?, ?)",
         [
           testUserId,
           "Test Question",
-          TrackingType.TRUE_FALSE,
           "Running",
           JSON.stringify({
             pattern_type: "day_of_week",
@@ -454,6 +425,7 @@ describe("TrackingService", () => {
         user_id: testUserId,
         scheduled_time: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hour from now
         status: ReminderStatus.UPCOMING,
+        value: ReminderValue.DISMISSED,
       });
       await existingUpcoming.save(testDb);
 
@@ -461,7 +433,6 @@ describe("TrackingService", () => {
       await trackingService.updateTracking(
         trackingId,
         testUserId,
-        undefined,
         undefined,
         undefined,
         undefined,
@@ -484,11 +455,10 @@ describe("TrackingService", () => {
     it("should create Upcoming reminder when schedules change and no Upcoming exists", async () => {
       // Create tracking with schedule and days pattern
       const trackingResult = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type, state, days) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO trackings (user_id, question, state, days) VALUES (?, ?, ?, ?)",
         [
           testUserId,
           "Test Question",
-          TrackingType.TRUE_FALSE,
           "Running",
           JSON.stringify({
             pattern_type: "day_of_week",
@@ -519,7 +489,6 @@ describe("TrackingService", () => {
         undefined,
         undefined,
         undefined,
-        undefined,
         [{ hour: 10, minutes: 30 }] // New schedule time
       );
 
@@ -536,11 +505,10 @@ describe("TrackingService", () => {
     it("should update Upcoming reminder when days pattern changes and tracking is Running", async () => {
       // Create tracking with schedule and days pattern
       const trackingResult = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type, state, days) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO trackings (user_id, question, state, days) VALUES (?, ?, ?, ?)",
         [
           testUserId,
           "Test Question",
-          TrackingType.TRUE_FALSE,
           "Running",
           JSON.stringify({
             pattern_type: "day_of_week",
@@ -563,6 +531,7 @@ describe("TrackingService", () => {
         user_id: testUserId,
         scheduled_time: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
         status: ReminderStatus.UPCOMING,
+        value: ReminderValue.DISMISSED,
       });
       await existingUpcoming.save(testDb);
 
@@ -570,7 +539,6 @@ describe("TrackingService", () => {
       await trackingService.updateTracking(
         trackingId,
         testUserId,
-        undefined,
         undefined,
         undefined,
         undefined,
@@ -594,8 +562,8 @@ describe("TrackingService", () => {
   describe("deleteTracking", () => {
     it("should delete tracking", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [testUserId, "Question", TrackingType.TRUE_FALSE]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [testUserId, "Question"]
       );
       const trackingId = result.lastID;
 
@@ -622,8 +590,8 @@ describe("TrackingService", () => {
       const otherUserId = otherUserResult.lastID;
 
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [otherUserId, "Question", TrackingType.TRUE_FALSE]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [otherUserId, "Question"]
       );
       const trackingId = result.lastID;
 
@@ -636,8 +604,8 @@ describe("TrackingService", () => {
   describe("updateTrackingState", () => {
     it("should update tracking state from Running to Paused", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
-        [testUserId, "Test Question", TrackingType.TRUE_FALSE, "Running"]
+        "INSERT INTO trackings (user_id, question, state) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", "Running"]
       );
       const trackingId = result.lastID;
 
@@ -653,8 +621,8 @@ describe("TrackingService", () => {
 
     it("should update tracking state from Paused to Running", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
-        [testUserId, "Test Question", TrackingType.TRUE_FALSE, "Paused"]
+        "INSERT INTO trackings (user_id, question, state) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", "Paused"]
       );
       const trackingId = result.lastID;
 
@@ -669,8 +637,8 @@ describe("TrackingService", () => {
 
     it("should update tracking state from Paused to Archived", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
-        [testUserId, "Test Question", TrackingType.TRUE_FALSE, "Paused"]
+        "INSERT INTO trackings (user_id, question, state) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", "Paused"]
       );
       const trackingId = result.lastID;
 
@@ -685,8 +653,8 @@ describe("TrackingService", () => {
 
     it("should update tracking state from Archived to Deleted", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
-        [testUserId, "Test Question", TrackingType.TRUE_FALSE, "Archived"]
+        "INSERT INTO trackings (user_id, question, state) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", "Archived"]
       );
       const trackingId = result.lastID;
 
@@ -701,8 +669,8 @@ describe("TrackingService", () => {
 
     it("should throw error for same state transition", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
-        [testUserId, "Test Question", TrackingType.TRUE_FALSE, "Running"]
+        "INSERT INTO trackings (user_id, question, state) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", "Running"]
       );
       const trackingId = result.lastID;
 
@@ -725,8 +693,8 @@ describe("TrackingService", () => {
       ]);
 
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
-        [otherUserId, "Other Question", TrackingType.TRUE_FALSE, "Running"]
+        "INSERT INTO trackings (user_id, question, state) VALUES (?, ?, ?)",
+        [otherUserId, "Other Question", "Running"]
       );
       const trackingId = result.lastID;
 
@@ -737,8 +705,8 @@ describe("TrackingService", () => {
 
     it("should throw error for invalid state value", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
-        [testUserId, "Test Question", TrackingType.TRUE_FALSE, "Running"]
+        "INSERT INTO trackings (user_id, question, state) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", "Running"]
       );
       const trackingId = result.lastID;
 
@@ -754,11 +722,10 @@ describe("TrackingService", () => {
     it("should delete Pending and Upcoming reminders when archiving", async () => {
       // Create tracking with schedule
       const trackingResult = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type, state, days) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO trackings (user_id, question, state, days) VALUES (?, ?, ?, ?)",
         [
           testUserId,
           "Test Question",
-          TrackingType.TRUE_FALSE,
           "Running",
           JSON.stringify({
             pattern_type: "day_of_week",
@@ -783,6 +750,7 @@ describe("TrackingService", () => {
           Date.now() + 24 * 60 * 60 * 1000
         ).toISOString(),
         status: ReminderStatus.PENDING,
+        value: ReminderValue.DISMISSED,
       });
       await pendingReminder.save(testDb);
 
@@ -793,6 +761,7 @@ describe("TrackingService", () => {
         user_id: testUserId,
         scheduled_time: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
         status: ReminderStatus.UPCOMING,
+        value: ReminderValue.DISMISSED,
       });
       await upcomingReminder.save(testDb);
 
@@ -805,6 +774,7 @@ describe("TrackingService", () => {
           Date.now() - 24 * 60 * 60 * 1000
         ).toISOString(),
         status: ReminderStatus.ANSWERED,
+        value: ReminderValue.COMPLETED,
       });
       await answeredReminder.save(testDb);
 
@@ -840,11 +810,10 @@ describe("TrackingService", () => {
     it("should delete Upcoming reminders when pausing", async () => {
       // Create tracking with schedule
       const trackingResult = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type, state, days) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO trackings (user_id, question, state, days) VALUES (?, ?, ?, ?)",
         [
           testUserId,
           "Test Question",
-          TrackingType.TRUE_FALSE,
           "Running",
           JSON.stringify({
             pattern_type: "day_of_week",
@@ -869,6 +838,7 @@ describe("TrackingService", () => {
           Date.now() + 24 * 60 * 60 * 1000
         ).toISOString(),
         status: ReminderStatus.PENDING,
+        value: ReminderValue.DISMISSED,
       });
       await pendingReminder.save(testDb);
 
@@ -879,6 +849,7 @@ describe("TrackingService", () => {
         user_id: testUserId,
         scheduled_time: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
         status: ReminderStatus.UPCOMING,
+        value: ReminderValue.DISMISSED,
       });
       await upcomingReminder.save(testDb);
 
@@ -891,7 +862,7 @@ describe("TrackingService", () => {
           Date.now() - 24 * 60 * 60 * 1000
         ).toISOString(),
         status: ReminderStatus.ANSWERED,
-        answer: "Yes",
+        value: ReminderValue.COMPLETED,
       });
       await answeredReminder.save(testDb);
 
@@ -928,11 +899,10 @@ describe("TrackingService", () => {
     it("should create next reminder when resuming from Paused", async () => {
       // Create tracking with schedule
       const trackingResult = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type, state, days) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO trackings (user_id, question, state, days) VALUES (?, ?, ?, ?)",
         [
           testUserId,
           "Test Question",
-          TrackingType.TRUE_FALSE,
           "Paused",
           JSON.stringify({
             pattern_type: "day_of_week",
@@ -975,11 +945,10 @@ describe("TrackingService", () => {
     it("should create next reminder when unarchiving from Archived", async () => {
       // Create tracking with schedule
       const trackingResult = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type, state, days) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO trackings (user_id, question, state, days) VALUES (?, ?, ?, ?)",
         [
           testUserId,
           "Test Question",
-          TrackingType.TRUE_FALSE,
           "Archived",
           JSON.stringify({
             pattern_type: "day_of_week",
@@ -1022,11 +991,10 @@ describe("TrackingService", () => {
     it("should delete Pending and Upcoming reminders when transitioning from Running to Archived", async () => {
       // Create tracking with schedule
       const trackingResult = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type, state, days) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO trackings (user_id, question, state, days) VALUES (?, ?, ?, ?)",
         [
           testUserId,
           "Test Question",
-          TrackingType.TRUE_FALSE,
           "Running",
           JSON.stringify({
             pattern_type: "day_of_week",
@@ -1051,6 +1019,7 @@ describe("TrackingService", () => {
           Date.now() + 24 * 60 * 60 * 1000
         ).toISOString(),
         status: ReminderStatus.PENDING,
+        value: ReminderValue.DISMISSED,
       });
       await pendingReminder.save(testDb);
 
@@ -1061,6 +1030,7 @@ describe("TrackingService", () => {
         user_id: testUserId,
         scheduled_time: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
         status: ReminderStatus.UPCOMING,
+        value: ReminderValue.DISMISSED,
       });
       await upcomingReminder.save(testDb);
 
@@ -1073,7 +1043,7 @@ describe("TrackingService", () => {
           Date.now() - 24 * 60 * 60 * 1000
         ).toISOString(),
         status: ReminderStatus.ANSWERED,
-        answer: "Yes",
+        value: ReminderValue.COMPLETED,
       });
       await answeredReminder.save(testDb);
 
@@ -1109,11 +1079,10 @@ describe("TrackingService", () => {
     it("should delete Pending and Upcoming reminders when transitioning from Paused to Archived", async () => {
       // Create tracking with schedule
       const trackingResult = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type, state, days) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO trackings (user_id, question, state, days) VALUES (?, ?, ?, ?)",
         [
           testUserId,
           "Test Question",
-          TrackingType.TRUE_FALSE,
           "Paused",
           JSON.stringify({
             pattern_type: "day_of_week",
@@ -1138,6 +1107,7 @@ describe("TrackingService", () => {
           Date.now() + 24 * 60 * 60 * 1000
         ).toISOString(),
         status: ReminderStatus.PENDING,
+        value: ReminderValue.DISMISSED,
       });
       await pendingReminder.save(testDb);
 
@@ -1150,7 +1120,7 @@ describe("TrackingService", () => {
           Date.now() - 24 * 60 * 60 * 1000
         ).toISOString(),
         status: ReminderStatus.ANSWERED,
-        answer: "Yes",
+        value: ReminderValue.COMPLETED,
       });
       await answeredReminder.save(testDb);
 

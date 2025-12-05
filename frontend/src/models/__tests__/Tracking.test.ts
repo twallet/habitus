@@ -1,4 +1,4 @@
-import { Tracking, TrackingType, TrackingData } from "../Tracking";
+import { Tracking, TrackingData } from "../Tracking";
 
 describe("Tracking", () => {
   describe("constructor", () => {
@@ -7,7 +7,6 @@ describe("Tracking", () => {
         id: 1,
         user_id: 10,
         question: "Did you exercise today?",
-        type: TrackingType.TRUE_FALSE,
         notes: "Some notes",
         created_at: "2024-01-01T00:00:00Z",
         updated_at: "2024-01-02T00:00:00Z",
@@ -18,7 +17,6 @@ describe("Tracking", () => {
       expect(tracking.id).toBe(1);
       expect(tracking.user_id).toBe(10);
       expect(tracking.question).toBe("Did you exercise today?");
-      expect(tracking.type).toBe(TrackingType.TRUE_FALSE);
       expect(tracking.notes).toBe("Some notes");
       expect(tracking.created_at).toBe("2024-01-01T00:00:00Z");
       expect(tracking.updated_at).toBe("2024-01-02T00:00:00Z");
@@ -29,7 +27,6 @@ describe("Tracking", () => {
         id: 1,
         user_id: 10,
         question: "Did you exercise today?",
-        type: TrackingType.REGISTER,
       };
 
       const tracking = new Tracking(data);
@@ -37,7 +34,6 @@ describe("Tracking", () => {
       expect(tracking.id).toBe(1);
       expect(tracking.user_id).toBe(10);
       expect(tracking.question).toBe("Did you exercise today?");
-      expect(tracking.type).toBe(TrackingType.REGISTER);
       expect(tracking.notes).toBeUndefined();
       expect(tracking.created_at).toBeUndefined();
       expect(tracking.updated_at).toBeUndefined();
@@ -50,7 +46,6 @@ describe("Tracking", () => {
         id: 1,
         user_id: 10,
         question: "  Did you exercise?  ",
-        type: TrackingType.TRUE_FALSE,
       });
 
       const validated = tracking.validate();
@@ -59,25 +54,11 @@ describe("Tracking", () => {
       expect(validated).toBe(tracking);
     });
 
-    it("should validate and normalize type", () => {
-      const tracking = new Tracking({
-        id: 1,
-        user_id: 10,
-        question: "Did you exercise?",
-        type: "TRUE_FALSE" as TrackingType,
-      });
-
-      const validated = tracking.validate();
-
-      expect(validated.type).toBe(TrackingType.TRUE_FALSE);
-    });
-
     it("should validate and trim notes when provided", () => {
       const tracking = new Tracking({
         id: 1,
         user_id: 10,
         question: "Did you exercise?",
-        type: TrackingType.TRUE_FALSE,
         notes: "  Some notes  ",
       });
 
@@ -91,7 +72,6 @@ describe("Tracking", () => {
         id: 1,
         user_id: 10,
         question: "Did you exercise?",
-        type: TrackingType.TRUE_FALSE,
       });
 
       const validated = tracking.validate();
@@ -106,7 +86,6 @@ describe("Tracking", () => {
         id: 1,
         user_id: 10,
         question: "Did you exercise?",
-        type: TrackingType.TRUE_FALSE,
         notes: "Some notes",
         created_at: "2024-01-01T00:00:00Z",
         updated_at: "2024-01-02T00:00:00Z",
@@ -118,7 +97,6 @@ describe("Tracking", () => {
         id: 1,
         user_id: 10,
         question: "Did you exercise?",
-        type: TrackingType.TRUE_FALSE,
         notes: "Some notes",
         created_at: "2024-01-01T00:00:00Z",
         updated_at: "2024-01-02T00:00:00Z",
@@ -130,7 +108,6 @@ describe("Tracking", () => {
         id: 1,
         user_id: 10,
         question: "Did you exercise?",
-        type: TrackingType.REGISTER,
       });
 
       const json = tracking.toJSON();
@@ -139,7 +116,6 @@ describe("Tracking", () => {
         id: 1,
         user_id: 10,
         question: "Did you exercise?",
-        type: TrackingType.REGISTER,
         notes: undefined,
         created_at: undefined,
         updated_at: undefined,
@@ -186,49 +162,6 @@ describe("Tracking", () => {
       const maxLengthQuestion = "a".repeat(Tracking.MAX_QUESTION_LENGTH);
       const validated = Tracking.validateQuestion(maxLengthQuestion);
       expect(validated).toBe(maxLengthQuestion);
-    });
-  });
-
-  describe("validateType", () => {
-    it("should return TRUE_FALSE for valid true_false type", () => {
-      const type = Tracking.validateType("true_false");
-      expect(type).toBe(TrackingType.TRUE_FALSE);
-    });
-
-    it("should return REGISTER for valid register type", () => {
-      const type = Tracking.validateType("register");
-      expect(type).toBe(TrackingType.REGISTER);
-    });
-
-    it("should normalize case and trim whitespace", () => {
-      expect(Tracking.validateType("  TRUE_FALSE  ")).toBe(
-        TrackingType.TRUE_FALSE
-      );
-      expect(Tracking.validateType("  REGISTER  ")).toBe(TrackingType.REGISTER);
-      expect(Tracking.validateType("True_False")).toBe(TrackingType.TRUE_FALSE);
-      expect(Tracking.validateType("Register")).toBe(TrackingType.REGISTER);
-    });
-
-    it("should throw TypeError if type is not a string", () => {
-      expect(() => {
-        // @ts-expect-error Testing invalid input
-        Tracking.validateType(123);
-      }).toThrow(TypeError);
-      expect(() => {
-        // @ts-expect-error Testing invalid input
-        Tracking.validateType(null);
-      }).toThrow(TypeError);
-      expect(() => {
-        // @ts-expect-error Testing invalid input
-        Tracking.validateType(undefined);
-      }).toThrow(TypeError);
-    });
-
-    it("should throw TypeError for invalid type", () => {
-      expect(() => Tracking.validateType("invalid")).toThrow(TypeError);
-      expect(() => Tracking.validateType("invalid")).toThrow(
-        `Type must be either "${TrackingType.TRUE_FALSE}" or "${TrackingType.REGISTER}"`
-      );
     });
   });
 

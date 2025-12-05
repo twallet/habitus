@@ -434,17 +434,17 @@ describe("Database", () => {
 
       // Create tracking with valid user_id
       const trackingResult = await db.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [userResult.lastID, "Test question?", "true_false"]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [userResult.lastID, "Test question?"]
       );
       expect(trackingResult.lastID).toBeGreaterThan(0);
 
       // Try to create tracking with invalid user_id (should fail)
       await expect(
-        db.run(
-          "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-          [99999, "Invalid question?", "true_false"]
-        )
+        db.run("INSERT INTO trackings (user_id, question) VALUES (?, ?)", [
+          99999,
+          "Invalid question?",
+        ])
       ).rejects.toThrow();
 
       // Delete user (should cascade delete tracking)

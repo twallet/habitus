@@ -6,7 +6,7 @@ import { Database } from "../../db/database.js";
 import { TrackingService } from "../../services/trackingService.js";
 import { ReminderService } from "../../services/reminderService.js";
 import { AiService } from "../../services/aiService.js";
-import { TrackingType, TrackingState } from "../../models/Tracking.js";
+import { TrackingState } from "../../models/Tracking.js";
 import * as authMiddlewareModule from "../../middleware/authMiddleware.js";
 import * as servicesModule from "../../services/index.js";
 
@@ -202,12 +202,12 @@ describe("Trackings Routes", () => {
     it("should return all trackings for authenticated user", async () => {
       // Insert test trackings
       await testDb.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [testUserId, "Question 1", "true_false"]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [testUserId, "Question 1"]
       );
       await testDb.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [testUserId, "Question 2", "register"]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [testUserId, "Question 2"]
       );
 
       const response = await request(app)
@@ -254,8 +254,8 @@ describe("Trackings Routes", () => {
 
     it("should return tracking for existing id", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [testUserId, "Test Question", "true_false"]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [testUserId, "Test Question"]
       );
       const trackingId = result.lastID;
 
@@ -266,7 +266,6 @@ describe("Trackings Routes", () => {
       expect(response.status).toBe(200);
       expect(response.body.id).toBe(trackingId);
       expect(response.body.question).toBe("Test Question");
-      expect(response.body.type).toBe("true_false");
     });
 
     it("should return 400 for invalid tracking ID", async () => {
@@ -303,13 +302,11 @@ describe("Trackings Routes", () => {
         .set("Authorization", "Bearer test-token")
         .send({
           question: "Did I exercise today?",
-          type: "true_false",
           schedules: [{ hour: 9, minutes: 0 }],
         });
 
       expect(response.status).toBe(201);
       expect(response.body.question).toBe("Did I exercise today?");
-      expect(response.body.type).toBe("true_false");
       expect(response.body.user_id).toBe(testUserId);
       expect(response.body.schedules).toBeDefined();
       expect(response.body.schedules.length).toBe(1);
@@ -321,7 +318,6 @@ describe("Trackings Routes", () => {
         .set("Authorization", "Bearer test-token")
         .send({
           question: "Did I meditate?",
-          type: "true_false",
           notes: "Meditation notes",
           schedules: [{ hour: 10, minutes: 30 }],
         });
@@ -336,20 +332,6 @@ describe("Trackings Routes", () => {
         .post("/api/trackings")
         .set("Authorization", "Bearer test-token")
         .send({
-          type: "true_false",
-          schedules: [{ hour: 9, minutes: 0 }],
-        });
-
-      expect(response.status).toBe(400);
-      expect(response.body.error).toContain("required");
-    });
-
-    it("should return 400 when type is missing", async () => {
-      const response = await request(app)
-        .post("/api/trackings")
-        .set("Authorization", "Bearer test-token")
-        .send({
-          question: "Test question",
           schedules: [{ hour: 9, minutes: 0 }],
         });
 
@@ -363,7 +345,18 @@ describe("Trackings Routes", () => {
         .set("Authorization", "Bearer test-token")
         .send({
           question: "Test question",
-          type: "true_false",
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain("schedule");
+    });
+
+    it("should return 400 when schedules are missing", async () => {
+      const response = await request(app)
+        .post("/api/trackings")
+        .set("Authorization", "Bearer test-token")
+        .send({
+          question: "Test question",
         });
 
       expect(response.status).toBe(400);
@@ -376,20 +369,6 @@ describe("Trackings Routes", () => {
         .set("Authorization", "Bearer test-token")
         .send({
           question: "",
-          type: "true_false",
-          schedules: [{ hour: 9, minutes: 0 }],
-        });
-
-      expect(response.status).toBe(400);
-    });
-
-    it("should return 400 for invalid type", async () => {
-      const response = await request(app)
-        .post("/api/trackings")
-        .set("Authorization", "Bearer test-token")
-        .send({
-          question: "Test question",
-          type: "invalid_type",
           schedules: [{ hour: 9, minutes: 0 }],
         });
 
@@ -412,7 +391,6 @@ describe("Trackings Routes", () => {
         .set("Authorization", "Bearer test-token")
         .send({
           question: "Test question",
-          type: "true_false",
           schedules: [{ hour: 9, minutes: 0 }],
         });
 
@@ -434,7 +412,6 @@ describe("Trackings Routes", () => {
         .set("Authorization", "Bearer test-token")
         .send({
           question: "Test question",
-          type: "true_false",
           schedules: [{ hour: 9, minutes: 0 }],
         });
 
@@ -446,8 +423,8 @@ describe("Trackings Routes", () => {
   describe("PUT /api/trackings/:id", () => {
     it("should update tracking", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [testUserId, "Old Question", "true_false"]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [testUserId, "Old Question"]
       );
       const trackingId = result.lastID;
 
@@ -476,8 +453,8 @@ describe("Trackings Routes", () => {
 
     it("should return 400 when no fields to update", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [testUserId, "Test Question", "true_false"]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [testUserId, "Test Question"]
       );
       const trackingId = result.lastID;
 
@@ -504,8 +481,8 @@ describe("Trackings Routes", () => {
 
     it("should return 400 when schedules is empty array", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [testUserId, "Test Question", "true_false"]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [testUserId, "Test Question"]
       );
       const trackingId = result.lastID;
 
@@ -532,8 +509,8 @@ describe("Trackings Routes", () => {
       } as any);
 
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [testUserId, "Test Question", "true_false"]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [testUserId, "Test Question"]
       );
       const trackingId = result.lastID;
 
@@ -558,8 +535,8 @@ describe("Trackings Routes", () => {
       } as any);
 
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [testUserId, "Test Question", "true_false"]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [testUserId, "Test Question"]
       );
       const trackingId = result.lastID;
 
@@ -578,8 +555,8 @@ describe("Trackings Routes", () => {
   describe("DELETE /api/trackings/:id", () => {
     it("should delete tracking", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [testUserId, "Test Question", "true_false"]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [testUserId, "Test Question"]
       );
       const trackingId = result.lastID;
 
@@ -637,8 +614,8 @@ describe("Trackings Routes", () => {
   describe("PATCH /api/trackings/:id/state", () => {
     it("should update tracking state from Running to Paused", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
-        [testUserId, "Test Question", "true_false", "Running"]
+        "INSERT INTO trackings (user_id, question, state) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", "Running"]
       );
       const trackingId = result.lastID;
 
@@ -654,8 +631,8 @@ describe("Trackings Routes", () => {
 
     it("should update tracking state from Paused to Running", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
-        [testUserId, "Test Question", "true_false", "Paused"]
+        "INSERT INTO trackings (user_id, question, state) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", "Paused"]
       );
       const trackingId = result.lastID;
 
@@ -670,8 +647,8 @@ describe("Trackings Routes", () => {
 
     it("should update tracking state from Paused to Archived", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
-        [testUserId, "Test Question", "true_false", "Paused"]
+        "INSERT INTO trackings (user_id, question, state) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", "Paused"]
       );
       const trackingId = result.lastID;
 
@@ -686,8 +663,8 @@ describe("Trackings Routes", () => {
 
     it("should update tracking state from Archived to Deleted", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
-        [testUserId, "Test Question", "true_false", "Archived"]
+        "INSERT INTO trackings (user_id, question, state) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", "Archived"]
       );
       const trackingId = result.lastID;
 
@@ -702,8 +679,8 @@ describe("Trackings Routes", () => {
 
     it("should return 400 for same state transition", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
-        [testUserId, "Test Question", "true_false", "Running"]
+        "INSERT INTO trackings (user_id, question, state) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", "Running"]
       );
       const trackingId = result.lastID;
 
@@ -718,8 +695,8 @@ describe("Trackings Routes", () => {
 
     it("should return 400 when state is missing", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
-        [testUserId, "Test Question", "true_false", "Running"]
+        "INSERT INTO trackings (user_id, question, state) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", "Running"]
       );
       const trackingId = result.lastID;
 
@@ -734,8 +711,8 @@ describe("Trackings Routes", () => {
 
     it("should return 400 for invalid state value", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type, state) VALUES (?, ?, ?, ?)",
-        [testUserId, "Test Question", "true_false", "Running"]
+        "INSERT INTO trackings (user_id, question, state) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", "Running"]
       );
       const trackingId = result.lastID;
 
@@ -782,15 +759,8 @@ describe("Trackings Routes", () => {
 
     it("should return debug log with trackings and no reminders", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type, icon, days, notes) VALUES (?, ?, ?, ?, ?, ?)",
-        [
-          testUserId,
-          "Test Question",
-          "true_false",
-          "🏃",
-          "1111111",
-          "Test notes",
-        ]
+        "INSERT INTO trackings (user_id, question, icon, days, notes) VALUES (?, ?, ?, ?, ?)",
+        [testUserId, "Test Question", "🏃", "1111111", "Test notes"]
       );
       const trackingId = result.lastID;
 
@@ -818,8 +788,8 @@ describe("Trackings Routes", () => {
 
     it("should return debug log with trackings and reminders", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [testUserId, "Test Question", "true_false"]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [testUserId, "Test Question"]
       );
       const trackingId = result.lastID;
 
@@ -831,14 +801,14 @@ describe("Trackings Routes", () => {
 
       // Insert reminder
       const reminderResult = await testDb.run(
-        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, answer, notes, status) VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, notes, status, value) VALUES (?, ?, ?, ?, ?, ?)",
         [
           trackingId,
           testUserId,
           "2024-01-01 09:00:00",
-          "Yes",
           "Reminder notes",
           "Answered",
+          "Completed",
         ]
       );
       const reminderId = reminderResult.lastID;
@@ -861,8 +831,8 @@ describe("Trackings Routes", () => {
     it("should return debug log with multiple trackings and reminders", async () => {
       // Insert first tracking
       const result1 = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [testUserId, "Question 1", "true_false"]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [testUserId, "Question 1"]
       );
       const trackingId1 = result1.lastID;
 
@@ -873,8 +843,8 @@ describe("Trackings Routes", () => {
 
       // Insert second tracking
       const result2 = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [testUserId, "Question 2", "register"]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [testUserId, "Question 2"]
       );
       const trackingId2 = result2.lastID;
 
@@ -902,8 +872,8 @@ describe("Trackings Routes", () => {
 
     it("should handle trackings with null icon, days, and notes", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [testUserId, "Test Question", "true_false"]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [testUserId, "Test Question"]
       );
       const trackingId = result.lastID;
 
@@ -924,8 +894,8 @@ describe("Trackings Routes", () => {
 
     it("should handle trackings with multiple schedules", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [testUserId, "Test Question", "true_false"]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [testUserId, "Test Question"]
       );
       const trackingId = result.lastID;
 
@@ -950,10 +920,10 @@ describe("Trackings Routes", () => {
       expect(response.body.log).toContain("Schedules=[09:00, 14:30, 20:15]");
     });
 
-    it("should handle reminders with null answer and notes", async () => {
+    it("should handle reminders with null notes", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, type) VALUES (?, ?, ?)",
-        [testUserId, "Test Question", "true_false"]
+        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
+        [testUserId, "Test Question"]
       );
       const trackingId = result.lastID;
 
@@ -963,8 +933,15 @@ describe("Trackings Routes", () => {
       );
 
       await testDb.run(
-        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, answer, notes, status) VALUES (?, ?, ?, ?, ?, ?)",
-        [trackingId, testUserId, "2024-01-01 09:00:00", null, null, "Pending"]
+        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, notes, status, value) VALUES (?, ?, ?, ?, ?, ?)",
+        [
+          trackingId,
+          testUserId,
+          "2024-01-01 09:00:00",
+          null,
+          "Pending",
+          "Dismissed",
+        ]
       );
 
       const response = await request(app)
