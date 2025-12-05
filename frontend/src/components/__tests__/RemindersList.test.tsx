@@ -971,7 +971,7 @@ describe("RemindersList", () => {
         consoleErrorSpy.mockRestore();
     });
 
-    it("should handle error when deleting reminder fails", async () => {
+    it("should handle error when dismissing reminder fails", async () => {
         const reminders: ReminderData[] = [
             {
                 id: 1,
@@ -984,14 +984,16 @@ describe("RemindersList", () => {
         ];
 
         const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => { });
-        const errorDeleteReminder = vi.fn().mockRejectedValue(new Error("Delete failed"));
+        const errorDismissReminder = vi.fn().mockRejectedValue(new Error("Dismiss failed"));
 
         (useRemindersModule.useReminders as any).mockReturnValue({
             reminders,
             isLoading: false,
             updateReminder: mockUpdateReminder,
             snoozeReminder: mockSnoozeReminder,
-            deleteReminder: errorDeleteReminder,
+            completeReminder: mockCompleteReminder,
+            dismissReminder: errorDismissReminder,
+            deleteReminder: mockDeleteReminder,
             refreshReminders: mockRefreshReminders,
         });
         (useTrackingsModule.useTrackings as any).mockReturnValue({
@@ -1005,7 +1007,7 @@ describe("RemindersList", () => {
         await userEvent.click(dismissButton);
 
         await waitFor(() => {
-            expect(errorDeleteReminder).toHaveBeenCalledWith(1);
+            expect(errorDismissReminder).toHaveBeenCalledWith(1);
         });
 
         consoleErrorSpy.mockRestore();
