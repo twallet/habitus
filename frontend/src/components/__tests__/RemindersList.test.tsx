@@ -220,6 +220,8 @@ describe("RemindersList", () => {
             isLoading: false,
             updateReminder: mockUpdateReminder,
             snoozeReminder: mockSnoozeReminder,
+            completeReminder: mockCompleteReminder,
+            dismissReminder: mockDismissReminder,
             deleteReminder: mockDeleteReminder,
             refreshReminders: mockRefreshReminders,
         });
@@ -234,7 +236,7 @@ describe("RemindersList", () => {
         await userEvent.click(dismissButton);
 
         await waitFor(() => {
-            expect(mockDeleteReminder).toHaveBeenCalledWith(1);
+            expect(mockDismissReminder).toHaveBeenCalledWith(1);
         });
     });
 
@@ -1151,6 +1153,8 @@ describe("RemindersList", () => {
                 isLoading: false,
                 updateReminder: mockUpdateReminder,
                 snoozeReminder: mockSnoozeReminder,
+                completeReminder: mockCompleteReminder,
+                dismissReminder: mockDismissReminder,
                 deleteReminder: mockDeleteReminder,
                 refreshReminders: mockRefreshReminders,
             });
@@ -1246,6 +1250,8 @@ describe("RemindersList", () => {
                 isLoading: false,
                 updateReminder: mockUpdateReminder,
                 snoozeReminder: mockSnoozeReminder,
+                completeReminder: mockCompleteReminder,
+                dismissReminder: mockDismissReminder,
                 deleteReminder: mockDeleteReminder,
                 refreshReminders: mockRefreshReminders,
             });
