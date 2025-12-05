@@ -228,9 +228,7 @@ describe("Trackings Routes", () => {
         servicesModule.ServiceManager,
         "getTrackingService"
       ).mockReturnValue({
-        getTrackingsByUserId: vi
-          .fn()
-          .mockRejectedValue(new Error("Database error")),
+        getAllByUserId: vi.fn().mockRejectedValue(new Error("Database error")),
       } as any);
 
       const response = await request(app)
@@ -283,7 +281,7 @@ describe("Trackings Routes", () => {
         servicesModule.ServiceManager,
         "getTrackingService"
       ).mockReturnValue({
-        getTrackingById: vi.fn().mockRejectedValue(new Error("Database error")),
+        getById: vi.fn().mockRejectedValue(new Error("Database error")),
       } as any);
 
       const response = await request(app)
@@ -959,9 +957,7 @@ describe("Trackings Routes", () => {
         servicesModule.ServiceManager,
         "getTrackingService"
       ).mockReturnValue({
-        getTrackingsByUserId: vi
-          .fn()
-          .mockRejectedValue(new Error("Database error")),
+        getAllByUserId: vi.fn().mockRejectedValue(new Error("Database error")),
       } as any);
 
       const response = await request(app)

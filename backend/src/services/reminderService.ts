@@ -142,37 +142,23 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
   }
 
   /**
-   * Get all reminders for a user.
-   * Delegates to base class getAllByUserId method.
-   * @param userId - The user ID
-   * @returns Promise resolving to array of reminder data
-   * @public
-   */
-  async getRemindersByUserId(userId: number): Promise<ReminderData[]> {
-    return this.getAllByUserId(userId);
-  }
-
-  /**
-   * Get a reminder by ID.
-   * Delegates to base class getById method with custom expired reminder handling.
-   * @param reminderId - The reminder ID
+   * Get reminder by ID.
+   * Overrides base class to add custom expired reminder handling.
+   * @param id - The reminder ID
    * @param userId - The user ID (for authorization)
    * @returns Promise resolving to reminder data or null if not found
    * @public
    */
-  async getReminderById(
-    reminderId: number,
-    userId: number
-  ): Promise<ReminderData | null> {
+  async getById(id: number, userId: number): Promise<ReminderData | null> {
     console.log(
-      `[${new Date().toISOString()}] REMINDER | Fetching reminder by ID: ${reminderId} for userId: ${userId}`
+      `[${new Date().toISOString()}] REMINDER | Fetching reminder by ID: ${id} for userId: ${userId}`
     );
 
-    const reminder = await this.loadModelById(reminderId, userId);
+    const reminder = await this.loadModelById(id, userId);
 
     if (!reminder) {
       console.log(
-        `[${new Date().toISOString()}] REMINDER | Reminder not found for ID: ${reminderId} and userId: ${userId}`
+        `[${new Date().toISOString()}] REMINDER | Reminder not found for ID: ${id} and userId: ${userId}`
       );
       return null;
     }

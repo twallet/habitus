@@ -19,9 +19,7 @@ const getReminderServiceInstance = () => ServiceManager.getReminderService();
 router.get("/", authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
-    const reminders = await getReminderServiceInstance().getRemindersByUserId(
-      userId
-    );
+    const reminders = await getReminderServiceInstance().getAllByUserId(userId);
     res.json(reminders);
   } catch (error) {
     console.error(
@@ -52,7 +50,7 @@ router.get(
         return res.status(400).json({ error: "Invalid reminder ID" });
       }
 
-      const reminder = await getReminderServiceInstance().getReminderById(
+      const reminder = await getReminderServiceInstance().getById(
         reminderId,
         userId
       );

@@ -49,7 +49,7 @@ describe("Services Index", () => {
       ServiceManager.initializeServices(db);
       const trackingService = ServiceManager.getTrackingService();
       expect(trackingService).toBeDefined();
-      expect(typeof trackingService.getTrackingsByUserId).toBe("function");
+      expect(typeof trackingService.getAllByUserId).toBe("function");
     });
   });
 

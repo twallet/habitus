@@ -161,7 +161,7 @@ describe("ReminderService", () => {
     });
   });
 
-  describe("getRemindersByUserId", () => {
+  describe("getAllByUserId", () => {
     it("should delete orphaned reminders (reminders whose tracking no longer exists)", async () => {
       // Create a tracking
       const trackingResult = await testDb.run(
@@ -204,7 +204,7 @@ describe("ReminderService", () => {
       await testDb.run("DELETE FROM trackings WHERE id = ?", [trackingId]);
 
       // Fetch reminders - should detect and delete orphaned reminder
-      const reminders = await reminderService.getRemindersByUserId(testUserId);
+      const reminders = await reminderService.getAllByUserId(testUserId);
 
       // Verify orphaned reminder was deleted
       const afterReminder = await Reminder.loadById(
@@ -233,7 +233,7 @@ describe("ReminderService", () => {
         scheduledTime2
       );
 
-      const reminders = await reminderService.getRemindersByUserId(testUserId);
+      const reminders = await reminderService.getAllByUserId(testUserId);
 
       expect(reminders.length).toBe(2);
       expect(reminders[0].scheduled_time).toBe(scheduledTime1);
@@ -256,7 +256,7 @@ describe("ReminderService", () => {
       );
 
       // Fetch reminders - should update expired upcoming reminder to Pending and create new Upcoming reminder
-      const reminders = await reminderService.getRemindersByUserId(testUserId);
+      const reminders = await reminderService.getAllByUserId(testUserId);
 
       const updatedReminder = reminders.find((r) => r.id === created.id);
       expect(updatedReminder).not.toBeUndefined();
@@ -291,7 +291,7 @@ describe("ReminderService", () => {
       );
 
       // Fetch reminders - upcoming reminders should appear even if scheduled_time is in the future
-      const reminders = await reminderService.getRemindersByUserId(testUserId);
+      const reminders = await reminderService.getAllByUserId(testUserId);
       const reminder = reminders.find((r) => r.id === created.id);
       expect(reminder).not.toBeUndefined(); // Upcoming reminders should appear
       expect(reminder!.status).toBe(ReminderStatus.UPCOMING); // Should not be updated to Pending
@@ -307,7 +307,7 @@ describe("ReminderService", () => {
     });
   });
 
-  describe("getReminderById", () => {
+  describe("getById", () => {
     it("should get a reminder by ID", async () => {
       const scheduledTime = new Date().toISOString();
       const created = await reminderService.createReminder(
@@ -316,17 +316,14 @@ describe("ReminderService", () => {
         scheduledTime
       );
 
-      const reminder = await reminderService.getReminderById(
-        created.id,
-        testUserId
-      );
+      const reminder = await reminderService.getById(created.id, testUserId);
 
       expect(reminder).not.toBeNull();
       expect(reminder!.id).toBe(created.id);
     });
 
     it("should return null if reminder not found", async () => {
-      const reminder = await reminderService.getReminderById(999, testUserId);
+      const reminder = await reminderService.getById(999, testUserId);
 
       expect(reminder).toBeNull();
     });
@@ -347,18 +344,13 @@ describe("ReminderService", () => {
       );
 
       // Fetch reminder by ID - should update expired upcoming reminder to Pending and create new Upcoming reminder
-      const reminder = await reminderService.getReminderById(
-        created.id,
-        testUserId
-      );
+      const reminder = await reminderService.getById(created.id, testUserId);
 
       expect(reminder).not.toBeNull();
       expect(reminder!.status).toBe(ReminderStatus.PENDING);
 
       // Verify a new Upcoming reminder was created for the tracking
-      const allReminders = await reminderService.getRemindersByUserId(
-        testUserId
-      );
+      const allReminders = await reminderService.getAllByUserId(testUserId);
       const upcomingReminders = allReminders.filter(
         (r) =>
           r.tracking_id === testTrackingId &&
@@ -550,10 +542,7 @@ describe("ReminderService", () => {
 
       await reminderService.deleteReminder(created.id, testUserId);
 
-      const deleted = await reminderService.getReminderById(
-        created.id,
-        testUserId
-      );
+      const deleted = await reminderService.getById(created.id, testUserId);
       expect(deleted).toBeNull();
 
       // Check that a new reminder was created (may be in future, so check database directly)

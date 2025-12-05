@@ -129,9 +129,9 @@ describe("TrackingService", () => {
     vi.restoreAllMocks();
   });
 
-  describe("getTrackingsByUserId", () => {
+  describe("getAllByUserId", () => {
     it("should return empty array when no trackings exist", async () => {
-      const trackings = await trackingService.getTrackingsByUserId(testUserId);
+      const trackings = await trackingService.getAllByUserId(testUserId);
       expect(trackings).toEqual([]);
     });
 
@@ -147,7 +147,7 @@ describe("TrackingService", () => {
         [testUserId, "Question 2"]
       );
 
-      const trackings = await trackingService.getTrackingsByUserId(testUserId);
+      const trackings = await trackingService.getAllByUserId(testUserId);
 
       expect(trackings).toHaveLength(2);
       // Check that both questions are present (order may vary due to timing)
@@ -172,16 +172,16 @@ describe("TrackingService", () => {
         [otherUserId, "Other Question"]
       );
 
-      const trackings = await trackingService.getTrackingsByUserId(testUserId);
+      const trackings = await trackingService.getAllByUserId(testUserId);
 
       expect(trackings).toHaveLength(1);
       expect(trackings[0].question).toBe("My Question");
     });
   });
 
-  describe("getTrackingById", () => {
+  describe("getById", () => {
     it("should return null for non-existent tracking", async () => {
-      const tracking = await trackingService.getTrackingById(999, testUserId);
+      const tracking = await trackingService.getById(999, testUserId);
       expect(tracking).toBeNull();
     });
 
@@ -192,10 +192,7 @@ describe("TrackingService", () => {
       );
       const trackingId = result.lastID;
 
-      const tracking = await trackingService.getTrackingById(
-        trackingId,
-        testUserId
-      );
+      const tracking = await trackingService.getById(trackingId, testUserId);
 
       expect(tracking).not.toBeNull();
       expect(tracking?.id).toBe(trackingId);
@@ -215,10 +212,7 @@ describe("TrackingService", () => {
       );
       const trackingId = result.lastID;
 
-      const tracking = await trackingService.getTrackingById(
-        trackingId,
-        testUserId
-      );
+      const tracking = await trackingService.getById(trackingId, testUserId);
 
       expect(tracking).toBeNull();
     });
@@ -569,10 +563,7 @@ describe("TrackingService", () => {
 
       await trackingService.deleteTracking(trackingId, testUserId);
 
-      const tracking = await trackingService.getTrackingById(
-        trackingId,
-        testUserId
-      );
+      const tracking = await trackingService.getById(trackingId, testUserId);
       expect(tracking).toBeNull();
     });
 

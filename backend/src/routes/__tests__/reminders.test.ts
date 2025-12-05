@@ -357,10 +357,7 @@ describe("Reminders Routes", () => {
 
       await request(app).delete(`/api/reminders/${created.id}`).expect(200);
 
-      const reminder = await reminderService.getReminderById(
-        created.id,
-        testUserId
-      );
+      const reminder = await reminderService.getById(created.id, testUserId);
       expect(reminder).toBeNull();
     });
 

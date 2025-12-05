@@ -19,9 +19,7 @@ const getTrackingServiceInstance = () => ServiceManager.getTrackingService();
 router.get("/", authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
-    const trackings = await getTrackingServiceInstance().getTrackingsByUserId(
-      userId
-    );
+    const trackings = await getTrackingServiceInstance().getAllByUserId(userId);
     res.json(trackings);
   } catch (error) {
     console.error(
@@ -48,8 +46,8 @@ router.get(
       const trackingService = getTrackingServiceInstance();
       const reminderService = ServiceManager.getReminderService();
 
-      const trackings = await trackingService.getTrackingsByUserId(userId);
-      const reminders = await reminderService.getRemindersByUserId(userId);
+      const trackings = await trackingService.getAllByUserId(userId);
+      const reminders = await reminderService.getAllByUserId(userId);
 
       // Group reminders by tracking_id
       const remindersByTracking = new Map<number, typeof reminders>();
@@ -212,7 +210,7 @@ router.get(
         return res.status(400).json({ error: "Invalid tracking ID" });
       }
 
-      const tracking = await getTrackingServiceInstance().getTrackingById(
+      const tracking = await getTrackingServiceInstance().getById(
         trackingId,
         userId
       );

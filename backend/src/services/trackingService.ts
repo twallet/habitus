@@ -76,32 +76,6 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
   }
 
   /**
-   * Get all trackings for a user.
-   * Delegates to base class getAllByUserId method.
-   * @param userId - The user ID
-   * @returns Promise resolving to array of tracking data
-   * @public
-   */
-  async getTrackingsByUserId(userId: number): Promise<TrackingData[]> {
-    return this.getAllByUserId(userId);
-  }
-
-  /**
-   * Get a tracking by ID.
-   * Delegates to base class getById method.
-   * @param trackingId - The tracking ID
-   * @param userId - The user ID (for authorization)
-   * @returns Promise resolving to tracking data or null if not found
-   * @public
-   */
-  async getTrackingById(
-    trackingId: number,
-    userId: number
-  ): Promise<TrackingData | null> {
-    return this.getById(trackingId, userId);
-  }
-
-  /**
    * Create a new tracking.
    * @param userId - The user ID
    * @param question - The tracking question
@@ -170,7 +144,7 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
     }
 
     // Retrieve created tracking
-    const tracking = await this.getTrackingById(result.lastID, validatedUserId);
+    const tracking = await this.getById(result.lastID, validatedUserId);
     if (!tracking) {
       console.error(
         `[${new Date().toISOString()}] TRACKING | Failed to retrieve created tracking for userId: ${userId}`
@@ -217,7 +191,7 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
     );
 
     // Verify tracking exists and belongs to user
-    const existingTracking = await this.getTrackingById(trackingId, userId);
+    const existingTracking = await this.getById(trackingId, userId);
     if (!existingTracking) {
       console.warn(
         `[${new Date().toISOString()}] TRACKING | Update failed: tracking not found for ID: ${trackingId} and userId: ${userId}`
@@ -304,7 +278,7 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
     }
 
     // Retrieve updated tracking
-    const tracking = await this.getTrackingById(trackingId, userId);
+    const tracking = await this.getById(trackingId, userId);
     if (!tracking) {
       console.error(
         `[${new Date().toISOString()}] TRACKING | Failed to retrieve updated tracking for ID: ${trackingId}`
@@ -401,7 +375,7 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
     );
 
     // Verify tracking exists and belongs to user
-    const existingTracking = await this.getTrackingById(trackingId, userId);
+    const existingTracking = await this.getById(trackingId, userId);
     if (!existingTracking) {
       console.warn(
         `[${new Date().toISOString()}] TRACKING | Update state failed: tracking not found for ID: ${trackingId} and userId: ${userId}`
@@ -423,7 +397,7 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
     );
 
     // Retrieve updated tracking
-    const tracking = await this.getTrackingById(trackingId, userId);
+    const tracking = await this.getById(trackingId, userId);
     if (!tracking) {
       console.error(
         `[${new Date().toISOString()}] TRACKING | Failed to retrieve updated tracking for ID: ${trackingId}`
@@ -460,7 +434,7 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
     );
 
     // Verify tracking exists and belongs to user before deleting
-    const existingTracking = await this.getTrackingById(trackingId, userId);
+    const existingTracking = await this.getById(trackingId, userId);
     if (!existingTracking) {
       console.warn(
         `[${new Date().toISOString()}] TRACKING | Delete failed: tracking not found for ID: ${trackingId} and userId: ${userId}`
