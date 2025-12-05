@@ -1261,15 +1261,8 @@ describe("RemindersList", () => {
 
             render(<RemindersList reminders={reminders} dismissReminder={propDismissReminder} />);
 
-            const skipButton = screen.getByRole("button", { name: "Skip reminder" });
-            await userEvent.click(skipButton);
-
-            await waitFor(() => {
-                expect(screen.getByText("Skip reminder")).toBeInTheDocument();
-            });
-
-            const confirmButton = screen.getByRole("button", { name: /^skip$/i });
-            await userEvent.click(confirmButton);
+            const dismissButton = screen.getByRole("button", { name: "Dismiss reminder" });
+            await userEvent.click(dismissButton);
 
             await waitFor(() => {
                 expect(propDismissReminder).toHaveBeenCalledWith(1);
