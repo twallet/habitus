@@ -1110,7 +1110,7 @@ describe("RemindersList", () => {
 
             // Should show reminder from props (id: 1), not from hook (id: 2)
             expect(screen.getByText("Did I exercise?")).toBeInTheDocument();
-            expect(screen.getByRole("button", { name: "Answer reminder" })).toBeInTheDocument();
+            expect(screen.getByRole("button", { name: "Complete reminder" })).toBeInTheDocument();
         });
 
         it("should use provided isLoadingReminders prop instead of hook", () => {
