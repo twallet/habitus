@@ -20,6 +20,7 @@ vi.mock("../../hooks/useTrackings", () => ({
 describe("RemindersList", () => {
     const mockUpdateReminder = vi.fn().mockResolvedValue(undefined);
     const mockSnoozeReminder = vi.fn().mockResolvedValue(undefined);
+    const mockCompleteReminder = vi.fn().mockResolvedValue(undefined);
     const mockDeleteReminder = vi.fn().mockResolvedValue(undefined);
     const mockRefreshReminders = vi.fn().mockResolvedValue(undefined);
 
@@ -37,6 +38,7 @@ describe("RemindersList", () => {
             isLoading: false,
             updateReminder: mockUpdateReminder,
             snoozeReminder: mockSnoozeReminder,
+            completeReminder: mockCompleteReminder,
             deleteReminder: mockDeleteReminder,
             refreshReminders: mockRefreshReminders,
         });
@@ -101,7 +103,7 @@ describe("RemindersList", () => {
 
         expect(screen.getByText("Did I exercise?")).toBeInTheDocument();
         // Check that action buttons are present (indicating reminders are shown)
-        expect(screen.getByRole("button", { name: "Answer reminder" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Complete reminder" })).toBeInTheDocument();
     });
 
     it("should show answer when reminder has answer", () => {
@@ -163,7 +165,7 @@ describe("RemindersList", () => {
         expect(screen.getByText("📝")).toBeInTheDocument();
     });
 
-    it("should open answer modal when Answer is clicked", async () => {
+    it("should complete reminder when Complete is clicked", async () => {
         const reminders: ReminderData[] = [
             {
                 id: 1,
@@ -180,6 +182,7 @@ describe("RemindersList", () => {
             isLoading: false,
             updateReminder: mockUpdateReminder,
             snoozeReminder: mockSnoozeReminder,
+            completeReminder: mockCompleteReminder,
             deleteReminder: mockDeleteReminder,
             refreshReminders: mockRefreshReminders,
         });
@@ -189,12 +192,12 @@ describe("RemindersList", () => {
 
         render(<RemindersList />);
 
-        // Click the Answer/Edit action button directly
-        const answerButton = screen.getByRole("button", { name: "Answer reminder" });
-        await userEvent.click(answerButton);
+        // Click the Complete action button directly
+        const completeButton = screen.getByRole("button", { name: "Complete reminder" });
+        await userEvent.click(completeButton);
 
         await waitFor(() => {
-            expect(screen.getByText("Answer reminder")).toBeInTheDocument();
+            expect(mockCompleteReminder).toHaveBeenCalledWith(1);
         });
     });
 
@@ -868,13 +871,19 @@ describe("RemindersList", () => {
 
         render(<RemindersList />);
 
-        // Click the Answer/Edit action button directly
-        const answerButton = screen.getByRole("button", { name: "Answer reminder" });
-        await userEvent.click(answerButton);
+        // Click on notes to start editing
+        const notesCell = screen.getByText("—");
+        await userEvent.click(notesCell);
 
-        // Wait for modal and try to save (this will fail)
+        // Type notes
+        const notesTextarea = screen.getByPlaceholderText("Add notes...");
+        await userEvent.type(notesTextarea, "Test notes");
+
+        // Save notes by pressing Enter (this will fail)
+        await userEvent.keyboard("{Enter}");
+
         await waitFor(() => {
-            expect(screen.getByText("Answer reminder")).toBeInTheDocument();
+            expect(errorUpdateReminder).toHaveBeenCalled();
         });
 
         consoleErrorSpy.mockRestore();
@@ -966,7 +975,7 @@ describe("RemindersList", () => {
 
     // Note: Answered reminders are now hidden from the reminders table, so this test is no longer applicable
 
-    it("should show Answer button for pending reminders", async () => {
+    it("should show Complete button for pending reminders", async () => {
         const reminders: ReminderData[] = [
             {
                 id: 1,
@@ -992,9 +1001,9 @@ describe("RemindersList", () => {
 
         render(<RemindersList />);
 
-        // Should show Answer button (action button)
-        const answerButton = screen.getByRole("button", { name: "Answer reminder" });
-        expect(answerButton).toBeInTheDocument();
+        // Should show Complete button (action button)
+        const completeButton = screen.getByRole("button", { name: "Complete reminder" });
+        expect(completeButton).toBeInTheDocument();
     });
 
     it("should show unknown tracking when tracking not found", () => {
@@ -1147,22 +1156,19 @@ describe("RemindersList", () => {
 
             render(<RemindersList reminders={reminders} updateReminder={propUpdateReminder} />);
 
-            const answerButton = screen.getByRole("button", { name: "Answer reminder" });
-            await userEvent.click(answerButton);
+            // Click on notes to start editing
+            const notesCell = screen.getByText("—");
+            await userEvent.click(notesCell);
+
+            // Type notes
+            const notesTextarea = screen.getByPlaceholderText("Add notes...");
+            await userEvent.type(notesTextarea, "Test notes");
+
+            // Save notes by pressing Enter
+            await userEvent.keyboard("{Enter}");
 
             await waitFor(() => {
-                expect(screen.getByText("Answer reminder")).toBeInTheDocument();
-            });
-
-            // Fill in answer and save (TRUE_FALSE type shows Yes/No buttons)
-            const yesButton = screen.getByRole("button", { name: /🟢 yes/i });
-            await userEvent.click(yesButton);
-
-            const saveButton = screen.getByRole("button", { name: /save/i });
-            await userEvent.click(saveButton);
-
-            await waitFor(() => {
-                expect(propUpdateReminder).toHaveBeenCalledWith(1, "Yes", "", ReminderStatus.ANSWERED);
+                expect(propUpdateReminder).toHaveBeenCalledWith(1, "Test notes");
                 expect(mockUpdateReminder).not.toHaveBeenCalled();
             });
         });
