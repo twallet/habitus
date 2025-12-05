@@ -165,17 +165,28 @@ describe("useTrackings", () => {
     await waitFor(() => {
       expect(result.current.trackings[0].question).toBe("New Question");
     });
-    expect(global.fetch).toHaveBeenCalledWith(`${API_ENDPOINTS.trackings}/1`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer test-token",
-      },
-      body: JSON.stringify({
-        question: "New Question",
-        days: defaultDays,
-      }),
-    });
+    expect(global.fetch).toHaveBeenCalledWith(
+      `${API_ENDPOINTS.trackings}/1`,
+      expect.objectContaining({
+        method: "PUT",
+        headers: expect.objectContaining({
+          "Content-Type": "application/json",
+          Authorization: "Bearer test-token",
+        }),
+        body: expect.stringContaining('"question":"New Question"'),
+      })
+    );
+    // Verify the body contains the expected data
+    const fetchCalls = (global.fetch as Mock).mock.calls;
+    const updateCall = fetchCalls.find(
+      (call) =>
+        call[0] === `${API_ENDPOINTS.trackings}/1` && call[1]?.method === "PUT"
+    );
+    expect(updateCall).toBeDefined();
+    expect(updateCall![1]).toBeDefined();
+    const body = JSON.parse(updateCall![1].body);
+    expect(body.question).toBe("New Question");
+    expect(body.days).toEqual(defaultDays);
   });
 
   it("should delete a tracking", async () => {

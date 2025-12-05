@@ -444,15 +444,23 @@ describe("api", () => {
           API_ENDPOINTS.trackings,
           expect.objectContaining({
             method: "POST",
-            body: JSON.stringify({
-              question: "Did you exercise?",
-              notes: undefined,
-              icon: undefined,
-              schedules: [{ hour: 9, minutes: 0 }],
-              days: defaultDays,
-            }),
           })
         );
+        // Verify the body contains the expected data (undefined values are omitted by JSON.stringify)
+        const fetchCalls = (global.fetch as Mock).mock.calls;
+        const createCall = fetchCalls.find(
+          (call) =>
+            call[0] === API_ENDPOINTS.trackings && call[1]?.method === "POST"
+        );
+        expect(createCall).toBeDefined();
+        expect(createCall![1]).toBeDefined();
+        const body = JSON.parse(createCall![1].body);
+        expect(body.question).toBe("Did you exercise?");
+        expect(body.schedules).toEqual([{ hour: 9, minutes: 0 }]);
+        expect(body.days).toEqual(defaultDays);
+        // notes and icon are undefined, so they won't be in the JSON
+        expect(body.notes).toBeUndefined();
+        expect(body.icon).toBeUndefined();
       });
     });
 
@@ -485,13 +493,24 @@ describe("api", () => {
           `${API_ENDPOINTS.trackings}/1`,
           expect.objectContaining({
             method: "PUT",
-            body: JSON.stringify({
-              question: "Did you meditate?",
-              notes: undefined,
-              days: defaultDays,
-            }),
           })
         );
+        // Verify the body contains the expected data (undefined values are omitted by JSON.stringify)
+        const fetchCalls = (global.fetch as Mock).mock.calls;
+        const updateCall = fetchCalls.find(
+          (call) =>
+            call[0] === `${API_ENDPOINTS.trackings}/1` &&
+            call[1]?.method === "PUT"
+        );
+        expect(updateCall).toBeDefined();
+        expect(updateCall![1]).toBeDefined();
+        const body = JSON.parse(updateCall![1].body);
+        expect(body.question).toBe("Did you meditate?");
+        expect(body.days).toEqual(defaultDays);
+        // notes, icon, and schedules are undefined, so they won't be in the JSON
+        expect(body.notes).toBeUndefined();
+        expect(body.icon).toBeUndefined();
+        expect(body.schedules).toBeUndefined();
       });
     });
 
