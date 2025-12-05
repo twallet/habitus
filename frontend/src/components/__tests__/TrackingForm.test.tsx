@@ -3,7 +3,7 @@ import { vi } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { TrackingForm } from "../TrackingForm";
-import { TrackingType, DaysPatternType } from "../../models/Tracking";
+import { DaysPatternType } from "../../models/Tracking";
 
 describe("TrackingForm", () => {
     const mockOnSubmit = vi.fn().mockResolvedValue(undefined);
@@ -42,7 +42,6 @@ describe("TrackingForm", () => {
         expect(
             screen.getByRole("textbox", { name: /^question \*/i })
         ).toBeInTheDocument();
-        expect(screen.getByRole("combobox", { name: /^type \*/i })).toBeInTheDocument();
         expect(screen.getByRole("button", { name: /^create$/i })).toBeInTheDocument();
     });
 
@@ -54,12 +53,8 @@ describe("TrackingForm", () => {
         const questionInput = screen.getByRole("textbox", {
             name: /^question \*/i,
         });
-        const typeSelect = screen.getByRole("combobox", {
-            name: /^type \*/i,
-        });
 
         await user.type(questionInput, "Did I exercise today?");
-        await user.selectOptions(typeSelect, TrackingType.TRUE_FALSE);
         await addSchedule(user);
         const submitButton = screen.getByRole("button", { name: /^create$/i });
         await user.click(submitButton);
@@ -67,7 +62,6 @@ describe("TrackingForm", () => {
         await waitFor(() => {
             expect(mockOnSubmit).toHaveBeenCalledWith(
                 "Did I exercise today?",
-                TrackingType.TRUE_FALSE,
                 undefined,
                 undefined,
                 [{ hour: 9, minutes: 0 }],
@@ -99,7 +93,6 @@ describe("TrackingForm", () => {
         await waitFor(() => {
             expect(mockOnSubmit).toHaveBeenCalledWith(
                 "Did I exercise?",
-                TrackingType.TRUE_FALSE,
                 "Exercise notes",
                 undefined,
                 [{ hour: 9, minutes: 0 }],
