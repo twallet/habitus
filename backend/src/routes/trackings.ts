@@ -141,12 +141,19 @@ router.get(
               // Format notes
               const notesStr = reminder.notes || "null";
 
+              // Format value (Answer) - null for Pending status, otherwise show the value
+              const answerStr =
+                reminder.status === "Pending"
+                  ? "null"
+                  : reminder.value || "null";
+
               const reminderAttrs = [
                 `ID=${reminder.id}`,
                 `TrackingID=${reminder.tracking_id}`,
                 `UserID=${reminder.user_id}`,
                 `ScheduledTime=${scheduledTime}`,
                 `Status=${reminder.status}`,
+                `Answer=${answerStr}`,
                 `Notes=${notesStr}`,
                 `Created=${reminder.created_at}`,
                 `Updated=${reminder.updated_at}`,
