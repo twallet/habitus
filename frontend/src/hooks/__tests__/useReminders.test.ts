@@ -2,8 +2,13 @@
 import { vi, type Mock } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
 import { useReminders } from "../useReminders";
-import { ReminderData, ReminderStatus } from "../../models/Reminder";
+import {
+  ReminderData,
+  ReminderStatus,
+  ReminderValue,
+} from "../../models/Reminder";
 import { API_ENDPOINTS } from "../../config/api";
+import { tokenManager } from "../base/TokenManager.js";
 
 // Mock fetch
 global.fetch = vi.fn();
@@ -26,6 +31,8 @@ describe("useReminders", () => {
     (global.fetch as Mock).mockReset();
     (global.fetch as Mock).mockClear();
     localStorage.clear();
+    // Stop any existing polling and reset TokenManager state
+    tokenManager.stopPolling();
     // Reset document.hidden
     Object.defineProperty(document, "hidden", {
       writable: true,
@@ -64,6 +71,7 @@ describe("useReminders", () => {
           user_id: 1,
           scheduled_time: "2024-01-01T10:00:00Z",
           status: ReminderStatus.PENDING,
+          value: ReminderValue.COMPLETED,
         },
       ];
 
@@ -251,6 +259,7 @@ describe("useReminders", () => {
         user_id: 1,
         scheduled_time: "2024-01-01T10:00:00Z",
         status: ReminderStatus.PENDING,
+        value: ReminderValue.COMPLETED,
       };
 
       const updatedReminder: ReminderData = {
@@ -279,7 +288,6 @@ describe("useReminders", () => {
 
       await result.current.updateReminder(
         1,
-        "Yes",
         "Some notes",
         ReminderStatus.ANSWERED
       );
@@ -315,6 +323,7 @@ describe("useReminders", () => {
         user_id: 1,
         scheduled_time: "2024-01-01T10:00:00Z",
         status: ReminderStatus.PENDING,
+        value: ReminderValue.COMPLETED,
       };
 
       localStorage.setItem(TOKEN_KEY, "valid-token");
@@ -332,9 +341,9 @@ describe("useReminders", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      await expect(result.current.updateReminder(1, "Yes")).rejects.toThrow(
-        "Update failed"
-      );
+      await expect(
+        result.current.updateReminder(1, "Some notes")
+      ).rejects.toThrow("Update failed");
     });
   });
 
@@ -346,6 +355,7 @@ describe("useReminders", () => {
         user_id: 1,
         scheduled_time: "2024-01-01T10:00:00Z",
         status: ReminderStatus.PENDING,
+        value: ReminderValue.COMPLETED,
       };
 
       const upcomingReminder: ReminderData = {
@@ -405,6 +415,7 @@ describe("useReminders", () => {
         user_id: 1,
         scheduled_time: "2024-01-01T10:00:00Z",
         status: ReminderStatus.PENDING,
+        value: ReminderValue.COMPLETED,
       };
 
       localStorage.setItem(TOKEN_KEY, "valid-token");
@@ -436,6 +447,7 @@ describe("useReminders", () => {
         user_id: 1,
         scheduled_time: "2024-01-01T10:00:00Z",
         status: ReminderStatus.PENDING,
+        value: ReminderValue.COMPLETED,
       };
 
       localStorage.setItem(TOKEN_KEY, "valid-token");
@@ -496,6 +508,7 @@ describe("useReminders", () => {
         user_id: 1,
         scheduled_time: "2024-01-01T10:00:00Z",
         status: ReminderStatus.PENDING,
+        value: ReminderValue.COMPLETED,
       };
 
       localStorage.setItem(TOKEN_KEY, "valid-token");
@@ -538,6 +551,7 @@ describe("useReminders", () => {
           user_id: 1,
           scheduled_time: "2024-01-01T10:00:00Z",
           status: ReminderStatus.PENDING,
+          value: ReminderValue.COMPLETED,
         },
       ];
 
@@ -576,6 +590,7 @@ describe("useReminders", () => {
           user_id: 1,
           scheduled_time: "2024-01-01T10:00:00Z",
           status: ReminderStatus.PENDING,
+          value: ReminderValue.COMPLETED,
         },
         {
           id: 2,
@@ -583,6 +598,7 @@ describe("useReminders", () => {
           user_id: 1,
           scheduled_time: "2024-01-01T11:00:00Z",
           status: ReminderStatus.PENDING,
+          value: ReminderValue.COMPLETED,
         },
       ];
 
@@ -728,16 +744,23 @@ describe("useReminders", () => {
       vi.useFakeTimers();
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
 
-      // Change token
+      // Ensure polling interval is set up by advancing time slightly
+      // This ensures the interval is running before we change the token
+      await act(async () => {
+        vi.advanceTimersByTime(100);
+        await Promise.resolve();
+      });
+
+      // Change token - this should be detected by polling
       act(() => {
         localStorage.setItem(TOKEN_KEY, "token2");
       });
 
-      // Advance timer - should detect token change via polling interval (500ms)
+      // Advance timer by more than the polling interval (500ms) to ensure it fires
       await act(async () => {
-        vi.advanceTimersByTime(500);
-        // Wait for all pending timers and promises to complete
-        await vi.runAllTimersAsync();
+        vi.advanceTimersByTime(600);
+        // Flush any pending microtasks
+        await Promise.resolve();
       });
 
       // Switch to real timers for waitFor
