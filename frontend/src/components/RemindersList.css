@@ -131,6 +131,13 @@
   vertical-align: middle;
   min-width: 200px;
   max-width: 400px;
+  display: table-cell;
+}
+
+.cell-tracking > * {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
 }
 
 .tracking-text {
@@ -138,7 +145,6 @@
   align-items: center;
   gap: 8px;
   line-height: 1.5;
-  vertical-align: middle;
 }
 
 .tracking-icon {
