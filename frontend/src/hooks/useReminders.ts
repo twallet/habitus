@@ -382,12 +382,6 @@ export function useReminders() {
       `[${new Date().toISOString()}] FRONTEND_REMINDERS | Snoozing reminder ID: ${reminderId} for ${minutes} minutes`
     );
 
-    // Optimistically remove the original reminder from the list
-    // (it will be deleted on the backend and replaced with an Upcoming reminder)
-    setReminders((prevReminders) =>
-      prevReminders.filter((r) => r.id !== reminderId)
-    );
-
     try {
       const reminderData = await apiClient.snoozeReminder(reminderId, minutes);
       console.log(
@@ -395,13 +389,18 @@ export function useReminders() {
           reminderData.id
         }`
       );
-      // Add/update the Upcoming reminder from server response
-      // (the backend deletes the original and returns the Upcoming reminder)
-      setReminders((prevReminders) => {
-        // Remove any existing reminder with the same ID (in case it's an update)
-        const filtered = prevReminders.filter((r) => r.id !== reminderData.id);
-        // Add the new/updated Upcoming reminder
-        return [...filtered, reminderData];
+      // Optimistically update the reminder in state immediately for instant UI feedback
+      // This ensures the Next Reminder column in TrackingsList updates immediately
+      // Use flushSync to ensure the state update triggers an immediate re-render
+      flushSync(() => {
+        setReminders((prevReminders) => {
+          // Remove the original reminder and any existing reminder with the same ID
+          const filtered = prevReminders.filter(
+            (r) => r.id !== reminderId && r.id !== reminderData.id
+          );
+          // Add the new/updated Upcoming reminder with updated scheduled_time
+          return [...filtered, reminderData];
+        });
       });
       return reminderData;
     } catch (error) {
