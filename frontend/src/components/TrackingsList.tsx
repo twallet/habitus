@@ -611,6 +611,32 @@ export function TrackingsList({
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>(null);
     const [showFilters, setShowFilters] = useState<boolean>(false);
 
+    // Expose createTracking function to parent via callback
+    useEffect(() => {
+        if (onCreateTracking) {
+            onCreateTracking(hookCreateTracking);
+        }
+    }, [hookCreateTracking, onCreateTracking]);
+
+    // Use props if provided, otherwise use hook data
+    const trackings = propTrackings ?? hookTrackings;
+    const isLoading = propIsLoading ?? hookIsLoading;
+
+    // Filter out orphaned reminders (reminders with tracking_id that doesn't exist in trackings)
+    // This should never happen - every reminder must have a valid tracking
+    const validReminders = reminders.filter((reminder) => {
+        const trackingExists = trackings.some((t) => t.id === reminder.tracking_id);
+        if (!trackingExists) {
+            if (import.meta.env.DEV) {
+                console.error(
+                    `Reminder ${reminder.id} references tracking ${reminder.tracking_id} which does not exist. This should never happen.`
+                );
+            }
+            return false;
+        }
+        return true;
+    });
+
     /**
      * Get the next reminder time for a tracking.
      * @param trackingId - Tracking ID
@@ -619,7 +645,7 @@ export function TrackingsList({
      */
     const getNextReminderTime = (trackingId: number): string | null => {
         const now = new Date();
-        const upcomingReminders = reminders
+        const upcomingReminders = validReminders
             .filter((reminder) =>
                 reminder.tracking_id === trackingId &&
                 (reminder.status === ReminderStatus.PENDING || reminder.status === ReminderStatus.UPCOMING) &&
@@ -631,17 +657,6 @@ export function TrackingsList({
 
         return upcomingReminders.length > 0 ? upcomingReminders[0].scheduled_time : null;
     };
-
-    // Expose createTracking function to parent via callback
-    useEffect(() => {
-        if (onCreateTracking) {
-            onCreateTracking(hookCreateTracking);
-        }
-    }, [hookCreateTracking, onCreateTracking]);
-
-    // Use props if provided, otherwise use hook data
-    const trackings = propTrackings ?? hookTrackings;
-    const isLoading = propIsLoading ?? hookIsLoading;
 
     // Refresh reminders when trackings change (e.g., after creating or editing a tracking)
     // Use a ref to track previous tracking data to detect changes

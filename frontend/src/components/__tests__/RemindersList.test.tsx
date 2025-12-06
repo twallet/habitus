@@ -871,7 +871,7 @@ describe("RemindersList", () => {
         expect(completeButton).toBeInTheDocument();
     });
 
-    it("should show unknown tracking when tracking not found", () => {
+    it("should filter out reminders with missing trackings (data integrity check)", () => {
         const reminders: ReminderData[] = [
             {
                 id: 1,
@@ -897,9 +897,23 @@ describe("RemindersList", () => {
             trackings: [],
         });
 
+        const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => { });
+
         render(<RemindersList />);
 
-        expect(screen.getByText("Unknown tracking")).toBeInTheDocument();
+        // Reminder with missing tracking should be filtered out (not displayed)
+        // This should never happen - every reminder must have a valid tracking
+        expect(screen.getByText(/no reminders match the current filters/i)).toBeInTheDocument();
+        expect(screen.queryByText("Unknown tracking")).not.toBeInTheDocument();
+
+        // In development mode, an error should be logged
+        if (import.meta.env.DEV) {
+            expect(consoleSpy).toHaveBeenCalledWith(
+                expect.stringContaining("references tracking 999 which does not exist")
+            );
+        }
+
+        consoleSpy.mockRestore();
     });
 
     it("should call dismissReminder when Dismiss is clicked", async () => {

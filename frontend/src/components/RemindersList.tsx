@@ -377,8 +377,24 @@ export function RemindersList({
         return reminder.status === ReminderStatus.PENDING;
     });
 
+    // Filter out reminders with missing trackings (data integrity check)
+    // This should never happen - every reminder must have a valid tracking
+    const remindersWithValidTrackings = remindersForDisplay.filter((reminder) => {
+        const tracking = getTracking(reminder.tracking_id);
+        if (!tracking && !isLoadingTrackings) {
+            // Trackings are loaded but this reminder's tracking is missing - data integrity issue
+            if (import.meta.env.DEV) {
+                console.error(
+                    `Reminder ${reminder.id} references tracking ${reminder.tracking_id} which does not exist. This should never happen.`
+                );
+            }
+            return false;
+        }
+        return true;
+    });
+
     // Apply filters and sorting
-    const filteredReminders = ReminderFilter.applyFilters(remindersForDisplay, filterState, getTracking);
+    const filteredReminders = ReminderFilter.applyFilters(remindersWithValidTrackings, filterState, getTracking);
     const filteredAndSortedReminders = ReminderSorter.sortReminders(filteredReminders, sortColumn, sortDirection, getTracking);
 
     /**
@@ -820,25 +836,30 @@ export function RemindersList({
                         <tbody>
                             {filteredAndSortedReminders.map((reminder) => {
                                 const tracking = getTracking(reminder.tracking_id);
+                                // This should never happen - we filtered out reminders with missing trackings above
+                                if (!tracking) {
+                                    if (import.meta.env.DEV) {
+                                        console.error(
+                                            `Reminder ${reminder.id} has no tracking. This should never happen.`
+                                        );
+                                    }
+                                    return null;
+                                }
                                 const isSnoozeOpen = openSnoozeId === reminder.id;
 
                                 return (
                                     <tr key={reminder.id} className="reminder-row">
                                         <td className="cell-time">{ReminderFormatter.formatDateTime(reminder.scheduled_time)}</td>
                                         <td className="cell-tracking">
-                                            {tracking ? (
-                                                <span
-                                                    title={ReminderFormatter.buildTrackingTooltip(tracking)}
-                                                    className="tracking-text"
-                                                >
-                                                    {tracking.icon && (
-                                                        <span className="tracking-icon">{tracking.icon}</span>
-                                                    )}
-                                                    {ReminderFormatter.truncateText(tracking.question, 50)}
-                                                </span>
-                                            ) : (
-                                                "Unknown tracking"
-                                            )}
+                                            <span
+                                                title={ReminderFormatter.buildTrackingTooltip(tracking)}
+                                                className="tracking-text"
+                                            >
+                                                {tracking.icon && (
+                                                    <span className="tracking-icon">{tracking.icon}</span>
+                                                )}
+                                                {ReminderFormatter.truncateText(tracking.question, 50)}
+                                            </span>
                                         </td>
                                         <td className="cell-notes">
                                             <textarea
