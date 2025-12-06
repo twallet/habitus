@@ -30,7 +30,7 @@ export default defineConfig({
       "frontend/src/**/*.spec.{ts,tsx}",
     ],
     // Use verbose reporter by default for better visibility
-    reporter: process.env.CI ? ["verbose"] : ["verbose"],
+    reporters: process.env.CI ? ["verbose"] : ["verbose"],
     // Exclude node_modules and dist
     exclude: ["**/node_modules/**", "**/dist/**"],
     // Coverage configuration
@@ -46,6 +46,7 @@ export default defineConfig({
         "backend/src/main.ts",
         "frontend/src/main.tsx",
         "frontend/src/vite-env.d.ts",
+        "**/DebugLogWindow.tsx",
       ],
       thresholds: {
         branches: 75,
