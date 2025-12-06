@@ -351,7 +351,7 @@
 
 .notes-icon {
   font-size: 1.2rem;
-  cursor: help;
+  cursor: default;
   display: inline-block;
   line-height: 1;
 }

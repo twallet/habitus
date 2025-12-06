@@ -1040,6 +1040,9 @@ export function TrackingsList({
                                     </button>
                                 </div>
                             </th>
+                            <th className="col-notes">
+                                Notes
+                            </th>
                             <th className="col-times">
                                 <button
                                     type="button"
@@ -1069,9 +1072,6 @@ export function TrackingsList({
                                         </span>
                                     )}
                                 </button>
-                            </th>
-                            <th className="col-notes">
-                                Notes
                             </th>
                             <th className="col-next-reminder">
                                 <button
@@ -1199,18 +1199,6 @@ export function TrackingsList({
                                             {TrackingFormatter.truncateText(tracking.question, 50)}
                                         </button>
                                     </td>
-                                    <td
-                                        className="cell-times"
-                                        title={!tracking.schedules || tracking.schedules.length === 0 || tracking.schedules.length > 1 ? TrackingFormatter.formatAllTimes(tracking.schedules) : undefined}
-                                    >
-                                        {TrackingFormatter.formatTimesDisplay(tracking.schedules)}
-                                    </td>
-                                    <td
-                                        className="cell-frequency"
-                                        title={getNextReminderTime(tracking.id) ? undefined : "No upcoming reminder"}
-                                    >
-                                        {TrackingFormatter.formatFrequency(tracking.days)}
-                                    </td>
                                     <td className="cell-notes">
                                         {tracking.notes && tracking.notes.trim() ? (
                                             <span
@@ -1223,6 +1211,18 @@ export function TrackingsList({
                                         ) : (
                                             <span className="notes-empty">—</span>
                                         )}
+                                    </td>
+                                    <td
+                                        className="cell-times"
+                                        title={!tracking.schedules || tracking.schedules.length === 0 || tracking.schedules.length > 1 ? TrackingFormatter.formatAllTimes(tracking.schedules) : undefined}
+                                    >
+                                        {TrackingFormatter.formatTimesDisplay(tracking.schedules)}
+                                    </td>
+                                    <td
+                                        className="cell-frequency"
+                                        title={getNextReminderTime(tracking.id) ? undefined : "No upcoming reminder"}
+                                    >
+                                        {TrackingFormatter.formatFrequency(tracking.days)}
                                     </td>
                                     <td className="cell-next-reminder">
                                         {TrackingFormatter.formatNextReminderTimeDisplay(getNextReminderTime(tracking.id))}
