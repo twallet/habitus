@@ -1070,6 +1070,9 @@ export function TrackingsList({
                                     )}
                                 </button>
                             </th>
+                            <th className="col-notes">
+                                Notes
+                            </th>
                             <th className="col-next-reminder">
                                 <button
                                     type="button"
@@ -1207,6 +1210,19 @@ export function TrackingsList({
                                         title={getNextReminderTime(tracking.id) ? undefined : "No upcoming reminder"}
                                     >
                                         {TrackingFormatter.formatFrequency(tracking.days)}
+                                    </td>
+                                    <td className="cell-notes">
+                                        {tracking.notes && tracking.notes.trim() ? (
+                                            <span
+                                                className="notes-icon"
+                                                title={tracking.notes}
+                                                aria-label={`Notes: ${tracking.notes}`}
+                                            >
+                                                📝
+                                            </span>
+                                        ) : (
+                                            <span className="notes-empty">—</span>
+                                        )}
                                     </td>
                                     <td className="cell-next-reminder">
                                         {TrackingFormatter.formatNextReminderTimeDisplay(getNextReminderTime(tracking.id))}

@@ -249,6 +249,11 @@
   min-width: 150px;
 }
 
+.trackings-table th.col-notes {
+  width: 60px;
+  text-align: center;
+}
+
 .trackings-table th.col-next-reminder {
   min-width: 180px;
 }
@@ -337,6 +342,23 @@
 .cell-frequency {
   color: var(--text-secondary);
   font-size: 0.8125rem;
+}
+
+.cell-notes {
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.notes-icon {
+  font-size: 1.2rem;
+  cursor: help;
+  display: inline-block;
+  line-height: 1;
+}
+
+.notes-empty {
+  color: var(--text-secondary);
+  opacity: 0.5;
 }
 
 .cell-next-reminder {
