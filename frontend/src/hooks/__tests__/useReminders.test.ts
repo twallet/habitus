@@ -218,15 +218,17 @@ describe("useReminders", () => {
 
       // Advance timer to trigger the polling interval check
       // The polling interval fires every 500ms, so advancing by 500ms should trigger it
+      // We advance by slightly more to ensure the interval definitely fires
       await act(async () => {
-        // Advance to exactly when the interval should fire (500ms from last check)
+        // Advance to when the interval should fire (500ms from last check)
         vi.advanceTimersByTime(500);
-        // Process microtasks to allow the interval callback to execute
+        // Process microtasks multiple times to ensure the interval callback executes
+        // and any async operations complete
         await Promise.resolve();
         await Promise.resolve();
-        // Advance a bit more to ensure any scheduled operations complete
-        vi.advanceTimersByTime(10);
-        // Process microtasks again to ensure the fetch promise resolves
+        await Promise.resolve();
+        // Advance a tiny bit more to catch any edge cases
+        vi.advanceTimersByTime(1);
         await Promise.resolve();
         await Promise.resolve();
       });
@@ -789,15 +791,17 @@ describe("useReminders", () => {
 
       // Advance timer to trigger the polling interval check
       // The polling interval fires every 500ms, so advancing by 500ms should trigger it
+      // We advance by slightly more to ensure the interval definitely fires
       await act(async () => {
-        // Advance to exactly when the interval should fire (500ms from last check)
+        // Advance to when the interval should fire (500ms from last check)
         vi.advanceTimersByTime(500);
-        // Process microtasks to allow the interval callback to execute
+        // Process microtasks multiple times to ensure the interval callback executes
+        // and any async operations complete
         await Promise.resolve();
         await Promise.resolve();
-        // Advance a bit more to ensure any scheduled operations complete
-        vi.advanceTimersByTime(10);
-        // Process microtasks again to ensure the fetch promise resolves
+        await Promise.resolve();
+        // Advance a tiny bit more to catch any edge cases
+        vi.advanceTimersByTime(1);
         await Promise.resolve();
         await Promise.resolve();
       });
