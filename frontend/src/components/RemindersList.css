@@ -243,6 +243,47 @@
   outline-offset: 2px;
 }
 
+.action-button.action-complete {
+  background: #c8e6c9;
+  border-color: #81c784;
+  color: #2e7d32;
+}
+
+.action-button.action-complete:hover {
+  background: #a5d6a7;
+  border-color: #66bb6a;
+}
+
+.action-button.action-dismiss {
+  background: #ffcdd2;
+  border-color: #ef5350;
+  color: #c62828;
+}
+
+.action-button.action-dismiss:hover {
+  background: #ef9a9a;
+  border-color: #e53935;
+}
+
+.notes-textarea {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-family: inherit;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  resize: vertical;
+  min-height: 40px;
+}
+
+.notes-textarea:focus {
+  outline: 2px solid #00c8ff;
+  outline-offset: 1px;
+  border-color: #00c8ff;
+}
+
 .snooze-menu {
   position: fixed;
   min-width: 120px;

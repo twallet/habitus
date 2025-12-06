@@ -351,10 +351,10 @@ export function RemindersList({
     const [openSnoozeId, setOpenSnoozeId] = useState<number | null>(null);
     const [snoozeMenuPosition, setSnoozeMenuPosition] = useState<{ top: number; right: number } | null>(null);
     const [editingNotesId, setEditingNotesId] = useState<number | null>(null);
-    const [editedNotes, setEditedNotes] = useState<string>("");
+    const [notesValues, setNotesValues] = useState<Record<number, string>>({});
     const actionRefs = useRef<Record<number, HTMLDivElement | null>>({});
     const snoozeMenuRefs = useRef<Record<number, HTMLDivElement | null>>({});
-    const notesTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+    const notesTextareaRefs = useRef<Record<number, HTMLTextAreaElement | null>>({});
 
     // Filter and sort state
     const [filterState, setFilterState] = useState<FilterState>({
@@ -378,26 +378,6 @@ export function RemindersList({
         return trackings.find((t) => t.id === trackingId);
     }, [trackings]);
 
-    /**
-     * Get the next reminder time for a tracking after dismissing the current one.
-     * @param trackingId - Tracking ID
-     * @returns Next reminder scheduled time (ISO string) or null if not found
-     * @internal
-     */
-    const getNextReminderTime = useCallback((trackingId: number): string | null => {
-        const now = new Date();
-        const upcomingReminders = reminders
-            .filter((reminder) =>
-                reminder.tracking_id === trackingId &&
-                (reminder.status === ReminderStatus.PENDING || reminder.status === ReminderStatus.UPCOMING) &&
-                new Date(reminder.scheduled_time) > now
-            )
-            .sort((a, b) =>
-                new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime()
-            );
-
-        return upcomingReminders.length > 0 ? upcomingReminders[0].scheduled_time : null;
-    }, [reminders]);
 
     // Filter reminders for display: show all Pending reminders
     // Answered reminders are hidden (they should not appear in the reminders table)
@@ -599,15 +579,6 @@ export function RemindersList({
 
 
 
-    /**
-     * Handle starting notes editing.
-     * @param reminder - Reminder data
-     * @internal
-     */
-    const handleStartEditingNotes = (reminder: ReminderData) => {
-        setEditingNotesId(reminder.id);
-        setEditedNotes(reminder.notes || "");
-    };
 
     /**
      * Handle saving notes.
@@ -615,10 +586,10 @@ export function RemindersList({
      * @internal
      */
     const handleSaveNotes = async (reminderId: number) => {
+        const notesToSave = notesValues[reminderId] ?? "";
         try {
-            await updateReminder(reminderId, editedNotes);
+            await updateReminder(reminderId, notesToSave);
             setEditingNotesId(null);
-            setEditedNotes("");
             if (onMessage) {
                 onMessage("Notes updated successfully", "success");
             }
@@ -637,11 +608,19 @@ export function RemindersList({
 
     /**
      * Handle canceling notes editing.
+     * @param reminderId - Reminder ID
      * @internal
      */
-    const handleCancelEditingNotes = () => {
+    const handleCancelEditingNotes = (reminderId: number) => {
         setEditingNotesId(null);
-        setEditedNotes("");
+        // Reset to original notes value
+        const reminder = reminders.find(r => r.id === reminderId);
+        if (reminder) {
+            setNotesValues(prev => ({
+                ...prev,
+                [reminderId]: reminder.notes || ""
+            }));
+        }
     };
 
     /**
@@ -659,23 +638,21 @@ export function RemindersList({
             handleSaveNotes(reminderId);
         } else if (e.key === "Escape") {
             e.preventDefault();
-            handleCancelEditingNotes();
+            handleCancelEditingNotes(reminderId);
         }
     };
 
     /**
-     * Focus notes textarea when editing starts.
+     * Initialize notes values from reminders.
      * @internal
      */
     useEffect(() => {
-        if (editingNotesId && notesTextareaRef.current) {
-            notesTextareaRef.current.focus();
-            notesTextareaRef.current.setSelectionRange(
-                notesTextareaRef.current.value.length,
-                notesTextareaRef.current.value.length
-            );
-        }
-    }, [editingNotesId]);
+        const newNotesValues: Record<number, string> = {};
+        reminders.forEach(reminder => {
+            newNotesValues[reminder.id] = reminder.notes || "";
+        });
+        setNotesValues(newNotesValues);
+    }, [reminders]);
 
     /**
      * Close dropdowns when clicking outside.
@@ -890,9 +867,6 @@ export function RemindersList({
                                         )}
                                     </button>
                                 </th>
-                                <th className="col-complete">
-                                    Complete
-                                </th>
                                 <th className="col-notes">
                                     <button
                                         type="button"
@@ -936,51 +910,32 @@ export function RemindersList({
                                                 "Unknown tracking"
                                             )}
                                         </td>
-                                        <td className="cell-complete">
-                                            {reminder.status === ReminderStatus.PENDING && (
-                                                <button
-                                                    type="button"
-                                                    className="action-button action-complete"
-                                                    onClick={() => handleComplete(reminder)}
-                                                    title="Complete reminder"
-                                                    aria-label="Complete reminder"
-                                                >
-                                                    ✓
-                                                </button>
-                                            )}
-                                            {reminder.status !== ReminderStatus.PENDING && (
-                                                <span className="completed-indicator">✓</span>
-                                            )}
-                                        </td>
                                         <td className="cell-notes">
-                                            {editingNotesId === reminder.id ? (
-                                                <textarea
-                                                    ref={notesTextareaRef}
-                                                    className="notes-textarea"
-                                                    value={editedNotes}
-                                                    onChange={(e) => setEditedNotes(e.target.value)}
-                                                    onBlur={() => handleSaveNotes(reminder.id)}
-                                                    onKeyDown={(e) => handleNotesKeyDown(e, reminder.id)}
-                                                    rows={2}
-                                                    placeholder="Add notes..."
-                                                    onClick={(e) => e.stopPropagation()}
-                                                />
-                                            ) : (
-                                                <span
-                                                    className={reminder.notes ? "notes-indicator editable-notes" : "notes-empty editable-notes"}
-                                                    onClick={() => handleStartEditingNotes(reminder)}
-                                                    title={reminder.notes || "Click to add notes"}
-                                                    style={{ cursor: "pointer" }}
-                                                >
-                                                    {reminder.notes ? (
-                                                        <>
-                                                            📝 {reminder.notes.length > 30 ? `${reminder.notes.substring(0, 30)}...` : reminder.notes}
-                                                        </>
-                                                    ) : (
-                                                        "—"
-                                                    )}
-                                                </span>
-                                            )}
+                                            <textarea
+                                                ref={(el) => {
+                                                    notesTextareaRefs.current[reminder.id] = el;
+                                                }}
+                                                className="notes-textarea"
+                                                value={notesValues[reminder.id] ?? (reminder.notes || "")}
+                                                onChange={(e) => {
+                                                    setNotesValues(prev => ({
+                                                        ...prev,
+                                                        [reminder.id]: e.target.value
+                                                    }));
+                                                    if (editingNotesId !== reminder.id) {
+                                                        setEditingNotesId(reminder.id);
+                                                    }
+                                                }}
+                                                onBlur={() => {
+                                                    if (editingNotesId === reminder.id) {
+                                                        handleSaveNotes(reminder.id);
+                                                    }
+                                                }}
+                                                onKeyDown={(e) => handleNotesKeyDown(e, reminder.id)}
+                                                rows={2}
+                                                placeholder="Add notes..."
+                                                onClick={(e) => e.stopPropagation()}
+                                            />
                                         </td>
                                         <td className="cell-actions">
                                             <div
@@ -993,6 +948,28 @@ export function RemindersList({
                                                     {reminder.status === ReminderStatus.PENDING && (
                                                         <button
                                                             type="button"
+                                                            className="action-button action-complete"
+                                                            onClick={() => handleComplete(reminder)}
+                                                            title="Complete reminder"
+                                                            aria-label="Complete reminder"
+                                                        >
+                                                            ✓
+                                                        </button>
+                                                    )}
+                                                    {reminder.status === ReminderStatus.PENDING && (
+                                                        <button
+                                                            type="button"
+                                                            className="action-button action-dismiss"
+                                                            onClick={() => handleDismiss(reminder)}
+                                                            title="Dismiss reminder"
+                                                            aria-label="Dismiss reminder"
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    )}
+                                                    {reminder.status === ReminderStatus.PENDING && (
+                                                        <button
+                                                            type="button"
                                                             className="action-button action-snooze"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
@@ -1002,24 +979,6 @@ export function RemindersList({
                                                             aria-label="Snooze reminder"
                                                         >
                                                             💤
-                                                        </button>
-                                                    )}
-                                                    {reminder.status === ReminderStatus.PENDING && (
-                                                        <button
-                                                            type="button"
-                                                            className="action-button action-dismiss"
-                                                            onClick={() => handleDismiss(reminder)}
-                                                            title={(() => {
-                                                                const nextTime = getNextReminderTime(reminder.tracking_id);
-                                                                if (nextTime) {
-                                                                    const formattedTime = ReminderFormatter.formatDateTime(nextTime);
-                                                                    return `Dismiss reminder (Next: ${formattedTime})`;
-                                                                }
-                                                                return "Dismiss reminder";
-                                                            })()}
-                                                            aria-label="Dismiss reminder"
-                                                        >
-                                                            ✕
                                                         </button>
                                                     )}
                                                 </div>
