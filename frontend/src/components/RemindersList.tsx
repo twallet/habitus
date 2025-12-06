@@ -27,7 +27,6 @@ interface FilterState {
     time: string;
     tracking: string;
     notes: string;
-    status: string[]; // Multiple choice for status
 }
 
 /**
@@ -85,19 +84,6 @@ class ReminderFilter {
     }
 
     /**
-     * Filter reminder by status.
-     * @param reminder - Reminder data to filter
-     * @param filterValues - Array of selected status values
-     * @returns True if reminder matches filter
-     */
-    static filterByStatus(reminder: ReminderData, filterValues: string[]): boolean {
-        if (!filterValues || filterValues.length === 0) {
-            return true;
-        }
-        return filterValues.includes(reminder.status);
-    }
-
-    /**
      * Apply all active filters to reminders array.
      * @param reminders - Array of reminder data to filter
      * @param filters - Filter state object
@@ -109,8 +95,7 @@ class ReminderFilter {
             return (
                 ReminderFilter.filterByTime(reminder, filters.time) &&
                 ReminderFilter.filterByTracking(reminder, filters.tracking, getTracking) &&
-                ReminderFilter.filterByNotes(reminder, filters.notes) &&
-                ReminderFilter.filterByStatus(reminder, filters.status)
+                ReminderFilter.filterByNotes(reminder, filters.notes)
             );
         });
     }
@@ -358,7 +343,6 @@ export function RemindersList({
         time: "",
         tracking: "",
         notes: "",
-        status: [],
     });
     const [sortColumn, setSortColumn] = useState<string | null>(null);
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>(null);
@@ -411,24 +395,6 @@ export function RemindersList({
     };
 
     /**
-     * Handle checkbox filter change (toggle selection).
-     * @param column - Filter column name
-     * @param value - Value to toggle
-     * @internal
-     */
-    const handleCheckboxFilterChange = (column: keyof FilterState, value: string) => {
-        setFilterState((prev) => {
-            const currentValues = (prev[column] as string[]) || [];
-            return {
-                ...prev,
-                [column]: currentValues.includes(value)
-                    ? currentValues.filter((v) => v !== value)
-                    : [...currentValues, value],
-            };
-        });
-    };
-
-    /**
      * Reset all filters to default values.
      * @internal
      */
@@ -437,7 +403,6 @@ export function RemindersList({
             time: "",
             tracking: "",
             notes: "",
-            status: [],
         });
     };
 
@@ -746,38 +711,6 @@ export function RemindersList({
                         onChange={(e) => handleFilterChange('notes', e.target.value)}
                         aria-label="Filter by notes"
                     />
-                </div>
-                <div className="filter-row">
-                    <label className="filter-label">Status:</label>
-                    <div className="filter-checkbox-group">
-                        <label className="filter-checkbox-label">
-                            <input
-                                type="checkbox"
-                                checked={filterState.status.includes(ReminderStatus.PENDING)}
-                                onChange={() => handleCheckboxFilterChange('status', ReminderStatus.PENDING)}
-                                aria-label="Filter by status: Pending"
-                            />
-                            <span>Pending</span>
-                        </label>
-                        <label className="filter-checkbox-label">
-                            <input
-                                type="checkbox"
-                                checked={filterState.status.includes(ReminderStatus.ANSWERED)}
-                                onChange={() => handleCheckboxFilterChange('status', ReminderStatus.ANSWERED)}
-                                aria-label="Filter by status: Answered"
-                            />
-                            <span>Answered</span>
-                        </label>
-                        <label className="filter-checkbox-label">
-                            <input
-                                type="checkbox"
-                                checked={filterState.status.includes(ReminderStatus.UPCOMING)}
-                                onChange={() => handleCheckboxFilterChange('status', ReminderStatus.UPCOMING)}
-                                aria-label="Filter by status: Upcoming"
-                            />
-                            <span>Upcoming</span>
-                        </label>
-                    </div>
                 </div>
                 <div className="filter-row">
                     <button

@@ -383,58 +383,6 @@ describe("RemindersList", () => {
         expect(screen.queryByDisplayValue("Tired")).not.toBeInTheDocument();
     });
 
-    it("should filter reminders by status", async () => {
-        const reminders: ReminderData[] = [
-            {
-                id: 1,
-                tracking_id: 1,
-                user_id: 1,
-                scheduled_time: "2024-01-01T10:00:00Z",
-                status: ReminderStatus.PENDING,
-                value: ReminderValue.COMPLETED,
-            },
-            {
-                id: 2,
-                tracking_id: 1,
-                user_id: 1,
-                scheduled_time: "2024-01-01T11:00:00Z",
-                status: ReminderStatus.ANSWERED,
-                value: ReminderValue.COMPLETED,
-            },
-        ];
-
-        (useRemindersModule.useReminders as any).mockReturnValue({
-            reminders,
-            isLoading: false,
-            updateReminder: mockUpdateReminder,
-            snoozeReminder: mockSnoozeReminder,
-            completeReminder: mockCompleteReminder,
-            dismissReminder: mockDismissReminder,
-            deleteReminder: mockDeleteReminder,
-            refreshReminders: mockRefreshReminders,
-        });
-        (useTrackingsModule.useTrackings as any).mockReturnValue({
-            trackings: [mockTracking],
-        });
-
-        render(<RemindersList />);
-
-        // Open filters
-        const filterButton = screen.getByLabelText(/show filters/i);
-        await userEvent.click(filterButton);
-
-        // Filter by status - check Pending
-        const pendingCheckbox = screen.getByLabelText(/filter by status: pending/i);
-        await userEvent.click(pendingCheckbox);
-
-        // Should only show pending reminder - check action buttons in table rows
-        await waitFor(() => {
-            // Pending reminders should have snooze button (only pending reminders show snooze)
-            const snoozeButtons = screen.getAllByRole("button", { name: "Snooze reminder" });
-            expect(snoozeButtons.length).toBe(1);
-        });
-    });
-
     it("should reset filters", async () => {
         const reminders: ReminderData[] = [
             {
