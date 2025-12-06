@@ -268,7 +268,7 @@ export class ReminderFormatter {
     }
 
     /**
-     * Build tracking tooltip text with icon, question, and notes if available.
+     * Build tracking tooltip text with icon and question.
      * @param tracking - Tracking data
      * @returns Tooltip text
      */
@@ -278,9 +278,6 @@ export class ReminderFormatter {
             tooltip += tracking.icon + " ";
         }
         tooltip += tracking.question;
-        if (tracking.notes) {
-            tooltip += " - Notes: " + tracking.notes;
-        }
         return tooltip;
     }
 }

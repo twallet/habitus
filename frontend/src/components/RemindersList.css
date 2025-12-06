@@ -124,21 +124,21 @@
 
 .cell-time {
   white-space: nowrap;
+  vertical-align: middle;
 }
 
 .cell-tracking {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  vertical-align: middle;
   min-width: 200px;
   max-width: 400px;
-  line-height: 1.5;
 }
 
 .tracking-text {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
+  line-height: 1.5;
+  vertical-align: middle;
 }
 
 .tracking-icon {
@@ -176,6 +176,7 @@
 
 .cell-notes {
   text-align: left;
+  vertical-align: middle;
 }
 
 .notes-indicator {
@@ -193,6 +194,7 @@
 .cell-actions {
   position: relative;
   text-align: left;
+  vertical-align: middle;
 }
 
 .actions-container {

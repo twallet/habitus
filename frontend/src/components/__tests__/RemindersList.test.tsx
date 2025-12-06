@@ -144,8 +144,9 @@ describe("RemindersList", () => {
 
         render(<RemindersList />);
 
-        // The component shows "📝 Some notes", so we need to look for text containing the emoji
-        expect(screen.getByText(/📝/)).toBeInTheDocument();
+        // Notes are now in a textarea, so check for the textarea with the notes value
+        const notesTextarea = screen.getByDisplayValue("Some notes");
+        expect(notesTextarea).toBeInTheDocument();
     });
 
     it("should complete reminder when Complete is clicked", async () => {
@@ -377,10 +378,9 @@ describe("RemindersList", () => {
         await userEvent.type(notesInput, "workout");
 
         // Should only show reminder with "workout" in notes
-        // The component shows "📝 Great workout", so we need to look for text containing the emoji
-        expect(screen.getByText(/📝.*Great workout/i)).toBeInTheDocument();
-        const notesIndicators = screen.getAllByText(/📝/);
-        expect(notesIndicators.length).toBe(1);
+        // Notes are now in a textarea, so check for the textarea with the notes value
+        expect(screen.getByDisplayValue("Great workout")).toBeInTheDocument();
+        expect(screen.queryByDisplayValue("Tired")).not.toBeInTheDocument();
     });
 
     it("should filter reminders by status", async () => {
@@ -788,11 +788,7 @@ describe("RemindersList", () => {
 
         render(<RemindersList />);
 
-        // Click on notes to start editing
-        const notesCell = screen.getByText("—");
-        await userEvent.click(notesCell);
-
-        // Type notes
+        // Notes are now directly editable, so just type in the textarea
         const notesTextarea = screen.getByPlaceholderText("Add notes...");
         await userEvent.type(notesTextarea, "Test notes");
 
@@ -1087,12 +1083,9 @@ describe("RemindersList", () => {
 
             render(<RemindersList reminders={reminders} updateReminder={propUpdateReminder} />);
 
-            // Click on notes to start editing
-            const notesCell = screen.getByText("—");
-            await userEvent.click(notesCell);
-
-            // Type notes
+            // Notes are now directly editable, so just type in the textarea
             const notesTextarea = screen.getByPlaceholderText("Add notes...");
+            await userEvent.clear(notesTextarea);
             await userEvent.type(notesTextarea, "Test notes");
 
             // Save notes by pressing Enter
