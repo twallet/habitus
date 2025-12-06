@@ -710,7 +710,7 @@ describe("useReminders", () => {
       vi.useRealTimers();
     });
 
-    it("should stop polling when token changes during polling", async () => {
+    it("should refresh reminders when token changes during polling", async () => {
       localStorage.setItem(TOKEN_KEY, "token1");
 
       (global.fetch as Mock).mockResolvedValue({
@@ -736,14 +736,14 @@ describe("useReminders", () => {
       // Advance timer - should detect token change via polling interval (500ms)
       await act(async () => {
         vi.advanceTimersByTime(500);
-        // Flush promises without running all timers (to avoid infinite loop)
-        await Promise.resolve();
+        // Wait for all pending timers and promises to complete
+        await vi.runAllTimersAsync();
       });
 
       // Switch to real timers for waitFor
       vi.useRealTimers();
 
-      // Wait for fetch to complete
+      // Wait for fetch to complete - token change should trigger a new fetch
       await waitFor(
         () => {
           expect((global.fetch as Mock).mock.calls.length).toBeGreaterThan(
