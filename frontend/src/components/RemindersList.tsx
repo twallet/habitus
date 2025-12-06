@@ -399,11 +399,10 @@ export function RemindersList({
         return upcomingReminders.length > 0 ? upcomingReminders[0].scheduled_time : null;
     }, [reminders]);
 
-    // Filter reminders for display: only show Pending reminders whose scheduled time has been reached
+    // Filter reminders for display: show all Pending reminders
     // Answered reminders are hidden (they should not appear in the reminders table)
     // Upcoming reminders are hidden (they have future times and should not be shown)
-    // For Pending reminders, only show if scheduled time has been reached
-    const now = new Date();
+    // Show all Pending reminders regardless of scheduled time
     const remindersForDisplay = reminders.filter((reminder) => {
         // Hide Answered reminders - they should not appear in the reminders table
         if (reminder.status === ReminderStatus.ANSWERED) {
@@ -413,9 +412,8 @@ export function RemindersList({
         if (reminder.status === ReminderStatus.UPCOMING) {
             return false;
         }
-        const scheduledTime = new Date(reminder.scheduled_time);
-        // For Pending reminders, only show if scheduled time has been reached
-        return reminder.status === ReminderStatus.PENDING && scheduledTime <= now;
+        // Show all Pending reminders
+        return reminder.status === ReminderStatus.PENDING;
     });
 
     // Apply filters and sorting
