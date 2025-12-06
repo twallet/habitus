@@ -214,16 +214,17 @@ describe("useReminders", () => {
         localStorage.setItem(TOKEN_KEY, "token2");
       });
 
-      // Advance timer by more than the polling interval (500ms) to trigger the next check
-      // The polling interval should detect the token change and call fetchReminders
-      // We advance in smaller increments to ensure the interval fires
+      // Advance timer to trigger the polling interval check
+      // The polling interval fires every 500ms, so advancing by 500ms should trigger it
       await act(async () => {
-        vi.advanceTimersByTime(250);
+        // Advance to exactly when the interval should fire (500ms from last check)
+        vi.advanceTimersByTime(500);
+        // Process microtasks to allow the interval callback to execute
         await Promise.resolve();
-        vi.advanceTimersByTime(250);
-        await Promise.resolve();
-        vi.advanceTimersByTime(100);
-        // Process all microtasks to ensure the polling callback and fetch complete
+        // Run all timers to ensure the interval callback and any scheduled operations execute
+        // This will run the 500ms polling interval and any other pending timers
+        await vi.runAllTimersAsync();
+        // Process microtasks again to ensure the fetch promise resolves
         await Promise.resolve();
         await Promise.resolve();
       });
@@ -754,14 +755,23 @@ describe("useReminders", () => {
         json: async () => [],
       });
 
+      // Switch to fake timers BEFORE rendering the hook
+      // This ensures the TokenManager polling interval is created with fake timers
+      vi.useFakeTimers();
+
       const { result } = renderHook(() => useReminders());
 
-      // Wait for initial load
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
+      // Advance timers to allow the initial fetch to complete
+      await act(async () => {
+        // Run all timers to allow the initial fetch and any setup to complete
+        await vi.runAllTimersAsync();
+        // Process microtasks
+        await Promise.resolve();
+        await Promise.resolve();
       });
 
-      vi.useFakeTimers();
+      // Verify initial load is complete
+      expect(result.current.isLoading).toBe(false);
 
       // Advance timer to trigger first polling check and sync TokenManager state
       // This ensures currentToken is set to "token1" before we change it
@@ -782,16 +792,17 @@ describe("useReminders", () => {
         localStorage.setItem(TOKEN_KEY, "token2");
       });
 
-      // Advance timer by more than the polling interval (500ms) to trigger the next check
-      // The polling interval should detect the token change and call fetchReminders
-      // We advance in smaller increments to ensure the interval fires
+      // Advance timer to trigger the polling interval check
+      // The polling interval fires every 500ms, so advancing by 500ms should trigger it
       await act(async () => {
-        vi.advanceTimersByTime(250);
+        // Advance to exactly when the interval should fire (500ms from last check)
+        vi.advanceTimersByTime(500);
+        // Process microtasks to allow the interval callback to execute
         await Promise.resolve();
-        vi.advanceTimersByTime(250);
-        await Promise.resolve();
-        vi.advanceTimersByTime(100);
-        // Process all microtasks to ensure the polling callback and fetch complete
+        // Run all timers to ensure the interval callback and any scheduled operations execute
+        // This will run the 500ms polling interval and any other pending timers
+        await vi.runAllTimersAsync();
+        // Process microtasks again to ensure the fetch promise resolves
         await Promise.resolve();
         await Promise.resolve();
       });
