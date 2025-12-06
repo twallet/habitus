@@ -199,22 +199,33 @@ describe("useReminders", () => {
       // This ensures currentToken is set to "token1" before we change it
       await act(async () => {
         vi.advanceTimersByTime(500);
+        // Process all microtasks to ensure the polling callback completes
+        await Promise.resolve();
         await Promise.resolve();
       });
 
       // Capture call count after initial polling sync
+      // Note: initialCallCount might be 1 (initial fetch) or 2 (if polling triggered a fetch)
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
 
       // Change token in localStorage
+      // This change will be detected by the next polling check
       act(() => {
         localStorage.setItem(TOKEN_KEY, "token2");
       });
 
       // Advance timer by more than the polling interval (500ms) to trigger the next check
+      // The polling interval should detect the token change and call fetchReminders
+      // We advance in smaller increments to ensure the interval fires
       await act(async () => {
-        vi.advanceTimersByTime(600);
-        // Wait for all pending timers and promises to complete
-        await vi.runAllTimersAsync();
+        vi.advanceTimersByTime(250);
+        await Promise.resolve();
+        vi.advanceTimersByTime(250);
+        await Promise.resolve();
+        vi.advanceTimersByTime(100);
+        // Process all microtasks to ensure the polling callback and fetch complete
+        await Promise.resolve();
+        await Promise.resolve();
       });
 
       // Switch to real timers for waitFor
@@ -756,22 +767,33 @@ describe("useReminders", () => {
       // This ensures currentToken is set to "token1" before we change it
       await act(async () => {
         vi.advanceTimersByTime(500);
+        // Process all microtasks to ensure the polling callback completes
+        await Promise.resolve();
         await Promise.resolve();
       });
 
       // Capture call count after initial polling sync
+      // Note: initialCallCount might be 1 (initial fetch) or 2 (if polling triggered a fetch)
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
 
       // Change token - this should be detected by polling
+      // This change will be detected by the next polling check
       act(() => {
         localStorage.setItem(TOKEN_KEY, "token2");
       });
 
       // Advance timer by more than the polling interval (500ms) to trigger the next check
+      // The polling interval should detect the token change and call fetchReminders
+      // We advance in smaller increments to ensure the interval fires
       await act(async () => {
-        vi.advanceTimersByTime(600);
-        // Wait for all pending timers and promises to complete
-        await vi.runAllTimersAsync();
+        vi.advanceTimersByTime(250);
+        await Promise.resolve();
+        vi.advanceTimersByTime(250);
+        await Promise.resolve();
+        vi.advanceTimersByTime(100);
+        // Process all microtasks to ensure the polling callback and fetch complete
+        await Promise.resolve();
+        await Promise.resolve();
       });
 
       // Switch to real timers for waitFor
