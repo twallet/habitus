@@ -219,9 +219,12 @@ export function useReminders() {
         }`
       );
       // Update with server response to ensure consistency
-      setReminders((prevReminders) =>
-        prevReminders.map((r) => (r.id === reminderId ? reminderData : r))
-      );
+      // Use flushSync to ensure the Next Reminder column in TrackingsList updates immediately
+      flushSync(() => {
+        setReminders((prevReminders) =>
+          prevReminders.map((r) => (r.id === reminderId ? reminderData : r))
+        );
+      });
       return reminderData;
     } catch (error) {
       console.error(
@@ -282,9 +285,12 @@ export function useReminders() {
         }`
       );
       // Update with server response to ensure consistency
-      setReminders((prevReminders) =>
-        prevReminders.map((r) => (r.id === reminderId ? reminderData : r))
-      );
+      // Use flushSync to ensure the Next Reminder column in TrackingsList updates immediately
+      flushSync(() => {
+        setReminders((prevReminders) =>
+          prevReminders.map((r) => (r.id === reminderId ? reminderData : r))
+        );
+      });
       return reminderData;
     } catch (error) {
       console.error(
@@ -343,9 +349,12 @@ export function useReminders() {
         }`
       );
       // Update with server response to ensure consistency
-      setReminders((prevReminders) =>
-        prevReminders.map((r) => (r.id === reminderId ? reminderData : r))
-      );
+      // Use flushSync to ensure the Next Reminder column in TrackingsList updates immediately
+      flushSync(() => {
+        setReminders((prevReminders) =>
+          prevReminders.map((r) => (r.id === reminderId ? reminderData : r))
+        );
+      });
       return reminderData;
     } catch (error) {
       console.error(
@@ -435,9 +444,12 @@ export function useReminders() {
     );
 
     // Optimistically remove the reminder from state immediately for instant UI feedback
-    setReminders((prevReminders) =>
-      prevReminders.filter((r) => r.id !== reminderId)
-    );
+    // Use flushSync to ensure the Next Reminder column in TrackingsList updates immediately
+    flushSync(() => {
+      setReminders((prevReminders) =>
+        prevReminders.filter((r) => r.id !== reminderId)
+      );
+    });
 
     try {
       await apiClient.deleteReminder(reminderId);
