@@ -753,9 +753,10 @@ describe("useReminders", () => {
       vi.useRealTimers();
     });
 
-    // TODO: Fix this test - interval created with real timers may not be controlled by fake timers
-    // when switching after rendering, causing the polling callback to not execute
-    it.skip("should refresh reminders when token changes during polling", async () => {
+    it("should refresh reminders when token changes during polling", async () => {
+      // Use fake timers from the start to ensure polling interval is controlled
+      vi.useFakeTimers();
+
       localStorage.setItem(TOKEN_KEY, "token1");
 
       (global.fetch as Mock).mockResolvedValue({
@@ -765,22 +766,22 @@ describe("useReminders", () => {
 
       const { result } = renderHook(() => useReminders());
 
-      // Wait for initial load with real timers first
+      // Wait for initial load with fake timers
+      await act(async () => {
+        // Advance timers to allow initial fetch to complete
+        vi.advanceTimersByTime(100);
+        await vi.runAllTimersAsync();
+      });
+
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
-
-      // Now switch to fake timers for the polling test
-      // This ensures the TokenManager polling interval will be controlled by fake timers
-      vi.useFakeTimers();
 
       // Advance timer to trigger first polling check and sync TokenManager state
       // This ensures currentToken is set to "token1" before we change it
       await act(async () => {
         vi.advanceTimersByTime(500);
-        // Process all microtasks to ensure the polling callback completes
-        await Promise.resolve();
-        await Promise.resolve();
+        await vi.runAllTimersAsync();
       });
 
       // Capture call count after initial polling sync
@@ -795,22 +796,13 @@ describe("useReminders", () => {
 
       // Advance timer to trigger the polling interval check
       // The polling interval fires every 500ms, so advancing by 500ms should trigger it
-      // We advance by slightly more to ensure the interval definitely fires
       await act(async () => {
         // Advance to when the interval should fire (500ms from last check)
         vi.advanceTimersByTime(500);
-        // Process microtasks multiple times to ensure the interval callback executes
-        // and any async operations complete
-        await Promise.resolve();
-        await Promise.resolve();
-        await Promise.resolve();
-        // Advance a tiny bit more to catch any edge cases
-        vi.advanceTimersByTime(1);
-        await Promise.resolve();
-        await Promise.resolve();
+        await vi.runAllTimersAsync();
       });
 
-      // Switch to real timers for waitFor
+      // Switch to real timers for final verification
       vi.useRealTimers();
 
       // Wait for fetch to complete - token change should trigger a new fetch

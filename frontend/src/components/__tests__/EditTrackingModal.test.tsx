@@ -232,200 +232,196 @@ describe('EditTrackingModal', () => {
     expect(callsAfterSave).toBe(0);
   });
 
-
-  // TODO: Fix race condition with onClose being called twice
-  // it('should call onDelete when delete is confirmed', async () => {
-  //   const user = userEvent.setup();
-  //   render(
-  //     <EditTrackingModal
-  //       tracking={mockTracking}
-  //       onClose={mockOnClose}
-  //       onSave={mockOnSave}
-  //       onDelete={mockOnDelete}
-  //     />
-  //   );
-
-  //   const deleteButton = screen.getByRole('button', { name: /delete/i });
-  //   await user.click(deleteButton);
-
-  //   // Wait for confirmation dialog to appear
-  //   await waitFor(() => {
-  //     expect(screen.getByText(/are you sure you want to delete this tracking\?/i)).toBeInTheDocument();
-  //   });
-
-  //   // Find the delete button within the confirmation dialog
-  //   const confirmationDialog = screen.getByText(/are you sure you want to delete this tracking\?/i).closest('.delete-confirmation') as HTMLElement;
-  //   expect(confirmationDialog).toBeInTheDocument();
-  //   const confirmDeleteButton = within(confirmationDialog).getByRole('button', { name: /delete/i });
-  //   await user.click(confirmDeleteButton);
-
-  //   await waitFor(() => {
-  //     expect(mockOnDelete).toHaveBeenCalledWith(1);
-  //     expect(mockOnClose).toHaveBeenCalledTimes(1);
-  //   });
-  // });
-
-
-
-
-  // TODO: Fix race condition with onClose being called on delete failure
-  // it('should show error message on delete failure', async () => {
-  //   const user = userEvent.setup();
-  //   const errorDelete = vi.fn().mockRejectedValue(new Error('Delete failed'));
-
-  //   render(
-  //     <EditTrackingModal
-  //       tracking={mockTracking}
-  //       onClose={mockOnClose}
-  //       onSave={mockOnSave}
-  //       onDelete={errorDelete}
-  //     />
-  //   );
-
-  //   const deleteButton = screen.getByRole('button', { name: /delete/i });
-  //   await user.click(deleteButton);
-
-  //   // Wait for confirmation dialog to appear
-  //   await waitFor(() => {
-  //     expect(screen.getByText(/are you sure you want to delete this tracking\?/i)).toBeInTheDocument();
-  //   });
-
-  //   // Find the delete button within the confirmation dialog
-  //   const confirmationDialog = screen.getByText(/are you sure you want to delete this tracking\?/i).closest('.delete-confirmation') as HTMLElement;
-  //   expect(confirmationDialog).toBeInTheDocument();
-  //   const confirmDeleteButton = within(confirmationDialog).getByRole('button', { name: /delete/i });
-
-  //   // Click and wait for the error to appear
-  //   await user.click(confirmDeleteButton);
-
-  //   // Wait for the error message to appear and confirmation dialog to disappear
-  //   await waitFor(() => {
-  //     expect(screen.getByText(/delete failed/i)).toBeInTheDocument();
-  //     expect(screen.queryByText(/are you sure you want to delete this tracking\?/i)).not.toBeInTheDocument();
-  //   }, { timeout: 3000 });
-
-  //   // Verify errorDelete was called
-  //   expect(errorDelete).toHaveBeenCalled();
-
-  //   // The component should not call onClose when delete fails
-  //   // Check immediately after error appears - if onClose was called, it would have been called already
-  //   expect(mockOnClose).not.toHaveBeenCalled();
-  //   expect(mockOnSave).not.toHaveBeenCalled();
-  // });
-
   it('should handle tracking without notes', () => {
-    const trackingWithoutNotes: TrackingData = {
-      ...mockTracking,
-      notes: undefined,
-    };
+    //     <EditTrackingModal
+    //       tracking={mockTracking}
+    //       onClose={mockOnClose}
+    //       onSave={mockOnSave}
+    //       onDelete={mockOnDelete}
+    //     />
+    //   );
 
-    render(
-      <EditTrackingModal
-        tracking={trackingWithoutNotes}
-        onClose={mockOnClose}
-        onSave={mockOnSave}
-      />
-    );
+    //   const deleteButton = screen.getByRole('button', { name: /delete/i });
+    //   await user.click(deleteButton);
 
-    const notesInput = screen.getByRole('textbox', { name: /^notes \?/i });
-    expect(notesInput).toHaveValue('');
-  });
+    //   // Wait for confirmation dialog to appear
+    //   await waitFor(() => {
+    //     expect(screen.getByText(/are you sure you want to delete this tracking\?/i)).toBeInTheDocument();
+    //   });
 
-  it('should clear icon when icon is deleted', async () => {
-    const user = userEvent.setup();
-    const trackingWithIcon: TrackingData = {
-      ...mockTracking,
-      icon: '💪',
-    };
+    //   // Find the delete button within the confirmation dialog
+    //   const confirmationDialog = screen.getByText(/are you sure you want to delete this tracking\?/i).closest('.delete-confirmation') as HTMLElement;
+    //   expect(confirmationDialog).toBeInTheDocument();
+    //   const confirmDeleteButton = within(confirmationDialog).getByRole('button', { name: /delete/i });
+    //   await user.click(confirmDeleteButton);
 
-    render(
-      <EditTrackingModal
-        tracking={trackingWithIcon}
-        onClose={mockOnClose}
-        onSave={mockOnSave}
-      />
-    );
+    //   await waitFor(() => {
+    //     expect(mockOnDelete).toHaveBeenCalledWith(1);
+    //     expect(mockOnClose).toHaveBeenCalledTimes(1);
+    //   });
+    // });
 
-    const iconInput = screen.getByRole('textbox', { name: /^icon/i });
-    await user.clear(iconInput);
 
-    const saveButton = screen.getByRole('button', { name: /^save$/i });
-    await user.click(saveButton);
 
-    await waitFor(() => {
-      expect(mockOnSave).toHaveBeenCalledWith(
-        1,
-        defaultDaysPattern,
-        undefined,
-        undefined,
-        '', // Empty string to clear the icon
-        undefined,
+
+    // TODO: Fix race condition with onClose being called on delete failure
+    // it('should show error message on delete failure', async () => {
+    //   const user = userEvent.setup();
+    //   const errorDelete = vi.fn().mockRejectedValue(new Error('Delete failed'));
+
+    //   render(
+    //     <EditTrackingModal
+    //       tracking={mockTracking}
+    //       onClose={mockOnClose}
+    //       onSave={mockOnSave}
+    //       onDelete={errorDelete}
+    //     />
+    //   );
+
+    //   const deleteButton = screen.getByRole('button', { name: /delete/i });
+    //   await user.click(deleteButton);
+
+    //   // Wait for confirmation dialog to appear
+    //   await waitFor(() => {
+    //     expect(screen.getByText(/are you sure you want to delete this tracking\?/i)).toBeInTheDocument();
+    //   });
+
+    //   // Find the delete button within the confirmation dialog
+    //   const confirmationDialog = screen.getByText(/are you sure you want to delete this tracking\?/i).closest('.delete-confirmation') as HTMLElement;
+    //   expect(confirmationDialog).toBeInTheDocument();
+    //   const confirmDeleteButton = within(confirmationDialog).getByRole('button', { name: /delete/i });
+
+    //   // Click and wait for the error to appear
+    //   await user.click(confirmDeleteButton);
+
+    //   // Wait for the error message to appear and confirmation dialog to disappear
+    //   await waitFor(() => {
+    //     expect(screen.getByText(/delete failed/i)).toBeInTheDocument();
+    //     expect(screen.queryByText(/are you sure you want to delete this tracking\?/i)).not.toBeInTheDocument();
+    //   }, { timeout: 3000 });
+
+    //   // Verify errorDelete was called
+    //   expect(errorDelete).toHaveBeenCalled();
+
+    //   // The component should not call onClose when delete fails
+    //   // Check immediately after error appears - if onClose was called, it would have been called already
+    //   expect(mockOnClose).not.toHaveBeenCalled();
+    //   expect(mockOnSave).not.toHaveBeenCalled();
+    // });
+
+    it('should handle tracking without notes', () => {
+      const trackingWithoutNotes: TrackingData = {
+        ...mockTracking,
+        notes: undefined,
+      };
+
+      render(
+        <EditTrackingModal
+          tracking={trackingWithoutNotes}
+          onClose={mockOnClose}
+          onSave={mockOnSave}
+        />
       );
+
+      const notesInput = screen.getByRole('textbox', { name: /^notes \?/i });
+      expect(notesInput).toHaveValue('');
     });
-  });
 
-  it('should update icon when icon is changed', async () => {
-    const user = userEvent.setup();
-    const trackingWithIcon: TrackingData = {
-      ...mockTracking,
-      icon: '💪',
-    };
+    it('should clear icon when icon is deleted', async () => {
+      const user = userEvent.setup();
+      const trackingWithIcon: TrackingData = {
+        ...mockTracking,
+        icon: '💪',
+      };
 
-    render(
-      <EditTrackingModal
-        tracking={trackingWithIcon}
-        onClose={mockOnClose}
-        onSave={mockOnSave}
-      />
-    );
-
-    const iconInput = screen.getByRole('textbox', { name: /^icon/i });
-    await user.clear(iconInput);
-    await user.type(iconInput, '🏋️');
-
-    const saveButton = screen.getByRole('button', { name: /^save$/i });
-    await user.click(saveButton);
-
-    await waitFor(() => {
-      expect(mockOnSave).toHaveBeenCalledWith(
-        1,
-        defaultDaysPattern,
-        undefined,
-        undefined,
-        '🏋️',
-        undefined,
+      render(
+        <EditTrackingModal
+          tracking={trackingWithIcon}
+          onClose={mockOnClose}
+          onSave={mockOnSave}
+        />
       );
+
+      const iconInput = screen.getByRole('textbox', { name: /^icon/i });
+      await user.clear(iconInput);
+
+      const saveButton = screen.getByRole('button', { name: /^save$/i });
+      await user.click(saveButton);
+
+      await waitFor(() => {
+        expect(mockOnSave).toHaveBeenCalledWith(
+          1,
+          defaultDaysPattern,
+          undefined,
+          undefined,
+          '', // Empty string to clear the icon
+          undefined,
+        );
+      });
+    });
+
+    it('should update icon when icon is changed', async () => {
+      const user = userEvent.setup();
+      const trackingWithIcon: TrackingData = {
+        ...mockTracking,
+        icon: '💪',
+      };
+
+      render(
+        <EditTrackingModal
+          tracking={trackingWithIcon}
+          onClose={mockOnClose}
+          onSave={mockOnSave}
+        />
+      );
+
+      const iconInput = screen.getByRole('textbox', { name: /^icon/i });
+      await user.clear(iconInput);
+      await user.type(iconInput, '🏋️');
+
+      const saveButton = screen.getByRole('button', { name: /^save$/i });
+      await user.click(saveButton);
+
+      await waitFor(() => {
+        expect(mockOnSave).toHaveBeenCalledWith(
+          1,
+          defaultDaysPattern,
+          undefined,
+          undefined,
+          '🏋️',
+          undefined,
+        );
+      });
+    });
+
+    it('should show error when submitting without schedules', async () => {
+      const trackingWithoutSchedules: TrackingData = {
+        ...mockTracking,
+        schedules: [],
+      };
+
+      render(
+        <EditTrackingModal
+          tracking={trackingWithoutSchedules}
+          onClose={mockOnClose}
+          onSave={mockOnSave}
+        />
+      );
+
+      // Submit button should be disabled when no schedules
+      const saveButton = screen.getByRole('button', { name: /^save$/i }) as HTMLButtonElement;
+      expect(saveButton.disabled).toBe(true);
+
+      // Try to submit form directly
+      const form = screen.getByRole('textbox', { name: /^question \*/i }).closest('form')!;
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/at least one time is required/i)
+        ).toBeInTheDocument();
+      });
+      expect(mockOnSave).not.toHaveBeenCalled();
     });
   });
-
-  it('should show error when submitting without schedules', async () => {
-    const trackingWithoutSchedules: TrackingData = {
-      ...mockTracking,
-      schedules: [],
-    };
-
-    render(
-      <EditTrackingModal
-        tracking={trackingWithoutSchedules}
-        onClose={mockOnClose}
-        onSave={mockOnSave}
-      />
-    );
-
-    // Submit button should be disabled when no schedules
-    const saveButton = screen.getByRole('button', { name: /^save$/i }) as HTMLButtonElement;
-    expect(saveButton.disabled).toBe(true);
-
-    // Try to submit form directly
-    const form = screen.getByRole('textbox', { name: /^question \*/i }).closest('form')!;
-    fireEvent.submit(form);
-
-    await waitFor(() => {
-      expect(
-        screen.getByText(/at least one time is required/i)
-      ).toBeInTheDocument();
-    });
-    expect(mockOnSave).not.toHaveBeenCalled();
-  });
-});
 

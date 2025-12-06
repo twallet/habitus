@@ -836,8 +836,6 @@ describe("RemindersList", () => {
         consoleErrorSpy.mockRestore();
     });
 
-    // Note: Answered reminders are now hidden from the reminders table, so this test is no longer applicable
-
     it("should show Complete button for pending reminders", async () => {
         const reminders: ReminderData[] = [
             {
