@@ -260,7 +260,8 @@ export function useReminders() {
     );
 
     // Optimistically update the reminder in state immediately for instant UI feedback
-    // This ensures the badge count updates immediately when completing a reminder (status changes to ANSWERED)
+    // This ensures the badge count and Next Reminder column in TrackingsList update immediately
+    // when completing a reminder (status changes to ANSWERED, removing it from next reminder calculation)
     // Use flushSync to ensure the state update triggers an immediate re-render
     flushSync(() => {
       setReminders((prevReminders) =>
@@ -324,7 +325,8 @@ export function useReminders() {
     );
 
     // Optimistically update the reminder in state immediately for instant UI feedback
-    // This ensures the badge count updates immediately when dismissing a reminder (status changes to ANSWERED)
+    // This ensures the badge count and Next Reminder column in TrackingsList update immediately
+    // when dismissing a reminder (status changes to ANSWERED, removing it from next reminder calculation)
     // Use flushSync to ensure the state update triggers an immediate re-render
     flushSync(() => {
       setReminders((prevReminders) =>
@@ -391,6 +393,34 @@ export function useReminders() {
       `[${new Date().toISOString()}] FRONTEND_REMINDERS | Snoozing reminder ID: ${reminderId} for ${minutes} minutes`
     );
 
+    // Find the original reminder to get tracking_id
+    const originalReminder = reminders.find((r) => r.id === reminderId);
+    if (!originalReminder) {
+      throw new Error("Reminder not found");
+    }
+
+    // Calculate the new scheduled time optimistically
+    const now = new Date();
+    const snoozedTime = new Date(now.getTime() + minutes * 60 * 1000);
+    const optimisticReminder: ReminderData = {
+      ...originalReminder,
+      id: originalReminder.id, // Keep same ID for now, will be updated with server response
+      scheduled_time: snoozedTime.toISOString(),
+      status: ReminderStatus.UPCOMING,
+    };
+
+    // Optimistically update the reminder in state immediately for instant UI feedback
+    // This ensures the Next Reminder column in TrackingsList updates immediately
+    // Use flushSync to ensure the state update triggers an immediate re-render
+    flushSync(() => {
+      setReminders((prevReminders) => {
+        // Remove the original reminder
+        const filtered = prevReminders.filter((r) => r.id !== reminderId);
+        // Add the optimistic Upcoming reminder with updated scheduled_time
+        return [...filtered, optimisticReminder];
+      });
+    });
+
     try {
       const reminderData = await apiClient.snoozeReminder(reminderId, minutes);
       console.log(
@@ -398,16 +428,15 @@ export function useReminders() {
           reminderData.id
         }`
       );
-      // Optimistically update the reminder in state immediately for instant UI feedback
-      // This ensures the Next Reminder column in TrackingsList updates immediately
-      // Use flushSync to ensure the state update triggers an immediate re-render
+      // Update with server response to ensure consistency
+      // Use flushSync to ensure the Next Reminder column in TrackingsList updates immediately
       flushSync(() => {
         setReminders((prevReminders) => {
-          // Remove the original reminder and any existing reminder with the same ID
+          // Remove the optimistic reminder and any existing reminder with the server's ID
           const filtered = prevReminders.filter(
             (r) => r.id !== reminderId && r.id !== reminderData.id
           );
-          // Add the new/updated Upcoming reminder with updated scheduled_time
+          // Add the actual Upcoming reminder from server with correct ID
           return [...filtered, reminderData];
         });
       });
