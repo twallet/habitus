@@ -186,14 +186,23 @@ describe("useReminders", () => {
         json: async () => [],
       });
 
+      // Switch to fake timers BEFORE rendering the hook
+      // This ensures the TokenManager polling interval is created with fake timers
+      vi.useFakeTimers();
+
       const { result } = renderHook(() => useReminders());
 
-      // Wait for initial load
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
+      // Advance timers to allow the initial fetch to complete
+      await act(async () => {
+        // Run all timers to allow the initial fetch and any setup to complete
+        await vi.runAllTimersAsync();
+        // Process microtasks
+        await Promise.resolve();
+        await Promise.resolve();
       });
 
-      vi.useFakeTimers();
+      // Verify initial load is complete
+      expect(result.current.isLoading).toBe(false);
 
       // Advance timer to trigger first polling check and sync TokenManager state
       // This ensures currentToken is set to "token1" before we change it
