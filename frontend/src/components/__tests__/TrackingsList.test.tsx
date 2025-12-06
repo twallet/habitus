@@ -466,6 +466,7 @@ describe("TrackingsList", () => {
         expect(screen.getByText("Tracking")).toBeInTheDocument();
         expect(screen.getByText("Times")).toBeInTheDocument();
         expect(screen.getByText("Frequency")).toBeInTheDocument();
+        expect(screen.getByText("Notes")).toBeInTheDocument();
         expect(screen.getByText("Next reminder")).toBeInTheDocument();
         expect(screen.getByText("Status")).toBeInTheDocument();
     });
@@ -534,6 +535,68 @@ describe("TrackingsList", () => {
         expect(trackingCell?.textContent).toContain("Did I exercise today?");
         expect(screen.getByText(/09:00 \+1/)).toBeInTheDocument();
         expect(screen.getByText("Mon, Wed, Fri")).toBeInTheDocument();
+        // Check that notes icon is displayed
+        const notesIcon = screen.getByText("📝");
+        expect(notesIcon).toBeInTheDocument();
+        expect(notesIcon).toHaveAttribute("title", "<p>Exercise notes</p>");
+    });
+
+    it("should display notes icon with tooltip when notes are present", () => {
+        const trackings: TrackingData[] = [
+            {
+                id: 1,
+                user_id: 1,
+                question: "Did I exercise?",
+                notes: "Some exercise notes",
+            },
+        ];
+
+        render(
+            <TrackingsList
+                trackings={trackings}
+                onEdit={mockOnEdit}
+            />
+        );
+
+        const notesIcon = screen.getByText("📝");
+        expect(notesIcon).toBeInTheDocument();
+        expect(notesIcon).toHaveAttribute("title", "Some exercise notes");
+        expect(notesIcon).toHaveAttribute("aria-label", "Notes: Some exercise notes");
+    });
+
+    it("should display dash when notes are empty or undefined", () => {
+        const trackings: TrackingData[] = [
+            {
+                id: 1,
+                user_id: 1,
+                question: "Did I exercise?",
+            },
+            {
+                id: 2,
+                user_id: 1,
+                question: "Did I meditate?",
+                notes: "",
+            },
+            {
+                id: 3,
+                user_id: 1,
+                question: "Did I read?",
+                notes: "   ", // Only whitespace
+            },
+        ];
+
+        render(
+            <TrackingsList
+                trackings={trackings}
+                onEdit={mockOnEdit}
+            />
+        );
+
+        // Should display dash for all three (undefined, empty string, whitespace only)
+        const emptyNotes = screen.getAllByText("—");
+        expect(emptyNotes.length).toBeGreaterThanOrEqual(3);
+        // Should not display notes icon
+        expect(screen.queryByText("📝")).not.toBeInTheDocument();
     });
 
     it("should handle trackings with no schedules", () => {
@@ -1406,7 +1469,8 @@ describe("TrackingsList", () => {
                 );
 
                 // Next Reminder should now be empty (no PENDING or UPCOMING reminders)
-                expect(screen.getByText("—")).toBeInTheDocument();
+                const emptyReminderCell = screen.getByText("Did I exercise?").closest("tr")?.querySelector(".cell-next-reminder");
+                expect(emptyReminderCell).toHaveTextContent("—");
             });
 
             it("should update Next Reminder when a reminder is snoozed (creates/updates UPCOMING reminder)", () => {
@@ -1836,7 +1900,8 @@ describe("TrackingsList", () => {
                 );
 
                 // Next Reminder should be empty
-                expect(screen.getByText("—")).toBeInTheDocument();
+                const emptyReminderCell4 = screen.getByText("Did I exercise?").closest("tr")?.querySelector(".cell-next-reminder");
+                expect(emptyReminderCell4).toHaveTextContent("—");
             });
 
             it("should show Next Reminder when tracking is Resumed (new reminders generated)", () => {
@@ -1904,7 +1969,8 @@ describe("TrackingsList", () => {
                 );
 
                 // Next Reminder should be empty
-                expect(screen.getByText("—")).toBeInTheDocument();
+                const emptyReminderCell1 = screen.getByText("Did I exercise?").closest("tr")?.querySelector(".cell-next-reminder");
+                expect(emptyReminderCell1).toHaveTextContent("—");
             });
         });
 
@@ -2097,7 +2163,8 @@ describe("TrackingsList", () => {
                 );
 
                 // Next Reminder should be empty (past reminders are filtered out)
-                expect(screen.getByText("—")).toBeInTheDocument();
+                const emptyReminderCell2 = screen.getByText("Did I exercise?").closest("tr")?.querySelector(".cell-next-reminder");
+                expect(emptyReminderCell2).toHaveTextContent("—");
             });
 
             it("should not show ANSWERED reminders in Next Reminder", () => {
@@ -2135,7 +2202,8 @@ describe("TrackingsList", () => {
                 );
 
                 // Next Reminder should be empty (ANSWERED reminders are filtered out)
-                expect(screen.getByText("—")).toBeInTheDocument();
+                const emptyReminderCell3 = screen.getByText("Did I exercise?").closest("tr")?.querySelector(".cell-next-reminder");
+                expect(emptyReminderCell3).toHaveTextContent("—");
             });
         });
     });
