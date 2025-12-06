@@ -186,23 +186,16 @@ describe("useReminders", () => {
         json: async () => [],
       });
 
-      // Switch to fake timers BEFORE rendering the hook
-      // This ensures the TokenManager polling interval is created with fake timers
-      vi.useFakeTimers();
-
       const { result } = renderHook(() => useReminders());
 
-      // Advance timers to allow the initial fetch to complete
-      await act(async () => {
-        // Run all timers to allow the initial fetch and any setup to complete
-        await vi.runAllTimersAsync();
-        // Process microtasks
-        await Promise.resolve();
-        await Promise.resolve();
+      // Wait for initial load with real timers first
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
       });
 
-      // Verify initial load is complete
-      expect(result.current.isLoading).toBe(false);
+      // Now switch to fake timers for the polling test
+      // This ensures the TokenManager polling interval will be controlled by fake timers
+      vi.useFakeTimers();
 
       // Advance timer to trigger first polling check and sync TokenManager state
       // This ensures currentToken is set to "token1" before we change it
@@ -230,9 +223,9 @@ describe("useReminders", () => {
         vi.advanceTimersByTime(500);
         // Process microtasks to allow the interval callback to execute
         await Promise.resolve();
-        // Run all timers to ensure the interval callback and any scheduled operations execute
-        // This will run the 500ms polling interval and any other pending timers
-        await vi.runAllTimersAsync();
+        await Promise.resolve();
+        // Advance a bit more to ensure any scheduled operations complete
+        vi.advanceTimersByTime(10);
         // Process microtasks again to ensure the fetch promise resolves
         await Promise.resolve();
         await Promise.resolve();
@@ -764,23 +757,16 @@ describe("useReminders", () => {
         json: async () => [],
       });
 
-      // Switch to fake timers BEFORE rendering the hook
-      // This ensures the TokenManager polling interval is created with fake timers
-      vi.useFakeTimers();
-
       const { result } = renderHook(() => useReminders());
 
-      // Advance timers to allow the initial fetch to complete
-      await act(async () => {
-        // Run all timers to allow the initial fetch and any setup to complete
-        await vi.runAllTimersAsync();
-        // Process microtasks
-        await Promise.resolve();
-        await Promise.resolve();
+      // Wait for initial load with real timers first
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
       });
 
-      // Verify initial load is complete
-      expect(result.current.isLoading).toBe(false);
+      // Now switch to fake timers for the polling test
+      // This ensures the TokenManager polling interval will be controlled by fake timers
+      vi.useFakeTimers();
 
       // Advance timer to trigger first polling check and sync TokenManager state
       // This ensures currentToken is set to "token1" before we change it
@@ -808,9 +794,9 @@ describe("useReminders", () => {
         vi.advanceTimersByTime(500);
         // Process microtasks to allow the interval callback to execute
         await Promise.resolve();
-        // Run all timers to ensure the interval callback and any scheduled operations execute
-        // This will run the 500ms polling interval and any other pending timers
-        await vi.runAllTimersAsync();
+        await Promise.resolve();
+        // Advance a bit more to ensure any scheduled operations complete
+        vi.advanceTimersByTime(10);
         // Process microtasks again to ensure the fetch promise resolves
         await Promise.resolve();
         await Promise.resolve();
