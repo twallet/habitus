@@ -845,14 +845,12 @@ describe("useReminders", () => {
         // Advance timers to allow initial fetch to complete
         vi.advanceTimersByTime(100);
         await vi.runAllTimersAsync();
+        // Process all pending promises
+        await Promise.resolve();
+        await Promise.resolve();
       });
 
-      // Wait for initial fetch to complete
-      await act(async () => {
-        await vi.runAllTimersAsync();
-      });
-
-      // Check loading state
+      // Check loading state - should be false after fetch completes
       expect(result.current.isLoading).toBe(false);
 
       // Advance timer to trigger first polling check and sync TokenManager state
