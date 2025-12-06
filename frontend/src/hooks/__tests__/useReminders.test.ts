@@ -194,6 +194,15 @@ describe("useReminders", () => {
       });
 
       vi.useFakeTimers();
+
+      // Advance timer to trigger first polling check and sync TokenManager state
+      // This ensures currentToken is set to "token1" before we change it
+      await act(async () => {
+        vi.advanceTimersByTime(500);
+        await Promise.resolve();
+      });
+
+      // Capture call count after initial polling sync
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
 
       // Change token in localStorage
@@ -201,11 +210,11 @@ describe("useReminders", () => {
         localStorage.setItem(TOKEN_KEY, "token2");
       });
 
-      // Advance timer to trigger polling check (500ms interval)
+      // Advance timer by more than the polling interval (500ms) to trigger the next check
       await act(async () => {
-        vi.advanceTimersByTime(500);
-        // Flush promises without running all timers (to avoid infinite loop)
-        await Promise.resolve();
+        vi.advanceTimersByTime(600);
+        // Wait for all pending timers and promises to complete
+        await vi.runAllTimersAsync();
       });
 
       // Switch to real timers for waitFor
@@ -742,25 +751,27 @@ describe("useReminders", () => {
       });
 
       vi.useFakeTimers();
-      const initialCallCount = (global.fetch as Mock).mock.calls.length;
 
-      // Ensure polling interval is set up by advancing time slightly
-      // This ensures the interval is running before we change the token
+      // Advance timer to trigger first polling check and sync TokenManager state
+      // This ensures currentToken is set to "token1" before we change it
       await act(async () => {
-        vi.advanceTimersByTime(100);
+        vi.advanceTimersByTime(500);
         await Promise.resolve();
       });
+
+      // Capture call count after initial polling sync
+      const initialCallCount = (global.fetch as Mock).mock.calls.length;
 
       // Change token - this should be detected by polling
       act(() => {
         localStorage.setItem(TOKEN_KEY, "token2");
       });
 
-      // Advance timer by more than the polling interval (500ms) to ensure it fires
+      // Advance timer by more than the polling interval (500ms) to trigger the next check
       await act(async () => {
         vi.advanceTimersByTime(600);
-        // Flush any pending microtasks
-        await Promise.resolve();
+        // Wait for all pending timers and promises to complete
+        await vi.runAllTimersAsync();
       });
 
       // Switch to real timers for waitFor
