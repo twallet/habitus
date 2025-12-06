@@ -249,94 +249,6 @@ describe('EditTrackingModal', () => {
     const notesInput = screen.getByRole('textbox', { name: /^notes \?/i });
     expect(notesInput).toHaveValue('');
   });
-  //     />
-  //   );
-
-  //   const deleteButton = screen.getByRole('button', { name: /delete/i });
-  //   await user.click(deleteButton);
-
-  //   // Wait for confirmation dialog to appear
-  //   await waitFor(() => {
-  //     expect(screen.getByText(/are you sure you want to delete this tracking\?/i)).toBeInTheDocument();
-  //   });
-
-  //   // Find the delete button within the confirmation dialog
-  //   const confirmationDialog = screen.getByText(/are you sure you want to delete this tracking\?/i).closest('.delete-confirmation') as HTMLElement;
-  //   expect(confirmationDialog).toBeInTheDocument();
-  //   const confirmDeleteButton = within(confirmationDialog).getByRole('button', { name: /delete/i });
-  //   await user.click(confirmDeleteButton);
-
-  //   await waitFor(() => {
-  //     expect(mockOnDelete).toHaveBeenCalledWith(1);
-  //     expect(mockOnClose).toHaveBeenCalledTimes(1);
-  //   });
-  // });
-
-
-
-
-  // TODO: Fix race condition with onClose being called on delete failure
-  // it('should show error message on delete failure', async () => {
-  //   const user = userEvent.setup();
-  //   const errorDelete = vi.fn().mockRejectedValue(new Error('Delete failed'));
-
-  //   render(
-  //     <EditTrackingModal
-  //       tracking={mockTracking}
-  //       onClose={mockOnClose}
-  //       onSave={mockOnSave}
-  //       onDelete={errorDelete}
-  //     />
-  //   );
-
-  //   const deleteButton = screen.getByRole('button', { name: /delete/i });
-  //   await user.click(deleteButton);
-
-  //   // Wait for confirmation dialog to appear
-  //   await waitFor(() => {
-  //     expect(screen.getByText(/are you sure you want to delete this tracking\?/i)).toBeInTheDocument();
-  //   });
-
-  //   // Find the delete button within the confirmation dialog
-  //   const confirmationDialog = screen.getByText(/are you sure you want to delete this tracking\?/i).closest('.delete-confirmation') as HTMLElement;
-  //   expect(confirmationDialog).toBeInTheDocument();
-  //   const confirmDeleteButton = within(confirmationDialog).getByRole('button', { name: /delete/i });
-
-  //   // Click and wait for the error to appear
-  //   await user.click(confirmDeleteButton);
-
-  //   // Wait for the error message to appear and confirmation dialog to disappear
-  //   await waitFor(() => {
-  //     expect(screen.getByText(/delete failed/i)).toBeInTheDocument();
-  //     expect(screen.queryByText(/are you sure you want to delete this tracking\?/i)).not.toBeInTheDocument();
-  //   }, { timeout: 3000 });
-
-  //   // Verify errorDelete was called
-  //   expect(errorDelete).toHaveBeenCalled();
-
-  //   // The component should not call onClose when delete fails
-  //   // Check immediately after error appears - if onClose was called, it would have been called already
-  //   expect(mockOnClose).not.toHaveBeenCalled();
-  //   expect(mockOnSave).not.toHaveBeenCalled();
-  // });
-
-  it('should handle tracking without notes', () => {
-    const trackingWithoutNotes: TrackingData = {
-      ...mockTracking,
-      notes: undefined,
-    };
-
-    render(
-      <EditTrackingModal
-        tracking={trackingWithoutNotes}
-        onClose={mockOnClose}
-        onSave={mockOnSave}
-      />
-    );
-
-    const notesInput = screen.getByRole('textbox', { name: /^notes \?/i });
-    expect(notesInput).toHaveValue('');
-  });
 
   it('should clear icon when icon is deleted', async () => {
     const user = userEvent.setup();
@@ -435,4 +347,3 @@ describe('EditTrackingModal', () => {
     expect(mockOnSave).not.toHaveBeenCalled();
   });
 });
-
