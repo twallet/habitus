@@ -57,12 +57,9 @@ describe("useReminders", () => {
       const { result } = renderHook(() => useReminders());
 
       // Wait for initial fetch to complete
-      await act(async () => {
-        await vi.runAllTimersAsync();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
       });
-
-      // Check loading state
-      expect(result.current.isLoading).toBe(false);
 
       expect(result.current.reminders).toEqual([]);
     });
@@ -89,12 +86,9 @@ describe("useReminders", () => {
       const { result } = renderHook(() => useReminders());
 
       // Wait for initial fetch to complete
-      await act(async () => {
-        await vi.runAllTimersAsync();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
       });
-
-      // Check loading state
-      expect(result.current.isLoading).toBe(false);
 
       expect(result.current.reminders).toEqual(mockReminders);
       expect(global.fetch).toHaveBeenCalledWith(
@@ -115,12 +109,9 @@ describe("useReminders", () => {
       const { result } = renderHook(() => useReminders());
 
       // Wait for initial fetch to complete
-      await act(async () => {
-        await vi.runAllTimersAsync();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
       });
-
-      // Check loading state
-      expect(result.current.isLoading).toBe(false);
 
       expect(result.current.reminders).toEqual([]);
     });
@@ -138,12 +129,9 @@ describe("useReminders", () => {
       const { result } = renderHook(() => useReminders());
 
       // Wait for initial fetch to complete
-      await act(async () => {
-        await vi.runAllTimersAsync();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
       });
-
-      // Check loading state
-      expect(result.current.isLoading).toBe(false);
 
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
 
@@ -174,12 +162,9 @@ describe("useReminders", () => {
       const { result } = renderHook(() => useReminders());
 
       // Wait for initial fetch to complete
-      await act(async () => {
-        await vi.runAllTimersAsync();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
       });
-
-      // Check loading state
-      expect(result.current.isLoading).toBe(false);
 
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
 
@@ -271,14 +256,10 @@ describe("useReminders", () => {
 
       const { result } = renderHook(() => useReminders());
 
-      // Wait for initial load
       // Wait for initial fetch to complete
-      await act(async () => {
-        await vi.runAllTimersAsync();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
       });
-
-      // Check loading state
-      expect(result.current.isLoading).toBe(false);
 
       vi.useFakeTimers();
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
@@ -328,12 +309,9 @@ describe("useReminders", () => {
       const { result } = renderHook(() => useReminders());
 
       // Wait for initial fetch to complete
-      await act(async () => {
-        await vi.runAllTimersAsync();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
       });
-
-      // Check loading state
-      expect(result.current.isLoading).toBe(false);
 
       await result.current.updateReminder(
         1,
@@ -357,12 +335,9 @@ describe("useReminders", () => {
       const { result } = renderHook(() => useReminders());
 
       // Wait for initial fetch to complete
-      await act(async () => {
-        await vi.runAllTimersAsync();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
       });
-
-      // Check loading state
-      expect(result.current.isLoading).toBe(false);
 
       await expect(result.current.updateReminder(1)).rejects.toThrow(
         "Not authenticated"
@@ -391,12 +366,9 @@ describe("useReminders", () => {
       const { result } = renderHook(() => useReminders());
 
       // Wait for initial fetch to complete
-      await act(async () => {
-        await vi.runAllTimersAsync();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
       });
-
-      // Check loading state
-      expect(result.current.isLoading).toBe(false);
 
       await expect(
         result.current.updateReminder(1, "Some notes")
@@ -436,12 +408,9 @@ describe("useReminders", () => {
       const { result } = renderHook(() => useReminders());
 
       // Wait for initial fetch to complete
-      await act(async () => {
-        await vi.runAllTimersAsync();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
       });
-
-      // Check loading state
-      expect(result.current.isLoading).toBe(false);
 
       await result.current.snoozeReminder(1, 30);
 
@@ -461,12 +430,9 @@ describe("useReminders", () => {
       const { result } = renderHook(() => useReminders());
 
       // Wait for initial fetch to complete
-      await act(async () => {
-        await vi.runAllTimersAsync();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
       });
-
-      // Check loading state
-      expect(result.current.isLoading).toBe(false);
 
       await expect(result.current.snoozeReminder(1, 30)).rejects.toThrow(
         "Not authenticated"
@@ -495,12 +461,9 @@ describe("useReminders", () => {
       const { result } = renderHook(() => useReminders());
 
       // Wait for initial fetch to complete
-      await act(async () => {
-        await vi.runAllTimersAsync();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
       });
-
-      // Check loading state
-      expect(result.current.isLoading).toBe(false);
 
       await expect(result.current.snoozeReminder(1, 30)).rejects.toThrow(
         "Snooze failed"
@@ -538,12 +501,9 @@ describe("useReminders", () => {
       const { result } = renderHook(() => useReminders());
 
       // Wait for initial fetch to complete
-      await act(async () => {
-        await vi.runAllTimersAsync();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
       });
-
-      // Check loading state
-      expect(result.current.isLoading).toBe(false);
 
       await result.current.deleteReminder(1);
 
@@ -566,12 +526,9 @@ describe("useReminders", () => {
       const { result } = renderHook(() => useReminders());
 
       // Wait for initial fetch to complete
-      await act(async () => {
-        await vi.runAllTimersAsync();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
       });
-
-      // Check loading state
-      expect(result.current.isLoading).toBe(false);
 
       await expect(result.current.deleteReminder(1)).rejects.toThrow(
         "Not authenticated"
@@ -604,12 +561,9 @@ describe("useReminders", () => {
       const { result } = renderHook(() => useReminders());
 
       // Wait for initial fetch to complete
-      await act(async () => {
-        await vi.runAllTimersAsync();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
       });
-
-      // Check loading state
-      expect(result.current.isLoading).toBe(false);
 
       // Optimistically removes from state
       await expect(result.current.deleteReminder(1)).rejects.toThrow(
@@ -651,12 +605,9 @@ describe("useReminders", () => {
       const { result } = renderHook(() => useReminders());
 
       // Wait for initial fetch to complete
-      await act(async () => {
-        await vi.runAllTimersAsync();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
       });
-
-      // Check loading state
-      expect(result.current.isLoading).toBe(false);
 
       await result.current.refreshReminders();
 
@@ -697,12 +648,9 @@ describe("useReminders", () => {
       const { result } = renderHook(() => useReminders());
 
       // Wait for initial fetch to complete
-      await act(async () => {
-        await vi.runAllTimersAsync();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
       });
-
-      // Check loading state
-      expect(result.current.isLoading).toBe(false);
 
       expect(result.current.reminders).toHaveLength(2);
 
@@ -724,14 +672,10 @@ describe("useReminders", () => {
 
       const { result } = renderHook(() => useReminders());
 
-      // Wait for initial load
       // Wait for initial fetch to complete
-      await act(async () => {
-        await vi.runAllTimersAsync();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
       });
-
-      // Check loading state
-      expect(result.current.isLoading).toBe(false);
 
       vi.useFakeTimers();
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
@@ -764,14 +708,10 @@ describe("useReminders", () => {
 
       const { result } = renderHook(() => useReminders());
 
-      // Wait for initial load
       // Wait for initial fetch to complete
-      await act(async () => {
-        await vi.runAllTimersAsync();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
       });
-
-      // Check loading state
-      expect(result.current.isLoading).toBe(false);
 
       vi.useFakeTimers();
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
@@ -798,14 +738,10 @@ describe("useReminders", () => {
 
       const { result } = renderHook(() => useReminders());
 
-      // Wait for initial load
       // Wait for initial fetch to complete
-      await act(async () => {
-        await vi.runAllTimersAsync();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
       });
-
-      // Check loading state
-      expect(result.current.isLoading).toBe(false);
 
       vi.useFakeTimers();
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
@@ -908,14 +844,10 @@ describe("useReminders", () => {
 
       const { result } = renderHook(() => useReminders());
 
-      // Wait for initial load
       // Wait for initial fetch to complete
-      await act(async () => {
-        await vi.runAllTimersAsync();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
       });
-
-      // Check loading state
-      expect(result.current.isLoading).toBe(false);
 
       vi.useFakeTimers();
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
@@ -959,14 +891,10 @@ describe("useReminders", () => {
 
       const { result } = renderHook(() => useReminders());
 
-      // Wait for initial load
       // Wait for initial fetch to complete
-      await act(async () => {
-        await vi.runAllTimersAsync();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
       });
-
-      // Check loading state
-      expect(result.current.isLoading).toBe(false);
 
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
 
@@ -1004,14 +932,10 @@ describe("useReminders", () => {
 
       const { result } = renderHook(() => useReminders());
 
-      // Wait for initial load
       // Wait for initial fetch to complete
-      await act(async () => {
-        await vi.runAllTimersAsync();
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
       });
-
-      // Check loading state
-      expect(result.current.isLoading).toBe(false);
 
       // Simulate visibility change to trigger startPolling multiple times
       await act(async () => {
