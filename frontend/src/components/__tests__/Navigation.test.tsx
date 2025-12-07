@@ -1,72 +1,72 @@
 // @vitest-environment jsdom
-import { vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { Navigation, View } from '../Navigation';
+import { MemoryRouter } from 'react-router-dom';
+import { Navigation } from '../Navigation';
 
 describe('Navigation', () => {
-    const mockOnViewChange = vi.fn();
+    const renderNavigation = (initialRoute = '/') => {
+        return render(
+            <MemoryRouter initialEntries={[initialRoute]}>
+                <Navigation runningTrackingsCount={0} pendingRemindersCount={0} />
+            </MemoryRouter>
+        );
+    };
 
-    beforeEach(() => {
-        vi.clearAllMocks();
+    it('should render both navigation links', () => {
+        renderNavigation();
+
+        expect(screen.getByRole('link', { name: /trackings/i })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /reminders/i })).toBeInTheDocument();
     });
 
-    it('should render both navigation buttons', () => {
-        render(<Navigation currentView="profile" onViewChange={mockOnViewChange} />);
+    it('should highlight active link for trackings', () => {
+        renderNavigation('/');
 
-        expect(screen.getByRole('button', { name: /profile/i })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /trackings/i })).toBeInTheDocument();
+        const trackingsLink = screen.getByRole('link', { name: /trackings/i });
+        const remindersLink = screen.getByRole('link', { name: /reminders/i });
+
+        expect(trackingsLink).toHaveClass('active');
+        expect(remindersLink).not.toHaveClass('active');
     });
 
-    it('should highlight active view for profile', () => {
-        render(<Navigation currentView="profile" onViewChange={mockOnViewChange} />);
+    it('should highlight active link for reminders', () => {
+        renderNavigation('/reminders');
 
-        const profileButton = screen.getByRole('button', { name: /profile/i });
-        const trackingsButton = screen.getByRole('button', { name: /trackings/i });
+        const trackingsLink = screen.getByRole('link', { name: /trackings/i });
+        const remindersLink = screen.getByRole('link', { name: /reminders/i });
 
-        expect(profileButton).toHaveClass('active');
-        expect(trackingsButton).not.toHaveClass('active');
+        expect(remindersLink).toHaveClass('active');
+        expect(trackingsLink).not.toHaveClass('active');
     });
 
-    it('should highlight active view for trackings', () => {
-        render(<Navigation currentView="trackings" onViewChange={mockOnViewChange} />);
+    it('should show running trackings count badge', () => {
+        render(
+            <MemoryRouter>
+                <Navigation runningTrackingsCount={3} pendingRemindersCount={0} />
+            </MemoryRouter>
+        );
 
-        const profileButton = screen.getByRole('button', { name: /profile/i });
-        const trackingsButton = screen.getByRole('button', { name: /trackings/i });
-
-        expect(trackingsButton).toHaveClass('active');
-        expect(profileButton).not.toHaveClass('active');
+        const badge = screen.getByLabelText('3 running trackings');
+        expect(badge).toBeInTheDocument();
+        expect(badge).toHaveTextContent('3');
     });
 
-    it('should call onViewChange when profile button is clicked', async () => {
-        const user = userEvent.setup();
-        render(<Navigation currentView="trackings" onViewChange={mockOnViewChange} />);
+    it('should show pending reminders count badge', () => {
+        render(
+            <MemoryRouter>
+                <Navigation runningTrackingsCount={0} pendingRemindersCount={5} />
+            </MemoryRouter>
+        );
 
-        const profileButton = screen.getByRole('button', { name: /profile/i });
-        await user.click(profileButton);
-
-        expect(mockOnViewChange).toHaveBeenCalledWith('profile');
-        expect(mockOnViewChange).toHaveBeenCalledTimes(1);
+        const badge = screen.getByLabelText('5 pending reminders');
+        expect(badge).toBeInTheDocument();
+        expect(badge).toHaveTextContent('5');
     });
 
-    it('should call onViewChange when trackings button is clicked', async () => {
-        const user = userEvent.setup();
-        render(<Navigation currentView="profile" onViewChange={mockOnViewChange} />);
+    it('should not show badges when counts are zero', () => {
+        renderNavigation();
 
-        const trackingsButton = screen.getByRole('button', { name: /trackings/i });
-        await user.click(trackingsButton);
-
-        expect(mockOnViewChange).toHaveBeenCalledWith('trackings');
-        expect(mockOnViewChange).toHaveBeenCalledTimes(1);
-    });
-
-    it('should have correct button types', () => {
-        render(<Navigation currentView="profile" onViewChange={mockOnViewChange} />);
-
-        const buttons = screen.getAllByRole('button');
-        buttons.forEach(button => {
-            expect(button).toHaveAttribute('type', 'button');
-        });
+        expect(screen.queryByLabelText(/running trackings/i)).not.toBeInTheDocument();
+        expect(screen.queryByLabelText(/pending reminders/i)).not.toBeInTheDocument();
     });
 });
-
