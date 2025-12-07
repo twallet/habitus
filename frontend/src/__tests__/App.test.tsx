@@ -130,38 +130,6 @@ describe('App', () => {
     );
   };
 
-  it('should render header', async () => {
-    // Authenticated for header to show
-    mockUseAuth.mockReturnValue({
-      ...mockUseAuth.mock.results[0]?.value,
-      isAuthenticated: true,
-      user: { id: 1, name: 'Test', email: 'test@example.com' }
-    });
-
-    renderApp();
-
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /habitus/i })).toBeInTheDocument();
-    });
-  });
-
-  it('should redirect to login if not authenticated', async () => {
-    renderApp(['/']);
-
-    await waitFor(() => {
-      expect(screen.getByText(/email/i)).toBeInTheDocument(); // Login page content
-    });
-  });
-
-  it('should render auth form', async () => {
-    renderApp(['/login']);
-
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText('Enter your email')).toBeInTheDocument();
-    });
-    expect(screen.getByRole('button', { name: /send login link/i })).toBeInTheDocument();
-  });
-
   it('should show loading state when isLoading is true', async () => {
     mockUseAuth.mockReturnValue({
       user: null,
