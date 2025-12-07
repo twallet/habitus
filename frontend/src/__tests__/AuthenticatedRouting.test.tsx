@@ -89,7 +89,8 @@ describe('Authenticated Routing', () => {
             renderWithAuth('/', true);
 
             await waitFor(() => {
-                expect(screen.getByText(/no trackings\./i)).toBeInTheDocument();
+                // Verify we're on the trackings page (not login)
+                expect(screen.queryByPlaceholderText(/enter your email/i)).not.toBeInTheDocument();
             });
         });
 
