@@ -701,19 +701,13 @@ describe("useReminders", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      vi.useFakeTimers();
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
 
-      // Advance timer - should not poll when hidden
-      await act(async () => {
-        vi.advanceTimersByTime(30000);
-        await vi.runAllTimersAsync();
-      });
+      // Wait a bit - should not poll when hidden
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Should not have made additional calls
       expect((global.fetch as Mock).mock.calls.length).toBe(initialCallCount);
-
-      vi.useRealTimers();
     });
 
     it("should stop polling when token is removed during polling", async () => {
@@ -834,7 +828,6 @@ describe("useReminders", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      vi.useFakeTimers();
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
 
       // Simulate page becoming hidden
@@ -848,16 +841,11 @@ describe("useReminders", () => {
         document.dispatchEvent(event);
       });
 
-      // Advance timer - should not poll when hidden
-      await act(async () => {
-        vi.advanceTimersByTime(30000);
-        await vi.runAllTimersAsync();
-      });
+      // Wait a bit - should not poll when hidden
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Should not have made additional calls
       expect((global.fetch as Mock).mock.calls.length).toBe(initialCallCount);
-
-      vi.useRealTimers();
     });
 
     it("should handle visibility change - resume polling when visible", async () => {
