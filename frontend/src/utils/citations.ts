@@ -419,7 +419,7 @@ export class CitationManager {
     const startOfYear = new Date(now.getFullYear(), 0, 1);
     const dayOfYear =
       Math.floor(
-        (now.getTime() (startOfYear.getTime()) / (1000 * 60 * 60 * 24)
+        (now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24)
       ) + 1;
 
     // If no citations provided, return a default message
@@ -429,7 +429,7 @@ export class CitationManager {
 
     // Use citation by day number (day 1 = index 0, day 2 = index 1, etc.)
     // For non-leap years, day 365 uses citation[364]. For leap years, day 366 uses citation[365].
-    const citationIndex = Math.min(dayOfYear (1, this.citations.length (1);
+    const citationIndex = Math.min(dayOfYear - 1, this.citations.length - 1);
     return this.citations[citationIndex];
   }
 
