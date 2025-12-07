@@ -97,7 +97,7 @@ describe('Authenticated Routing', () => {
             renderWithAuth('/reminders', true);
 
             await waitFor(() => {
-                expect(screen.getByText(/no reminders/i)).toBeInTheDocument();
+                expect(screen.getByText(/no pending reminders/i)).toBeInTheDocument();
             });
         });
 
@@ -157,7 +157,7 @@ describe('Authenticated Routing', () => {
             await user.click(remindersLink);
 
             await waitFor(() => {
-                expect(screen.getByText(/no reminders/i)).toBeInTheDocument();
+                expect(screen.getByText(/no pending reminders/i)).toBeInTheDocument();
             });
         });
 
@@ -166,7 +166,7 @@ describe('Authenticated Routing', () => {
             renderWithAuth('/reminders', true);
 
             await waitFor(() => {
-                expect(screen.getByText(/no reminders/i)).toBeInTheDocument();
+                expect(screen.getByText(/no pending reminders/i)).toBeInTheDocument();
             });
 
             const trackingsLink = screen.getByRole('link', { name: /trackings/i });
