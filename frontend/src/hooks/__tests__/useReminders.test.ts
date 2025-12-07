@@ -10,10 +10,10 @@ import {
 import { API_ENDPOINTS } from "../../config/api";
 import { tokenManager } from "../base/TokenManager.js";
 
-// Mock fetch
+/** Mock fetch */
 global.fetch = vi.fn();
 
-// Type declaration for localStorage in test environment
+/** Type declaration for localStorage in test environment */
 declare const localStorage: {
   getItem: (key: string) => string | null;
   setItem: (key: string, value: string) => void;
@@ -31,9 +31,9 @@ describe("useReminders", () => {
     (global.fetch as Mock).mockReset();
     (global.fetch as Mock).mockClear();
     localStorage.clear();
-    // Reset TokenManager state
+    /** Reset TokenManager state */
     tokenManager.reset();
-    // Reset document.hidden
+    /** Reset document.hidden */
     Object.defineProperty(document, "hidden", {
       writable: true,
       configurable: true,
@@ -56,7 +56,7 @@ describe("useReminders", () => {
 
       const { result } = renderHook(() => useReminders());
 
-      // Wait for initial fetch to complete
+      /** Wait for initial fetch to complete */
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
@@ -135,7 +135,7 @@ describe("useReminders", () => {
 
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
 
-      // Simulate storage event
+      /** Simulate storage event */
       act(() => {
         const event = new StorageEvent("storage", {
           key: TOKEN_KEY,
@@ -184,7 +184,7 @@ describe("useReminders", () => {
     });
 
     it("should detect token changes via polling interval", async () => {
-      // Use fake timers from the start to ensure polling interval is controlled
+      /** Use fake timers from the start to ensure polling interval is controlled */
       vi.useFakeTimers();
 
       localStorage.setItem(TOKEN_KEY, "token1");
@@ -196,42 +196,50 @@ describe("useReminders", () => {
 
       const { result } = renderHook(() => useReminders());
 
-      // Wait for initial load with fake timers
+      /** Wait for initial load with fake timers */
       await act(async () => {
-        // Advance timers to allow initial fetch to complete
+        /** Advance timers to allow initial fetch to complete */
         vi.advanceTimersByTime(100);
-        // Process all pending promises
+        /** Process all pending promises */
         await Promise.resolve();
         await Promise.resolve();
       });
 
-      // Check loading state - should be false after fetch completes
+      /** Check loading state - should be false after fetch completes */
       expect(result.current.isLoading).toBe(false);
 
-      // Advance timer to trigger first polling check and sync TokenManager state
-      // This ensures currentToken is set to "token1" before we change it
+      /**
+       * Advance timer to trigger first polling check and sync TokenManager state
+       * This ensures currentToken is set to "token1" before we change it
+       */
       await act(async () => {
         vi.advanceTimersByTime(500);
       });
 
-      // Capture call count after initial polling sync
-      // Note: initialCallCount might be 1 (initial fetch) or 2 (if polling triggered a fetch)
+      /**
+       * Capture call count after initial polling sync
+       * Note: initialCallCount might be 1 (initial fetch) or 2 (if polling triggered a fetch)
+       */
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
 
-      // Change token in localStorage
-      // This change will be detected by the next polling check
+      /**
+       * Change token in localStorage
+       * This change will be detected by the next polling check
+       */
       act(() => {
         localStorage.setItem(TOKEN_KEY, "token2");
       });
 
-      // Advance timer to trigger the polling interval check
-      // The polling interval fires every 500ms, so advancing by 500ms should trigger it
+      /**
+       * Advance timer to trigger the polling interval check
+       * The polling interval fires every 500ms, so advancing by 500ms should trigger it
+       */
       await act(async () => {
         // Advance to when the interval should fire (500ms from last check)
         vi.advanceTimersByTime(500);
       });
 
-      // Switch to real timers for final verification
+      /** Switch to real timers for final verification */
       vi.useRealTimers();
 
       // Process any pending promises after switching to real timers
@@ -240,7 +248,7 @@ describe("useReminders", () => {
         await Promise.resolve();
       });
 
-      // Wait for fetch to complete
+      /** Wait for fetch to complete */
       await waitFor(
         () => {
           expect((global.fetch as Mock).mock.calls.length).toBeGreaterThan(
@@ -379,6 +387,202 @@ describe("useReminders", () => {
     });
   });
 
+  describe("completeReminder", () => {
+    it("should complete reminder successfully", async () => {
+      const mockReminder: ReminderData = {
+        id: 1,
+        tracking_id: 1,
+        user_id: 1,
+        scheduled_time: "2024-01-01T10:00:00Z",
+        status: ReminderStatus.PENDING,
+        value: ReminderValue.COMPLETED,
+      };
+
+      const completedReminder: ReminderData = {
+        ...mockReminder,
+        status: ReminderStatus.ANSWERED,
+        value: ReminderValue.COMPLETED,
+      };
+
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [mockReminder],
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => completedReminder,
+        });
+
+      const { result } = renderHook(() => useReminders());
+
+      /** Wait for initial fetch to complete */
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await result.current.completeReminder(1);
+
+      await waitFor(() => {
+        expect(result.current.reminders[0].status).toBe(
+          ReminderStatus.ANSWERED
+        );
+        expect(result.current.reminders[0].value).toBe(
+          ReminderValue.COMPLETED
+        );
+      });
+    });
+
+    it("should throw error when not authenticated", async () => {
+      (global.fetch as Mock).mockResolvedValue({
+        ok: true,
+        json: async () => [],
+      });
+
+      const { result } = renderHook(() => useReminders());
+
+      /** Wait for initial fetch to complete */
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await expect(result.current.completeReminder(1)).rejects.toThrow(
+        "Not authenticated"
+      );
+    });
+
+    it("should handle complete error", async () => {
+      const mockReminder: ReminderData = {
+        id: 1,
+        tracking_id: 1,
+        user_id: 1,
+        scheduled_time: "2024-01-01T10:00:00Z",
+        status: ReminderStatus.PENDING,
+        value: ReminderValue.COMPLETED,
+      };
+
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [mockReminder],
+        })
+        .mockRejectedValueOnce(new Error("Complete failed"));
+
+      const { result } = renderHook(() => useReminders());
+
+      /** Wait for initial fetch to complete */
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await expect(result.current.completeReminder(1)).rejects.toThrow(
+        "Complete failed"
+      );
+    });
+  });
+
+  describe("dismissReminder", () => {
+    it("should dismiss reminder successfully", async () => {
+      const mockReminder: ReminderData = {
+        id: 1,
+        tracking_id: 1,
+        user_id: 1,
+        scheduled_time: "2024-01-01T10:00:00Z",
+        status: ReminderStatus.PENDING,
+        value: ReminderValue.COMPLETED,
+      };
+
+      const dismissedReminder: ReminderData = {
+        ...mockReminder,
+        status: ReminderStatus.ANSWERED,
+        value: ReminderValue.DISMISSED,
+      };
+
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [mockReminder],
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => dismissedReminder,
+        });
+
+      const { result } = renderHook(() => useReminders());
+
+      /** Wait for initial fetch to complete */
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await result.current.dismissReminder(1);
+
+      await waitFor(() => {
+        expect(result.current.reminders[0].status).toBe(
+          ReminderStatus.ANSWERED
+        );
+        expect(result.current.reminders[0].value).toBe(
+          ReminderValue.DISMISSED
+        );
+      });
+    });
+
+    it("should throw error when not authenticated", async () => {
+      (global.fetch as Mock).mockResolvedValue({
+        ok: true,
+        json: async () => [],
+      });
+
+      const { result } = renderHook(() => useReminders());
+
+      /** Wait for initial fetch to complete */
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await expect(result.current.dismissReminder(1)).rejects.toThrow(
+        "Not authenticated"
+      );
+    });
+
+    it("should handle dismiss error", async () => {
+      const mockReminder: ReminderData = {
+        id: 1,
+        tracking_id: 1,
+        user_id: 1,
+        scheduled_time: "2024-01-01T10:00:00Z",
+        status: ReminderStatus.PENDING,
+        value: ReminderValue.COMPLETED,
+      };
+
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => [mockReminder],
+        })
+        .mockRejectedValueOnce(new Error("Dismiss failed"));
+
+      const { result } = renderHook(() => useReminders());
+
+      /** Wait for initial fetch to complete */
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await expect(result.current.dismissReminder(1)).rejects.toThrow(
+        "Dismiss failed"
+      );
+    });
+  });
+
   describe("snoozeReminder", () => {
     it("should snooze reminder successfully", async () => {
       const mockReminder: ReminderData = {
@@ -410,7 +614,7 @@ describe("useReminders", () => {
 
       const { result } = renderHook(() => useReminders());
 
-      // Wait for initial fetch to complete
+      /** Wait for initial fetch to complete */
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
@@ -432,7 +636,7 @@ describe("useReminders", () => {
 
       const { result } = renderHook(() => useReminders());
 
-      // Wait for initial fetch to complete
+      /** Wait for initial fetch to complete */
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
@@ -463,7 +667,7 @@ describe("useReminders", () => {
 
       const { result } = renderHook(() => useReminders());
 
-      // Wait for initial fetch to complete
+      /** Wait for initial fetch to complete */
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
@@ -503,7 +707,7 @@ describe("useReminders", () => {
 
       const { result } = renderHook(() => useReminders());
 
-      // Wait for initial fetch to complete
+      /** Wait for initial fetch to complete */
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
@@ -528,7 +732,7 @@ describe("useReminders", () => {
 
       const { result } = renderHook(() => useReminders());
 
-      // Wait for initial fetch to complete
+      /** Wait for initial fetch to complete */
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
@@ -563,17 +767,17 @@ describe("useReminders", () => {
 
       const { result } = renderHook(() => useReminders());
 
-      // Wait for initial fetch to complete
+      /** Wait for initial fetch to complete */
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      // Optimistically removes from state
+      /** Optimistically removes from state */
       await expect(result.current.deleteReminder(1)).rejects.toThrow(
         "Delete failed"
       );
 
-      // Should refresh to restore state
+      /** Should refresh to restore state */
       await waitFor(() => {
         expect(result.current.reminders).toEqual([mockReminder]);
       });
@@ -607,7 +811,7 @@ describe("useReminders", () => {
 
       const { result } = renderHook(() => useReminders());
 
-      // Wait for initial fetch to complete
+      /** Wait for initial fetch to complete */
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
@@ -650,7 +854,7 @@ describe("useReminders", () => {
 
       const { result } = renderHook(() => useReminders());
 
-      // Wait for initial fetch to complete
+      /** Wait for initial fetch to complete */
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
@@ -675,12 +879,12 @@ describe("useReminders", () => {
 
       const { result } = renderHook(() => useReminders());
 
-      // Wait for initial fetch to complete
+      /** Wait for initial fetch to complete */
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      // Wait a bit more to ensure initial fetch is fully complete
+      /** Wait a bit more to ensure initial fetch is fully complete */
       await act(async () => {
         await Promise.resolve();
         await Promise.resolve();
@@ -688,15 +892,15 @@ describe("useReminders", () => {
 
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
 
-      // Wait a bit to ensure no polling occurs (polling shouldn't start without token)
+      /** Wait a bit to ensure no polling occurs (polling shouldn't start without token) */
       await new Promise((resolve) => setTimeout(resolve, 1200));
 
-      // Should not have made additional calls
+      /** Should not have made additional calls */
       expect((global.fetch as Mock).mock.calls.length).toBe(initialCallCount);
     });
 
     it("should not poll when page is hidden", async () => {
-      // Use tokenManager to set token so it's aware and doesn't trigger change detection
+      /** Use tokenManager to set token so it's aware and doesn't trigger change detection */
       tokenManager.setToken("valid-token");
 
       Object.defineProperty(document, "hidden", {
@@ -712,12 +916,12 @@ describe("useReminders", () => {
 
       const { result } = renderHook(() => useReminders());
 
-      // Wait for initial fetch to complete
+      /** Wait for initial fetch to complete */
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      // Wait a bit more to ensure initial fetch is fully complete
+      /** Wait a bit more to ensure initial fetch is fully complete */
       await act(async () => {
         await Promise.resolve();
         await Promise.resolve();
@@ -725,10 +929,10 @@ describe("useReminders", () => {
 
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
 
-      // Wait a bit - should not poll when hidden
+      /** Wait a bit - should not poll when hidden */
       await new Promise((resolve) => setTimeout(resolve, 1200));
 
-      // Should not have made additional calls
+      /** Should not have made additional calls */
       expect((global.fetch as Mock).mock.calls.length).toBe(initialCallCount);
     });
 
@@ -742,39 +946,39 @@ describe("useReminders", () => {
 
       const { result } = renderHook(() => useReminders());
 
-      // Wait for initial fetch to complete
+      /** Wait for initial fetch to complete */
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      // Wait a bit more to ensure initial fetch is fully complete
+      /** Wait a bit more to ensure initial fetch is fully complete */
       await act(async () => {
         await Promise.resolve();
         await Promise.resolve();
       });
 
-      // Wait a bit to allow polling to potentially start
+      /** Wait a bit to allow polling to potentially start */
       await new Promise((resolve) => setTimeout(resolve, 700));
 
-      // Capture call count after polling may have started
+      /** Capture call count after polling may have started */
       const callCountBeforeRemoval = (global.fetch as Mock).mock.calls.length;
 
-      // Remove token - this should stop polling
+      /** Remove token - this should stop polling */
       act(() => {
         localStorage.removeItem(TOKEN_KEY);
       });
 
-      // Wait a bit more - should not poll without token
+      /** Wait a bit more - should not poll without token */
       await new Promise((resolve) => setTimeout(resolve, 1200));
 
-      // Should not have made additional calls after token removal
+      /** Should not have made additional calls after token removal */
       expect((global.fetch as Mock).mock.calls.length).toBe(
         callCountBeforeRemoval
       );
     });
 
     it("should refresh reminders when token changes during polling", async () => {
-      // Use fake timers from the start to ensure polling interval is controlled
+      /** Use fake timers from the start to ensure polling interval is controlled */
       vi.useFakeTimers();
 
       localStorage.setItem(TOKEN_KEY, "token1");
@@ -786,45 +990,54 @@ describe("useReminders", () => {
 
       const { result } = renderHook(() => useReminders());
 
-      // Wait for initial load with fake timers
+      /** Wait for initial load with fake timers */
       await act(async () => {
-        // Advance timers to allow initial fetch to complete
+        /** Advance timers to allow initial fetch to complete */
         vi.advanceTimersByTime(100);
-        // Process all pending promises
+        /** Process all pending promises */
         await Promise.resolve();
         await Promise.resolve();
       });
 
-      // Check loading state - should be false after fetch completes
+      /** Check loading state - should be false after fetch completes */
       expect(result.current.isLoading).toBe(false);
 
-      // Advance timer to trigger first polling check and sync TokenManager state
-      // This ensures currentToken is set to "token1" before we change it
+      /**
+       * Advance timer to trigger first polling check and sync TokenManager state
+       * This ensures currentToken is set to "token1" before we change it
+       */
       await act(async () => {
         vi.advanceTimersByTime(500);
       });
 
-      // Capture call count after initial polling sync
-      // Note: initialCallCount might be 1 (initial fetch) or 2 (if polling triggered a fetch)
+      /**
+       * Capture call count after initial polling sync
+       * Note: initialCallCount might be 1 (initial fetch) or 2 (if polling triggered a fetch)
+       */
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
 
-      // Change token - this should be detected by polling
-      // This change will be detected by the next polling check
+      /**
+       * Change token - this should be detected by polling
+       * This change will be detected by the next polling check
+       */
       act(() => {
         localStorage.setItem(TOKEN_KEY, "token2");
       });
 
-      // Advance timer to trigger the polling interval check
-      // The polling interval fires every 500ms, so advancing by 500ms should trigger it
+      /**
+       * Advance timer to trigger the polling interval check
+       * The polling interval fires every 500ms, so advancing by 500ms should trigger it
+       */
       await act(async () => {
         // Advance to when the interval should fire (500ms from last check)
         vi.advanceTimersByTime(500);
       });
 
-      // Switch to real timers for final verification
+      /** Switch to real timers for final verification */
+      vi.useRealTimers();
       vi.useRealTimers();
 
-      // Wait for fetch to complete - token change should trigger a new fetch
+      /** Wait for fetch to complete - token change should trigger a new fetch */
       await waitFor(
         () => {
           expect((global.fetch as Mock).mock.calls.length).toBeGreaterThan(
@@ -851,24 +1064,24 @@ describe("useReminders", () => {
 
       const { result } = renderHook(() => useReminders());
 
-      // Wait for initial fetch to complete
+      /** Wait for initial fetch to complete */
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      // Wait a bit more to ensure initial fetch is fully complete
+      /** Wait a bit more to ensure initial fetch is fully complete */
       await act(async () => {
         await Promise.resolve();
         await Promise.resolve();
       });
 
-      // Wait a bit to allow polling to potentially start
+      /** Wait a bit to allow polling to potentially start */
       await new Promise((resolve) => setTimeout(resolve, 700));
 
-      // Capture call count after polling may have started
+      /** Capture call count after polling may have started */
       const callCountBeforeHiding = (global.fetch as Mock).mock.calls.length;
 
-      // Simulate page becoming hidden
+      /** Simulate page becoming hidden */
       act(() => {
         Object.defineProperty(document, "hidden", {
           writable: true,
@@ -879,10 +1092,10 @@ describe("useReminders", () => {
         document.dispatchEvent(event);
       });
 
-      // Wait a bit - should not poll when hidden
+      /** Wait a bit - should not poll when hidden */
       await new Promise((resolve) => setTimeout(resolve, 1200));
 
-      // Should not have made additional calls after hiding
+      /** Should not have made additional calls after hiding */
       expect((global.fetch as Mock).mock.calls.length).toBe(
         callCountBeforeHiding
       );
@@ -904,14 +1117,14 @@ describe("useReminders", () => {
 
       const { result } = renderHook(() => useReminders());
 
-      // Wait for initial fetch to complete
+      /** Wait for initial fetch to complete */
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
 
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
 
-      // Simulate page becoming visible
+      /** Simulate page becoming visible */
       await act(async () => {
         Object.defineProperty(document, "hidden", {
           writable: true,
@@ -920,11 +1133,11 @@ describe("useReminders", () => {
         });
         const event = new Event("visibilitychange");
         document.dispatchEvent(event);
-        // Flush promises
+        /** Flush promises */
         await Promise.resolve();
       });
 
-      // Should immediately refresh
+      /** Should immediately refresh */
       await waitFor(
         () => {
           expect((global.fetch as Mock).mock.calls.length).toBeGreaterThan(
@@ -945,12 +1158,12 @@ describe("useReminders", () => {
 
       const { result } = renderHook(() => useReminders());
 
-      // Wait for initial fetch to complete
+      /** Wait for initial fetch to complete */
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      // Simulate visibility change to trigger startPolling multiple times
+      /** Simulate visibility change to trigger startPolling multiple times */
       await act(async () => {
         Object.defineProperty(document, "hidden", {
           writable: true,
@@ -959,11 +1172,11 @@ describe("useReminders", () => {
         });
         const event = new Event("visibilitychange");
         document.dispatchEvent(event);
-        // Flush promises
+        /** Flush promises */
         await Promise.resolve();
       });
 
-      // Wait for refresh
+      /** Wait for refresh */
       await waitFor(
         () => {
           expect((global.fetch as Mock).mock.calls.length).toBeGreaterThan(1);

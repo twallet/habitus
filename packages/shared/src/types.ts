@@ -37,7 +37,7 @@ export interface DaysPattern {
   // For DAY_OF_WEEK pattern
   days?: number[]; // 0-6, where 0=Sunday
   // For DAY_OF_MONTH pattern
-  type?: "day_number" | "last_day" | "weekday_ordinal";
+  type?: "day_number" | "last_day" | "weekday_ordinal" | "date";
   day_numbers?: number[]; // 1-31
   weekday?: number; // 0-6, where 0=Sunday
   ordinal?: number; // 1-5 (first, second, third, fourth, fifth)

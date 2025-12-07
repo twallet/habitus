@@ -2,6 +2,7 @@ import fs from "fs";
 import multer from "multer";
 import path from "path";
 import { PathConfig } from "../config/paths.js";
+import { Request, Response, NextFunction } from "express";
 
 /**
  * Upload configuration class for managing file uploads.
@@ -114,7 +115,7 @@ export class UploadConfig {
    * @private
    */
   private fileFilter(
-    _req: Express.Request,
+    _req: Request,
     file: Express.Multer.File,
     cb: multer.FileFilterCallback
   ): void {
@@ -197,9 +198,9 @@ function getUploadConfig(): UploadConfig {
 export const uploadProfilePicture = (() => {
   let middleware: ReturnType<multer.Multer["single"]> | null = null;
   return (
-    req: Express.Request,
-    res: Express.Response,
-    next: Express.NextFunction
+    req: Request,
+    res: Response,
+    next: NextFunction
   ) => {
     if (!middleware) {
       middleware = getUploadConfig().getProfilePictureMiddleware();

@@ -61,7 +61,7 @@ describe("Rate Limiter", () => {
         json: vi.fn().mockReturnThis(),
       };
 
-      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation();
+      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
       handleRateLimitExceeded(mockReq as any, mockRes as any);
 
@@ -91,7 +91,7 @@ describe("Rate Limiter", () => {
         json: vi.fn().mockReturnThis(),
       };
 
-      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation();
+      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
       handleRateLimitExceeded(mockReq as any, mockRes as any);
 
@@ -118,7 +118,7 @@ describe("Rate Limiter", () => {
         json: vi.fn().mockReturnThis(),
       };
 
-      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation();
+      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
       handleRateLimitExceeded(mockReq as any, mockRes as any);
 
@@ -145,7 +145,7 @@ describe("Rate Limiter", () => {
         json: vi.fn().mockReturnThis(),
       };
 
-      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation();
+      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
       handleRateLimitExceeded(mockReq as any, mockRes as any);
 
