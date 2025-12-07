@@ -7,6 +7,7 @@ const MainLayout = lazy(() => import('./components/layouts/MainLayout').then(m =
 
 // Lazy load page components
 const LoginPage = lazy(() => import('./pages/LoginPage').then(m => ({ default: m.LoginPage })));
+const DashboardPage = lazy(() => import('./pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const TrackingsPage = lazy(() => import('./pages/TrackingsPage').then(m => ({ default: m.TrackingsPage })));
 const RemindersPage = lazy(() => import('./pages/RemindersPage').then(m => ({ default: m.RemindersPage })));
 const ProfilePage = lazy(() => import('./pages/ProfilePage').then(m => ({ default: m.ProfilePage })));
@@ -27,7 +28,8 @@ export function AppRoutes() {
 
                 {/* Protected Routes (Main App) */}
                 <Route element={<MainLayout />}>
-                    <Route path="/" element={<TrackingsPage />} />
+                    <Route path="/" element={<DashboardPage />} />
+                    <Route path="/trackings" element={<TrackingsPage />} />
                     <Route path="/reminders" element={<RemindersPage />} />
                     <Route path="/profile" element={<ProfilePage />} />
                 </Route>

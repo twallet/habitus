@@ -89,8 +89,10 @@ describe('Authenticated Routing', () => {
             renderWithAuth('/', true);
 
             await waitFor(() => {
-                // Verify we're on the trackings page (not login)
+                // Verify we're on the dashboard page (not login)
                 expect(screen.queryByPlaceholderText(/enter your email/i)).not.toBeInTheDocument();
+                // Dashboard should show greeting
+                expect(screen.getByText(/hello/i)).toBeInTheDocument();
             });
         });
 
@@ -140,18 +142,19 @@ describe('Authenticated Routing', () => {
             renderWithAuth('/login', true);
 
             await waitFor(() => {
-                expect(screen.getByText(/no trackings\./i)).toBeInTheDocument();
+                // Should redirect to dashboard
+                expect(screen.getByText(/hello/i)).toBeInTheDocument();
             });
         });
     });
 
     describe('Navigation Between Routes', () => {
-        it('should navigate from trackings to reminders when authenticated', async () => {
+        it('should navigate from dashboard to reminders when authenticated', async () => {
             const user = userEvent.setup();
             renderWithAuth('/', true);
 
             await waitFor(() => {
-                expect(screen.getByText(/no trackings\./i)).toBeInTheDocument();
+                expect(screen.getByText(/hello/i)).toBeInTheDocument();
             });
 
             const remindersLink = screen.getByRole('link', { name: /reminders/i });
@@ -184,7 +187,8 @@ describe('Authenticated Routing', () => {
             renderWithAuth('/unknown-route', true);
 
             await waitFor(() => {
-                expect(screen.getByText(/no trackings\./i)).toBeInTheDocument();
+                // Should redirect to dashboard
+                expect(screen.getByText(/hello/i)).toBeInTheDocument();
             });
         });
 

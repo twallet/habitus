@@ -12,19 +12,34 @@ describe('Navigation', () => {
         );
     };
 
-    it('should render both navigation links', () => {
+    it('should render all navigation links', () => {
         renderNavigation();
 
+        expect(screen.getByRole('link', { name: /dashboard/i })).toBeInTheDocument();
         expect(screen.getByRole('link', { name: /trackings/i })).toBeInTheDocument();
         expect(screen.getByRole('link', { name: /reminders/i })).toBeInTheDocument();
     });
 
-    it('should highlight active link for trackings', () => {
+    it('should highlight active link for dashboard', () => {
         renderNavigation('/');
 
+        const dashboardLink = screen.getByRole('link', { name: /dashboard/i });
         const trackingsLink = screen.getByRole('link', { name: /trackings/i });
         const remindersLink = screen.getByRole('link', { name: /reminders/i });
 
+        expect(dashboardLink).toHaveClass('active');
+        expect(trackingsLink).not.toHaveClass('active');
+        expect(remindersLink).not.toHaveClass('active');
+    });
+
+    it('should highlight active link for trackings', () => {
+        renderNavigation('/trackings');
+
+        const dashboardLink = screen.getByRole('link', { name: /dashboard/i });
+        const trackingsLink = screen.getByRole('link', { name: /trackings/i });
+        const remindersLink = screen.getByRole('link', { name: /reminders/i });
+
+        expect(dashboardLink).not.toHaveClass('active');
         expect(trackingsLink).toHaveClass('active');
         expect(remindersLink).not.toHaveClass('active');
     });
@@ -32,11 +47,13 @@ describe('Navigation', () => {
     it('should highlight active link for reminders', () => {
         renderNavigation('/reminders');
 
+        const dashboardLink = screen.getByRole('link', { name: /dashboard/i });
         const trackingsLink = screen.getByRole('link', { name: /trackings/i });
         const remindersLink = screen.getByRole('link', { name: /reminders/i });
 
-        expect(remindersLink).toHaveClass('active');
+        expect(dashboardLink).not.toHaveClass('active');
         expect(trackingsLink).not.toHaveClass('active');
+        expect(remindersLink).toHaveClass('active');
     });
 
     it('should show running trackings count badge', () => {

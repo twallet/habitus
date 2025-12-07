@@ -9,11 +9,17 @@ export function Navigation({
     pendingRemindersCount: number;
 }) {
     return (
-        <nav className="tabs-header">
+        <div className="tabs-header">
             <NavLink
                 to="/"
-                className={({ isActive }) => `tab-button ${isActive ? "active" : ""}`}
                 end
+                className={({ isActive }) => `tab-button ${isActive ? 'active' : ''}`}
+            >
+                Dashboard
+            </NavLink>
+            <NavLink
+                to="/trackings"
+                className={({ isActive }) => `tab-button ${isActive ? 'active' : ''}`}
             >
                 Trackings
                 {runningTrackingsCount > 0 && (
@@ -27,7 +33,7 @@ export function Navigation({
             </NavLink>
             <NavLink
                 to="/reminders"
-                className={({ isActive }) => `tab-button ${isActive ? "active" : ""}`}
+                className={({ isActive }) => `tab-button ${isActive ? 'active' : ''}`}
             >
                 Reminders
                 {pendingRemindersCount > 0 && (
@@ -39,8 +45,6 @@ export function Navigation({
                     </span>
                 )}
             </NavLink>
-        </nav>
+        </div>
     );
 }
-
-
