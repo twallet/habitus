@@ -43,3 +43,4 @@ coverage
 data/
 frontend/dist/
 backend/dist/
+test_output.txt

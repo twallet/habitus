@@ -140,6 +140,17 @@ export class TokenManager {
   }
 
   /**
+   * Reset the manager state.
+   * Useful for testing.
+   * @internal
+   */
+  reset(): void {
+    this.stopPolling();
+    this.currentToken = localStorage.getItem(TOKEN_KEY);
+    this.listeners.clear();
+  }
+
+  /**
    * Setup storage event listener for cross-tab token changes.
    * @private
    */

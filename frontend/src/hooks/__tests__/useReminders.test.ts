@@ -31,8 +31,8 @@ describe("useReminders", () => {
     (global.fetch as Mock).mockReset();
     (global.fetch as Mock).mockClear();
     localStorage.clear();
-    // Stop any existing polling and reset TokenManager state
-    tokenManager.stopPolling();
+    // Reset TokenManager state
+    tokenManager.reset();
     // Reset document.hidden
     Object.defineProperty(document, "hidden", {
       writable: true,
@@ -183,7 +183,7 @@ describe("useReminders", () => {
       expect((global.fetch as Mock).mock.calls.length).toBe(initialCallCount);
     });
 
-    it.skip("should detect token changes via polling interval", async () => {
+    it("should detect token changes via polling interval", async () => {
       // Use fake timers from the start to ensure polling interval is controlled
       vi.useFakeTimers();
 
@@ -200,7 +200,6 @@ describe("useReminders", () => {
       await act(async () => {
         // Advance timers to allow initial fetch to complete
         vi.advanceTimersByTime(100);
-        await vi.runAllTimersAsync();
         // Process all pending promises
         await Promise.resolve();
         await Promise.resolve();
@@ -213,7 +212,6 @@ describe("useReminders", () => {
       // This ensures currentToken is set to "token1" before we change it
       await act(async () => {
         vi.advanceTimersByTime(500);
-        await vi.runAllTimersAsync();
       });
 
       // Capture call count after initial polling sync
@@ -231,7 +229,6 @@ describe("useReminders", () => {
       await act(async () => {
         // Advance to when the interval should fire (500ms from last check)
         vi.advanceTimersByTime(500);
-        await vi.runAllTimersAsync();
       });
 
       // Switch to real timers for final verification
@@ -698,8 +695,9 @@ describe("useReminders", () => {
       expect((global.fetch as Mock).mock.calls.length).toBe(initialCallCount);
     });
 
-    it.skip("should not poll when page is hidden", async () => {
-      localStorage.setItem(TOKEN_KEY, "valid-token");
+    it("should not poll when page is hidden", async () => {
+      // Use tokenManager to set token so it's aware and doesn't trigger change detection
+      tokenManager.setToken("valid-token");
 
       Object.defineProperty(document, "hidden", {
         writable: true,
@@ -775,7 +773,7 @@ describe("useReminders", () => {
       );
     });
 
-    it.skip("should refresh reminders when token changes during polling", async () => {
+    it("should refresh reminders when token changes during polling", async () => {
       // Use fake timers from the start to ensure polling interval is controlled
       vi.useFakeTimers();
 
@@ -792,7 +790,6 @@ describe("useReminders", () => {
       await act(async () => {
         // Advance timers to allow initial fetch to complete
         vi.advanceTimersByTime(100);
-        await vi.runAllTimersAsync();
         // Process all pending promises
         await Promise.resolve();
         await Promise.resolve();
@@ -805,7 +802,6 @@ describe("useReminders", () => {
       // This ensures currentToken is set to "token1" before we change it
       await act(async () => {
         vi.advanceTimersByTime(500);
-        await vi.runAllTimersAsync();
       });
 
       // Capture call count after initial polling sync
@@ -823,7 +819,6 @@ describe("useReminders", () => {
       await act(async () => {
         // Advance to when the interval should fire (500ms from last check)
         vi.advanceTimersByTime(500);
-        await vi.runAllTimersAsync();
       });
 
       // Switch to real timers for final verification
