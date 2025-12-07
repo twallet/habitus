@@ -89,7 +89,7 @@ describe('Authenticated Routing', () => {
             renderWithAuth('/', true);
 
             await waitFor(() => {
-                expect(screen.getByText(/no trackings/i)).toBeInTheDocument();
+                expect(screen.getByText(/no trackings\./i)).toBeInTheDocument();
             });
         });
 
@@ -139,7 +139,7 @@ describe('Authenticated Routing', () => {
             renderWithAuth('/login', true);
 
             await waitFor(() => {
-                expect(screen.getByText(/no trackings/i)).toBeInTheDocument();
+                expect(screen.getByText(/no trackings\./i)).toBeInTheDocument();
             });
         });
     });
@@ -150,7 +150,7 @@ describe('Authenticated Routing', () => {
             renderWithAuth('/', true);
 
             await waitFor(() => {
-                expect(screen.getByText(/no trackings/i)).toBeInTheDocument();
+                expect(screen.getByText(/no trackings\./i)).toBeInTheDocument();
             });
 
             const remindersLink = screen.getByRole('link', { name: /reminders/i });
@@ -173,7 +173,7 @@ describe('Authenticated Routing', () => {
             await user.click(trackingsLink);
 
             await waitFor(() => {
-                expect(screen.getByText(/no trackings/i)).toBeInTheDocument();
+                expect(screen.getByText(/no trackings\./i)).toBeInTheDocument();
             });
         });
     });
@@ -183,7 +183,7 @@ describe('Authenticated Routing', () => {
             renderWithAuth('/unknown-route', true);
 
             await waitFor(() => {
-                expect(screen.getByText(/no trackings/i)).toBeInTheDocument();
+                expect(screen.getByText(/no trackings\./i)).toBeInTheDocument();
             });
         });
 
