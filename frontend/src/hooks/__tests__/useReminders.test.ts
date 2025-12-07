@@ -237,6 +237,12 @@ describe("useReminders", () => {
       // Switch to real timers for final verification
       vi.useRealTimers();
 
+      // Process any pending promises after switching to real timers
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
       // Wait for fetch to complete
       await waitFor(
         () => {
