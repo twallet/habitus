@@ -1,37 +1,46 @@
+import { NavLink } from "react-router-dom";
 import "./Navigation.css";
 
-export type View = "profile" | "trackings";
-
-interface NavigationProps {
-    currentView: View;
-    onViewChange: (view: View) => void;
-}
-
-/**
- * Navigation component for switching between different views.
- * @param props - Component props
- * @param props.currentView - Currently active view
- * @param props.onViewChange - Callback when view changes
- * @public
- */
-export function Navigation({ currentView, onViewChange }: NavigationProps) {
+export function Navigation({
+    runningTrackingsCount,
+    pendingRemindersCount,
+}: {
+    runningTrackingsCount: number;
+    pendingRemindersCount: number;
+}) {
     return (
-        <nav className="navigation">
-            <button
-                type="button"
-                className={`nav-button ${currentView === "profile" ? "active" : ""}`}
-                onClick={() => onViewChange("profile")}
-            >
-                Profile
-            </button>
-            <button
-                type="button"
-                className={`nav-button ${currentView === "trackings" ? "active" : ""}`}
-                onClick={() => onViewChange("trackings")}
+        <nav className="tabs-header">
+            <NavLink
+                to="/"
+                className={({ isActive }) => `tab-button ${isActive ? "active" : ""}`}
+                end
             >
                 Trackings
-            </button>
+                {runningTrackingsCount > 0 && (
+                    <span
+                        className="tab-badge tab-badge-green"
+                        aria-label={`${runningTrackingsCount} running trackings`}
+                    >
+                        {runningTrackingsCount}
+                    </span>
+                )}
+            </NavLink>
+            <NavLink
+                to="/reminders"
+                className={({ isActive }) => `tab-button ${isActive ? "active" : ""}`}
+            >
+                Reminders
+                {pendingRemindersCount > 0 && (
+                    <span
+                        className="tab-badge"
+                        aria-label={`${pendingRemindersCount} pending reminders`}
+                    >
+                        {pendingRemindersCount}
+                    </span>
+                )}
+            </NavLink>
         </nav>
     );
 }
+
 
