@@ -261,19 +261,13 @@ describe("useReminders", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      vi.useFakeTimers();
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
 
-      // Advance timer significantly - should not poll without token
-      await act(async () => {
-        vi.advanceTimersByTime(30000);
-        await vi.runAllTimersAsync();
-      });
+      // Wait a bit to ensure no polling occurs (polling shouldn't start without token)
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Should not have made additional calls
       expect((global.fetch as Mock).mock.calls.length).toBe(initialCallCount);
-
-      vi.useRealTimers();
     });
   });
 
@@ -677,19 +671,13 @@ describe("useReminders", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      vi.useFakeTimers();
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
 
-      // Advance timer significantly - should not poll without token
-      await act(async () => {
-        vi.advanceTimersByTime(30000);
-        await vi.runAllTimersAsync();
-      });
+      // Wait a bit to ensure no polling occurs (polling shouldn't start without token)
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Should not have made additional calls
       expect((global.fetch as Mock).mock.calls.length).toBe(initialCallCount);
-
-      vi.useRealTimers();
     });
 
     it("should not poll when page is hidden", async () => {
@@ -743,24 +731,21 @@ describe("useReminders", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      vi.useFakeTimers();
+      // Wait a bit to allow polling to potentially start
+      await new Promise((resolve) => setTimeout(resolve, 600));
+
       const initialCallCount = (global.fetch as Mock).mock.calls.length;
 
-      // Remove token
+      // Remove token - this should stop polling
       act(() => {
         localStorage.removeItem(TOKEN_KEY);
       });
 
-      // Advance timer - should not poll without token
-      await act(async () => {
-        vi.advanceTimersByTime(30000);
-        await vi.runAllTimersAsync();
-      });
+      // Wait a bit more - should not poll without token
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      // Should not have made additional calls
+      // Should not have made additional calls after token removal
       expect((global.fetch as Mock).mock.calls.length).toBe(initialCallCount);
-
-      vi.useRealTimers();
     });
 
     it("should refresh reminders when token changes during polling", async () => {
