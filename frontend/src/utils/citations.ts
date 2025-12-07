@@ -11,7 +11,7 @@
  * Citations are used sequentially by day number (day 1 = citation[0], day 2 = citation[1], etc.)
  */
 const CITATIONS_DATA: string[] = [
-  "Winners disciplined - Thomas Peterffy",
+  "Winners disciplined (Thomas Peterffy)",
   "Where your habits go, your life follows - Craig Groeschel",
   "Simple daily disciplines equal success - Jim Rohn",
   "One of the healthiest habits to learn: Being grateful for the little things - Yung Pueblo",
