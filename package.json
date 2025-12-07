@@ -5,8 +5,10 @@
   "private": true,
   "workspaces": [
     "frontend",
-    "backend"
+    "backend",
+    "packages/shared"
   ],
+
   "scripts": {
     "dev": "npm run dev --workspace=backend",
     "build": "npm run build --workspaces",

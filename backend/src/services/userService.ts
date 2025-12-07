@@ -1,5 +1,5 @@
 import { Database } from "../db/database.js";
-import { User, UserData } from "../models/User.js";
+import { User, type UserData } from "../models/User.js";
 import { getUploadsDirectory } from "../middleware/upload.js";
 import { EmailService } from "./emailService.js";
 import fs from "fs";

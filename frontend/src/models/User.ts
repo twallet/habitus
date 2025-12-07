@@ -1,3 +1,8 @@
+import { UserData, MAX_USER_NAME_LENGTH } from "@habitus/shared";
+
+export type { UserData };
+export { MAX_USER_NAME_LENGTH };
+
 /**
  * User model class for validation purposes.
  * IDs are now managed by the database.
@@ -8,7 +13,8 @@ export class User {
    * Maximum allowed length for user names.
    * @public
    */
-  static readonly MAX_NAME_LENGTH: number = 30;
+  static readonly MAX_NAME_LENGTH: number = MAX_USER_NAME_LENGTH;
+
 
   /**
    * User ID.
@@ -118,16 +124,4 @@ export class User {
   }
 }
 
-/**
- * User data interface for storage and serialization.
- * Used when persisting users to localStorage and API responses.
- * @public
- */
-export interface UserData {
-  id: number;
-  name: string;
-  email: string;
-  profile_picture_url?: string;
-  last_access?: string;
-  created_at?: string;
-}
+

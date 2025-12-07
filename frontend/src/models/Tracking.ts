@@ -2,45 +2,20 @@
  * Days pattern type enumeration.
  * @public
  */
-export enum DaysPatternType {
-  INTERVAL = "interval",
-  DAY_OF_WEEK = "day_of_week",
-  DAY_OF_MONTH = "day_of_month",
-  DAY_OF_YEAR = "day_of_year",
-}
+import {
+  TrackingData,
+  DaysPattern,
+  DaysPatternType,
+  TrackingState,
+  MAX_TRACKING_QUESTION_LENGTH,
+  TrackingScheduleData,
+} from "@habitus/shared";
 
-/**
- * Tracking state enumeration.
- * @public
- */
-export enum TrackingState {
-  RUNNING = "Running",
-  PAUSED = "Paused",
-  ARCHIVED = "Archived",
-  DELETED = "Deleted",
-}
+export type { TrackingData, DaysPattern, TrackingScheduleData };
+export { DaysPatternType, TrackingState, MAX_TRACKING_QUESTION_LENGTH };
 
-/**
- * Days pattern interface for reminder frequency.
- * @public
- */
-export interface DaysPattern {
-  pattern_type: DaysPatternType;
-  // For INTERVAL pattern
-  interval_value?: number;
-  interval_unit?: "days" | "weeks" | "months" | "years";
-  // For DAY_OF_WEEK pattern
-  days?: number[]; // 0-6, where 0=Sunday
-  // For DAY_OF_MONTH pattern: "day_number" | "last_day" | "weekday_ordinal"
-  // For DAY_OF_YEAR pattern: "date" | "weekday_ordinal"
-  type?: "day_number" | "last_day" | "weekday_ordinal" | "date";
-  day_numbers?: number[]; // 1-31 (for DAY_OF_MONTH)
-  weekday?: number; // 0-6, where 0=Sunday
-  ordinal?: number; // 1-5 (first, second, third, fourth, fifth)
-  // For DAY_OF_YEAR pattern
-  month?: number; // 1-12
-  day?: number; // 1-31
-}
+
+
 
 /**
  * Tracking model class for representing tracking entities.
@@ -51,7 +26,7 @@ export class Tracking {
    * Maximum allowed length for tracking questions.
    * @public
    */
-  static readonly MAX_QUESTION_LENGTH: number = 100;
+  static readonly MAX_QUESTION_LENGTH: number = MAX_TRACKING_QUESTION_LENGTH;
 
   /**
    * Tracking ID.
@@ -196,28 +171,4 @@ export class Tracking {
  * Tracking schedule data interface.
  * @public
  */
-export interface TrackingScheduleData {
-  id: number;
-  tracking_id: number;
-  hour: number;
-  minutes: number;
-  created_at?: string;
-  updated_at?: string;
-}
 
-/**
- * Tracking data interface.
- * @public
- */
-export interface TrackingData {
-  id: number;
-  user_id: number;
-  question: string;
-  notes?: string;
-  icon?: string;
-  days?: DaysPattern;
-  state?: TrackingState;
-  schedules?: TrackingScheduleData[];
-  created_at?: string;
-  updated_at?: string;
-}

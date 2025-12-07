@@ -5,14 +5,12 @@ import { Database } from "../db/database.js";
  * User data interface matching the frontend UserData.
  * @public
  */
-export interface UserData {
-  id: number;
-  name: string;
-  email: string;
-  profile_picture_url?: string;
-  last_access?: string;
-  created_at?: string;
-}
+import { UserData, MAX_USER_NAME_LENGTH } from "@habitus/shared";
+
+export type { UserData };
+export { MAX_USER_NAME_LENGTH };
+
+
 
 /**
  * User model class for representing user entities and database operations.
@@ -23,7 +21,7 @@ export class User {
    * Maximum allowed length for user names.
    * @public
    */
-  static readonly MAX_NAME_LENGTH: number = 30;
+  static readonly MAX_NAME_LENGTH: number = MAX_USER_NAME_LENGTH;
 
   /**
    * User ID.

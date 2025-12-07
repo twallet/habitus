@@ -1,14 +1,14 @@
 import { Database } from "../db/database.js";
 import {
   Reminder,
-  ReminderData,
+  type ReminderData,
   ReminderStatus,
   ReminderValue,
 } from "../models/Reminder.js";
 import {
   Tracking,
-  TrackingData,
-  DaysPattern,
+  type TrackingData,
+  type DaysPattern,
   DaysPatternType,
 } from "../models/Tracking.js";
 import { TrackingSchedule } from "../models/TrackingSchedule.js";
@@ -419,7 +419,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
           return updatedReminder;
         }
 
-        const { DaysPattern } = await import("../models/Tracking.js");
+        // const { DaysPattern } = await import("../models/Tracking.js"); // Removed dynamic import of type
         const daysPattern = tracking.days as DaysPattern | undefined;
         if (!daysPattern) {
           console.warn(
@@ -429,9 +429,8 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
         }
 
         const nextTime = await this.calculateNextReminderTime(
-          trackingId,
-          userId,
-          new Date(dismissedTime)
+          tracking.toData(),
+          dismissedTime
         );
 
         if (nextTime) {

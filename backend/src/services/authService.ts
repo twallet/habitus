@@ -1,7 +1,7 @@
 import jwt, { SignOptions } from "jsonwebtoken";
 import crypto from "crypto";
 import { Database } from "../db/database.js";
-import { User, UserData } from "../models/User.js";
+import { User, type UserData } from "../models/User.js";
 import { EmailService } from "./emailService.js";
 import { ServerConfig } from "../setup/constants.js";
 

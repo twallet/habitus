@@ -4,14 +4,15 @@ import { Database } from "../db/database.js";
  * Tracking schedule data interface.
  * @public
  */
-export interface TrackingScheduleData {
-  id: number;
-  tracking_id: number;
-  hour: number;
-  minutes: number;
-  created_at?: string;
-  updated_at?: string;
-}
+import {
+  TrackingScheduleData,
+  MAX_SCHEDULES_PER_TRACKING,
+} from "@habitus/shared";
+
+export type { TrackingScheduleData };
+export { MAX_SCHEDULES_PER_TRACKING };
+
+
 
 /**
  * Tracking schedule model class for representing schedule entities and database operations.
@@ -22,7 +23,7 @@ export class TrackingSchedule {
    * Maximum allowed number of schedules per tracking.
    * @public
    */
-  static readonly MAX_SCHEDULES_PER_TRACKING: number = 5;
+  static readonly MAX_SCHEDULES_PER_TRACKING: number = MAX_SCHEDULES_PER_TRACKING;
 
   /**
    * Schedule ID.

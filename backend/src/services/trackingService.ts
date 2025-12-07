@@ -1,9 +1,9 @@
 import { Database } from "../db/database.js";
 import {
   Tracking,
-  TrackingData,
+  type TrackingData,
   TrackingState,
-  DaysPattern,
+  type DaysPattern,
 } from "../models/Tracking.js";
 import { TrackingSchedule } from "../models/TrackingSchedule.js";
 import { ReminderService } from "./reminderService.js";

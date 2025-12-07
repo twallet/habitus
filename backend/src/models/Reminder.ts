@@ -4,36 +4,16 @@ import { Database } from "../db/database.js";
  * Reminder status enumeration.
  * @public
  */
-export enum ReminderStatus {
-  PENDING = "Pending",
-  ANSWERED = "Answered",
-  UPCOMING = "Upcoming",
-}
+import {
+  ReminderData,
+  ReminderStatus,
+  ReminderValue,
+} from "@habitus/shared";
 
-/**
- * Reminder value enumeration.
- * @public
- */
-export enum ReminderValue {
-  COMPLETED = "Completed",
-  DISMISSED = "Dismissed",
-}
+export type { ReminderData };
+export { ReminderStatus, ReminderValue };
 
-/**
- * Reminder data interface.
- * @public
- */
-export interface ReminderData {
-  id: number;
-  tracking_id: number;
-  user_id: number;
-  scheduled_time: string;
-  notes?: string;
-  status: ReminderStatus;
-  value: ReminderValue;
-  created_at?: string;
-  updated_at?: string;
-}
+
 
 /**
  * Reminder model class for representing reminder entities and database operations.

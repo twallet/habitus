@@ -68,7 +68,7 @@ describe("authMiddleware", () => {
   let db: Database;
   let mockAuthService: Mocked<AuthService>;
   let mockUserService: Mocked<UserService>;
-  let mockReq: Partial<AuthRequest>;
+  let mockReq: AuthRequest;
   let mockRes: Partial<Response>;
   let mockNext: Mock<NextFunction>;
 
@@ -87,7 +87,7 @@ describe("authMiddleware", () => {
     mockReq = {
       headers: {},
       path: "/test",
-    };
+    } as unknown as AuthRequest;
     mockRes = {
       status: vi.fn().mockReturnThis(),
       json: vi.fn().mockReturnThis(),
@@ -104,13 +104,13 @@ describe("authMiddleware", () => {
     it("should authenticate valid token and call next", async () => {
       mockReq.headers = {
         authorization: "Bearer valid-token",
-      };
+      } as any;
       mockAuthService.verifyToken.mockResolvedValue(1);
 
       await authenticateToken(
-        mockReq as AuthRequest,
+        mockReq,
         mockRes as Response,
-        mockNext
+        mockNext as unknown as NextFunction
       );
 
       expect(mockAuthService.verifyToken).toHaveBeenCalledWith("valid-token");
@@ -121,12 +121,12 @@ describe("authMiddleware", () => {
     });
 
     it("should return 401 if no authorization header", async () => {
-      mockReq.headers = {};
+      mockReq.headers = {} as any;
 
       await authenticateToken(
-        mockReq as AuthRequest,
+        mockReq,
         mockRes as Response,
-        mockNext
+        mockNext as unknown as NextFunction
       );
 
       expect(mockRes.status).toHaveBeenCalledWith(401);
@@ -139,12 +139,12 @@ describe("authMiddleware", () => {
     it("should return 401 if authorization header does not start with Bearer", async () => {
       mockReq.headers = {
         authorization: "Invalid token",
-      };
+      } as any;
 
       await authenticateToken(
-        mockReq as AuthRequest,
+        mockReq,
         mockRes as Response,
-        mockNext
+        mockNext as unknown as NextFunction
       );
 
       expect(mockRes.status).toHaveBeenCalledWith(401);
@@ -157,15 +157,15 @@ describe("authMiddleware", () => {
     it("should return 401 if token is invalid", async () => {
       mockReq.headers = {
         authorization: "Bearer invalid-token",
-      };
+      } as any;
       mockAuthService.verifyToken.mockRejectedValue(
         new Error("Invalid or expired token")
       );
 
       await authenticateToken(
-        mockReq as AuthRequest,
+        mockReq,
         mockRes as Response,
-        mockNext
+        mockNext as unknown as NextFunction
       );
 
       expect(mockRes.status).toHaveBeenCalledWith(401);
@@ -178,15 +178,15 @@ describe("authMiddleware", () => {
     it("should return 500 for non-token errors", async () => {
       mockReq.headers = {
         authorization: "Bearer token",
-      };
+      } as any;
       mockAuthService.verifyToken.mockRejectedValue(
         new Error("Database error")
       );
 
       await authenticateToken(
-        mockReq as AuthRequest,
+        mockReq,
         mockRes as Response,
-        mockNext
+        mockNext as unknown as NextFunction
       );
 
       expect(mockRes.status).toHaveBeenCalledWith(500);
@@ -199,16 +199,16 @@ describe("authMiddleware", () => {
     it("should not fail request if updateLastAccess fails", async () => {
       mockReq.headers = {
         authorization: "Bearer valid-token",
-      };
+      } as any;
       mockAuthService.verifyToken.mockResolvedValue(1);
       mockUserService.updateLastAccess.mockRejectedValue(
         new Error("Update failed")
       );
 
       await authenticateToken(
-        mockReq as AuthRequest,
+        mockReq,
         mockRes as Response,
-        mockNext
+        mockNext as unknown as NextFunction
       );
 
       expect(mockNext).toHaveBeenCalled();
@@ -218,13 +218,13 @@ describe("authMiddleware", () => {
     it("should extract token correctly from Bearer header", async () => {
       mockReq.headers = {
         authorization: "Bearer my-secret-token-123",
-      };
+      } as any;
       mockAuthService.verifyToken.mockResolvedValue(42);
 
       await authenticateToken(
-        mockReq as AuthRequest,
+        mockReq,
         mockRes as Response,
-        mockNext
+        mockNext as unknown as NextFunction
       );
 
       expect(mockAuthService.verifyToken).toHaveBeenCalledWith(
