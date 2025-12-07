@@ -390,7 +390,7 @@ export class CitationManager {
    * @public
    */
   static readonly DEFAULT_MESSAGE: string =
-    "Welcome to Habitus (Your daily habit tracker";
+    "Welcome to Habitus - Your daily habit tracker";
 
   /**
    * Array of citations managed by this instance.
