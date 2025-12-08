@@ -1275,6 +1275,74 @@ export function TrackingsList({
                         })}
                     </tbody>
                 </table>
+
+                {/* Mobile Card Layout */}
+                <div className="trackings-cards">
+                    {filteredAndSortedTrackings.map((tracking) => {
+                        const currentState = tracking.state || TrackingState.RUNNING;
+                        const stateLabel = StateTransitionHelper.getStateLabel(currentState);
+                        const stateColorClass = StateTransitionHelper.getStateColorClass(currentState);
+                        const nextReminderTime = getNextReminderTime(tracking.id);
+
+                        return (
+                            <div key={tracking.id} className="tracking-card">
+                                <div className="tracking-card-header">
+                                    {tracking.icon && (
+                                        <div className="tracking-card-icon">{tracking.icon}</div>
+                                    )}
+                                    <div className="tracking-card-title">
+                                        <h3 className="tracking-card-question">{tracking.question}</h3>
+                                        <div className="tracking-card-times">
+                                            {TrackingFormatter.formatTimesDisplay(tracking.schedules)}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="tracking-card-body">
+                                    <div className="tracking-card-row">
+                                        <span className="tracking-card-label">Frequency</span>
+                                        <span className="tracking-card-value">
+                                            {TrackingFormatter.formatFrequency(tracking.days)}
+                                        </span>
+                                    </div>
+                                    {nextReminderTime && (
+                                        <div className="tracking-card-row">
+                                            <span className="tracking-card-label">Next Reminder</span>
+                                            <span className="tracking-card-value">
+                                                {TrackingFormatter.formatNextReminderTimeDisplay(nextReminderTime)}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {tracking.notes && (
+                                        <div className="tracking-card-row">
+                                            <span className="tracking-card-label">Notes</span>
+                                            <span className="tracking-card-value">📝</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="tracking-card-footer">
+                                    <div className="tracking-card-status">
+                                        <span className={`status-badge ${stateColorClass}`}>
+                                            {stateLabel}
+                                        </span>
+                                    </div>
+                                    <div className="tracking-card-actions">
+                                        <button
+                                            type="button"
+                                            className="action-button"
+                                            onClick={() => onEdit(tracking)}
+                                            aria-label="Edit tracking"
+                                            title="Edit tracking"
+                                        >
+                                            ✏️
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
             {trackingToDelete && (
                 <DeleteTrackingConfirmationModal

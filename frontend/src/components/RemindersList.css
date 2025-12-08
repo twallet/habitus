@@ -479,3 +479,124 @@
 .empty-state p {
   margin: 0;
 }
+
+/* Mobile Card Layout */
+@media (max-width: 768px) {
+  .reminders-list-content {
+    flex-direction: column;
+  }
+
+  .filter-panel {
+    width: 100%;
+  }
+
+  /* Hide table on mobile, show cards instead */
+  .reminders-table-container,
+  .reminders-table {
+    display: none;
+  }
+
+  /* Card-based layout for mobile */
+  .reminders-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .reminder-card {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .reminder-card:active {
+    transform: scale(0.98);
+  }
+
+  .reminder-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .reminder-card-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+
+  .reminder-card-title {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .reminder-card-question {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 4px 0;
+    word-wrap: break-word;
+  }
+
+  .reminder-card-time {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+  }
+
+  .reminder-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .reminder-card-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.875rem;
+  }
+
+  .reminder-card-label {
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .reminder-card-value {
+    color: var(--text-primary);
+    text-align: right;
+  }
+
+  .reminder-card-footer {
+    display: flex;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .reminder-card-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .action-button {
+    flex: 1;
+    min-width: 80px;
+    width: auto;
+    height: 40px;
+    font-size: 1.1em;
+  }
+}
+
+/* Desktop: Show table, hide cards */
+@media (min-width: 769px) {
+  .reminders-cards {
+    display: none;
+  }
+}

@@ -967,6 +967,73 @@ export function RemindersList({
                         </tbody>
                     </table>
                 </div>
+
+                {/* Mobile Card Layout */}
+                <div className="reminders-cards">
+                    {filteredAndSortedReminders.map((reminder) => {
+                        const tracking = getTracking(reminder.tracking_id);
+                        if (!tracking) return null;
+
+                        return (
+                            <div key={reminder.id} className="reminder-card">
+                                <div className="reminder-card-header">
+                                    {tracking.icon && (
+                                        <div className="reminder-card-icon">{tracking.icon}</div>
+                                    )}
+                                    <div className="reminder-card-title">
+                                        <h3 className="reminder-card-question">{tracking.question}</h3>
+                                        <div className="reminder-card-time">
+                                            {ReminderFormatter.formatDateTime(reminder.scheduled_time)}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {reminder.notes && (
+                                    <div className="reminder-card-body">
+                                        <div className="reminder-card-row">
+                                            <span className="reminder-card-label">Notes</span>
+                                            <span className="reminder-card-value">
+                                                {ReminderFormatter.truncateText(reminder.notes, 50)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="reminder-card-footer">
+                                    <div className="reminder-card-actions">
+                                        <button
+                                            type="button"
+                                            className="action-button action-complete"
+                                            onClick={() => handleComplete(reminder)}
+                                            aria-label="Complete reminder"
+                                            title="Complete"
+                                        >
+                                            ✓
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="action-button"
+                                            onClick={() => toggleSnoozeMenu(reminder.id)}
+                                            aria-label="Snooze reminder"
+                                            title="Snooze"
+                                        >
+                                            ⏰
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="action-button action-dismiss"
+                                            onClick={() => handleDismiss(reminder)}
+                                            aria-label="Dismiss reminder"
+                                            title="Dismiss"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
         </div>
     );
