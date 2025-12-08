@@ -660,7 +660,12 @@ export function RemindersList({
      */
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            const target = event.target as Node;
+            const target = event.target as HTMLElement;
+
+            // Check if clicking on a snooze dropdown item (button)
+            if (target.classList.contains('snooze-dropdown-item')) {
+                return;
+            }
 
             // Check action containers
             for (const ref of Object.values(actionRefs.current)) {
@@ -687,11 +692,15 @@ export function RemindersList({
             setSnoozeDropdownPosition({});
         };
 
-        document.addEventListener("mousedown", handleClickOutside);
+        if (openSnoozeId !== null) {
+            // Use click instead of mousedown to allow the button click to process first
+            document.addEventListener("click", handleClickOutside);
+        }
+
         return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
+            document.removeEventListener("click", handleClickOutside);
         };
-    }, []);
+    }, [openSnoozeId]);
 
     if (isLoading || isLoadingTrackings) {
         return <div className="reminders-loading">Loading reminders...</div>;

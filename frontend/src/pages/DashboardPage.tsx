@@ -76,6 +76,11 @@ export function DashboardPage() {
         const handleClickOutside = (event: MouseEvent) => {
             const target = event.target as HTMLElement;
 
+            // Check if clicking on a snooze dropdown item (button)
+            if (target.classList.contains('snooze-dropdown-item')) {
+                return;
+            }
+
             // Check if clicking inside any snooze dropdown
             for (const ref of Object.values(snoozeDropdownRefs.current)) {
                 if (ref && ref.contains(target)) {
@@ -95,11 +100,12 @@ export function DashboardPage() {
         };
 
         if (openSnoozeId !== null) {
-            document.addEventListener('mousedown', handleClickOutside);
+            // Use click instead of mousedown to allow the button click to process first
+            document.addEventListener('click', handleClickOutside);
         }
 
         return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('click', handleClickOutside);
         };
     }, [openSnoozeId]);
 
