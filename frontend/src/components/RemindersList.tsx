@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { ReminderData, ReminderStatus } from "../models/Reminder";
 import { TrackingData } from "../models/Tracking";
 import { useReminders } from "../hooks/useReminders";
@@ -969,16 +970,16 @@ export function RemindersList({
                                                                 💤
                                                                 {openSnoozeId === reminder.id && <span className="dropdown-arrow">▼</span>}
                                                             </button>
-                                                            {openSnoozeId === reminder.id && (
+                                                            {openSnoozeId === reminder.id && snoozeDropdownPosition[reminder.id] && createPortal(
                                                                 <div
                                                                     className="snooze-dropdown"
                                                                     ref={(el) => {
                                                                         snoozeDropdownRefs.current[reminder.id] = el;
                                                                     }}
-                                                                    style={snoozeDropdownPosition[reminder.id] ? {
+                                                                    style={{
                                                                         top: `${snoozeDropdownPosition[reminder.id].top}px`,
                                                                         left: `${snoozeDropdownPosition[reminder.id].left}px`,
-                                                                    } : undefined}
+                                                                    }}
                                                                 >
                                                                     {SNOOZE_OPTIONS.map((option) => (
                                                                         <button
@@ -993,7 +994,8 @@ export function RemindersList({
                                                                             {option.label}
                                                                         </button>
                                                                     ))}
-                                                                </div>
+                                                                </div>,
+                                                                document.body
                                                             )}
                                                         </div>
                                                     )}

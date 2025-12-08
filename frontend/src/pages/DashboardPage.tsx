@@ -1,4 +1,5 @@
 import { useMemo, useState, useRef, useEffect, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useOutletContext } from 'react-router-dom';
 import { OutletContextType } from '../context/AppContext';
 import { ReminderStatus, ReminderData } from '../models/Reminder';
@@ -347,16 +348,16 @@ export function DashboardPage() {
                                                     💤
                                                     {openSnoozeId === reminder.id && <span className="dropdown-arrow">▼</span>}
                                                 </button>
-                                                {openSnoozeId === reminder.id && (
+                                                {openSnoozeId === reminder.id && snoozeDropdownPosition[reminder.id] && createPortal(
                                                     <div
                                                         className="snooze-dropdown"
                                                         ref={(el) => {
                                                             snoozeDropdownRefs.current[reminder.id] = el;
                                                         }}
-                                                        style={snoozeDropdownPosition[reminder.id] ? {
+                                                        style={{
                                                             top: `${snoozeDropdownPosition[reminder.id].top}px`,
                                                             left: `${snoozeDropdownPosition[reminder.id].left}px`,
-                                                        } : undefined}
+                                                        }}
                                                     >
                                                         {SNOOZE_OPTIONS.map((option) => (
                                                             <button
@@ -371,7 +372,8 @@ export function DashboardPage() {
                                                                 {option.label}
                                                             </button>
                                                         ))}
-                                                    </div>
+                                                    </div>,
+                                                    document.body
                                                 )}
                                             </div>
                                         </div>
