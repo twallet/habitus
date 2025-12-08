@@ -173,7 +173,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
+  width: 44px;
   height: 32px;
   padding: 0;
   border: 1px solid var(--border-color);
@@ -236,7 +236,7 @@
   align-items: center;
   justify-content: center;
   gap: 4px;
-  width: 32px;
+  width: 44px;
   padding: 0;
 }
 
@@ -246,9 +246,7 @@
 }
 
 .snooze-dropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
+  position: fixed;
   min-width: 120px;
   background: var(--bg-primary);
   border: 1px solid var(--border-color);

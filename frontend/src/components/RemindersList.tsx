@@ -467,21 +467,19 @@ export function RemindersList({
                 return newPos;
             });
         } else {
+            // Calculate position immediately before opening
+            const button = snoozeButtonRefs.current[reminderId];
+            if (button) {
+                const rect = button.getBoundingClientRect();
+                setSnoozeDropdownPosition(prev => ({
+                    ...prev,
+                    [reminderId]: {
+                        top: rect.bottom + 4,
+                        left: rect.left
+                    }
+                }));
+            }
             setOpenSnoozeId(reminderId);
-            // Calculate position after state update
-            setTimeout(() => {
-                const button = snoozeButtonRefs.current[reminderId];
-                if (button) {
-                    const rect = button.getBoundingClientRect();
-                    setSnoozeDropdownPosition(prev => ({
-                        ...prev,
-                        [reminderId]: {
-                            top: rect.bottom + 4,
-                            left: rect.left
-                        }
-                    }));
-                }
-            }, 0);
         }
     };
 

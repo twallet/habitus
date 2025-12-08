@@ -32,7 +32,9 @@ export function DashboardPage() {
     const [editingNotesId, setEditingNotesId] = useState<number | null>(null);
     const [notesValues, setNotesValues] = useState<Record<number, string>>({});
     const [openSnoozeId, setOpenSnoozeId] = useState<number | null>(null);
+    const [snoozeDropdownPosition, setSnoozeDropdownPosition] = useState<Record<number, { top: number; left: number }>>({});
     const snoozeDropdownRefs = useRef<Record<number, HTMLDivElement | null>>({});
+    const snoozeButtonRefs = useRef<Record<number, HTMLButtonElement | null>>({});
     const notesTextareaRefs = useRef<Record<number, HTMLTextAreaElement | null>>({});
 
     // Filter for today's pending reminders
@@ -80,7 +82,15 @@ export function DashboardPage() {
                 }
             }
 
+            // Check snooze buttons
+            for (const ref of Object.values(snoozeButtonRefs.current)) {
+                if (ref && ref.contains(target)) {
+                    return;
+                }
+            }
+
             setOpenSnoozeId(null);
+            setSnoozeDropdownPosition({});
         };
 
         if (openSnoozeId !== null) {
@@ -151,7 +161,24 @@ export function DashboardPage() {
     const toggleSnoozeDropdown = (reminderId: number) => {
         if (openSnoozeId === reminderId) {
             setOpenSnoozeId(null);
+            setSnoozeDropdownPosition(prev => {
+                const newPos = { ...prev };
+                delete newPos[reminderId];
+                return newPos;
+            });
         } else {
+            // Calculate position immediately before opening
+            const button = snoozeButtonRefs.current[reminderId];
+            if (button) {
+                const rect = button.getBoundingClientRect();
+                setSnoozeDropdownPosition(prev => ({
+                    ...prev,
+                    [reminderId]: {
+                        top: rect.bottom + 4,
+                        left: rect.left
+                    }
+                }));
+            }
             setOpenSnoozeId(reminderId);
         }
     };
@@ -166,6 +193,11 @@ export function DashboardPage() {
         try {
             await snoozeReminder(reminderId, minutes);
             setOpenSnoozeId(null);
+            setSnoozeDropdownPosition(prev => {
+                const newPos = { ...prev };
+                delete newPos[reminderId];
+                return newPos;
+            });
         } catch (error) {
             console.error("Error snoozing reminder:", error);
         }
@@ -288,6 +320,9 @@ export function DashboardPage() {
                                                 }}
                                             >
                                                 <button
+                                                    ref={(el) => {
+                                                        snoozeButtonRefs.current[reminder.id] = el;
+                                                    }}
                                                     type="button"
                                                     className="action-button action-snooze snooze-dropdown-button"
                                                     onClick={(e) => {
@@ -301,8 +336,17 @@ export function DashboardPage() {
                                                     💤
                                                     {openSnoozeId === reminder.id && <span className="dropdown-arrow">▼</span>}
                                                 </button>
-                                                {openSnoozeId === reminder.id && (
-                                                    <div className="snooze-dropdown">
+                                                {openSnoozeId === reminder.id && snoozeDropdownPosition[reminder.id] && (
+                                                    <div
+                                                        className="snooze-dropdown"
+                                                        ref={(el) => {
+                                                            snoozeDropdownRefs.current[reminder.id] = el;
+                                                        }}
+                                                        style={{
+                                                            top: `${snoozeDropdownPosition[reminder.id].top}px`,
+                                                            left: `${snoozeDropdownPosition[reminder.id].left}px`,
+                                                        }}
+                                                    >
                                                         {SNOOZE_OPTIONS.map((option) => (
                                                             <button
                                                                 key={option.minutes}

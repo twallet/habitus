@@ -1,0 +1,262 @@
+// @vitest-environment jsdom
+import { vi, type MockedFunction } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { LoginPage } from '../LoginPage';
+import { useAuth } from '../../hooks/useAuth';
+
+// Mock useAuth hook
+vi.mock('../../hooks/useAuth', () => ({
+    useAuth: vi.fn(),
+}));
+
+// Mock getDailyCitation
+vi.mock('../../utils/citations', () => ({
+    getDailyCitation: vi.fn(() => 'Test citation'),
+}));
+
+const mockUseAuth = useAuth as MockedFunction<typeof useAuth>;
+
+describe('LoginPage', () => {
+    const mockRequestLoginMagicLink = vi.fn();
+    const mockRequestRegisterMagicLink = vi.fn();
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockUseAuth.mockReturnValue({
+            user: null,
+            token: null,
+            isLoading: false,
+            isAuthenticated: false,
+            requestLoginMagicLink: mockRequestLoginMagicLink,
+            requestRegisterMagicLink: mockRequestRegisterMagicLink,
+            requestEmailChange: vi.fn(),
+            verifyMagicLink: vi.fn(),
+            logout: vi.fn(),
+            setTokenFromCallback: vi.fn(),
+            updateProfile: vi.fn(),
+            deleteUser: vi.fn(),
+        });
+    });
+
+    it('should render login page with header', () => {
+        render(<LoginPage />);
+
+        expect(screen.getByRole('heading', { name: /habitus/i })).toBeInTheDocument();
+        expect(screen.getByAltText('🌱')).toBeInTheDocument();
+    });
+
+    it('should render AuthForm component', () => {
+        render(<LoginPage />);
+
+        expect(screen.getByPlaceholderText(/enter your email/i)).toBeInTheDocument();
+    });
+
+    it('should show success message when login link is requested successfully', async () => {
+        mockRequestLoginMagicLink.mockResolvedValue({
+            message: 'Login link sent successfully',
+            cooldown: false,
+        });
+
+        render(<LoginPage />);
+
+        const emailInput = screen.getByPlaceholderText(/enter your email/i);
+        const submitButton = screen.getByRole('button', { name: /send login link/i });
+
+        await userEvent.type(emailInput, 'test@example.com');
+        await userEvent.click(submitButton);
+
+        await waitFor(() => {
+            expect(screen.getByText('Login link sent successfully')).toBeInTheDocument();
+        });
+    });
+
+    it('should show error message when login link request has cooldown', async () => {
+        mockRequestLoginMagicLink.mockResolvedValue({
+            message: 'Please wait before requesting another link',
+            cooldown: true,
+        });
+
+        render(<LoginPage />);
+
+        const emailInput = screen.getByPlaceholderText(/enter your email/i);
+        const submitButton = screen.getByRole('button', { name: /send login link/i });
+
+        await userEvent.type(emailInput, 'test@example.com');
+        await userEvent.click(submitButton);
+
+        await waitFor(() => {
+            expect(screen.getByText('Please wait before requesting another link')).toBeInTheDocument();
+        });
+    });
+
+    it('should show error message when login link request fails', async () => {
+        const errorMessage = 'Failed to send login link';
+        mockRequestLoginMagicLink.mockRejectedValue(new Error(errorMessage));
+
+        render(<LoginPage />);
+
+        const emailInput = screen.getByPlaceholderText(/enter your email/i);
+        const submitButton = screen.getByRole('button', { name: /send login link/i });
+
+        await userEvent.type(emailInput, 'test@example.com');
+        await userEvent.click(submitButton);
+
+        await waitFor(() => {
+            expect(screen.getByText(errorMessage)).toBeInTheDocument();
+        });
+    });
+
+    it('should show generic error message when login link request fails with non-Error', async () => {
+        mockRequestLoginMagicLink.mockRejectedValue('Unknown error');
+
+        render(<LoginPage />);
+
+        const emailInput = screen.getByPlaceholderText(/enter your email/i);
+        const submitButton = screen.getByRole('button', { name: /send login link/i });
+
+        await userEvent.type(emailInput, 'test@example.com');
+        await userEvent.click(submitButton);
+
+        await waitFor(() => {
+            expect(screen.getByText('Error requesting login link')).toBeInTheDocument();
+        });
+    });
+
+    it('should show success message when registration link is requested successfully', async () => {
+        mockRequestRegisterMagicLink.mockResolvedValue(undefined);
+
+        render(<LoginPage />);
+
+        // Switch to register mode
+        const switchToRegister = screen.getByRole('button', { name: /register/i });
+        await userEvent.click(switchToRegister);
+
+        const nameInput = screen.getByPlaceholderText(/enter your name/i);
+        const emailInput = screen.getByPlaceholderText(/enter your email/i);
+        const submitButton = screen.getByRole('button', { name: /send registration link/i });
+
+        await userEvent.type(nameInput, 'Test User');
+        await userEvent.type(emailInput, 'test@example.com');
+        await userEvent.click(submitButton);
+
+        await waitFor(() => {
+            expect(screen.getByText('Registration link sent! Check your email.')).toBeInTheDocument();
+        });
+    });
+
+    it('should show error message when registration link request fails', async () => {
+        const errorMessage = 'Registration failed';
+        mockRequestRegisterMagicLink.mockRejectedValue(new Error(errorMessage));
+
+        render(<LoginPage />);
+
+        // Switch to register mode
+        const switchToRegister = screen.getByRole('button', { name: /register/i });
+        await userEvent.click(switchToRegister);
+
+        const nameInput = screen.getByPlaceholderText(/enter your name/i);
+        const emailInput = screen.getByPlaceholderText(/enter your email/i);
+        const submitButton = screen.getByRole('button', { name: /send registration link/i });
+
+        await userEvent.type(nameInput, 'Test User');
+        await userEvent.type(emailInput, 'test@example.com');
+        await userEvent.click(submitButton);
+
+        await waitFor(() => {
+            expect(screen.getByText(errorMessage)).toBeInTheDocument();
+        });
+    });
+
+    it('should show generic error message when registration fails with non-Error', async () => {
+        mockRequestRegisterMagicLink.mockRejectedValue('Unknown error');
+
+        render(<LoginPage />);
+
+        // Switch to register mode
+        const switchToRegister = screen.getByRole('button', { name: /register/i });
+        await userEvent.click(switchToRegister);
+
+        const nameInput = screen.getByPlaceholderText(/enter your name/i);
+        const emailInput = screen.getByPlaceholderText(/enter your email/i);
+        const submitButton = screen.getByRole('button', { name: /send registration link/i });
+
+        await userEvent.type(nameInput, 'Test User');
+        await userEvent.type(emailInput, 'test@example.com');
+        await userEvent.click(submitButton);
+
+        await waitFor(() => {
+            expect(screen.getByText('Error requesting registration link')).toBeInTheDocument();
+        });
+    });
+
+    it('should hide message when Message component calls onHide', async () => {
+        mockRequestLoginMagicLink.mockResolvedValue({
+            message: 'Login link sent',
+            cooldown: false,
+        });
+
+        render(<LoginPage />);
+
+        const emailInput = screen.getByPlaceholderText(/enter your email/i);
+        const submitButton = screen.getByRole('button', { name: /send login link/i });
+
+        await userEvent.type(emailInput, 'test@example.com');
+        await userEvent.click(submitButton);
+
+        await waitFor(() => {
+            expect(screen.getByText('Login link sent')).toBeInTheDocument();
+        });
+
+        const closeButton = screen.getByRole('button', { name: /close/i });
+        await userEvent.click(closeButton);
+
+        await waitFor(() => {
+            expect(screen.queryByText('Login link sent')).not.toBeInTheDocument();
+        });
+    });
+
+    it('should handle AuthForm onError callback', async () => {
+        render(<LoginPage />);
+
+        // This will be triggered by AuthForm when there's an error
+        // We need to check that the message state is updated
+        const emailInput = screen.getByPlaceholderText(/enter your email/i);
+        await userEvent.type(emailInput, 'invalid-email');
+        const submitButton = screen.getByRole('button', { name: /send login link/i });
+        await userEvent.click(submitButton);
+
+        // AuthForm should show validation error, which triggers onError
+        await waitFor(() => {
+            // The error message should appear
+            expect(screen.getByRole('alert')).toBeInTheDocument();
+        });
+    });
+
+    it('should handle AuthForm onCooldown callback', async () => {
+        mockRequestLoginMagicLink.mockResolvedValue({
+            message: 'Cooldown active',
+            cooldown: true,
+        });
+
+        render(<LoginPage />);
+
+        const emailInput = screen.getByPlaceholderText(/enter your email/i);
+        const submitButton = screen.getByRole('button', { name: /send login link/i });
+
+        await userEvent.type(emailInput, 'test@example.com');
+        await userEvent.click(submitButton);
+
+        await waitFor(() => {
+            expect(screen.getByText('Cooldown active')).toBeInTheDocument();
+        });
+    });
+
+    it('should display daily citation in header image title', () => {
+        render(<LoginPage />);
+
+        const image = screen.getByAltText('🌱');
+        expect(image).toHaveAttribute('title', 'Test citation');
+    });
+});
+
