@@ -477,17 +477,20 @@ export function RemindersList({
      */
     useLayoutEffect(() => {
         if (openSnoozeId !== null) {
-            const button = snoozeButtonRefs.current[openSnoozeId];
-            if (button) {
-                const rect = button.getBoundingClientRect();
-                setSnoozeDropdownPosition(prev => ({
-                    ...prev,
-                    [openSnoozeId]: {
-                        top: rect.bottom + 4,
-                        left: rect.left
-                    }
-                }));
-            }
+            // Use requestAnimationFrame to ensure DOM is ready
+            requestAnimationFrame(() => {
+                const button = snoozeButtonRefs.current[openSnoozeId];
+                if (button) {
+                    const rect = button.getBoundingClientRect();
+                    setSnoozeDropdownPosition(prev => ({
+                        ...prev,
+                        [openSnoozeId]: {
+                            top: rect.bottom + 4,
+                            left: rect.left
+                        }
+                    }));
+                }
+            });
         }
     }, [openSnoozeId]);
 
@@ -966,16 +969,16 @@ export function RemindersList({
                                                                 💤
                                                                 {openSnoozeId === reminder.id && <span className="dropdown-arrow">▼</span>}
                                                             </button>
-                                                            {openSnoozeId === reminder.id && snoozeDropdownPosition[reminder.id] && (
+                                                            {openSnoozeId === reminder.id && (
                                                                 <div
                                                                     className="snooze-dropdown"
                                                                     ref={(el) => {
                                                                         snoozeDropdownRefs.current[reminder.id] = el;
                                                                     }}
-                                                                    style={{
+                                                                    style={snoozeDropdownPosition[reminder.id] ? {
                                                                         top: `${snoozeDropdownPosition[reminder.id].top}px`,
                                                                         left: `${snoozeDropdownPosition[reminder.id].left}px`,
-                                                                    }}
+                                                                    } : undefined}
                                                                 >
                                                                     {SNOOZE_OPTIONS.map((option) => (
                                                                         <button

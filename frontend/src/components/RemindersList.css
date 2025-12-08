@@ -318,7 +318,7 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
   box-shadow: var(--shadow-md);
-  z-index: 1001;
+  z-index: 10000;
   padding: 4px;
   animation: slideDown 0.2s ease-out;
   overflow: hidden;
