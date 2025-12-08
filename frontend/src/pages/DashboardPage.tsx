@@ -177,17 +177,20 @@ export function DashboardPage() {
      */
     useLayoutEffect(() => {
         if (openSnoozeId !== null) {
-            const button = snoozeButtonRefs.current[openSnoozeId];
-            if (button) {
-                const rect = button.getBoundingClientRect();
-                setSnoozeDropdownPosition(prev => ({
-                    ...prev,
-                    [openSnoozeId]: {
-                        top: rect.bottom + 4,
-                        left: rect.left
-                    }
-                }));
-            }
+            // Use requestAnimationFrame to ensure DOM is ready
+            requestAnimationFrame(() => {
+                const button = snoozeButtonRefs.current[openSnoozeId];
+                if (button) {
+                    const rect = button.getBoundingClientRect();
+                    setSnoozeDropdownPosition(prev => ({
+                        ...prev,
+                        [openSnoozeId]: {
+                            top: rect.bottom + 4,
+                            left: rect.left
+                        }
+                    }));
+                }
+            });
         }
     }, [openSnoozeId]);
 
