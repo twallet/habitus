@@ -137,8 +137,9 @@ describe("TrackingsList", () => {
         );
 
         expect(screen.getByText("💪")).toBeInTheDocument();
-        expect(screen.getByText("Did I exercise?")).toBeInTheDocument();
-        const trackingCell = screen.getByText("Did I exercise?").closest(".cell-tracking");
+        const trackingElements = screen.getAllByText("Did I exercise?");
+        expect(trackingElements.length).toBeGreaterThan(0);
+        const trackingCell = trackingElements[0].closest(".cell-tracking");
         expect(trackingCell?.textContent).toContain("💪");
         expect(trackingCell?.textContent).toContain("Did I exercise?");
     });
@@ -159,8 +160,9 @@ describe("TrackingsList", () => {
             />
         );
 
-        expect(screen.getByText("Did I exercise?")).toBeInTheDocument();
-        const trackingCell = screen.getByText("Did I exercise?").closest(".cell-tracking");
+        const trackingElements = screen.getAllByText("Did I exercise?");
+        expect(trackingElements.length).toBeGreaterThan(0);
+        const trackingCell = trackingElements[0].closest(".cell-tracking");
         expect(trackingCell?.textContent).toBe("Did I exercise?");
         expect(trackingCell?.textContent).not.toContain("💪");
     });
@@ -615,7 +617,10 @@ describe("TrackingsList", () => {
             />
         );
 
-        const timesCell = screen.getByText("Did I exercise?").closest("tr")?.querySelector(".cell-times");
+        const trackingElements = screen.getAllByText("Did I exercise?");
+        const trackingRow = trackingElements[0].closest("tr");
+        expect(trackingRow).toBeTruthy();
+        const timesCell = trackingRow?.querySelector(".cell-times");
         expect(timesCell?.textContent).toBe("");
         expect(timesCell).toHaveAttribute("title", "No times");
     });
@@ -887,7 +892,8 @@ describe("TrackingsList", () => {
         );
 
         // Only the running tracking should be visible
-        expect(screen.getByText("Did I exercise?")).toBeInTheDocument();
+        const trackingElements = screen.getAllByText("Did I exercise?");
+        expect(trackingElements.length).toBeGreaterThan(0);
         expect(screen.queryByText("Did I meditate?")).not.toBeInTheDocument();
     });
 
@@ -1439,7 +1445,8 @@ describe("TrackingsList", () => {
                 );
 
                 // Should show the next reminder time (check that it's not the empty "—" symbol)
-                const trackingRow = screen.getByText("Did I exercise?").closest("tr");
+                const trackingElements = screen.getAllByText("Did I exercise?");
+                const trackingRow = trackingElements[0].closest("tr");
                 expect(trackingRow).toBeTruthy();
                 const nextReminderCell = trackingRow?.querySelector(".cell-next-reminder");
                 expect(nextReminderCell).toBeInTheDocument();
@@ -1470,7 +1477,10 @@ describe("TrackingsList", () => {
                 );
 
                 // Next Reminder should now be empty (no PENDING or UPCOMING reminders)
-                const emptyReminderCell = screen.getByText("Did I exercise?").closest("tr")?.querySelector(".cell-next-reminder");
+                const trackingElementsAfter = screen.getAllByText("Did I exercise?");
+                const trackingRowAfter = trackingElementsAfter[0].closest("tr");
+                expect(trackingRowAfter).toBeTruthy();
+                const emptyReminderCell = trackingRowAfter?.querySelector(".cell-next-reminder");
                 expect(emptyReminderCell).toHaveTextContent("—");
             });
 
@@ -1541,7 +1551,8 @@ describe("TrackingsList", () => {
                 );
 
                 // Next Reminder should show the snoozed time (UPCOMING reminder) - check that it's not empty
-                const trackingRow = screen.getByText("Did I exercise?").closest("tr");
+                const trackingElements = screen.getAllByText("Did I exercise?");
+                const trackingRow = trackingElements[0].closest("tr");
                 expect(trackingRow).toBeTruthy();
                 const nextReminderCell = trackingRow?.querySelector(".cell-next-reminder");
                 expect(nextReminderCell).toBeInTheDocument();
@@ -1607,7 +1618,8 @@ describe("TrackingsList", () => {
                 );
 
                 // Next Reminder should show the new reminder time - check that it's not empty
-                const trackingRow = screen.getByText("Did I exercise?").closest("tr");
+                const trackingElements = screen.getAllByText("Did I exercise?");
+                const trackingRow = trackingElements[0].closest("tr");
                 expect(trackingRow).toBeTruthy();
                 const nextReminderCell = trackingRow?.querySelector(".cell-next-reminder");
                 expect(nextReminderCell).toBeInTheDocument();
@@ -1785,7 +1797,8 @@ describe("TrackingsList", () => {
                 );
 
                 // Next Reminder should display the new reminder time - check that it's not empty
-                const trackingRow = screen.getByText("Did I exercise?").closest("tr");
+                const trackingElements = screen.getAllByText("Did I exercise?");
+                const trackingRow = trackingElements[0].closest("tr");
                 expect(trackingRow).toBeTruthy();
                 const nextReminderCell = trackingRow?.querySelector(".cell-next-reminder");
                 expect(nextReminderCell).toBeInTheDocument();
@@ -1904,7 +1917,10 @@ describe("TrackingsList", () => {
                 );
 
                 // Next Reminder should be empty
-                const emptyReminderCell4 = screen.getByText("Did I exercise?").closest("tr")?.querySelector(".cell-next-reminder");
+                const trackingElements = screen.getAllByText("Did I exercise?");
+                const trackingRow = trackingElements[0].closest("tr");
+                expect(trackingRow).toBeTruthy();
+                const emptyReminderCell4 = trackingRow?.querySelector(".cell-next-reminder");
                 expect(emptyReminderCell4).toHaveTextContent("—");
             });
 
@@ -1943,7 +1959,8 @@ describe("TrackingsList", () => {
                 );
 
                 // Next Reminder should show the new reminder time - check that it's not empty
-                const trackingRow = screen.getByText("Did I exercise?").closest("tr");
+                const trackingElements = screen.getAllByText("Did I exercise?");
+                const trackingRow = trackingElements[0].closest("tr");
                 expect(trackingRow).toBeTruthy();
                 const nextReminderCell = trackingRow?.querySelector(".cell-next-reminder");
                 expect(nextReminderCell).toBeInTheDocument();
@@ -1974,7 +1991,10 @@ describe("TrackingsList", () => {
                 );
 
                 // Next Reminder should be empty
-                const emptyReminderCell1 = screen.getByText("Did I exercise?").closest("tr")?.querySelector(".cell-next-reminder");
+                const trackingElements = screen.getAllByText("Did I exercise?");
+                const trackingRow = trackingElements[0].closest("tr");
+                expect(trackingRow).toBeTruthy();
+                const emptyReminderCell1 = trackingRow?.querySelector(".cell-next-reminder");
                 expect(emptyReminderCell1).toHaveTextContent("—");
             });
         });
@@ -2023,7 +2043,8 @@ describe("TrackingsList", () => {
                 );
 
                 // Should show the earliest one (futureTime, not laterFutureTime) - check that it's not empty
-                const trackingRow = screen.getByText("Did I exercise?").closest("tr");
+                const trackingElements = screen.getAllByText("Did I exercise?");
+                const trackingRow = trackingElements[0].closest("tr");
                 expect(trackingRow).toBeTruthy();
                 const nextReminderCell = trackingRow?.querySelector(".cell-next-reminder");
                 expect(nextReminderCell).toBeInTheDocument();
@@ -2074,7 +2095,8 @@ describe("TrackingsList", () => {
                 );
 
                 // Should show the earliest one (futureTime, not laterFutureTime) - check that it's not empty
-                const trackingRow = screen.getByText("Did I exercise?").closest("tr");
+                const trackingElements = screen.getAllByText("Did I exercise?");
+                const trackingRow = trackingElements[0].closest("tr");
                 expect(trackingRow).toBeTruthy();
                 const nextReminderCell = trackingRow?.querySelector(".cell-next-reminder");
                 expect(nextReminderCell).toBeInTheDocument();
@@ -2125,7 +2147,8 @@ describe("TrackingsList", () => {
                 );
 
                 // Should show the PENDING one (futureTime) as it's earlier - check that it's not empty
-                const trackingRow = screen.getByText("Did I exercise?").closest("tr");
+                const trackingElements = screen.getAllByText("Did I exercise?");
+                const trackingRow = trackingElements[0].closest("tr");
                 expect(trackingRow).toBeTruthy();
                 const nextReminderCell = trackingRow?.querySelector(".cell-next-reminder");
                 expect(nextReminderCell).toBeInTheDocument();
@@ -2168,7 +2191,10 @@ describe("TrackingsList", () => {
                 );
 
                 // Next Reminder should be empty (past reminders are filtered out)
-                const emptyReminderCell2 = screen.getByText("Did I exercise?").closest("tr")?.querySelector(".cell-next-reminder");
+                const trackingElements = screen.getAllByText("Did I exercise?");
+                const trackingRow = trackingElements[0].closest("tr");
+                expect(trackingRow).toBeTruthy();
+                const emptyReminderCell2 = trackingRow?.querySelector(".cell-next-reminder");
                 expect(emptyReminderCell2).toHaveTextContent("—");
             });
 
@@ -2207,7 +2233,10 @@ describe("TrackingsList", () => {
                 );
 
                 // Next Reminder should be empty (ANSWERED reminders are filtered out)
-                const emptyReminderCell3 = screen.getByText("Did I exercise?").closest("tr")?.querySelector(".cell-next-reminder");
+                const trackingElements = screen.getAllByText("Did I exercise?");
+                const trackingRow = trackingElements[0].closest("tr");
+                expect(trackingRow).toBeTruthy();
+                const emptyReminderCell3 = trackingRow?.querySelector(".cell-next-reminder");
                 expect(emptyReminderCell3).toHaveTextContent("—");
             });
         });

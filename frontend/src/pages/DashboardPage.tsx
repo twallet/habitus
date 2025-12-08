@@ -62,7 +62,7 @@ export function DashboardPage() {
             <div className="stats-card">
                 <div className="stats-content">
                     <div className="stats-info">
-                        <h3>Daily Progress</h3>
+                        <h3>Daily progress</h3>
                         <p>{stats.completed} of {stats.total} habits completed</p>
                     </div>
                     <div className="progress-ring">
@@ -78,14 +78,14 @@ export function DashboardPage() {
 
             <div className="dashboard-section">
                 <div className="section-header">
-                    <h3>Today's Pendings</h3>
+                    <h3>Today's pendings</h3>
                     {todayPendingReminders.length > 0 && <span className="badge">{todayPendingReminders.length}</span>}
                 </div>
 
                 {todayPendingReminders.length === 0 ? (
                     <div className="empty-dashboard-state">
                         <p>No pending reminders right now! 🎉</p>
-                        <p className="empty-subtitle">Check back later or create a new habit to get started.</p>
+                        <p className="empty-subtitle">Relax and enjoy your day!</p>
                     </div>
                 ) : (
                     <div className="dashboard-list">
@@ -118,10 +118,10 @@ export function DashboardPage() {
             </div>
 
             <div className="dashboard-quick-actions">
-                <h3>Quick Actions</h3>
+                <h3>Quick actions</h3>
                 <button className="action-btn" onClick={() => setShowTrackingForm(true)}>
                     <span className="action-icon">➕</span>
-                    Create New Habit
+                    Create new habit
                 </button>
             </div>
         </div>
