@@ -138,7 +138,8 @@ describe("TrackingsList", () => {
             />
         );
 
-        expect(screen.getByText("💪")).toBeInTheDocument();
+        const iconElements2 = screen.getAllByText("💪");
+        expect(iconElements2.length).toBeGreaterThan(0);
         const trackingElements = screen.getAllByText("Did I exercise?");
         expect(trackingElements.length).toBeGreaterThan(0);
         const trackingCell = trackingElements[0].closest(".cell-tracking");
@@ -539,7 +540,8 @@ describe("TrackingsList", () => {
             />
         );
 
-        expect(screen.getByText("🏋️")).toBeInTheDocument();
+        const iconElements = screen.getAllByText("🏋️");
+        expect(iconElements.length).toBeGreaterThan(0);
         const exerciseElements = screen.getAllByText("Did I exercise today?");
         expect(exerciseElements.length).toBeGreaterThan(0);
         const trackingCell = exerciseElements[0].closest(".cell-tracking");

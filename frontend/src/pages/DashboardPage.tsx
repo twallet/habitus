@@ -34,11 +34,8 @@ export function DashboardPage() {
     const [editingNotesId, setEditingNotesId] = useState<number | null>(null);
     const [notesValues, setNotesValues] = useState<Record<number, string>>({});
     const [openSnoozeId, setOpenSnoozeId] = useState<number | null>(null);
-    const [snoozeMenuPosition, setSnoozeMenuPosition] = useState<{ top: number; left: number } | null>(null);
-    const actionRefs = useRef<Record<number, HTMLDivElement | null>>({});
-    const snoozeMenuRefs = useRef<Record<number, HTMLDivElement | null>>({});
+    const snoozeDropdownRefs = useRef<Record<number, HTMLDivElement | null>>({});
     const notesTextareaRefs = useRef<Record<number, HTMLTextAreaElement | null>>({});
-    const openingMenuRef = useRef<number | null>(null);
 
     // Filter for today's pending reminders
     const todayPendingReminders = useMemo(() => {
@@ -78,39 +75,24 @@ export function DashboardPage() {
         const handleClickOutside = (event: MouseEvent) => {
             const target = event.target as HTMLElement;
 
-            // Don't close if we're currently opening a menu
-            if (openingMenuRef.current !== null) {
-                return;
-            }
-
-            // Check if clicking on a snooze button - if so, don't close
-            if (target.closest('.action-button.action-snooze')) {
-                return;
-            }
-
-            // Check action containers (including the buttons themselves)
-            for (const ref of Object.values(actionRefs.current)) {
-                if (ref && ref.contains(target)) {
-                    return;
-                }
-            }
-
-            // Check snooze menus
-            for (const ref of Object.values(snoozeMenuRefs.current)) {
+            // Check if clicking inside any snooze dropdown
+            for (const ref of Object.values(snoozeDropdownRefs.current)) {
                 if (ref && ref.contains(target)) {
                     return;
                 }
             }
 
             setOpenSnoozeId(null);
-            setSnoozeMenuPosition(null);
         };
 
-        document.addEventListener('mousedown', handleClickOutside);
+        if (openSnoozeId !== null) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, []);
+    }, [openSnoozeId]);
 
     /**
      * Handle saving notes.
@@ -164,52 +146,15 @@ export function DashboardPage() {
     };
 
     /**
-     * Toggle snooze menu for a reminder.
+     * Toggle snooze dropdown for a reminder.
      * @param reminderId - Reminder ID
      * @internal
      */
-    const toggleSnoozeMenu = (reminderId: number) => {
+    const toggleSnoozeDropdown = (reminderId: number) => {
         if (openSnoozeId === reminderId) {
             setOpenSnoozeId(null);
-            setSnoozeMenuPosition(null);
-            openingMenuRef.current = null;
         } else {
-            openingMenuRef.current = reminderId;
             setOpenSnoozeId(reminderId);
-            // Calculate position after state update
-            setTimeout(() => {
-                const container = actionRefs.current[reminderId];
-                if (container) {
-                    // Position menu near the snooze button (last button in the actions)
-                    const buttonsContainer = container.querySelector('.card-actions-buttons');
-                    if (buttonsContainer) {
-                        const buttons = buttonsContainer.querySelectorAll('.action-button');
-                        const snoozeButton = buttons[buttons.length - 1] as HTMLElement;
-                        if (snoozeButton) {
-                            const buttonRect = snoozeButton.getBoundingClientRect();
-                            setSnoozeMenuPosition({
-                                top: buttonRect.bottom + 4,
-                                left: buttonRect.left,
-                            });
-                            // Clear the opening flag after a brief delay
-                            setTimeout(() => {
-                                openingMenuRef.current = null;
-                            }, 100);
-                            return;
-                        }
-                    }
-                    // Fallback to container position
-                    const rect = container.getBoundingClientRect();
-                    setSnoozeMenuPosition({
-                        top: rect.bottom + 4,
-                        left: rect.left,
-                    });
-                    // Clear the opening flag after a brief delay
-                    setTimeout(() => {
-                        openingMenuRef.current = null;
-                    }, 100);
-                }
-            }, 0);
         }
     };
 
@@ -223,7 +168,6 @@ export function DashboardPage() {
         try {
             await snoozeReminder(reminderId, minutes);
             setOpenSnoozeId(null);
-            setSnoozeMenuPosition(null);
         } catch (error) {
             console.error("Error snoozing reminder:", error);
         }
@@ -276,7 +220,6 @@ export function DashboardPage() {
                     <div className="dashboard-list">
                         {todayPendingReminders.map(reminder => {
                             const tracking = trackings.find(t => t.id === reminder.tracking_id);
-                            const isSnoozeOpen = openSnoozeId === reminder.id;
 
                             return (
                                 <div
@@ -319,12 +262,7 @@ export function DashboardPage() {
                                             onClick={(e) => e.stopPropagation()}
                                         />
                                     </div>
-                                    <div
-                                        className="card-actions-container"
-                                        ref={(el) => {
-                                            actionRefs.current[reminder.id] = el;
-                                        }}
-                                    >
+                                    <div className="card-actions-container">
                                         <div className="card-actions-buttons">
                                             <button
                                                 type="button"
@@ -350,45 +288,45 @@ export function DashboardPage() {
                                             >
                                                 ✕
                                             </button>
-                                            <button
-                                                type="button"
-                                                className="action-button action-snooze"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    toggleSnoozeMenu(reminder.id);
-                                                }}
-                                                aria-label="Snooze reminder"
-                                                title="Snooze"
-                                            >
-                                                💤
-                                            </button>
-                                        </div>
-                                        {isSnoozeOpen && snoozeMenuPosition && (
                                             <div
-                                                className="snooze-menu"
+                                                className="snooze-dropdown-container"
                                                 ref={(el) => {
-                                                    snoozeMenuRefs.current[reminder.id] = el;
-                                                }}
-                                                style={{
-                                                    top: `${snoozeMenuPosition.top}px`,
-                                                    left: `${snoozeMenuPosition.left}px`,
+                                                    snoozeDropdownRefs.current[reminder.id] = el;
                                                 }}
                                             >
-                                                {SNOOZE_OPTIONS.map((option) => (
-                                                    <button
-                                                        key={option.minutes}
-                                                        type="button"
-                                                        className="snooze-menu-item"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleSnooze(reminder.id, option.minutes);
-                                                        }}
-                                                    >
-                                                        {option.label}
-                                                    </button>
-                                                ))}
+                                                <button
+                                                    type="button"
+                                                    className="action-button action-snooze snooze-dropdown-button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        toggleSnoozeDropdown(reminder.id);
+                                                    }}
+                                                    aria-label="Snooze reminder"
+                                                    aria-expanded={openSnoozeId === reminder.id}
+                                                    title="Snooze"
+                                                >
+                                                    💤
+                                                    {openSnoozeId === reminder.id && <span className="dropdown-arrow">▼</span>}
+                                                </button>
+                                                {openSnoozeId === reminder.id && (
+                                                    <div className="snooze-dropdown">
+                                                        {SNOOZE_OPTIONS.map((option) => (
+                                                            <button
+                                                                key={option.minutes}
+                                                                type="button"
+                                                                className="snooze-dropdown-item"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleSnooze(reminder.id, option.minutes);
+                                                                }}
+                                                            >
+                                                                {option.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
+                                        </div>
                                     </div>
                                 </div>
                             );
