@@ -78,7 +78,7 @@ export function DashboardPage() {
 
             <div className="dashboard-section">
                 <div className="section-header">
-                    <h3>Pending Now</h3>
+                    <h3>Today's Pendings</h3>
                     {todayPendingReminders.length > 0 && <span className="badge">{todayPendingReminders.length}</span>}
                 </div>
 

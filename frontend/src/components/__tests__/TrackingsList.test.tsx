@@ -1439,10 +1439,11 @@ describe("TrackingsList", () => {
                 );
 
                 // Should show the next reminder time (check that it's not the empty "—" symbol)
-                const nextReminderCell = screen.getByText((content, element) => {
-                    return !!(element?.classList.contains("cell-next-reminder") && content !== "—");
-                });
+                const trackingRow = screen.getByText("Did I exercise?").closest("tr");
+                expect(trackingRow).toBeTruthy();
+                const nextReminderCell = trackingRow?.querySelector(".cell-next-reminder");
                 expect(nextReminderCell).toBeInTheDocument();
+                expect(nextReminderCell).not.toHaveTextContent("—");
 
                 // After answering, the reminder status changes to ANSWERED
                 const updatedReminders: ReminderData[] = [
@@ -1540,10 +1541,11 @@ describe("TrackingsList", () => {
                 );
 
                 // Next Reminder should show the snoozed time (UPCOMING reminder) - check that it's not empty
-                const nextReminderCell = screen.getByText((content, element) => {
-                    return !!(element?.classList.contains("cell-next-reminder") && content !== "—");
-                });
+                const trackingRow = screen.getByText("Did I exercise?").closest("tr");
+                expect(trackingRow).toBeTruthy();
+                const nextReminderCell = trackingRow?.querySelector(".cell-next-reminder");
                 expect(nextReminderCell).toBeInTheDocument();
+                expect(nextReminderCell).not.toHaveTextContent("—");
             });
 
             it("should update Next Reminder when a reminder is deleted (creates next reminder)", () => {
@@ -1605,10 +1607,11 @@ describe("TrackingsList", () => {
                 );
 
                 // Next Reminder should show the new reminder time - check that it's not empty
-                const nextReminderCell = screen.getByText((content, element) => {
-                    return !!(element?.classList.contains("cell-next-reminder") && content !== "—");
-                });
+                const trackingRow = screen.getByText("Did I exercise?").closest("tr");
+                expect(trackingRow).toBeTruthy();
+                const nextReminderCell = trackingRow?.querySelector(".cell-next-reminder");
                 expect(nextReminderCell).toBeInTheDocument();
+                expect(nextReminderCell).not.toHaveTextContent("—");
             });
         });
 
@@ -1782,10 +1785,11 @@ describe("TrackingsList", () => {
                 );
 
                 // Next Reminder should display the new reminder time - check that it's not empty
-                const nextReminderCell = screen.getByText((content, element) => {
-                    return !!(element?.classList.contains("cell-next-reminder") && content !== "—");
-                });
+                const trackingRow = screen.getByText("Did I exercise?").closest("tr");
+                expect(trackingRow).toBeTruthy();
+                const nextReminderCell = trackingRow?.querySelector(".cell-next-reminder");
                 expect(nextReminderCell).toBeInTheDocument();
+                expect(nextReminderCell).not.toHaveTextContent("—");
             });
         });
 
@@ -1939,10 +1943,11 @@ describe("TrackingsList", () => {
                 );
 
                 // Next Reminder should show the new reminder time - check that it's not empty
-                const nextReminderCell = screen.getByText((content, element) => {
-                    return !!(element?.classList.contains("cell-next-reminder") && content !== "—");
-                });
+                const trackingRow = screen.getByText("Did I exercise?").closest("tr");
+                expect(trackingRow).toBeTruthy();
+                const nextReminderCell = trackingRow?.querySelector(".cell-next-reminder");
                 expect(nextReminderCell).toBeInTheDocument();
+                expect(nextReminderCell).not.toHaveTextContent("—");
             });
 
             it("should show no Next Reminder when tracking is Archived", () => {
@@ -2018,12 +2023,12 @@ describe("TrackingsList", () => {
                 );
 
                 // Should show the earliest one (futureTime, not laterFutureTime) - check that it's not empty
-                const nextReminderCell = screen.getByText((content, element) => {
-                    return !!(element?.classList.contains("cell-next-reminder") && content !== "—");
-                });
+                const trackingRow = screen.getByText("Did I exercise?").closest("tr");
+                expect(trackingRow).toBeTruthy();
+                const nextReminderCell = trackingRow?.querySelector(".cell-next-reminder");
                 expect(nextReminderCell).toBeInTheDocument();
                 // Verify it shows a date (not empty)
-                expect(nextReminderCell.textContent).not.toBe("—");
+                expect(nextReminderCell).not.toHaveTextContent("—");
             });
 
             it("should show the earliest UPCOMING reminder when multiple exist", () => {
@@ -2069,12 +2074,12 @@ describe("TrackingsList", () => {
                 );
 
                 // Should show the earliest one (futureTime, not laterFutureTime) - check that it's not empty
-                const nextReminderCell = screen.getByText((content, element) => {
-                    return !!(element?.classList.contains("cell-next-reminder") && content !== "—");
-                });
+                const trackingRow = screen.getByText("Did I exercise?").closest("tr");
+                expect(trackingRow).toBeTruthy();
+                const nextReminderCell = trackingRow?.querySelector(".cell-next-reminder");
                 expect(nextReminderCell).toBeInTheDocument();
                 // Verify it shows a date (not empty)
-                expect(nextReminderCell.textContent).not.toBe("—");
+                expect(nextReminderCell).not.toHaveTextContent("—");
             });
 
             it("should prioritize PENDING over UPCOMING when both exist", () => {
@@ -2120,12 +2125,12 @@ describe("TrackingsList", () => {
                 );
 
                 // Should show the PENDING one (futureTime) as it's earlier - check that it's not empty
-                const nextReminderCell = screen.getByText((content, element) => {
-                    return !!(element?.classList.contains("cell-next-reminder") && content !== "—");
-                });
+                const trackingRow = screen.getByText("Did I exercise?").closest("tr");
+                expect(trackingRow).toBeTruthy();
+                const nextReminderCell = trackingRow?.querySelector(".cell-next-reminder");
                 expect(nextReminderCell).toBeInTheDocument();
                 // Verify it shows a date (not empty)
-                expect(nextReminderCell.textContent).not.toBe("—");
+                expect(nextReminderCell).not.toHaveTextContent("—");
             });
 
             it("should not show past reminders in Next Reminder", () => {
