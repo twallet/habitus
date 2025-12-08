@@ -107,9 +107,11 @@ describe("RemindersList", () => {
 
         render(<RemindersList />);
 
-        expect(screen.getByText("Did I exercise?")).toBeInTheDocument();
+        const exerciseTexts = screen.getAllByText("Did I exercise?");
+        expect(exerciseTexts[0]).toBeInTheDocument();
         // Check that action buttons are present (indicating reminders are shown)
-        expect(screen.getByRole("button", { name: "Complete reminder" })).toBeInTheDocument();
+        const completeButtons = screen.getAllByRole("button", { name: "Complete reminder" });
+        expect(completeButtons[0]).toBeInTheDocument();
     });
 
     // Note: The component no longer displays answers in the reminders table.
@@ -176,9 +178,9 @@ describe("RemindersList", () => {
 
         render(<RemindersList />);
 
-        // Click the Complete action button directly
-        const completeButton = screen.getByRole("button", { name: "Complete reminder" });
-        await userEvent.click(completeButton);
+        // Click the Complete action button directly (first one is from table view)
+        const completeButtons = screen.getAllByRole("button", { name: "Complete reminder" });
+        await userEvent.click(completeButtons[0]);
 
         await waitFor(() => {
             expect(mockCompleteReminder).toHaveBeenCalledWith(1);
@@ -326,7 +328,8 @@ describe("RemindersList", () => {
         await userEvent.type(trackingInput, "exercise");
 
         // Should only show exercise reminder
-        expect(screen.getByText("Did I exercise?")).toBeInTheDocument();
+        const exerciseTexts = screen.getAllByText("Did I exercise?");
+        expect(exerciseTexts[0]).toBeInTheDocument();
         expect(screen.queryByText("Did I meditate?")).not.toBeInTheDocument();
     });
 
@@ -432,7 +435,8 @@ describe("RemindersList", () => {
         // After reset, reminders should be visible again
         await waitFor(() => {
             expect(screen.queryByText(/no reminders match the current filters/i)).not.toBeInTheDocument();
-            expect(screen.getByText("Did I exercise?")).toBeInTheDocument();
+            const exerciseTexts = screen.getAllByText("Did I exercise?");
+            expect(exerciseTexts[0]).toBeInTheDocument();
         });
     });
 
@@ -615,9 +619,9 @@ describe("RemindersList", () => {
 
         render(<RemindersList />);
 
-        // Click the Snooze action button directly
-        const snoozeButton = screen.getByRole("button", { name: "Snooze reminder" });
-        await userEvent.click(snoozeButton);
+        // Click the Snooze action button directly (first one is from table view)
+        const snoozeButtons = screen.getAllByRole("button", { name: "Snooze reminder" });
+        await userEvent.click(snoozeButtons[0]);
 
         // Snooze menu should appear
         await waitFor(() => {
@@ -653,9 +657,9 @@ describe("RemindersList", () => {
 
         render(<RemindersList />);
 
-        // Click the Snooze action button directly
-        const snoozeButton = screen.getByRole("button", { name: "Snooze reminder" });
-        await userEvent.click(snoozeButton);
+        // Click the Snooze action button directly (first one is from table view)
+        const snoozeButtons = screen.getAllByRole("button", { name: "Snooze reminder" });
+        await userEvent.click(snoozeButtons[0]);
 
         // Click a snooze option
         const snoozeOption = await screen.findByText("30 min");
@@ -780,9 +784,9 @@ describe("RemindersList", () => {
 
         render(<RemindersList />);
 
-        // Click the Snooze action button directly
-        const snoozeButton = screen.getByRole("button", { name: "Snooze reminder" });
-        await userEvent.click(snoozeButton);
+        // Click the Snooze action button directly (first one is from table view)
+        const snoozeButtons = screen.getAllByRole("button", { name: "Snooze reminder" });
+        await userEvent.click(snoozeButtons[0]);
 
         // Click a snooze option
         const snoozeOption = await screen.findByText("15 min");
@@ -866,9 +870,9 @@ describe("RemindersList", () => {
 
         render(<RemindersList />);
 
-        // Should show Complete button (action button)
-        const completeButton = screen.getByRole("button", { name: "Complete reminder" });
-        expect(completeButton).toBeInTheDocument();
+        // Should show Complete button (action button) - first one is from table view
+        const completeButtons = screen.getAllByRole("button", { name: "Complete reminder" });
+        expect(completeButtons[0]).toBeInTheDocument();
     });
 
     it("should filter out reminders with missing trackings (data integrity check)", () => {
@@ -995,8 +999,10 @@ describe("RemindersList", () => {
             render(<RemindersList reminders={propReminders} />);
 
             // Should show reminder from props (id: 1), not from hook (id: 2)
-            expect(screen.getByText("Did I exercise?")).toBeInTheDocument();
-            expect(screen.getByRole("button", { name: "Complete reminder" })).toBeInTheDocument();
+            const exerciseTexts = screen.getAllByText("Did I exercise?");
+            expect(exerciseTexts[0]).toBeInTheDocument();
+            const completeButtons = screen.getAllByRole("button", { name: "Complete reminder" });
+            expect(completeButtons[0]).toBeInTheDocument();
         });
 
         it("should use provided isLoadingReminders prop instead of hook", () => {
@@ -1094,8 +1100,8 @@ describe("RemindersList", () => {
 
             render(<RemindersList reminders={reminders} snoozeReminder={propSnoozeReminder} />);
 
-            const snoozeButton = screen.getByRole("button", { name: "Snooze reminder" });
-            await userEvent.click(snoozeButton);
+            const snoozeButtons = screen.getAllByRole("button", { name: "Snooze reminder" });
+            await userEvent.click(snoozeButtons[0]);
 
             await waitFor(() => {
                 expect(screen.getByText("15 min")).toBeInTheDocument();

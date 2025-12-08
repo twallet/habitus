@@ -331,11 +331,10 @@ export function RemindersList({
     const trackings = propTrackings ?? hookTrackings;
     const isLoadingTrackings = propIsLoadingTrackings ?? hookIsLoadingTrackings;
     const [openSnoozeId, setOpenSnoozeId] = useState<number | null>(null);
-    const [snoozeMenuPosition, setSnoozeMenuPosition] = useState<{ top: number; right: number } | null>(null);
     const [editingNotesId, setEditingNotesId] = useState<number | null>(null);
     const [notesValues, setNotesValues] = useState<Record<number, string>>({});
     const actionRefs = useRef<Record<number, HTMLDivElement | null>>({});
-    const snoozeMenuRefs = useRef<Record<number, HTMLDivElement | null>>({});
+    const snoozeDropdownRefs = useRef<Record<number, HTMLDivElement | null>>({});
     const notesTextareaRefs = useRef<Record<number, HTMLTextAreaElement | null>>({});
 
     // Filter and sort state
@@ -453,27 +452,15 @@ export function RemindersList({
     };
 
     /**
-     * Toggle snooze menu for a reminder.
+     * Toggle snooze dropdown for a reminder.
      * @param reminderId - Reminder ID
      * @internal
      */
-    const toggleSnoozeMenu = (reminderId: number) => {
+    const toggleSnoozeDropdown = (reminderId: number) => {
         if (openSnoozeId === reminderId) {
             setOpenSnoozeId(null);
-            setSnoozeMenuPosition(null);
         } else {
             setOpenSnoozeId(reminderId);
-            // Calculate position after state update
-            setTimeout(() => {
-                const container = actionRefs.current[reminderId];
-                if (container) {
-                    const rect = container.getBoundingClientRect();
-                    setSnoozeMenuPosition({
-                        top: rect.bottom + 4,
-                        right: window.innerWidth - rect.right,
-                    });
-                }
-            }, 0);
         }
     };
 
@@ -487,7 +474,6 @@ export function RemindersList({
         try {
             const updatedReminder = await snoozeReminder(reminderId, minutes);
             setOpenSnoozeId(null);
-            setSnoozeMenuPosition(null);
             // Badge updates immediately via optimistic update in useReminders hook
             if (onMessage) {
                 const formattedTime = ReminderFormatter.formatDateTime(updatedReminder.scheduled_time);
@@ -647,15 +633,14 @@ export function RemindersList({
                 }
             }
 
-            // Check snooze menus
-            for (const ref of Object.values(snoozeMenuRefs.current)) {
+            // Check snooze dropdowns
+            for (const ref of Object.values(snoozeDropdownRefs.current)) {
                 if (ref && ref.contains(target)) {
                     return;
                 }
             }
 
             setOpenSnoozeId(null);
-            setSnoozeMenuPosition(null);
         };
 
         document.addEventListener("mousedown", handleClickOutside);
@@ -845,7 +830,6 @@ export function RemindersList({
                                     }
                                     return null;
                                 }
-                                const isSnoozeOpen = openSnoozeId === reminder.id;
 
                                 return (
                                     <tr key={reminder.id} className="reminder-row">
@@ -919,46 +903,46 @@ export function RemindersList({
                                                         </button>
                                                     )}
                                                     {reminder.status === ReminderStatus.PENDING && (
-                                                        <button
-                                                            type="button"
-                                                            className="action-button action-snooze"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                toggleSnoozeMenu(reminder.id);
+                                                        <div
+                                                            className="snooze-dropdown-container"
+                                                            ref={(el) => {
+                                                                snoozeDropdownRefs.current[reminder.id] = el;
                                                             }}
-                                                            title="Snooze reminder (click to see options)"
-                                                            aria-label="Snooze reminder"
                                                         >
-                                                            💤
-                                                        </button>
-                                                    )}
-                                                </div>
-                                                {isSnoozeOpen && snoozeMenuPosition && (
-                                                    <div
-                                                        className="snooze-menu"
-                                                        ref={(el) => {
-                                                            snoozeMenuRefs.current[reminder.id] = el;
-                                                        }}
-                                                        style={{
-                                                            top: `${snoozeMenuPosition.top}px`,
-                                                            right: `${snoozeMenuPosition.right}px`,
-                                                        }}
-                                                    >
-                                                        {SNOOZE_OPTIONS.map((option) => (
                                                             <button
-                                                                key={option.minutes}
                                                                 type="button"
-                                                                className="snooze-menu-item"
+                                                                className="action-button action-snooze snooze-dropdown-button"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    handleSnooze(reminder.id, option.minutes);
+                                                                    toggleSnoozeDropdown(reminder.id);
                                                                 }}
+                                                                aria-label="Snooze reminder"
+                                                                aria-expanded={openSnoozeId === reminder.id}
+                                                                title="Snooze"
                                                             >
-                                                                {option.label}
+                                                                💤
+                                                                {openSnoozeId === reminder.id && <span className="dropdown-arrow">▼</span>}
                                                             </button>
-                                                        ))}
-                                                    </div>
-                                                )}
+                                                            {openSnoozeId === reminder.id && (
+                                                                <div className="snooze-dropdown">
+                                                                    {SNOOZE_OPTIONS.map((option) => (
+                                                                        <button
+                                                                            key={option.minutes}
+                                                                            type="button"
+                                                                            className="snooze-dropdown-item"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                handleSnooze(reminder.id, option.minutes);
+                                                                            }}
+                                                                        >
+                                                                            {option.label}
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </td>
                                     </tr>
@@ -1012,12 +996,12 @@ export function RemindersList({
                                         </button>
                                         <button
                                             type="button"
-                                            className="action-button"
-                                            onClick={() => toggleSnoozeMenu(reminder.id)}
+                                            className="action-button action-snooze"
+                                            onClick={() => toggleSnoozeDropdown(reminder.id)}
                                             aria-label="Snooze reminder"
                                             title="Snooze"
                                         >
-                                            ⏰
+                                            💤
                                         </button>
                                         <button
                                             type="button"
