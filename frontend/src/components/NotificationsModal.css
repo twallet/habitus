@@ -1,0 +1,61 @@
+.notifications-form {
+  padding: 24px;
+}
+
+.notifications-label {
+  display: block;
+  margin-bottom: 16px;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.notification-channels {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.channel-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: var(--transition);
+  background: var(--bg-primary);
+}
+
+.channel-option:hover:not(.disabled) {
+  background: var(--bg-secondary);
+  border-color: var(--text-secondary);
+}
+
+.channel-option.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: var(--bg-secondary);
+}
+
+.channel-option input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #00c8ff;
+}
+
+.channel-option.disabled input[type="checkbox"] {
+  cursor: not-allowed;
+}
+
+.channel-option span {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  user-select: none;
+}
+
+.channel-option.disabled span {
+  color: var(--text-secondary);
+}

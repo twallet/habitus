@@ -14,6 +14,7 @@ import { ChangeEmailModal } from '../../components/ChangeEmailModal';
 import { DeleteUserConfirmationModal } from '../../components/DeleteUserConfirmationModal';
 import { TrackingForm } from '../../components/TrackingForm';
 import { EditTrackingModal } from '../../components/EditTrackingModal';
+import { NotificationsModal } from '../../components/NotificationsModal';
 import { DebugLogWindow } from '../../components/DebugLogWindow';
 import { OutletContextType } from '../../context/AppContext';
 
@@ -27,6 +28,7 @@ export function MainLayout() {
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
     const [editingTracking, setEditingTracking] = useState<TrackingData | null>(null);
     const [showTrackingForm, setShowTrackingForm] = useState(false);
+    const [showNotifications, setShowNotifications] = useState(false);
 
     const dailyCitation = getDailyCitation();
 
@@ -241,6 +243,15 @@ export function MainLayout() {
                         >
                             +
                         </button>
+                        <button
+                            type="button"
+                            className="fab notifications-button"
+                            onClick={() => setShowNotifications(true)}
+                            aria-label="Notifications"
+                            title="Notifications"
+                        >
+                            🔔
+                        </button>
                         <UserMenu
                             user={user}
                             onEditProfile={() => setShowEditProfile(true)}
@@ -300,6 +311,15 @@ export function MainLayout() {
                         tracking={editingTracking}
                         onClose={() => setEditingTracking(null)}
                         onSave={async (...args) => { await handleUpdateTracking(...args); }}
+                    />
+                )}
+                {showNotifications && (
+                    <NotificationsModal
+                        onClose={() => setShowNotifications(false)}
+                        onSave={async (_selectedChannels) => {
+                            // TODO: Implement notification settings save
+                            setMessage({ text: 'Notification settings saved', type: 'success' });
+                        }}
                     />
                 )}
             </div>
