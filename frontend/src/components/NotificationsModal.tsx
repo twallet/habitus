@@ -76,7 +76,7 @@ export function NotificationsModal({
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
-                    <h2>Notifications</h2>
+                    <h2>Configure notifications</h2>
                     <button
                         type="button"
                         className="modal-close"

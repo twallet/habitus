@@ -247,8 +247,8 @@ export function MainLayout() {
                             type="button"
                             className="fab notifications-button"
                             onClick={() => setShowNotifications(true)}
-                            aria-label="Notifications"
-                            title="Notifications"
+                            aria-label="Configure notifications"
+                            title="Configure notifications"
                         >
                             🔔
                         </button>

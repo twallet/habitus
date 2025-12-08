@@ -659,6 +659,15 @@ main {
   }
 }
 
+.fab.notifications-button {
+  background: var(--primary-color);
+}
+
+.fab.notifications-button:hover {
+  background: var(--primary-hover);
+  box-shadow: 0 12px 20px -5px rgba(0, 90, 127, 0.4);
+}
+
 .modal-overlay {
   position: fixed;
   top: 0;
