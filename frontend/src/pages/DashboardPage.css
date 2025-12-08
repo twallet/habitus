@@ -70,15 +70,6 @@
   font-size: 1.25rem;
 }
 
-.badge {
-  background: var(--error-color);
-  color: white;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
 .dashboard-list {
   display: flex;
   flex-direction: column;
@@ -245,9 +236,8 @@
   align-items: center;
   justify-content: center;
   gap: 4px;
-  width: auto;
-  min-width: 44px;
-  padding: 0 6px;
+  width: 32px;
+  padding: 0;
 }
 
 .dropdown-arrow {

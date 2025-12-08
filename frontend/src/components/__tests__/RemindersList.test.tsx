@@ -270,10 +270,10 @@ describe("RemindersList", () => {
         await userEvent.clear(timeInput);
         await userEvent.type(timeInput, "1/1/2024");
 
-        // Should only show reminder from January
+        // Should only show reminder from January (both table and card views)
         await waitFor(() => {
             const remindersInTable = screen.getAllByText("Did I exercise?");
-            expect(remindersInTable.length).toBe(1);
+            expect(remindersInTable.length).toBe(2); // Table view + card view
         });
     });
 
@@ -480,9 +480,9 @@ describe("RemindersList", () => {
         const timeHeader = screen.getByLabelText(/sort by time/i);
         await userEvent.click(timeHeader);
 
-        // First reminder should be the earlier one (sorted ascending)
+        // First reminder should be the earlier one (sorted ascending) - both table and card views
         const rows = screen.getAllByText("Did I exercise?");
-        expect(rows.length).toBe(2);
+        expect(rows.length).toBe(4); // 2 reminders × 2 views (table + card)
     });
 
     it("should sort reminders by tracking", async () => {
@@ -531,9 +531,9 @@ describe("RemindersList", () => {
         const trackingHeader = screen.getByLabelText(/sort by tracking/i);
         await userEvent.click(trackingHeader);
 
-        // Should be sorted alphabetically
+        // Should be sorted alphabetically - both table and card views
         const rows = screen.getAllByText(/Did I (exercise|meditate)\?/);
-        expect(rows.length).toBe(2);
+        expect(rows.length).toBe(4); // 2 reminders × 2 views (table + card)
     });
 
     // Note: Answer column has been removed from the component, so answer sorting is no longer available

@@ -331,10 +331,12 @@ export function RemindersList({
     const trackings = propTrackings ?? hookTrackings;
     const isLoadingTrackings = propIsLoadingTrackings ?? hookIsLoadingTrackings;
     const [openSnoozeId, setOpenSnoozeId] = useState<number | null>(null);
+    const [snoozeDropdownPosition, setSnoozeDropdownPosition] = useState<Record<number, { top: number; left: number }>>({});
     const [editingNotesId, setEditingNotesId] = useState<number | null>(null);
     const [notesValues, setNotesValues] = useState<Record<number, string>>({});
     const actionRefs = useRef<Record<number, HTMLDivElement | null>>({});
     const snoozeDropdownRefs = useRef<Record<number, HTMLDivElement | null>>({});
+    const snoozeButtonRefs = useRef<Record<number, HTMLButtonElement | null>>({});
     const notesTextareaRefs = useRef<Record<number, HTMLTextAreaElement | null>>({});
 
     // Filter and sort state
@@ -459,8 +461,27 @@ export function RemindersList({
     const toggleSnoozeDropdown = (reminderId: number) => {
         if (openSnoozeId === reminderId) {
             setOpenSnoozeId(null);
+            setSnoozeDropdownPosition(prev => {
+                const newPos = { ...prev };
+                delete newPos[reminderId];
+                return newPos;
+            });
         } else {
             setOpenSnoozeId(reminderId);
+            // Calculate position after state update
+            setTimeout(() => {
+                const button = snoozeButtonRefs.current[reminderId];
+                if (button) {
+                    const rect = button.getBoundingClientRect();
+                    setSnoozeDropdownPosition(prev => ({
+                        ...prev,
+                        [reminderId]: {
+                            top: rect.bottom + 4,
+                            left: rect.left
+                        }
+                    }));
+                }
+            }, 0);
         }
     };
 
@@ -474,6 +495,11 @@ export function RemindersList({
         try {
             const updatedReminder = await snoozeReminder(reminderId, minutes);
             setOpenSnoozeId(null);
+            setSnoozeDropdownPosition(prev => {
+                const newPos = { ...prev };
+                delete newPos[reminderId];
+                return newPos;
+            });
             // Badge updates immediately via optimistic update in useReminders hook
             if (onMessage) {
                 const formattedTime = ReminderFormatter.formatDateTime(updatedReminder.scheduled_time);
@@ -640,7 +666,15 @@ export function RemindersList({
                 }
             }
 
+            // Check snooze buttons
+            for (const ref of Object.values(snoozeButtonRefs.current)) {
+                if (ref && ref.contains(target)) {
+                    return;
+                }
+            }
+
             setOpenSnoozeId(null);
+            setSnoozeDropdownPosition({});
         };
 
         document.addEventListener("mousedown", handleClickOutside);
@@ -910,6 +944,9 @@ export function RemindersList({
                                                             }}
                                                         >
                                                             <button
+                                                                ref={(el) => {
+                                                                    snoozeButtonRefs.current[reminder.id] = el;
+                                                                }}
                                                                 type="button"
                                                                 className="action-button action-snooze snooze-dropdown-button"
                                                                 onClick={(e) => {
@@ -923,8 +960,17 @@ export function RemindersList({
                                                                 💤
                                                                 {openSnoozeId === reminder.id && <span className="dropdown-arrow">▼</span>}
                                                             </button>
-                                                            {openSnoozeId === reminder.id && (
-                                                                <div className="snooze-dropdown">
+                                                            {openSnoozeId === reminder.id && snoozeDropdownPosition[reminder.id] && (
+                                                                <div
+                                                                    className="snooze-dropdown"
+                                                                    ref={(el) => {
+                                                                        snoozeDropdownRefs.current[reminder.id] = el;
+                                                                    }}
+                                                                    style={{
+                                                                        top: `${snoozeDropdownPosition[reminder.id].top}px`,
+                                                                        left: `${snoozeDropdownPosition[reminder.id].left}px`,
+                                                                    }}
+                                                                >
                                                                     {SNOOZE_OPTIONS.map((option) => (
                                                                         <button
                                                                             key={option.minutes}

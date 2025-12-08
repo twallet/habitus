@@ -91,8 +91,9 @@ describe('Authenticated Routing', () => {
             await waitFor(() => {
                 // Verify we're on the dashboard page (not login)
                 expect(screen.queryByPlaceholderText(/enter your email/i)).not.toBeInTheDocument();
-                // Dashboard should show pending reminders section
-                expect(screen.getByText(/pending reminders/i)).toBeInTheDocument();
+                // Dashboard should show pending reminders section (check for heading specifically)
+                const headings = screen.getAllByText(/pending reminders/i);
+                expect(headings.some(heading => heading.tagName === 'H3')).toBe(true);
             });
         });
 
@@ -142,8 +143,9 @@ describe('Authenticated Routing', () => {
             renderWithAuth('/login', true);
 
             await waitFor(() => {
-                // Should redirect to dashboard
-                expect(screen.getByText(/pending reminders/i)).toBeInTheDocument();
+                // Should redirect to dashboard (check for heading specifically)
+                const headings = screen.getAllByText(/pending reminders/i);
+                expect(headings.some(heading => heading.tagName === 'H3')).toBe(true);
             });
         });
     });
@@ -154,7 +156,9 @@ describe('Authenticated Routing', () => {
             renderWithAuth('/', true);
 
             await waitFor(() => {
-                expect(screen.getByText(/pending reminders/i)).toBeInTheDocument();
+                // Check for heading specifically
+                const headings = screen.getAllByText(/pending reminders/i);
+                expect(headings.some(heading => heading.tagName === 'H3')).toBe(true);
             });
 
             const remindersLink = screen.getByRole('link', { name: /reminders/i });
@@ -187,8 +191,9 @@ describe('Authenticated Routing', () => {
             renderWithAuth('/unknown-route', true);
 
             await waitFor(() => {
-                // Should redirect to dashboard
-                expect(screen.getByText(/pending reminders/i)).toBeInTheDocument();
+                // Should redirect to dashboard (check for heading specifically)
+                const headings = screen.getAllByText(/pending reminders/i);
+                expect(headings.some(heading => heading.tagName === 'H3')).toBe(true);
             });
         });
 
