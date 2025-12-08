@@ -480,6 +480,11 @@
   margin: 0;
 }
 
+/* Hide cards by default (desktop/test environment) */
+.reminders-cards {
+  display: none;
+}
+
 /* Mobile Card Layout */
 @media (max-width: 768px) {
   .reminders-list-content {

@@ -639,6 +639,139 @@
   }
 }
 
+/* Hide cards by default (desktop/test environment) */
+.trackings-cards {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .trackings-list-content {
+    flex-direction: column;
+  }
+
+  .filter-panel {
+    width: 100%;
+  }
+
+  .filter-panel-content {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-actions {
+    margin-top: 8px;
+  }
+
+  /* Hide table on mobile, show cards instead */
+  .trackings-table {
+    display: none;
+  }
+
+  /* Card-based layout for mobile */
+  .trackings-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .tracking-card {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .tracking-card:active {
+    transform: scale(0.98);
+  }
+
+  .tracking-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .tracking-card-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+
+  .tracking-card-title {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .tracking-card-question {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 4px 0;
+    word-wrap: break-word;
+  }
+
+  .tracking-card-times {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-family: monospace;
+  }
+
+  .tracking-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .tracking-card-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.875rem;
+  }
+
+  .tracking-card-label {
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .tracking-card-value {
+    color: var(--text-primary);
+    text-align: right;
+  }
+
+  .tracking-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .tracking-card-status {
+    flex: 1;
+  }
+
+  .tracking-card-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .action-button {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2em;
+  }
+
+  .status-badge {
+    width: 100%;
+    min-width: auto;
+  }
+}
+
 /* Desktop: Show table, hide cards */
 @media (min-width: 769px) {
   .trackings-cards {
