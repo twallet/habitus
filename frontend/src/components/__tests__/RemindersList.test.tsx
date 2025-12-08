@@ -214,8 +214,9 @@ describe("RemindersList", () => {
         render(<RemindersList />);
 
         // Click the Dismiss action button directly
-        const dismissButton = screen.getByRole("button", { name: "Dismiss reminder" });
-        await userEvent.click(dismissButton);
+        // Both table and card views are in DOM, so get all and use the first one (table view)
+        const dismissButtons = screen.getAllByRole("button", { name: "Dismiss reminder" });
+        await userEvent.click(dismissButtons[0]);
 
         await waitFor(() => {
             expect(mockDismissReminder).toHaveBeenCalledWith(1);
@@ -826,8 +827,9 @@ describe("RemindersList", () => {
         render(<RemindersList />);
 
         // Click the Dismiss action button directly
-        const dismissButton = screen.getByRole("button", { name: "Dismiss reminder" });
-        await userEvent.click(dismissButton);
+        // Both table and card views are in DOM, so get all and use the first one (table view)
+        const dismissButtons = screen.getAllByRole("button", { name: "Dismiss reminder" });
+        await userEvent.click(dismissButtons[0]);
 
         await waitFor(() => {
             expect(errorDismissReminder).toHaveBeenCalledWith(1);
@@ -943,8 +945,9 @@ describe("RemindersList", () => {
         render(<RemindersList />);
 
         // Click the Dismiss action button directly
-        const dismissButton = screen.getByRole("button", { name: "Dismiss reminder" });
-        await userEvent.click(dismissButton);
+        // Both table and card views are in DOM, so get all and use the first one (table view)
+        const dismissButtons = screen.getAllByRole("button", { name: "Dismiss reminder" });
+        await userEvent.click(dismissButtons[0]);
 
         await waitFor(() => {
             expect(mockDismissReminder).toHaveBeenCalledWith(1);
@@ -1137,8 +1140,9 @@ describe("RemindersList", () => {
 
             render(<RemindersList reminders={reminders} dismissReminder={propDismissReminder} />);
 
-            const dismissButton = screen.getByRole("button", { name: "Dismiss reminder" });
-            await userEvent.click(dismissButton);
+            // Both table and card views are in DOM, so get all and use the first one (table view)
+            const dismissButtons = screen.getAllByRole("button", { name: "Dismiss reminder" });
+            await userEvent.click(dismissButtons[0]);
 
             await waitFor(() => {
                 expect(propDismissReminder).toHaveBeenCalledWith(1);
