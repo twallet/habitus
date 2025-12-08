@@ -1,10 +1,42 @@
-import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { ReminderData, ReminderStatus } from "../models/Reminder";
 import { TrackingData } from "../models/Tracking";
 import { useReminders } from "../hooks/useReminders";
 import { useTrackings } from "../hooks/useTrackings";
 import "./RemindersList.css";
+
+/**
+ * Format time difference as readable countdown string.
+ * @param targetTime - Target date/time
+ * @param currentTime - Current date/time (defaults to now)
+ * @returns Formatted countdown string (XX days XX hours XX min) or null if target is in the past
+ * @internal
+ */
+function formatCountdown(targetTime: Date, currentTime: Date = new Date()): string | null {
+    const diff = targetTime.getTime() - currentTime.getTime();
+    if (diff <= 0) {
+        return null;
+    }
+
+    const totalMinutes = Math.floor(diff / (1000 * 60));
+    const days = Math.floor(totalMinutes / (24 * 60));
+    const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
+    const minutes = totalMinutes % 60;
+
+    const parts: string[] = [];
+    if (days > 0) {
+        parts.push(`${days} ${days === 1 ? 'day' : 'days'}`);
+    }
+    if (hours > 0) {
+        parts.push(`${hours} ${hours === 1 ? 'hour' : 'hours'}`);
+    }
+    if (minutes > 0 || parts.length === 0) {
+        parts.push(`${minutes} ${minutes === 1 ? 'min' : 'min'}`);
+    }
+
+    return parts.join(' ');
+}
 
 /**
  * Snooze options in minutes.
@@ -399,6 +431,43 @@ export function RemindersList({
     const filteredReminders = ReminderFilter.applyFilters(remindersWithValidTrackings, filterState, getTracking);
     const filteredAndSortedReminders = ReminderSorter.sortReminders(filteredReminders, sortColumn, sortDirection, getTracking);
 
+    // Find the next upcoming reminder (PENDING with future time or UPCOMING status)
+    const nextReminder = useMemo(() => {
+        const now = new Date();
+        const futureReminders = reminders
+            .filter(reminder => {
+                const scheduledTime = new Date(reminder.scheduled_time);
+                return (
+                    (reminder.status === ReminderStatus.PENDING && scheduledTime > now) ||
+                    reminder.status === ReminderStatus.UPCOMING
+                );
+            })
+            .sort((a, b) => new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime());
+
+        return futureReminders.length > 0 ? futureReminders[0] : null;
+    }, [reminders]);
+
+    // Countdown state that updates every minute
+    const [countdown, setCountdown] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!nextReminder) {
+            setCountdown(null);
+            return;
+        }
+
+        const updateCountdown = () => {
+            const targetTime = new Date(nextReminder.scheduled_time);
+            const formatted = formatCountdown(targetTime);
+            setCountdown(formatted);
+        };
+
+        updateCountdown();
+        const interval = setInterval(updateCountdown, 60000); // Update every minute
+
+        return () => clearInterval(interval);
+    }, [nextReminder]);
+
     /**
      * Handle filter change.
      * @param column - Filter column name
@@ -787,6 +856,11 @@ export function RemindersList({
             <div className="reminders-list">
                 <div className="reminders-empty">
                     <p>No pending reminders right now! 🎉</p>
+                    {countdown ? (
+                        <p className="empty-subtitle">Next reminder in {countdown}</p>
+                    ) : (
+                        <p className="empty-subtitle">No upcoming reminders scheduled</p>
+                    )}
                 </div>
             </div>
         );

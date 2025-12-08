@@ -101,7 +101,9 @@ describe('DashboardPage', () => {
 
         expect(screen.getByRole('heading', { name: /pending reminders/i })).toBeInTheDocument();
         expect(screen.getByText(/no pending reminders right now!/i)).toBeInTheDocument();
-        expect(screen.getByText(/relax and enjoy your day!/i)).toBeInTheDocument();
+        // Check for either countdown or "No upcoming reminders scheduled" message
+        const subtitle = screen.getByText(/next reminder in|no upcoming reminders scheduled/i);
+        expect(subtitle).toBeInTheDocument();
     });
 
     it('should render pending reminders for today', () => {

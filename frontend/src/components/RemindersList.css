@@ -19,6 +19,12 @@
   margin: 0;
 }
 
+.reminders-empty .empty-subtitle {
+  font-size: 0.9rem;
+  opacity: 0.8;
+  margin-top: 8px;
+}
+
 .link-button {
   background: none;
   border: none;
