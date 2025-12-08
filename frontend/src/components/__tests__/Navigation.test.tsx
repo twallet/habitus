@@ -7,7 +7,7 @@ describe('Navigation', () => {
     const renderNavigation = (initialRoute = '/') => {
         return render(
             <MemoryRouter initialEntries={[initialRoute]}>
-                <Navigation runningTrackingsCount={0} pendingRemindersCount={0} />
+                <Navigation runningTrackingsCount={0} pendingRemindersCount={0} todayPendingRemindersCount={0} />
             </MemoryRouter>
         );
     };
@@ -59,7 +59,7 @@ describe('Navigation', () => {
     it('should show running trackings count badge', () => {
         render(
             <MemoryRouter>
-                <Navigation runningTrackingsCount={3} pendingRemindersCount={0} />
+                <Navigation runningTrackingsCount={3} pendingRemindersCount={0} todayPendingRemindersCount={0} />
             </MemoryRouter>
         );
 
@@ -71,7 +71,7 @@ describe('Navigation', () => {
     it('should show pending reminders count badge', () => {
         render(
             <MemoryRouter>
-                <Navigation runningTrackingsCount={0} pendingRemindersCount={5} />
+                <Navigation runningTrackingsCount={0} pendingRemindersCount={5} todayPendingRemindersCount={0} />
             </MemoryRouter>
         );
 
@@ -80,10 +80,23 @@ describe('Navigation', () => {
         expect(badge).toHaveTextContent('5');
     });
 
+    it('should show today pending reminders count badge on dashboard', () => {
+        render(
+            <MemoryRouter>
+                <Navigation runningTrackingsCount={0} pendingRemindersCount={0} todayPendingRemindersCount={2} />
+            </MemoryRouter>
+        );
+
+        const badge = screen.getByLabelText("2 today's pending reminders");
+        expect(badge).toBeInTheDocument();
+        expect(badge).toHaveTextContent('2');
+    });
+
     it('should not show badges when counts are zero', () => {
         renderNavigation();
 
         expect(screen.queryByLabelText(/running trackings/i)).not.toBeInTheDocument();
         expect(screen.queryByLabelText(/pending reminders/i)).not.toBeInTheDocument();
+        expect(screen.queryByLabelText(/today's pending reminders/i)).not.toBeInTheDocument();
     });
 });

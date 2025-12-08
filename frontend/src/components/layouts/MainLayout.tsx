@@ -63,6 +63,22 @@ export function MainLayout() {
         }).length;
     }, [reminders]);
 
+    const todayPendingRemindersCount = useMemo(() => {
+        const now = new Date();
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+        return reminders.filter((reminder) => {
+            const scheduledTime = new Date(reminder.scheduled_time);
+            return (
+                reminder.status === ReminderStatus.PENDING &&
+                scheduledTime >= startOfDay &&
+                scheduledTime <= endOfDay &&
+                scheduledTime <= now
+            );
+        }).length;
+    }, [reminders]);
+
     const runningTrackingsCount = useMemo(() => {
         return trackings.filter((tracking) => tracking.state === TrackingState.RUNNING).length;
     }, [trackings]);
@@ -263,6 +279,7 @@ export function MainLayout() {
                         <Navigation
                             runningTrackingsCount={runningTrackingsCount}
                             pendingRemindersCount={pendingRemindersCount}
+                            todayPendingRemindersCount={todayPendingRemindersCount}
                         />
                         <div className="tabs-content">
                             <Outlet context={contextValue} />

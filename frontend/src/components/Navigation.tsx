@@ -4,9 +4,11 @@ import "./Navigation.css";
 export function Navigation({
     runningTrackingsCount,
     pendingRemindersCount,
+    todayPendingRemindersCount,
 }: {
     runningTrackingsCount: number;
     pendingRemindersCount: number;
+    todayPendingRemindersCount: number;
 }) {
     return (
         <div className="tabs-header">
@@ -16,6 +18,14 @@ export function Navigation({
                 className={({ isActive }) => `tab-button ${isActive ? 'active' : ''}`}
             >
                 Dashboard
+                {todayPendingRemindersCount > 0 && (
+                    <span
+                        className="tab-badge"
+                        aria-label={`${todayPendingRemindersCount} today's pending reminders`}
+                    >
+                        {todayPendingRemindersCount}
+                    </span>
+                )}
             </NavLink>
             <NavLink
                 to="/trackings"

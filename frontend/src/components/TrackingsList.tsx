@@ -1313,7 +1313,7 @@ export function TrackingsList({
                                             </span>
                                         </div>
                                     )}
-                                    {tracking.notes && (
+                                    {tracking.notes && tracking.notes.trim() && (
                                         <div className="tracking-card-row">
                                             <span className="tracking-card-label">Notes</span>
                                             <span className="tracking-card-value">📝</span>

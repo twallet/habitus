@@ -34,7 +34,7 @@ export function DashboardPage() {
     const [editingNotesId, setEditingNotesId] = useState<number | null>(null);
     const [notesValues, setNotesValues] = useState<Record<number, string>>({});
     const [openSnoozeId, setOpenSnoozeId] = useState<number | null>(null);
-    const [snoozeMenuPosition, setSnoozeMenuPosition] = useState<{ top: number; right: number } | null>(null);
+    const [snoozeMenuPosition, setSnoozeMenuPosition] = useState<{ top: number; left: number } | null>(null);
     const actionRefs = useRef<Record<number, HTMLDivElement | null>>({});
     const snoozeMenuRefs = useRef<Record<number, HTMLDivElement | null>>({});
     const notesTextareaRefs = useRef<Record<number, HTMLTextAreaElement | null>>({});
@@ -74,6 +74,8 @@ export function DashboardPage() {
      * @internal
      */
     useEffect(() => {
+        if (openSnoozeId === null) return;
+
         const handleClickOutside = (event: MouseEvent) => {
             const target = event.target as Node;
 
@@ -95,11 +97,16 @@ export function DashboardPage() {
             setSnoozeMenuPosition(null);
         };
 
-        document.addEventListener('mousedown', handleClickOutside);
+        // Use a small delay to avoid immediate closure
+        const timeoutId = setTimeout(() => {
+            document.addEventListener('mousedown', handleClickOutside);
+        }, 10);
+
         return () => {
+            clearTimeout(timeoutId);
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, []);
+    }, [openSnoozeId]);
 
     /**
      * Handle saving notes.
@@ -157,7 +164,10 @@ export function DashboardPage() {
      * @param reminderId - Reminder ID
      * @internal
      */
-    const toggleSnoozeMenu = (reminderId: number) => {
+    const toggleSnoozeMenu = (reminderId: number, event?: React.MouseEvent) => {
+        if (event) {
+            event.stopPropagation();
+        }
         if (openSnoozeId === reminderId) {
             setOpenSnoozeId(null);
             setSnoozeMenuPosition(null);
@@ -167,13 +177,35 @@ export function DashboardPage() {
             setTimeout(() => {
                 const container = actionRefs.current[reminderId];
                 if (container) {
-                    const rect = container.getBoundingClientRect();
-                    setSnoozeMenuPosition({
-                        top: rect.bottom + 4,
-                        right: window.innerWidth - rect.right,
-                    });
+                    // Position menu near the snooze button (last button in the actions)
+                    const buttonsContainer = container.querySelector('.card-actions-buttons');
+                    if (buttonsContainer) {
+                        const buttons = buttonsContainer.querySelectorAll('.action-button');
+                        const snoozeButton = buttons[buttons.length - 1] as HTMLElement;
+                        if (snoozeButton) {
+                            const buttonRect = snoozeButton.getBoundingClientRect();
+                            setSnoozeMenuPosition({
+                                top: buttonRect.bottom + 4,
+                                left: buttonRect.left,
+                            });
+                        } else {
+                            // Fallback to container position
+                            const rect = container.getBoundingClientRect();
+                            setSnoozeMenuPosition({
+                                top: rect.bottom + 4,
+                                left: rect.left,
+                            });
+                        }
+                    } else {
+                        // Fallback to container position
+                        const rect = container.getBoundingClientRect();
+                        setSnoozeMenuPosition({
+                            top: rect.bottom + 4,
+                            left: rect.left,
+                        });
+                    }
                 }
-            }, 0);
+            }, 10);
         }
     };
 
@@ -229,7 +261,6 @@ export function DashboardPage() {
             <div className="dashboard-section">
                 <div className="section-header">
                     <h3>Today's new reminders</h3>
-                    {todayPendingReminders.length > 0 && <span className="badge">{todayPendingReminders.length}</span>}
                 </div>
 
                 {todayPendingReminders.length === 0 ? (
@@ -305,18 +336,6 @@ export function DashboardPage() {
                                             </button>
                                             <button
                                                 type="button"
-                                                className="action-button action-snooze"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    toggleSnoozeMenu(reminder.id);
-                                                }}
-                                                aria-label="Snooze reminder"
-                                                title="Snooze"
-                                            >
-                                                💤
-                                            </button>
-                                            <button
-                                                type="button"
                                                 className="action-button action-dismiss"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
@@ -327,6 +346,15 @@ export function DashboardPage() {
                                             >
                                                 ✕
                                             </button>
+                                            <button
+                                                type="button"
+                                                className="action-button action-snooze"
+                                                onClick={(e) => toggleSnoozeMenu(reminder.id, e)}
+                                                aria-label="Snooze reminder"
+                                                title="Snooze"
+                                            >
+                                                💤
+                                            </button>
                                         </div>
                                         {isSnoozeOpen && snoozeMenuPosition && (
                                             <div
@@ -336,7 +364,7 @@ export function DashboardPage() {
                                                 }}
                                                 style={{
                                                     top: `${snoozeMenuPosition.top}px`,
-                                                    right: `${snoozeMenuPosition.right}px`,
+                                                    left: `${snoozeMenuPosition.left}px`,
                                                 }}
                                             >
                                                 {SNOOZE_OPTIONS.map((option) => (
