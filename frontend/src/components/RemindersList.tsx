@@ -786,7 +786,7 @@ export function RemindersList({
         return (
             <div className="reminders-list">
                 <div className="reminders-empty">
-                    <p>No pending reminders.</p>
+                    <p>No pending reminders right now! 🎉</p>
                 </div>
             </div>
         );
