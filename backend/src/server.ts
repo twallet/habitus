@@ -144,11 +144,39 @@ async function initializeViteDevServer() {
     const workspaceRoot = PathConfig.getWorkspaceRoot();
     const frontendPath = join(workspaceRoot, "frontend");
 
+    // Get HMR port from environment variable or use a default
+    // Vite's default HMR port is 24678, but we'll use a configurable one
+    const hmrPort = process.env.VITE_HMR_PORT
+      ? parseInt(process.env.VITE_HMR_PORT, 10)
+      : 24679; // Use a different default port to avoid conflicts
+
+    // Extract hostname from server URL for HMR
+    let hmrHost: string | undefined;
+    if (process.env.VITE_SERVER_URL) {
+      try {
+        const url = new URL(
+          process.env.VITE_SERVER_URL.startsWith("http")
+            ? process.env.VITE_SERVER_URL
+            : `http://${process.env.VITE_SERVER_URL}`
+        );
+        hmrHost = url.hostname;
+      } catch {
+        // If URL parsing fails, use localhost
+        hmrHost = "localhost";
+      }
+    } else {
+      hmrHost = "localhost";
+    }
+
     const viteServer = await createServer({
       root: frontendPath,
       configFile: join(frontendPath, "vite.config.ts"),
       server: {
         middlewareMode: true,
+        hmr: {
+          port: hmrPort,
+          host: hmrHost,
+        },
       },
       appType: "spa",
       logLevel: "warn",
@@ -159,11 +187,25 @@ async function initializeViteDevServer() {
     app.use(viteServer.middlewares);
 
     console.log(
-      `[${new Date().toISOString()}] Vite dev server initialized for frontend`
+      `[${new Date().toISOString()}] Vite dev server initialized for frontend (HMR port: ${hmrPort})`
     );
     return viteServer;
   } catch (error) {
     console.error("Failed to initialize Vite dev server:", error);
+    // If it's a port conflict, provide helpful error message
+    if (
+      error instanceof Error &&
+      error.message.includes("Port") &&
+      error.message.includes("already in use")
+    ) {
+      console.error("\nTip: If the HMR port is already in use, you can:");
+      console.error(
+        "1. Set VITE_HMR_PORT environment variable to use a different port"
+      );
+      console.error(
+        "2. Kill the process using the port, or restart your dev server"
+      );
+    }
     throw error;
   }
 }
