@@ -56,22 +56,6 @@ export function DashboardPage() {
         }).sort((a, b) => new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime());
     }, [reminders]);
 
-    // Calculate completion stats for today
-    const stats = useMemo(() => {
-        const now = new Date();
-        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-
-        const todaysReminders = reminders.filter(reminder => {
-            const scheduledTime = new Date(reminder.scheduled_time);
-            return scheduledTime >= startOfDay && scheduledTime <= endOfDay;
-        });
-
-        const completed = todaysReminders.filter(r => r.status === ReminderStatus.ANSWERED).length;
-        const total = todaysReminders.length;
-
-        return { completed, total };
-    }, [reminders]);
 
     /**
      * Initialize notes values from reminders.
@@ -244,7 +228,7 @@ export function DashboardPage() {
 
             <div className="dashboard-section">
                 <div className="section-header">
-                    <h3>New pendings</h3>
+                    <h3>Today's new reminders</h3>
                     {todayPendingReminders.length > 0 && <span className="badge">{todayPendingReminders.length}</span>}
                 </div>
 
@@ -264,12 +248,14 @@ export function DashboardPage() {
                                     key={reminder.id}
                                     className="dashboard-card"
                                 >
-                                    <div className="card-icon">
-                                        {tracking?.icon || '📝'}
-                                    </div>
-                                    <div className="card-content">
-                                        <h4>{tracking?.question || 'Unknown Question'}</h4>
-                                        <span className="card-time">{ReminderFormatter.formatDateTime(reminder.scheduled_time)}</span>
+                                    <div className="dashboard-card-top">
+                                        <div className="card-icon">
+                                            {tracking?.icon || '📝'}
+                                        </div>
+                                        <div className="card-content">
+                                            <h4>{tracking?.question || 'Unknown Question'}</h4>
+                                            <span className="card-time">{ReminderFormatter.formatDateTime(reminder.scheduled_time)}</span>
+                                        </div>
                                     </div>
                                     <div className="card-notes">
                                         <textarea

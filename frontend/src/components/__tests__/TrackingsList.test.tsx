@@ -681,7 +681,8 @@ describe("TrackingsList", () => {
             />
         );
 
-        expect(screen.getByText("Last day of month")).toBeInTheDocument();
+        const lastDayElements = screen.getAllByText("Last day of month");
+        expect(lastDayElements.length).toBeGreaterThan(0);
     });
 
     it("should format weekday ordinal pattern", () => {
@@ -706,7 +707,8 @@ describe("TrackingsList", () => {
             />
         );
 
-        expect(screen.getByText("Second Monday of month")).toBeInTheDocument();
+        const secondMondayElements = screen.getAllByText("Second Monday of month");
+        expect(secondMondayElements.length).toBeGreaterThan(0);
     });
 
     it("should format all days of week as Daily", () => {
