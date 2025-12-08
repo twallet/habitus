@@ -327,7 +327,8 @@ describe("TrackingsList", () => {
             />
         );
 
-        expect(screen.getByText("Daily")).toBeInTheDocument();
+        const dailyElements = screen.getAllByText("Daily");
+        expect(dailyElements.length).toBeGreaterThan(0);
     });
 
     it("should display frequency for weekly pattern", () => {
@@ -350,7 +351,8 @@ describe("TrackingsList", () => {
             />
         );
 
-        expect(screen.getByText("Mon, Wed, Fri")).toBeInTheDocument();
+        const monWedFriElementsWeekly = screen.getAllByText("Mon, Wed, Fri");
+        expect(monWedFriElementsWeekly.length).toBeGreaterThan(0);
     });
 
     it("should display frequency for monthly pattern", () => {
@@ -374,7 +376,8 @@ describe("TrackingsList", () => {
             />
         );
 
-        expect(screen.getByText("Days 1, 15 of month")).toBeInTheDocument();
+        const daysElements = screen.getAllByText("Days 1, 15 of month");
+        expect(daysElements.length).toBeGreaterThan(0);
     });
 
     it("should display frequency for yearly pattern", () => {
@@ -399,7 +402,8 @@ describe("TrackingsList", () => {
             />
         );
 
-        expect(screen.getByText("January 1")).toBeInTheDocument();
+        const januaryElements = screen.getAllByText("January 1");
+        expect(januaryElements.length).toBeGreaterThan(0);
     });
 
     it("should display default frequency when days pattern is missing", () => {
@@ -418,7 +422,8 @@ describe("TrackingsList", () => {
             />
         );
 
-        expect(screen.getByText("Daily")).toBeInTheDocument();
+        const dailyElementsDefault = screen.getAllByText("Daily");
+        expect(dailyElementsDefault.length).toBeGreaterThan(0);
     });
 
     it("should display next reminder time in tooltip", () => {
@@ -447,7 +452,9 @@ describe("TrackingsList", () => {
             />
         );
 
-        const frequencyCell = screen.getByText("Mon, Wed, Fri");
+        const frequencyElements = screen.getAllByText("Mon, Wed, Fri");
+        expect(frequencyElements.length).toBeGreaterThan(0);
+        const frequencyCell = frequencyElements[0];
         expect(frequencyCell).toHaveAttribute("title", "No upcoming reminder");
     });
 
@@ -539,7 +546,8 @@ describe("TrackingsList", () => {
         expect(trackingCell?.textContent).toContain("🏋️");
         expect(trackingCell?.textContent).toContain("Did I exercise today?");
         expect(screen.getByText(/09:00 \+1/)).toBeInTheDocument();
-        expect(screen.getByText("Mon, Wed, Fri")).toBeInTheDocument();
+        const monWedFriElementsAllFields = screen.getAllByText("Mon, Wed, Fri");
+        expect(monWedFriElementsAllFields.length).toBeGreaterThan(0);
         // Check that notes icon is displayed
         const notesIcon = screen.getByText("📝");
         expect(notesIcon).toBeInTheDocument();
@@ -649,7 +657,8 @@ describe("TrackingsList", () => {
             />
         );
 
-        expect(screen.getByText("Every 2 weeks")).toBeInTheDocument();
+        const every2WeeksElements = screen.getAllByText("Every 2 weeks");
+        expect(every2WeeksElements.length).toBeGreaterThan(0);
     });
 
     it("should format last day of month pattern", () => {
@@ -720,7 +729,8 @@ describe("TrackingsList", () => {
             />
         );
 
-        expect(screen.getByText("Daily")).toBeInTheDocument();
+        const dailyElements3 = screen.getAllByText("Daily");
+        expect(dailyElements3.length).toBeGreaterThan(0);
     });
 
 
