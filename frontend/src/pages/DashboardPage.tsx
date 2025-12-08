@@ -38,6 +38,7 @@ export function DashboardPage() {
     const actionRefs = useRef<Record<number, HTMLDivElement | null>>({});
     const snoozeMenuRefs = useRef<Record<number, HTMLDivElement | null>>({});
     const notesTextareaRefs = useRef<Record<number, HTMLTextAreaElement | null>>({});
+    const openingMenuRef = useRef<number | null>(null);
 
     // Filter for today's pending reminders
     const todayPendingReminders = useMemo(() => {
@@ -74,12 +75,20 @@ export function DashboardPage() {
      * @internal
      */
     useEffect(() => {
-        if (openSnoozeId === null) return;
-
         const handleClickOutside = (event: MouseEvent) => {
-            const target = event.target as Node;
+            const target = event.target as HTMLElement;
 
-            // Check action containers
+            // Don't close if we're currently opening a menu
+            if (openingMenuRef.current !== null) {
+                return;
+            }
+
+            // Check if clicking on a snooze button - if so, don't close
+            if (target.closest('.action-button.action-snooze')) {
+                return;
+            }
+
+            // Check action containers (including the buttons themselves)
             for (const ref of Object.values(actionRefs.current)) {
                 if (ref && ref.contains(target)) {
                     return;
@@ -97,16 +106,11 @@ export function DashboardPage() {
             setSnoozeMenuPosition(null);
         };
 
-        // Use a small delay to avoid immediate closure
-        const timeoutId = setTimeout(() => {
-            document.addEventListener('mousedown', handleClickOutside);
-        }, 10);
-
+        document.addEventListener('mousedown', handleClickOutside);
         return () => {
-            clearTimeout(timeoutId);
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, [openSnoozeId]);
+    }, []);
 
     /**
      * Handle saving notes.
@@ -164,14 +168,13 @@ export function DashboardPage() {
      * @param reminderId - Reminder ID
      * @internal
      */
-    const toggleSnoozeMenu = (reminderId: number, event?: React.MouseEvent) => {
-        if (event) {
-            event.stopPropagation();
-        }
+    const toggleSnoozeMenu = (reminderId: number) => {
         if (openSnoozeId === reminderId) {
             setOpenSnoozeId(null);
             setSnoozeMenuPosition(null);
+            openingMenuRef.current = null;
         } else {
+            openingMenuRef.current = reminderId;
             setOpenSnoozeId(reminderId);
             // Calculate position after state update
             setTimeout(() => {
@@ -188,24 +191,25 @@ export function DashboardPage() {
                                 top: buttonRect.bottom + 4,
                                 left: buttonRect.left,
                             });
-                        } else {
-                            // Fallback to container position
-                            const rect = container.getBoundingClientRect();
-                            setSnoozeMenuPosition({
-                                top: rect.bottom + 4,
-                                left: rect.left,
-                            });
+                            // Clear the opening flag after a brief delay
+                            setTimeout(() => {
+                                openingMenuRef.current = null;
+                            }, 100);
+                            return;
                         }
-                    } else {
-                        // Fallback to container position
-                        const rect = container.getBoundingClientRect();
-                        setSnoozeMenuPosition({
-                            top: rect.bottom + 4,
-                            left: rect.left,
-                        });
                     }
+                    // Fallback to container position
+                    const rect = container.getBoundingClientRect();
+                    setSnoozeMenuPosition({
+                        top: rect.bottom + 4,
+                        left: rect.left,
+                    });
+                    // Clear the opening flag after a brief delay
+                    setTimeout(() => {
+                        openingMenuRef.current = null;
+                    }, 100);
                 }
-            }, 10);
+            }, 0);
         }
     };
 
@@ -260,7 +264,7 @@ export function DashboardPage() {
 
             <div className="dashboard-section">
                 <div className="section-header">
-                    <h3>Today's new reminders</h3>
+                    <h3>Pending reminders</h3>
                 </div>
 
                 {todayPendingReminders.length === 0 ? (
@@ -349,7 +353,10 @@ export function DashboardPage() {
                                             <button
                                                 type="button"
                                                 className="action-button action-snooze"
-                                                onClick={(e) => toggleSnoozeMenu(reminder.id, e)}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    toggleSnoozeMenu(reminder.id);
+                                                }}
                                                 aria-label="Snooze reminder"
                                                 title="Snooze"
                                             >

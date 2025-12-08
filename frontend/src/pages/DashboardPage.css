@@ -260,6 +260,7 @@
   z-index: 1001;
   padding: 4px;
   transform: translateY(0);
+  pointer-events: auto;
 }
 
 .snooze-menu-item {

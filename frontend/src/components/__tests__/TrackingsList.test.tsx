@@ -549,8 +549,10 @@ describe("TrackingsList", () => {
         const monWedFriElementsAllFields = screen.getAllByText("Mon, Wed, Fri");
         expect(monWedFriElementsAllFields.length).toBeGreaterThan(0);
         // Check that notes icon is displayed
-        const notesIcon = screen.getByText("📝");
-        expect(notesIcon).toBeInTheDocument();
+        const notesIcons = screen.getAllByText("📝");
+        expect(notesIcons.length).toBeGreaterThan(0);
+        // Check the first one (from table layout) has the correct attributes
+        const notesIcon = notesIcons[0];
         expect(notesIcon).toHaveAttribute("title", "<p>Exercise notes</p>");
     });
 
@@ -571,8 +573,10 @@ describe("TrackingsList", () => {
             />
         );
 
-        const notesIcon = screen.getByText("📝");
-        expect(notesIcon).toBeInTheDocument();
+        const notesIcons = screen.getAllByText("📝");
+        expect(notesIcons.length).toBeGreaterThan(0);
+        // Check the first one (from table layout) has the correct attributes
+        const notesIcon = notesIcons[0];
         expect(notesIcon).toHaveAttribute("title", "Some exercise notes");
         expect(notesIcon).toHaveAttribute("aria-label", "Notes: Some exercise notes");
     });
