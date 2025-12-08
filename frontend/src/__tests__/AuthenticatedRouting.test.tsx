@@ -91,8 +91,8 @@ describe('Authenticated Routing', () => {
             await waitFor(() => {
                 // Verify we're on the dashboard page (not login)
                 expect(screen.queryByPlaceholderText(/enter your email/i)).not.toBeInTheDocument();
-                // Dashboard should show greeting
-                expect(screen.getByText(/hello/i)).toBeInTheDocument();
+                // Dashboard should show pending reminders section
+                expect(screen.getByText(/pending reminders/i)).toBeInTheDocument();
             });
         });
 
@@ -143,7 +143,7 @@ describe('Authenticated Routing', () => {
 
             await waitFor(() => {
                 // Should redirect to dashboard
-                expect(screen.getByText(/hello/i)).toBeInTheDocument();
+                expect(screen.getByText(/pending reminders/i)).toBeInTheDocument();
             });
         });
     });
@@ -154,7 +154,7 @@ describe('Authenticated Routing', () => {
             renderWithAuth('/', true);
 
             await waitFor(() => {
-                expect(screen.getByText(/hello/i)).toBeInTheDocument();
+                expect(screen.getByText(/pending reminders/i)).toBeInTheDocument();
             });
 
             const remindersLink = screen.getByRole('link', { name: /reminders/i });
@@ -188,7 +188,7 @@ describe('Authenticated Routing', () => {
 
             await waitFor(() => {
                 // Should redirect to dashboard
-                expect(screen.getByText(/hello/i)).toBeInTheDocument();
+                expect(screen.getByText(/pending reminders/i)).toBeInTheDocument();
             });
         });
 

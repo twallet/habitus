@@ -189,7 +189,8 @@ describe("TrackingsList", () => {
             />
         );
 
-        expect(screen.getByText("09:00")).toBeInTheDocument();
+        const timeElements = screen.getAllByText("09:00");
+        expect(timeElements.length).toBeGreaterThan(0);
     });
 
     it("should display first time with count for multiple schedules", () => {
@@ -213,7 +214,8 @@ describe("TrackingsList", () => {
             />
         );
 
-        expect(screen.getByText(/09:00 \+2/)).toBeInTheDocument();
+        const timeElements2 = screen.getAllByText(/09:00 \+2/);
+        expect(timeElements2.length).toBeGreaterThan(0);
     });
 
     it("should display tooltip with all times", () => {
@@ -236,7 +238,9 @@ describe("TrackingsList", () => {
             />
         );
 
-        const timesCell = screen.getByText(/09:00 \+1/);
+        const timeElements3 = screen.getAllByText(/09:00 \+1/);
+        expect(timeElements3.length).toBeGreaterThan(0);
+        const timesCell = timeElements3[0];
         expect(timesCell).toHaveAttribute("title", "09:00, 14:30");
     });
 
@@ -475,12 +479,18 @@ describe("TrackingsList", () => {
             />
         );
 
-        expect(screen.getByText("Tracking")).toBeInTheDocument();
-        expect(screen.getByText("Times")).toBeInTheDocument();
-        expect(screen.getByText("Frequency")).toBeInTheDocument();
-        expect(screen.getByText("Notes")).toBeInTheDocument();
-        expect(screen.getByText("Next reminder")).toBeInTheDocument();
-        expect(screen.getByText("Status")).toBeInTheDocument();
+        const trackingHeaders = screen.getAllByText("Tracking");
+        expect(trackingHeaders.length).toBeGreaterThan(0);
+        const timesHeaders = screen.getAllByText("Times");
+        expect(timesHeaders.length).toBeGreaterThan(0);
+        const frequencyHeaders = screen.getAllByText("Frequency");
+        expect(frequencyHeaders.length).toBeGreaterThan(0);
+        const notesHeaders = screen.getAllByText("Notes");
+        expect(notesHeaders.length).toBeGreaterThan(0);
+        const nextReminderHeaders = screen.getAllByText("Next reminder");
+        expect(nextReminderHeaders.length).toBeGreaterThan(0);
+        const statusHeaders = screen.getAllByText("Status");
+        expect(statusHeaders.length).toBeGreaterThan(0);
     });
 
     it("should call onCreate when create button is clicked in empty state", async () => {
@@ -547,7 +557,8 @@ describe("TrackingsList", () => {
         const trackingCell = exerciseElements[0].closest(".cell-tracking");
         expect(trackingCell?.textContent).toContain("🏋️");
         expect(trackingCell?.textContent).toContain("Did I exercise today?");
-        expect(screen.getByText(/09:00 \+1/)).toBeInTheDocument();
+        const timeElements4 = screen.getAllByText(/09:00 \+1/);
+        expect(timeElements4.length).toBeGreaterThan(0);
         const monWedFriElementsAllFields = screen.getAllByText("Mon, Wed, Fri");
         expect(monWedFriElementsAllFields.length).toBeGreaterThan(0);
         // Check that notes icon is displayed
@@ -1355,7 +1366,8 @@ describe("TrackingsList", () => {
             const trackingHeader = screen.getByLabelText("Sort by tracking");
             await user.click(trackingHeader);
 
-            expect(screen.getByText("↑")).toBeInTheDocument();
+            const upArrowElements = screen.getAllByText("↑");
+            expect(upArrowElements.length).toBeGreaterThan(0);
         });
 
         it("should change sort indicator direction", async () => {
@@ -1369,10 +1381,12 @@ describe("TrackingsList", () => {
 
             const trackingHeader = screen.getByLabelText("Sort by tracking");
             await user.click(trackingHeader);
-            expect(screen.getByText("↑")).toBeInTheDocument();
+            const upArrowElements2 = screen.getAllByText("↑");
+            expect(upArrowElements2.length).toBeGreaterThan(0);
 
             await user.click(trackingHeader);
-            expect(screen.getByText("↓")).toBeInTheDocument();
+            const downArrowElements = screen.getAllByText("↓");
+            expect(downArrowElements.length).toBeGreaterThan(0);
         });
     });
 

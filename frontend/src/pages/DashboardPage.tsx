@@ -21,10 +21,8 @@ const SNOOZE_OPTIONS = [
 
 export function DashboardPage() {
     const {
-        user,
         reminders,
         trackings,
-        setShowTrackingForm,
         updateReminder,
         completeReminder,
         dismissReminder,
@@ -201,11 +199,6 @@ export function DashboardPage() {
 
     return (
         <div className="dashboard">
-            <header className="dashboard-header">
-                <h2>Hello, {user?.name || 'User'}! 👋</h2>
-                <p className="dashboard-subtitle">Here's your focus for today.</p>
-            </header>
-
             <div className="dashboard-section">
                 <div className="section-header">
                     <h3>Pending reminders</h3>
@@ -333,14 +326,6 @@ export function DashboardPage() {
                         })}
                     </div>
                 )}
-            </div>
-
-            <div className="dashboard-quick-actions">
-                <h3>Quick actions</h3>
-                <button className="action-btn" onClick={() => setShowTrackingForm(true)}>
-                    <span className="action-icon">➕</span>
-                    Create new habit
-                </button>
             </div>
         </div>
     );
