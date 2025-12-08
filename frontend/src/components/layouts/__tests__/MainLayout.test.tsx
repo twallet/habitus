@@ -7,7 +7,7 @@ import { MainLayout } from '../MainLayout';
 import { useAuth } from '../../../hooks/useAuth';
 import { useTrackings } from '../../../hooks/useTrackings';
 import { useReminders } from '../../../hooks/useReminders';
-import { TrackingState } from '../../../models/Tracking';
+import { TrackingState, DaysPatternType } from '../../../models/Tracking';
 import { ReminderStatus } from '../../../models/Reminder';
 
 // Mock hooks
@@ -46,7 +46,7 @@ describe('MainLayout', () => {
             user_id: 1,
             question: 'Did you exercise?',
             state: TrackingState.RUNNING,
-            days: { type: 'interval', interval_value: 1, interval_unit: 'day' },
+            days: { pattern_type: DaysPatternType.INTERVAL, interval_value: 1, interval_unit: 'days' as const },
             created_at: '2024-01-01T00:00:00Z',
         },
     ];
@@ -55,9 +55,10 @@ describe('MainLayout', () => {
         {
             id: 1,
             tracking_id: 1,
+            user_id: 1,
             scheduled_time: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
             status: ReminderStatus.PENDING,
-            notes: null,
+            notes: undefined,
         },
     ];
 
@@ -180,16 +181,18 @@ describe('MainLayout', () => {
             {
                 id: 1,
                 tracking_id: 1,
+                user_id: 1,
                 scheduled_time: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
                 status: ReminderStatus.PENDING,
-                notes: null,
+                notes: undefined,
             },
             {
                 id: 2,
                 tracking_id: 1,
+                user_id: 1,
                 scheduled_time: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
                 status: ReminderStatus.PENDING,
-                notes: null,
+                notes: undefined,
             },
         ];
 
@@ -219,7 +222,7 @@ describe('MainLayout', () => {
                 user_id: 1,
                 question: 'Question 1',
                 state: TrackingState.RUNNING,
-                days: { type: 'interval', interval_value: 1, interval_unit: 'day' },
+                days: { pattern_type: DaysPatternType.INTERVAL, interval_value: 1, interval_unit: 'days' as const },
                 created_at: '2024-01-01T00:00:00Z',
             },
             {
@@ -227,7 +230,7 @@ describe('MainLayout', () => {
                 user_id: 1,
                 question: 'Question 2',
                 state: TrackingState.RUNNING,
-                days: { type: 'interval', interval_value: 1, interval_unit: 'day' },
+                days: { pattern_type: DaysPatternType.INTERVAL, interval_value: 1, interval_unit: 'days' as const },
                 created_at: '2024-01-01T00:00:00Z',
             },
         ];
@@ -332,37 +335,13 @@ describe('MainLayout', () => {
         await user.click(deleteItem);
 
         await waitFor(() => {
-            expect(screen.getByText(/are you sure you want to delete your account/i)).toBeInTheDocument();
+            // The modal should appear - check for the modal content
+            expect(screen.getByRole('heading', { name: /delete account/i })).toBeInTheDocument();
         });
     });
 
-    it('should handle create tracking successfully', async () => {
+    it('should open tracking form when FAB is clicked', async () => {
         const user = userEvent.setup();
-        const mockCreateTracking = vi.fn().mockResolvedValue({ id: 1 });
-        const mockRefreshReminders = vi.fn().mockResolvedValue(undefined);
-
-        mockUseTrackings.mockReturnValue({
-            trackings: mockTrackings,
-            isLoading: false,
-            createTracking: mockCreateTracking,
-            updateTracking: vi.fn(),
-            updateTrackingState: vi.fn(),
-            deleteTracking: vi.fn(),
-            refreshTrackings: vi.fn(),
-        });
-
-        mockUseReminders.mockReturnValue({
-            reminders: mockReminders,
-            isLoading: false,
-            updateReminder: vi.fn(),
-            completeReminder: vi.fn(),
-            dismissReminder: vi.fn(),
-            snoozeReminder: vi.fn(),
-            deleteReminder: vi.fn(),
-            refreshReminders: mockRefreshReminders,
-            removeRemindersForTracking: vi.fn(),
-        });
-
         renderMainLayout();
 
         const fabButton = screen.getByRole('button', { name: /create tracking/i });
@@ -371,62 +350,8 @@ describe('MainLayout', () => {
         await waitFor(() => {
             expect(screen.getByRole('heading', { name: /create tracking/i })).toBeInTheDocument();
         });
-
-        // Form submission would be tested in TrackingForm tests
-        // Here we just verify the modal opens
     });
 
-    it('should show success message when tracking is created', async () => {
-        const user = userEvent.setup();
-        const mockCreateTracking = vi.fn().mockResolvedValue({ id: 1 });
-        const mockRefreshReminders = vi.fn().mockResolvedValue(undefined);
-
-        mockUseTrackings.mockReturnValue({
-            trackings: mockTrackings,
-            isLoading: false,
-            createTracking: mockCreateTracking,
-            updateTracking: vi.fn(),
-            updateTrackingState: vi.fn(),
-            deleteTracking: vi.fn(),
-            refreshTrackings: vi.fn(),
-        });
-
-        mockUseReminders.mockReturnValue({
-            reminders: mockReminders,
-            isLoading: false,
-            updateReminder: vi.fn(),
-            completeReminder: vi.fn(),
-            dismissReminder: vi.fn(),
-            snoozeReminder: vi.fn(),
-            deleteReminder: vi.fn(),
-            refreshReminders: mockRefreshReminders,
-            removeRemindersForTracking: vi.fn(),
-        });
-
-        renderMainLayout();
-
-        // This would be tested through the actual form submission
-        // The message appears after successful creation
-    });
-
-    it('should show error message when tracking creation fails', async () => {
-        const user = userEvent.setup();
-        const mockCreateTracking = vi.fn().mockRejectedValue(new Error('Creation failed'));
-
-        mockUseTrackings.mockReturnValue({
-            trackings: mockTrackings,
-            isLoading: false,
-            createTracking: mockCreateTracking,
-            updateTracking: vi.fn(),
-            updateTrackingState: vi.fn(),
-            deleteTracking: vi.fn(),
-            refreshTrackings: vi.fn(),
-        });
-
-        renderMainLayout();
-
-        // Error handling would be tested through form submission
-    });
 
     it('should handle logout', async () => {
         const user = userEvent.setup();
@@ -573,7 +498,8 @@ describe('MainLayout', () => {
         await user.click(deleteItem);
 
         await waitFor(() => {
-            expect(screen.getByText(/are you sure you want to delete your account/i)).toBeInTheDocument();
+            // The modal should appear - check for the modal content
+            expect(screen.getByRole('heading', { name: /delete account/i })).toBeInTheDocument();
         });
 
         // Delete confirmation would be tested in DeleteUserConfirmationModal tests
@@ -616,7 +542,7 @@ describe('MainLayout', () => {
             user_id: 1,
             question: 'New question',
             state: TrackingState.RUNNING,
-            days: { type: 'interval', interval_value: 1, interval_unit: 'day' },
+            days: { pattern_type: DaysPatternType.INTERVAL, interval_value: 1, interval_unit: 'days' as const },
             created_at: '2024-01-01T00:00:00Z',
         }];
 
@@ -649,9 +575,10 @@ describe('MainLayout', () => {
         const newReminders = [...mockReminders, {
             id: 2,
             tracking_id: 1,
+            user_id: 1,
             scheduled_time: new Date().toISOString(),
             status: ReminderStatus.PENDING,
-            notes: null,
+            notes: undefined,
         }];
 
         mockUseReminders.mockReturnValue({
@@ -693,9 +620,10 @@ describe('MainLayout', () => {
             {
                 id: 1,
                 tracking_id: 999, // Non-existent tracking
+                user_id: 1,
                 scheduled_time: new Date().toISOString(),
                 status: ReminderStatus.PENDING,
-                notes: null,
+                notes: undefined,
             },
         ];
 
@@ -735,9 +663,10 @@ describe('MainLayout', () => {
             {
                 id: 1,
                 tracking_id: 999,
+                user_id: 1,
                 scheduled_time: new Date().toISOString(),
                 status: ReminderStatus.PENDING,
-                notes: null,
+                notes: undefined,
             },
         ];
 
@@ -759,61 +688,32 @@ describe('MainLayout', () => {
         expect(mockRefreshTrackings).not.toHaveBeenCalled();
     });
 
-    it('should handle update tracking state and show success message', async () => {
-        const user = userEvent.setup();
-        const mockUpdateTrackingState = vi.fn().mockResolvedValue(undefined);
-        const mockRefreshReminders = vi.fn().mockResolvedValue(undefined);
-
-        mockUseTrackings.mockReturnValue({
-            trackings: mockTrackings,
-            isLoading: false,
-            createTracking: vi.fn(),
-            updateTracking: vi.fn(),
-            updateTrackingState: mockUpdateTrackingState,
-            deleteTracking: vi.fn(),
-            refreshTrackings: vi.fn(),
-        });
-
-        mockUseReminders.mockReturnValue({
-            reminders: mockReminders,
-            isLoading: false,
-            updateReminder: vi.fn(),
-            completeReminder: vi.fn(),
-            dismissReminder: vi.fn(),
-            snoozeReminder: vi.fn(),
-            deleteReminder: vi.fn(),
-            refreshReminders: mockRefreshReminders,
-            removeRemindersForTracking: vi.fn(),
-        });
-
-        renderMainLayout();
-
-        // updateTrackingState is called through the context
-        // This would be tested through components that use it
-    });
 
     it('should filter out answered and upcoming reminders from count', () => {
         const mixedReminders = [
             {
                 id: 1,
                 tracking_id: 1,
+                user_id: 1,
                 scheduled_time: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
                 status: ReminderStatus.PENDING,
-                notes: null,
+                notes: undefined,
             },
             {
                 id: 2,
                 tracking_id: 1,
+                user_id: 1,
                 scheduled_time: new Date().toISOString(),
                 status: ReminderStatus.ANSWERED,
-                notes: null,
+                notes: undefined,
             },
             {
                 id: 3,
                 tracking_id: 1,
+                user_id: 1,
                 scheduled_time: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
                 status: ReminderStatus.UPCOMING,
-                notes: null,
+                notes: undefined,
             },
         ];
 

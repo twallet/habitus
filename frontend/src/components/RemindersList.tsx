@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import { ReminderData, ReminderStatus } from "../models/Reminder";
 import { TrackingData } from "../models/Tracking";
 import { useReminders } from "../hooks/useReminders";
@@ -467,21 +467,29 @@ export function RemindersList({
                 return newPos;
             });
         } else {
-            // Calculate position immediately before opening
-            const button = snoozeButtonRefs.current[reminderId];
+            setOpenSnoozeId(reminderId);
+        }
+    };
+
+    /**
+     * Calculate dropdown position when it opens.
+     * @internal
+     */
+    useLayoutEffect(() => {
+        if (openSnoozeId !== null) {
+            const button = snoozeButtonRefs.current[openSnoozeId];
             if (button) {
                 const rect = button.getBoundingClientRect();
                 setSnoozeDropdownPosition(prev => ({
                     ...prev,
-                    [reminderId]: {
+                    [openSnoozeId]: {
                         top: rect.bottom + 4,
                         left: rect.left
                     }
                 }));
             }
-            setOpenSnoozeId(reminderId);
         }
-    };
+    }, [openSnoozeId]);
 
     /**
      * Handle snooze.

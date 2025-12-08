@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useEffect } from 'react';
+import { useMemo, useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { OutletContextType } from '../context/AppContext';
 import { ReminderStatus, ReminderData } from '../models/Reminder';
@@ -167,21 +167,29 @@ export function DashboardPage() {
                 return newPos;
             });
         } else {
-            // Calculate position immediately before opening
-            const button = snoozeButtonRefs.current[reminderId];
+            setOpenSnoozeId(reminderId);
+        }
+    };
+
+    /**
+     * Calculate dropdown position when it opens.
+     * @internal
+     */
+    useLayoutEffect(() => {
+        if (openSnoozeId !== null) {
+            const button = snoozeButtonRefs.current[openSnoozeId];
             if (button) {
                 const rect = button.getBoundingClientRect();
                 setSnoozeDropdownPosition(prev => ({
                     ...prev,
-                    [reminderId]: {
+                    [openSnoozeId]: {
                         top: rect.bottom + 4,
                         left: rect.left
                     }
                 }));
             }
-            setOpenSnoozeId(reminderId);
         }
-    };
+    }, [openSnoozeId]);
 
     /**
      * Handle snooze.
