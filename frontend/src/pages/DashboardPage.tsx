@@ -59,26 +59,9 @@ export function DashboardPage() {
                 <p className="dashboard-subtitle">Here's your focus for today.</p>
             </header>
 
-            <div className="stats-card">
-                <div className="stats-content">
-                    <div className="stats-info">
-                        <h3>Daily progress</h3>
-                        <p>{stats.completed} of {stats.total} habits completed</p>
-                    </div>
-                    <div className="progress-ring">
-                        <div className="progress-bar-bg">
-                            <div
-                                className="progress-bar-fill"
-                                style={{ width: `${stats.total > 0 ? (stats.completed / stats.total) * 100 : 0}%` }}
-                            ></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <div className="dashboard-section">
                 <div className="section-header">
-                    <h3>Today's pendings</h3>
+                    <h3>New pendings</h3>
                     {todayPendingReminders.length > 0 && <span className="badge">{todayPendingReminders.length}</span>}
                 </div>
 

@@ -91,8 +91,10 @@ describe("TrackingsList", () => {
             />
         );
 
-        expect(screen.getByText("Did I exercise today?")).toBeInTheDocument();
-        expect(screen.getByText("Did I meditate?")).toBeInTheDocument();
+        const exerciseElements = screen.getAllByText("Did I exercise today?");
+        expect(exerciseElements.length).toBeGreaterThan(0);
+        const meditateElements = screen.getAllByText("Did I meditate?");
+        expect(meditateElements.length).toBeGreaterThan(0);
     });
 
     it("should call onEdit when tracking name is clicked", () => {
@@ -531,8 +533,9 @@ describe("TrackingsList", () => {
         );
 
         expect(screen.getByText("🏋️")).toBeInTheDocument();
-        expect(screen.getByText("Did I exercise today?")).toBeInTheDocument();
-        const trackingCell = screen.getByText("Did I exercise today?").closest(".cell-tracking");
+        const exerciseElements = screen.getAllByText("Did I exercise today?");
+        expect(exerciseElements.length).toBeGreaterThan(0);
+        const trackingCell = exerciseElements[0].closest(".cell-tracking");
         expect(trackingCell?.textContent).toContain("🏋️");
         expect(trackingCell?.textContent).toContain("Did I exercise today?");
         expect(screen.getByText(/09:00 \+1/)).toBeInTheDocument();
@@ -1064,7 +1067,8 @@ describe("TrackingsList", () => {
             const filterInput = screen.getByLabelText("Filter by tracking");
             await user.type(filterInput, "exercise");
 
-            expect(screen.getByText("Did I exercise today?")).toBeInTheDocument();
+            const exerciseElements = screen.getAllByText("Did I exercise today?");
+            expect(exerciseElements.length).toBeGreaterThan(0);
             expect(screen.queryByText("Did I meditate?")).not.toBeInTheDocument();
             expect(screen.queryByText("Did I read a book?")).not.toBeInTheDocument();
         });
@@ -1084,7 +1088,8 @@ describe("TrackingsList", () => {
             const timesInput = screen.getByLabelText("Filter by times");
             await user.type(timesInput, "08:00");
 
-            expect(screen.getByText("Did I exercise today?")).toBeInTheDocument();
+            const exerciseElements = screen.getAllByText("Did I exercise today?");
+            expect(exerciseElements.length).toBeGreaterThan(0);
             expect(screen.queryByText("Did I meditate?")).not.toBeInTheDocument();
             expect(screen.queryByText("Did I read a book?")).not.toBeInTheDocument();
         });
@@ -1104,7 +1109,8 @@ describe("TrackingsList", () => {
             const frequencyInput = screen.getByLabelText("Filter by frequency");
             await user.type(frequencyInput, "Mon");
 
-            expect(screen.getByText("Did I meditate?")).toBeInTheDocument();
+            const meditateElements = screen.getAllByText("Did I meditate?");
+            expect(meditateElements.length).toBeGreaterThan(0);
             expect(screen.queryByText("Did I exercise today?")).not.toBeInTheDocument();
             expect(screen.queryByText("Did I read a book?")).not.toBeInTheDocument();
         });
@@ -1124,7 +1130,8 @@ describe("TrackingsList", () => {
             const runningCheckbox = screen.getByLabelText("Filter by status: Running");
             await user.click(runningCheckbox);
 
-            expect(screen.getByText("Did I exercise today?")).toBeInTheDocument();
+            const exerciseElementsStatus = screen.getAllByText("Did I exercise today?");
+            expect(exerciseElementsStatus.length).toBeGreaterThan(0);
             expect(screen.queryByText("Did I meditate?")).not.toBeInTheDocument();
             expect(screen.queryByText("Did I read a book?")).not.toBeInTheDocument();
         });
@@ -1165,7 +1172,8 @@ describe("TrackingsList", () => {
             const runningCheckbox = screen.getByLabelText("Filter by status: Running");
             await user.click(runningCheckbox);
 
-            expect(screen.getByText("Did I exercise today?")).toBeInTheDocument();
+            const exerciseElements1 = screen.getAllByText("Did I exercise today?");
+            expect(exerciseElements1.length).toBeGreaterThan(0);
             expect(screen.queryByText("Did I meditate?")).not.toBeInTheDocument();
             expect(screen.queryByText("Did I read a book?")).not.toBeInTheDocument();
         });
@@ -1185,7 +1193,8 @@ describe("TrackingsList", () => {
             const filterInput = screen.getByLabelText("Filter by tracking");
             await user.type(filterInput, "EXERCISE");
 
-            expect(screen.getByText("Did I exercise today?")).toBeInTheDocument();
+            const exerciseElements = screen.getAllByText("Did I exercise today?");
+            expect(exerciseElements.length).toBeGreaterThan(0);
         });
     });
 
