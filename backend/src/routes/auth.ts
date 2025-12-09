@@ -9,6 +9,7 @@ import { ServerConfig } from "../setup/constants.js";
 const router = Router();
 // Lazy-load service to allow dependency injection in tests
 const getAuthServiceInstance = () => ServiceManager.getAuthService();
+const getUserServiceInstance = () => ServiceManager.getUserService();
 
 /**
  * POST /api/auth/register
@@ -262,8 +263,7 @@ router.get("/verify-email-change", async (req: Request, res: Response) => {
       );
     }
 
-    const { ServiceManager } = await import("../services/index.js");
-    await ServiceManager.getUserService().verifyEmailChange(token);
+    await getUserServiceInstance().verifyEmailChange(token);
 
     // Redirect to frontend with success message
     const serverUrl = ServerConfig.getServerUrl();

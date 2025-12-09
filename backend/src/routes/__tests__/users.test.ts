@@ -69,6 +69,11 @@ async function createTestDatabase(): Promise<Database> {
               profile_picture_url TEXT,
               magic_link_token TEXT,
               magic_link_expires DATETIME,
+              pending_email TEXT,
+              email_verification_token TEXT,
+              email_verification_expires DATETIME,
+              telegram_chat_id TEXT,
+              notification_channels TEXT,
               last_access DATETIME,
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -76,6 +81,7 @@ async function createTestDatabase(): Promise<Database> {
             CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at);
             CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
             CREATE INDEX IF NOT EXISTS idx_users_magic_link_token ON users(magic_link_token);
+            CREATE INDEX IF NOT EXISTS idx_users_email_verification_token ON users(email_verification_token);
           `,
             (err) => {
               if (err) {
