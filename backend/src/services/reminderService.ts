@@ -218,6 +218,8 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
     );
 
     // Send email notification if reminder is created as Pending
+    // Note: Only send email if this is a newly created reminder with PENDING status.
+    // updateExpiredUpcomingReminders handles emails for reminders transitioning from UPCOMING to PENDING.
     if (status === ReminderStatus.PENDING) {
       try {
         await this.sendReminderEmailNotification(savedReminder);
@@ -618,10 +620,25 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
         const status =
           nextTimeDate > now ? ReminderStatus.UPCOMING : ReminderStatus.PENDING;
 
-        await existingUpcoming.update(
+        const updatedReminder = await existingUpcoming.update(
           { scheduled_time: nextTime, status: status },
           this.db
         );
+
+        // Send email notification if reminder was updated to PENDING
+        if (status === ReminderStatus.PENDING) {
+          try {
+            await this.sendReminderEmailNotification(updatedReminder);
+          } catch (error) {
+            // Log error but don't fail the update
+            console.error(
+              `[${new Date().toISOString()}] REMINDER | Failed to send email notification for reminder ID ${
+                existingUpcoming.id
+              } after deleteReminder updated it to PENDING:`,
+              error
+            );
+          }
+        }
 
         console.log(
           `[${new Date().toISOString()}] REMINDER | Updated existing upcoming reminder ID ${
@@ -1183,6 +1200,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
         tracking.question,
         reminder.scheduled_time,
         tracking.icon,
+        tracking.notes,
         reminder.notes
       );
 

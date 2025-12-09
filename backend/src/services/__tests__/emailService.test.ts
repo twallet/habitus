@@ -354,14 +354,15 @@ describe("EmailService", () => {
         "Did you exercise today?",
         "2024-01-01T10:00:00Z",
         "🏃",
-        "Test notes"
+        "Tracking notes",
+        "Reminder notes"
       );
 
       expect(mockTransporter.sendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           from: "test@test.com",
           to: "user@example.com",
-          subject: expect.stringContaining("Reminder:"),
+          subject: expect.stringContaining("Habitus reminder for"),
         })
       );
 
@@ -369,19 +370,21 @@ describe("EmailService", () => {
       expect(callArgs.subject).toContain("🏃");
       expect(callArgs.subject).toContain("Did you exercise today?");
       expect(callArgs.text).toContain("Did you exercise today?");
-      expect(callArgs.html).toContain("Pending Reminder");
+      expect(callArgs.html).toContain("Pending reminder");
       expect(callArgs.html).toContain("Did you exercise today?");
-      expect(callArgs.html).toContain("Test notes");
+      expect(callArgs.html).toContain("Tracking notes");
+      expect(callArgs.html).toContain("Add Notes");
       expect(callArgs.html).toContain("Complete");
       expect(callArgs.html).toContain("Dismiss");
       expect(callArgs.html).toContain("Snooze");
       expect(callArgs.html).toContain("reminderId=123");
+      expect(callArgs.html).toContain("action=editNotes");
       expect(callArgs.html).toContain("action=complete");
       expect(callArgs.html).toContain("action=dismiss");
       expect(callArgs.html).toContain("action=snooze");
     });
 
-    it("should send reminder email without notes", async () => {
+    it("should send reminder email without tracking notes", async () => {
       await emailService.sendReminderEmail(
         "user@example.com",
         456,
@@ -391,8 +394,8 @@ describe("EmailService", () => {
       );
 
       const callArgs = mockTransporter.sendMail.mock.calls[0][0];
-      expect(callArgs.html).toContain("No notes added yet");
-      expect(callArgs.html).toContain("Add notes");
+      expect(callArgs.html).toContain("Add Notes");
+      expect(callArgs.html).not.toContain("Tracking notes");
     });
 
     it("should use default icon when tracking icon is not provided", async () => {
@@ -400,7 +403,10 @@ describe("EmailService", () => {
         "user@example.com",
         789,
         "Test question",
-        "2024-01-01T10:00:00Z"
+        "2024-01-01T10:00:00Z",
+        undefined,
+        undefined,
+        undefined
       );
 
       const callArgs = mockTransporter.sendMail.mock.calls[0][0];
@@ -408,15 +414,19 @@ describe("EmailService", () => {
       expect(callArgs.html).toContain("📝");
     });
 
-    it("should include edit notes link in email", async () => {
+    it("should include Add Notes button in email", async () => {
       await emailService.sendReminderEmail(
         "user@example.com",
         123,
         "Test question",
-        "2024-01-01T10:00:00Z"
+        "2024-01-01T10:00:00Z",
+        undefined,
+        undefined,
+        undefined
       );
 
       const callArgs = mockTransporter.sendMail.mock.calls[0][0];
+      expect(callArgs.html).toContain("Add Notes");
       expect(callArgs.html).toContain("action=editNotes");
       expect(callArgs.html).toContain("reminderId=123");
     });
@@ -426,12 +436,52 @@ describe("EmailService", () => {
         "user@example.com",
         123,
         "Test question",
-        "2024-01-01T10:30:00Z"
+        "2024-01-01T10:30:00Z",
+        undefined,
+        undefined,
+        undefined
       );
 
       const callArgs = mockTransporter.sendMail.mock.calls[0][0];
       expect(callArgs.html).toContain("Scheduled for:");
       expect(callArgs.text).toContain("Scheduled for:");
+    });
+
+    it("should display tracking notes after scheduled time when provided", async () => {
+      await emailService.sendReminderEmail(
+        "user@example.com",
+        123,
+        "Test question",
+        "2024-01-01T10:30:00Z",
+        "💭",
+        "These are tracking notes",
+        undefined
+      );
+
+      const callArgs = mockTransporter.sendMail.mock.calls[0][0];
+      expect(callArgs.html).toContain("Scheduled for:");
+      expect(callArgs.html).toContain("These are tracking notes");
+      expect(callArgs.text).toContain(
+        "Tracking notes: These are tracking notes"
+      );
+    });
+
+    it("should not display tracking notes when empty", async () => {
+      await emailService.sendReminderEmail(
+        "user@example.com",
+        123,
+        "Test question",
+        "2024-01-01T10:30:00Z",
+        "💭",
+        undefined,
+        undefined
+      );
+
+      const callArgs = mockTransporter.sendMail.mock.calls[0][0];
+      expect(callArgs.html).toContain("Scheduled for:");
+      const scheduledForIndex = callArgs.html.indexOf("Scheduled for:");
+      const addNotesIndex = callArgs.html.indexOf("Add Notes");
+      expect(scheduledForIndex).toBeLessThan(addNotesIndex);
     });
 
     it("should throw error when SMTP credentials are missing", async () => {
@@ -448,7 +498,10 @@ describe("EmailService", () => {
           "user@example.com",
           123,
           "Test question",
-          "2024-01-01T10:00:00Z"
+          "2024-01-01T10:00:00Z",
+          undefined,
+          undefined,
+          undefined
         )
       ).rejects.toThrow(/SMTP credentials not configured/);
     });
@@ -462,7 +515,10 @@ describe("EmailService", () => {
           "user@example.com",
           123,
           "Test question",
-          "2024-01-01T10:00:00Z"
+          "2024-01-01T10:00:00Z",
+          undefined,
+          undefined,
+          undefined
         )
       ).rejects.toThrow(/Failed to send email/);
     });

@@ -189,6 +189,7 @@ export class EmailService {
    * @param trackingQuestion - Tracking question text
    * @param scheduledTime - Scheduled time for the reminder
    * @param trackingIcon - Tracking icon (emoji)
+   * @param trackingNotes - Optional tracking notes
    * @param notes - Optional reminder notes
    * @returns Promise that resolves when email is sent
    * @throws Error if email sending fails
@@ -200,6 +201,7 @@ export class EmailService {
     trackingQuestion: string,
     scheduledTime: string,
     trackingIcon?: string,
+    trackingNotes?: string,
     notes?: string
   ): Promise<void> {
     console.log(
@@ -208,6 +210,7 @@ export class EmailService {
 
     const dashboardUrl = `${this.config.frontendUrl}/`;
     const baseUrl = `${dashboardUrl}?reminderId=${reminderId}`;
+    const addNotesUrl = `${baseUrl}&action=editNotes`;
     const completeUrl = `${baseUrl}&action=complete`;
     const dismissUrl = `${baseUrl}&action=dismiss`;
     const snoozeUrl = `${baseUrl}&action=snooze`;
@@ -223,10 +226,10 @@ export class EmailService {
     });
 
     const icon = trackingIcon || "📝";
-    const subject = `🌱 Reminder: ${icon} ${trackingQuestion}`;
+    const subject = `🌱 Habitus reminder for ${icon} ${trackingQuestion}`;
     const text = `You have a pending reminder:\n\n${icon} ${trackingQuestion}\n\nScheduled for: ${formattedTime}${
-      notes ? `\n\nNotes: ${notes}` : ""
-    }\n\nAvailable actions:\n- Complete: ${completeUrl}\n- Dismiss: ${dismissUrl}\n- Snooze: ${snoozeUrl}`;
+      trackingNotes ? `\n\nTracking notes: ${trackingNotes}` : ""
+    }\n\nAvailable actions:\n- Add Notes: ${addNotesUrl}\n- Complete: ${completeUrl}\n- Dismiss: ${dismissUrl}\n- Snooze: ${snoozeUrl}`;
 
     const html = `
       <!DOCTYPE html>
@@ -239,7 +242,7 @@ export class EmailService {
         <table role="presentation" style="width: 100%; border-collapse: collapse;">
           <tr>
             <td style="padding: 40px 30px; text-align: left;">
-              <h2 style="color: #333; text-align: left; margin: 0 0 16px 0; font-size: 24px; font-weight: bold;">🌱 Pending Reminder</h2>
+              <h2 style="color: #333; text-align: left; margin: 0 0 16px 0; font-size: 24px; font-weight: bold;">🌱 Pending reminder</h2>
               <div style="background-color: #f8f9fa; padding: 20px; border-radius: 4px; margin-bottom: 24px;">
                 <p style="color: #333; font-size: 18px; font-weight: bold; margin: 0 0 12px 0; line-height: 1.5; display: flex; align-items: center; gap: 8px;">
                   <span style="font-size: 1.2em;">${icon}</span>
@@ -250,22 +253,21 @@ export class EmailService {
                     formattedTime
                   )}
                 </p>
+                ${
+                  trackingNotes
+                    ? `<p style="color: #666; font-size: 14px; margin: 8px 0 0 0; line-height: 1.5; white-space: pre-wrap;">${this.escapeHtml(
+                        trackingNotes
+                      )}</p>`
+                    : ""
+                }
                 <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #dee2e6;">
-                  <p style="color: #666; font-size: 14px; margin: 0 0 8px 0; line-height: 1.5;"><strong>Notes:</strong></p>
-                  <div style="margin: 0 0 12px 0;">
-                    <a href="${dashboardUrl}?action=editNotes&reminderId=${reminderId}" style="display: inline-block; color: #007bff; text-decoration: underline; font-size: 14px; margin-bottom: 8px;">${
-      notes ? "Edit notes" : "Add notes"
-    } →</a>
-                    ${
-                      notes
-                        ? `<p style="color: #333; font-size: 14px; margin: 8px 0 0 0; line-height: 1.5; white-space: pre-wrap; padding: 8px; background-color: #ffffff; border: 1px solid #dee2e6; border-radius: 4px;">${this.escapeHtml(
-                            notes
-                          )}</p>`
-                        : `<p style="color: #999; font-size: 14px; margin: 8px 0 0 0; line-height: 1.5; font-style: italic; padding: 8px; background-color: #ffffff; border: 1px solid #dee2e6; border-radius: 4px;">No notes added yet</p>`
-                    }
-                  </div>
-                  <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%; margin: 16px 0 0 0;">
+                  <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%; margin: 0;">
                     <tr>
+                      <td style="padding-right: 8px;">
+                        <a href="${addNotesUrl}" style="background-color: #fff3cd; border: 1px solid #ffc107; color: #856404; padding: 8px 16px; text-decoration: none; border-radius: 4px; display: inline-block; text-align: center; font-weight: 500; font-size: 14px; white-space: nowrap;">
+                          📝 Add Notes
+                        </a>
+                      </td>
                       <td style="padding-right: 8px;">
                         <a href="${completeUrl}" style="background-color: #c8e6c9; border: 1px solid #66bb6a; color: #2e7d32; padding: 8px 16px; text-decoration: none; border-radius: 4px; display: inline-block; text-align: center; font-weight: 500; font-size: 14px; white-space: nowrap;">
                           ✓ Complete
