@@ -1,6 +1,6 @@
 /**
- * Script to display files with coverage below 75% threshold.
- * Reads the coverage JSON file and filters files that don't meet the threshold.
+ * Script to display files with branches coverage below 75% threshold.
+ * Reads the coverage JSON file and filters files that don't meet the branches coverage threshold.
  */
 
 import { readFileSync, existsSync } from "fs";
@@ -31,83 +31,42 @@ try {
   for (const [filePath, coverage] of Object.entries(coverageData)) {
     if (!coverage || typeof coverage !== "object") continue;
 
-    // Calculate coverage percentages
-    const statements = calculatePercentage(coverage.s);
+    // Calculate branches coverage percentage only
     const branches = calculateBranchPercentage(coverage.b);
-    const functions = calculatePercentage(coverage.f);
-    // Lines coverage is calculated from statements in v8 coverage format
-    const lines = statements; // Use statements as proxy for lines
 
-    // Check if any metric is below threshold
-    if (
-      statements < THRESHOLD ||
-      branches < THRESHOLD ||
-      functions < THRESHOLD ||
-      lines < THRESHOLD
-    ) {
+    // Check if branches coverage is below threshold
+    if (branches < THRESHOLD) {
       filesBelowThreshold.push({
         file: filePath,
-        statements,
         branches,
-        functions,
-        lines,
       });
     }
   }
 
   // Display results
   if (filesBelowThreshold.length === 0) {
-    console.log("\n✅ All files meet the 75% coverage threshold!\n");
+    console.log("\n✅ All files meet the 75% branches coverage threshold!\n");
   } else {
-    console.log(`\n⚠️  Files with coverage below ${THRESHOLD}%:\n`);
-    console.log("─".repeat(100));
-    console.log(
-      "File".padEnd(60) +
-        "Statements".padEnd(12) +
-        "Branches".padEnd(12) +
-        "Functions".padEnd(12) +
-        "Lines"
-    );
-    console.log("─".repeat(100));
+    console.log(`\n⚠️  Files with branches coverage below ${THRESHOLD}%:\n`);
+    console.log("─".repeat(80));
+    console.log("File".padEnd(60) + "Branches");
+    console.log("─".repeat(80));
 
-    // Sort by lowest coverage first
-    filesBelowThreshold.sort((a, b) => {
-      const aMin = Math.min(a.statements, a.branches, a.functions, a.lines);
-      const bMin = Math.min(b.statements, b.branches, b.functions, b.lines);
-      return aMin - bMin;
-    });
+    // Sort by lowest branches coverage first
+    filesBelowThreshold.sort((a, b) => a.branches - b.branches);
 
     for (const file of filesBelowThreshold) {
       const fileDisplay =
         file.file.length > 58 ? "..." + file.file.slice(-55) : file.file;
 
-      const stats = [
-        formatPercent(file.statements),
-        formatPercent(file.branches),
-        formatPercent(file.functions),
-        formatPercent(file.lines),
-      ];
+      const branchesStat = formatPercent(file.branches);
 
-      // Calculate padding considering ANSI codes don't add to string length
-      const statsPadded = stats.map((stat) => {
-        // Remove ANSI codes for length calculation
-        const cleanStat = stat.replace(/\x1b\[[0-9;]*m/g, "");
-        const padding = 12 - cleanStat.length;
-        return stat + " ".repeat(Math.max(0, padding));
-      });
-
-      console.log(
-        fileDisplay.padEnd(60) +
-          statsPadded[0] +
-          statsPadded[1] +
-          statsPadded[2] +
-          statsPadded[3]
-      );
+      console.log(fileDisplay.padEnd(60) + branchesStat);
     }
 
-    console.log("─".repeat(100));
+    console.log("─".repeat(80));
     console.log(
-      `\nTotal: ${filesBelowThreshold.length} file(s) below threshold`
+      `\nTotal: ${filesBelowThreshold.length} file(s) below branches coverage threshold`
     );
   }
 } catch (error) {
@@ -118,26 +77,6 @@ try {
     console.error(`\n❌ Error reading coverage file: ${error.message}\n`);
   }
   process.exit(1);
-}
-
-/**
- * Calculate coverage percentage from coverage map.
- * @param {Object|undefined} coverageMap - Coverage map with numeric keys and execution counts as values
- * @returns {number} Coverage percentage
- */
-function calculatePercentage(coverageMap) {
-  if (!coverageMap || typeof coverageMap !== "object") {
-    return 0;
-  }
-
-  const entries = Object.values(coverageMap);
-  if (entries.length === 0) {
-    return 100; // No coverage data means 100% (file not executed)
-  }
-
-  // Count how many entries have been executed (value > 0)
-  const covered = entries.filter((count) => count > 0).length;
-  return Math.round((covered / entries.length) * 100 * 100) / 100;
 }
 
 /**

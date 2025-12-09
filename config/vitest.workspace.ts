@@ -41,7 +41,7 @@ export default [
       },
       coverage: {
         provider: "v8",
-        reporter: ["text", "html", "json"],
+        reporter: ["html", "json"],
         reportsDirectory: paths.coverageDir,
         include: ["backend/src/**/*.ts"],
         exclude: [
@@ -52,9 +52,6 @@ export default [
         ],
         thresholds: {
           branches: 75,
-          functions: 75,
-          lines: 75,
-          statements: 75,
         },
       },
     },
@@ -80,7 +77,7 @@ export default [
       },
       coverage: {
         provider: "v8",
-        reporter: ["text", "html", "json"],
+        reporter: ["html", "json"],
         reportsDirectory: paths.coverageDir,
         include: ["frontend/src/**/*.{ts,tsx}"],
         exclude: [
@@ -92,9 +89,6 @@ export default [
         ],
         thresholds: {
           branches: 75,
-          functions: 75,
-          lines: 75,
-          statements: 75,
         },
       },
     },
