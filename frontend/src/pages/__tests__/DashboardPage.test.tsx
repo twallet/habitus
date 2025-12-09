@@ -2,6 +2,7 @@
 import { vi, type MockedFunction } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { OutletContextType } from '../../context/AppContext';
 import { DashboardPage } from '../DashboardPage';
 import { ReminderStatus } from '../../models/Reminder';
@@ -97,7 +98,11 @@ describe('DashboardPage', () => {
             reminders: [],
         });
 
-        render(<DashboardPage />);
+        render(
+            <MemoryRouter>
+                <DashboardPage />
+            </MemoryRouter>
+        );
 
         expect(screen.getByRole('heading', { name: /pending reminders/i })).toBeInTheDocument();
         expect(screen.getByText(/no pending reminders right now!/i)).toBeInTheDocument();
@@ -107,7 +112,11 @@ describe('DashboardPage', () => {
     });
 
     it('should render pending reminders for today', () => {
-        render(<DashboardPage />);
+        render(
+            <MemoryRouter>
+                <DashboardPage />
+            </MemoryRouter>
+        );
 
         expect(screen.getByRole('heading', { name: /pending reminders/i })).toBeInTheDocument();
         expect(screen.getByText('Did you exercise today?')).toBeInTheDocument();
@@ -129,7 +138,11 @@ describe('DashboardPage', () => {
             reminders: [...mockReminders, yesterdayReminder],
         });
 
-        render(<DashboardPage />);
+        render(
+            <MemoryRouter>
+                <DashboardPage />
+            </MemoryRouter>
+        );
 
         expect(screen.getByText('Did you exercise today?')).toBeInTheDocument();
         expect(screen.getByText('Did you meditate?')).toBeInTheDocument();
@@ -151,7 +164,11 @@ describe('DashboardPage', () => {
             reminders: [...mockReminders, futureReminder],
         });
 
-        render(<DashboardPage />);
+        render(
+            <MemoryRouter>
+                <DashboardPage />
+            </MemoryRouter>
+        );
 
         expect(screen.getByText('Did you exercise today?')).toBeInTheDocument();
         expect(screen.getByText('Did you meditate?')).toBeInTheDocument();
@@ -172,14 +189,22 @@ describe('DashboardPage', () => {
             reminders: [...mockReminders, answeredReminder],
         });
 
-        render(<DashboardPage />);
+        render(
+            <MemoryRouter>
+                <DashboardPage />
+            </MemoryRouter>
+        );
 
         expect(screen.getByText('Did you exercise today?')).toBeInTheDocument();
         expect(screen.getByText('Did you meditate?')).toBeInTheDocument();
     });
 
     it('should display tracking icon or default icon', () => {
-        render(<DashboardPage />);
+        render(
+            <MemoryRouter>
+                <DashboardPage />
+            </MemoryRouter>
+        );
 
         const cards = screen.getAllByText(/did you/i);
         expect(cards.length).toBeGreaterThan(0);
@@ -200,7 +225,11 @@ describe('DashboardPage', () => {
             reminders: [...mockReminders, reminderWithoutTracking],
         });
 
-        render(<DashboardPage />);
+        render(
+            <MemoryRouter>
+                <DashboardPage />
+            </MemoryRouter>
+        );
 
         expect(screen.getByText('Unknown Question')).toBeInTheDocument();
     });
@@ -213,7 +242,11 @@ describe('DashboardPage', () => {
             updateReminder: mockUpdateReminder,
         });
 
-        render(<DashboardPage />);
+        render(
+            <MemoryRouter>
+                <DashboardPage />
+            </MemoryRouter>
+        );
 
         const textarea = screen.getAllByPlaceholderText('Add notes...')[0];
         await user.clear(textarea);
@@ -233,7 +266,11 @@ describe('DashboardPage', () => {
             updateReminder: mockUpdateReminder,
         });
 
-        render(<DashboardPage />);
+        render(
+            <MemoryRouter>
+                <DashboardPage />
+            </MemoryRouter>
+        );
 
         const textarea = screen.getAllByPlaceholderText('Add notes...')[0];
         await user.clear(textarea);
@@ -253,7 +290,11 @@ describe('DashboardPage', () => {
             updateReminder: mockUpdateReminder,
         });
 
-        render(<DashboardPage />);
+        render(
+            <MemoryRouter>
+                <DashboardPage />
+            </MemoryRouter>
+        );
 
         const textarea = screen.getAllByPlaceholderText('Add notes...')[0];
         await user.type(textarea, 'New notes');
@@ -270,7 +311,11 @@ describe('DashboardPage', () => {
             updateReminder: vi.fn(),
         });
 
-        render(<DashboardPage />);
+        render(
+            <MemoryRouter>
+                <DashboardPage />
+            </MemoryRouter>
+        );
 
         const textarea = screen.getAllByPlaceholderText('Add notes...')[0];
         await user.type(textarea, 'Test notes');
@@ -290,7 +335,11 @@ describe('DashboardPage', () => {
             completeReminder: mockCompleteReminder,
         });
 
-        render(<DashboardPage />);
+        render(
+            <MemoryRouter>
+                <DashboardPage />
+            </MemoryRouter>
+        );
 
         const completeButtons = screen.getAllByRole('button', { name: /complete reminder/i });
         await user.click(completeButtons[0]);
@@ -308,7 +357,11 @@ describe('DashboardPage', () => {
             dismissReminder: mockDismissReminder,
         });
 
-        render(<DashboardPage />);
+        render(
+            <MemoryRouter>
+                <DashboardPage />
+            </MemoryRouter>
+        );
 
         const dismissButtons = screen.getAllByRole('button', { name: /dismiss reminder/i });
         await user.click(dismissButtons[0]);
@@ -320,7 +373,11 @@ describe('DashboardPage', () => {
 
     it('should toggle snooze dropdown', async () => {
         const user = userEvent.setup();
-        render(<DashboardPage />);
+        render(
+            <MemoryRouter>
+                <DashboardPage />
+            </MemoryRouter>
+        );
 
         const snoozeButtons = screen.getAllByRole('button', { name: /snooze reminder/i });
         await user.click(snoozeButtons[0]);
@@ -340,7 +397,11 @@ describe('DashboardPage', () => {
             snoozeReminder: mockSnoozeReminder,
         });
 
-        render(<DashboardPage />);
+        render(
+            <MemoryRouter>
+                <DashboardPage />
+            </MemoryRouter>
+        );
 
         const snoozeButtons = screen.getAllByRole('button', { name: /snooze reminder/i });
         await user.click(snoozeButtons[0]);
@@ -359,7 +420,11 @@ describe('DashboardPage', () => {
 
     it('should close snooze dropdown when clicking outside', async () => {
         const user = userEvent.setup();
-        render(<DashboardPage />);
+        render(
+            <MemoryRouter>
+                <DashboardPage />
+            </MemoryRouter>
+        );
 
         const snoozeButtons = screen.getAllByRole('button', { name: /snooze reminder/i });
         await user.click(snoozeButtons[0]);
@@ -385,7 +450,11 @@ describe('DashboardPage', () => {
             updateReminder: mockUpdateReminder,
         });
 
-        render(<DashboardPage />);
+        render(
+            <MemoryRouter>
+                <DashboardPage />
+            </MemoryRouter>
+        );
 
         const textarea = screen.getAllByPlaceholderText('Add notes...')[0];
         await user.type(textarea, 'Test');
@@ -408,7 +477,11 @@ describe('DashboardPage', () => {
             completeReminder: mockCompleteReminder,
         });
 
-        render(<DashboardPage />);
+        render(
+            <MemoryRouter>
+                <DashboardPage />
+            </MemoryRouter>
+        );
 
         const completeButtons = screen.getAllByRole('button', { name: /complete reminder/i });
         await user.click(completeButtons[0]);
@@ -429,7 +502,11 @@ describe('DashboardPage', () => {
             dismissReminder: mockDismissReminder,
         });
 
-        render(<DashboardPage />);
+        render(
+            <MemoryRouter>
+                <DashboardPage />
+            </MemoryRouter>
+        );
 
         const dismissButtons = screen.getAllByRole('button', { name: /dismiss reminder/i });
         await user.click(dismissButtons[0]);
@@ -450,7 +527,11 @@ describe('DashboardPage', () => {
             snoozeReminder: mockSnoozeReminder,
         });
 
-        render(<DashboardPage />);
+        render(
+            <MemoryRouter>
+                <DashboardPage />
+            </MemoryRouter>
+        );
 
         const snoozeButtons = screen.getAllByRole('button', { name: /snooze reminder/i });
         await user.click(snoozeButtons[0]);
@@ -494,14 +575,22 @@ describe('DashboardPage', () => {
             reminders: unsortedReminders,
         });
 
-        render(<DashboardPage />);
+        render(
+            <MemoryRouter>
+                <DashboardPage />
+            </MemoryRouter>
+        );
 
         const cards = screen.getAllByText(/did you exercise today/i);
         expect(cards.length).toBeGreaterThan(0);
     });
 
     it('should initialize notes values from reminders', () => {
-        render(<DashboardPage />);
+        render(
+            <MemoryRouter>
+                <DashboardPage />
+            </MemoryRouter>
+        );
 
         const textareas = screen.getAllByPlaceholderText('Add notes...');
         expect(textareas[0]).toHaveValue('Test notes'); // From mockReminders[0]

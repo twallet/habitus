@@ -335,4 +335,136 @@ describe("EmailService", () => {
       ).rejects.toThrow(/Failed to send email/);
     });
   });
+
+  describe("sendReminderEmail", () => {
+    beforeEach(() => {
+      emailService = new EmailService({
+        host: "smtp.test.com",
+        port: 587,
+        user: "test@test.com",
+        pass: "testpass",
+        frontendUrl: "http://test.com",
+      });
+    });
+
+    it("should send reminder email successfully", async () => {
+      await emailService.sendReminderEmail(
+        "user@example.com",
+        123,
+        "Did you exercise today?",
+        "2024-01-01T10:00:00Z",
+        "🏃",
+        "Test notes"
+      );
+
+      expect(mockTransporter.sendMail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          from: "test@test.com",
+          to: "user@example.com",
+          subject: expect.stringContaining("Reminder:"),
+        })
+      );
+
+      const callArgs = mockTransporter.sendMail.mock.calls[0][0];
+      expect(callArgs.subject).toContain("🏃");
+      expect(callArgs.subject).toContain("Did you exercise today?");
+      expect(callArgs.text).toContain("Did you exercise today?");
+      expect(callArgs.html).toContain("Pending Reminder");
+      expect(callArgs.html).toContain("Did you exercise today?");
+      expect(callArgs.html).toContain("Test notes");
+      expect(callArgs.html).toContain("Complete");
+      expect(callArgs.html).toContain("Dismiss");
+      expect(callArgs.html).toContain("Snooze");
+      expect(callArgs.html).toContain("reminderId=123");
+      expect(callArgs.html).toContain("action=complete");
+      expect(callArgs.html).toContain("action=dismiss");
+      expect(callArgs.html).toContain("action=snooze");
+    });
+
+    it("should send reminder email without notes", async () => {
+      await emailService.sendReminderEmail(
+        "user@example.com",
+        456,
+        "Did you meditate?",
+        "2024-01-01T10:00:00Z",
+        "🧘"
+      );
+
+      const callArgs = mockTransporter.sendMail.mock.calls[0][0];
+      expect(callArgs.html).toContain("No notes added yet");
+      expect(callArgs.html).toContain("Add notes");
+    });
+
+    it("should use default icon when tracking icon is not provided", async () => {
+      await emailService.sendReminderEmail(
+        "user@example.com",
+        789,
+        "Test question",
+        "2024-01-01T10:00:00Z"
+      );
+
+      const callArgs = mockTransporter.sendMail.mock.calls[0][0];
+      expect(callArgs.subject).toContain("📝");
+      expect(callArgs.html).toContain("📝");
+    });
+
+    it("should include edit notes link in email", async () => {
+      await emailService.sendReminderEmail(
+        "user@example.com",
+        123,
+        "Test question",
+        "2024-01-01T10:00:00Z"
+      );
+
+      const callArgs = mockTransporter.sendMail.mock.calls[0][0];
+      expect(callArgs.html).toContain("action=editNotes");
+      expect(callArgs.html).toContain("reminderId=123");
+    });
+
+    it("should format scheduled time correctly", async () => {
+      await emailService.sendReminderEmail(
+        "user@example.com",
+        123,
+        "Test question",
+        "2024-01-01T10:30:00Z"
+      );
+
+      const callArgs = mockTransporter.sendMail.mock.calls[0][0];
+      expect(callArgs.html).toContain("Scheduled for:");
+      expect(callArgs.text).toContain("Scheduled for:");
+    });
+
+    it("should throw error when SMTP credentials are missing", async () => {
+      const serviceWithEmptyCreds = new EmailService({
+        host: "smtp.test.com",
+        port: 587,
+        user: "",
+        pass: "",
+        frontendUrl: "http://test.com",
+      });
+
+      await expect(
+        serviceWithEmptyCreds.sendReminderEmail(
+          "user@example.com",
+          123,
+          "Test question",
+          "2024-01-01T10:00:00Z"
+        )
+      ).rejects.toThrow(/SMTP credentials not configured/);
+    });
+
+    it("should handle email sending errors", async () => {
+      const error = new Error("Network error");
+      mockTransporter.sendMail.mockRejectedValueOnce(error);
+
+      await expect(
+        emailService.sendReminderEmail(
+          "user@example.com",
+          123,
+          "Test question",
+          "2024-01-01T10:00:00Z"
+        )
+      ).rejects.toThrow(/Failed to send email/);
+    });
+  });
 });
