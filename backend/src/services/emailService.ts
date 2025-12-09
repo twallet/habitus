@@ -252,29 +252,37 @@ export class EmailService {
                 </p>
                 <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #dee2e6;">
                   <p style="color: #666; font-size: 14px; margin: 0 0 8px 0; line-height: 1.5;"><strong>Notes:</strong></p>
-                  ${
-                    notes
-                      ? `<p style="color: #333; font-size: 14px; margin: 0 0 12px 0; line-height: 1.5; white-space: pre-wrap; padding: 8px; background-color: #ffffff; border: 1px solid #dee2e6; border-radius: 4px;">${this.escapeHtml(
-                          notes
-                        )}</p>`
-                      : `<p style="color: #999; font-size: 14px; margin: 0 0 12px 0; line-height: 1.5; font-style: italic; padding: 8px; background-color: #ffffff; border: 1px solid #dee2e6; border-radius: 4px;">No notes added yet</p>`
-                  }
-                  <p style="margin: 0 0 16px 0;">
-                    <a href="${dashboardUrl}?action=editNotes&reminderId=${reminderId}" style="color: #007bff; text-decoration: none; font-size: 14px;">${
+                  <div style="margin: 0 0 12px 0;">
+                    <a href="${dashboardUrl}?action=editNotes&reminderId=${reminderId}" style="display: inline-block; color: #007bff; text-decoration: underline; font-size: 14px; margin-bottom: 8px;">${
       notes ? "Edit notes" : "Add notes"
     } →</a>
-                  </p>
-                  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <a href="${completeUrl}" style="background-color: #c8e6c9; border: 1px solid #66bb6a; color: #2e7d32; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; text-align: center; font-weight: 500; flex: 1; min-width: 120px;">
-                      ✓ Complete
-                    </a>
-                    <a href="${dismissUrl}" style="background-color: #ffcdd2; border: 1px solid #ef5350; color: #c62828; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; text-align: center; font-weight: 500; flex: 1; min-width: 120px;">
-                      ✕ Dismiss
-                    </a>
-                    <a href="${snoozeUrl}" style="background-color: #e1bee7; border: 1px solid #ba68c8; color: #6a1b9a; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; text-align: center; font-weight: 500; flex: 1; min-width: 120px;">
-                      💤 Snooze
-                    </a>
+                    ${
+                      notes
+                        ? `<p style="color: #333; font-size: 14px; margin: 8px 0 0 0; line-height: 1.5; white-space: pre-wrap; padding: 8px; background-color: #ffffff; border: 1px solid #dee2e6; border-radius: 4px;">${this.escapeHtml(
+                            notes
+                          )}</p>`
+                        : `<p style="color: #999; font-size: 14px; margin: 8px 0 0 0; line-height: 1.5; font-style: italic; padding: 8px; background-color: #ffffff; border: 1px solid #dee2e6; border-radius: 4px;">No notes added yet</p>`
+                    }
                   </div>
+                  <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%; margin: 16px 0 0 0;">
+                    <tr>
+                      <td style="padding-right: 8px;">
+                        <a href="${completeUrl}" style="background-color: #c8e6c9; border: 1px solid #66bb6a; color: #2e7d32; padding: 8px 16px; text-decoration: none; border-radius: 4px; display: inline-block; text-align: center; font-weight: 500; font-size: 14px; white-space: nowrap;">
+                          ✓ Complete
+                        </a>
+                      </td>
+                      <td style="padding-right: 8px;">
+                        <a href="${dismissUrl}" style="background-color: #ffcdd2; border: 1px solid #ef5350; color: #c62828; padding: 8px 16px; text-decoration: none; border-radius: 4px; display: inline-block; text-align: center; font-weight: 500; font-size: 14px; white-space: nowrap;">
+                          ✕ Dismiss
+                        </a>
+                      </td>
+                      <td>
+                        <a href="${snoozeUrl}" style="background-color: #e1bee7; border: 1px solid #ba68c8; color: #6a1b9a; padding: 8px 16px; text-decoration: none; border-radius: 4px; display: inline-block; text-align: center; font-weight: 500; font-size: 14px; white-space: nowrap;">
+                          💤 Snooze
+                        </a>
+                      </td>
+                    </tr>
+                  </table>
                 </div>
               </div>
               <p style="color: #666; font-size: 14px; text-align: left; margin: 24px 0 0 0; line-height: 1.5;">
