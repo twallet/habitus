@@ -147,7 +147,7 @@ export function NotificationsModal({
                     {selectedChannels.includes('Telegram') && (
                         <div className="form-group">
                             <label htmlFor="telegram-chat-id" className="notifications-label">
-                                Telegram Chat ID
+                                Telegram chat ID
                             </label>
                             <input
                                 id="telegram-chat-id"

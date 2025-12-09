@@ -287,11 +287,11 @@ export class UserService {
     }
 
     // Update notification preferences
-    // If Telegram is not in channels, clear telegram_chat_id (set to undefined)
+    // If Telegram is not in channels, clear telegram_chat_id (use empty string which will be converted to null in DB)
     // If Telegram is in channels, use provided telegramChatId or keep existing
     const finalTelegramChatId = notificationChannels.includes("Telegram")
       ? telegramChatId || user.telegram_chat_id
-      : undefined;
+      : "";
 
     await user.update(
       {
