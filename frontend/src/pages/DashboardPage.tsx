@@ -791,7 +791,7 @@ export function DashboardPage() {
                         }}
                     >
                         <h3 style={{ margin: '0 0 16px 0', fontSize: '20px', fontWeight: 'bold' }}>
-                            Snooze Reminder
+                            Snooze reminder
                         </h3>
                         <p style={{ margin: '0 0 20px 0', color: '#666', fontSize: '14px' }}>
                             Select how long you want to snooze this reminder:
