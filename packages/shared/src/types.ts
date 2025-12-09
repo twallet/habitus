@@ -1,4 +1,3 @@
-
 // User Types
 export const MAX_USER_NAME_LENGTH = 30;
 
@@ -7,6 +6,8 @@ export interface UserData {
   name: string;
   email: string;
   profile_picture_url?: string;
+  telegram_chat_id?: string;
+  notification_channels?: string[];
   last_access?: string;
   created_at?: string;
 }

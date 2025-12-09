@@ -10,8 +10,6 @@ import { UserData, MAX_USER_NAME_LENGTH } from "@habitus/shared";
 export type { UserData };
 export { MAX_USER_NAME_LENGTH };
 
-
-
 /**
  * User model class for representing user entities and database operations.
  * @public
@@ -48,6 +46,18 @@ export class User {
   profile_picture_url?: string;
 
   /**
+   * Telegram chat ID (optional).
+   * @public
+   */
+  telegram_chat_id?: string;
+
+  /**
+   * Notification channels (optional).
+   * @public
+   */
+  notification_channels?: string[];
+
+  /**
    * Last access timestamp (optional).
    * @public
    */
@@ -69,6 +79,8 @@ export class User {
     this.name = data.name;
     this.email = data.email;
     this.profile_picture_url = data.profile_picture_url;
+    this.telegram_chat_id = data.telegram_chat_id;
+    this.notification_channels = data.notification_channels;
     this.last_access = data.last_access;
     this.created_at = data.created_at;
   }
@@ -111,6 +123,20 @@ export class User {
       if (this.profile_picture_url !== undefined) {
         updates.push("profile_picture_url = ?");
         values.push(this.profile_picture_url || null);
+      }
+
+      if (this.telegram_chat_id !== undefined) {
+        updates.push("telegram_chat_id = ?");
+        values.push(this.telegram_chat_id || null);
+      }
+
+      if (this.notification_channels !== undefined) {
+        updates.push("notification_channels = ?");
+        values.push(
+          this.notification_channels.length > 0
+            ? JSON.stringify(this.notification_channels)
+            : null
+        );
       }
 
       updates.push("updated_at = CURRENT_TIMESTAMP");
@@ -160,6 +186,12 @@ export class User {
     if (updates.profile_picture_url !== undefined) {
       this.profile_picture_url = updates.profile_picture_url;
     }
+    if (updates.telegram_chat_id !== undefined) {
+      this.telegram_chat_id = updates.telegram_chat_id;
+    }
+    if (updates.notification_channels !== undefined) {
+      this.notification_channels = updates.notification_channels;
+    }
 
     return this.save(db);
   }
@@ -194,6 +226,8 @@ export class User {
       name: this.name,
       email: this.email,
       profile_picture_url: this.profile_picture_url,
+      telegram_chat_id: this.telegram_chat_id,
+      notification_channels: this.notification_channels,
       last_access: this.last_access,
       created_at: this.created_at,
     };
@@ -212,10 +246,12 @@ export class User {
       name: string;
       email: string;
       profile_picture_url: string | null;
+      telegram_chat_id: string | null;
+      notification_channels: string | null;
       last_access: string | null;
       created_at: string;
     }>(
-      "SELECT id, name, email, profile_picture_url, last_access, created_at FROM users WHERE id = ?",
+      "SELECT id, name, email, profile_picture_url, telegram_chat_id, notification_channels, last_access, created_at FROM users WHERE id = ?",
       [id]
     );
 
@@ -228,6 +264,10 @@ export class User {
       name: row.name,
       email: row.email,
       profile_picture_url: row.profile_picture_url || undefined,
+      telegram_chat_id: row.telegram_chat_id || undefined,
+      notification_channels: row.notification_channels
+        ? JSON.parse(row.notification_channels)
+        : undefined,
       last_access: row.last_access || undefined,
       created_at: row.created_at,
     });
@@ -247,10 +287,12 @@ export class User {
       name: string;
       email: string;
       profile_picture_url: string | null;
+      telegram_chat_id: string | null;
+      notification_channels: string | null;
       last_access: string | null;
       created_at: string;
     }>(
-      "SELECT id, name, email, profile_picture_url, last_access, created_at FROM users WHERE email = ?",
+      "SELECT id, name, email, profile_picture_url, telegram_chat_id, notification_channels, last_access, created_at FROM users WHERE email = ?",
       [validatedEmail]
     );
 
@@ -263,6 +305,10 @@ export class User {
       name: row.name,
       email: row.email,
       profile_picture_url: row.profile_picture_url || undefined,
+      telegram_chat_id: row.telegram_chat_id || undefined,
+      notification_channels: row.notification_channels
+        ? JSON.parse(row.notification_channels)
+        : undefined,
       last_access: row.last_access || undefined,
       created_at: row.created_at,
     });

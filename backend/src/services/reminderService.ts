@@ -217,16 +217,16 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       } with status ${status}`
     );
 
-    // Send email notification if reminder is created as Pending
-    // Note: Only send email if this is a newly created reminder with PENDING status.
-    // updateExpiredUpcomingReminders handles emails for reminders transitioning from UPCOMING to PENDING.
+    // Send notifications if reminder is created as Pending
+    // Note: Only send notifications if this is a newly created reminder with PENDING status.
+    // updateExpiredUpcomingReminders handles notifications for reminders transitioning from UPCOMING to PENDING.
     if (status === ReminderStatus.PENDING) {
       try {
-        await this.sendReminderEmailNotification(savedReminder);
+        await this.sendReminderNotifications(savedReminder);
       } catch (error) {
         // Log error but don't fail reminder creation
         console.error(
-          `[${new Date().toISOString()}] REMINDER | Failed to send email notification for newly created reminder ID ${
+          `[${new Date().toISOString()}] REMINDER | Failed to send notifications for newly created reminder ID ${
             savedReminder.id
           }:`,
           error
@@ -625,14 +625,14 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
           this.db
         );
 
-        // Send email notification if reminder was updated to PENDING
+        // Send notifications if reminder was updated to PENDING
         if (status === ReminderStatus.PENDING) {
           try {
-            await this.sendReminderEmailNotification(updatedReminder);
+            await this.sendReminderNotifications(updatedReminder);
           } catch (error) {
             // Log error but don't fail the update
             console.error(
-              `[${new Date().toISOString()}] REMINDER | Failed to send email notification for reminder ID ${
+              `[${new Date().toISOString()}] REMINDER | Failed to send notifications for reminder ID ${
                 existingUpcoming.id
               } after deleteReminder updated it to PENDING:`,
               error
@@ -1116,16 +1116,16 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
         } expired upcoming reminder(s) to Pending status`
       );
 
-      // Send email notifications for reminders that became Pending
+      // Send notifications for reminders that became Pending
       for (let i = 0; i < updatedReminders.length; i++) {
         const updatedReminder = updatedReminders[i];
         const originalReminder = remindersToEmail[i];
         try {
-          await this.sendReminderEmailNotification(updatedReminder);
+          await this.sendReminderNotifications(updatedReminder);
         } catch (error) {
           // Log error but don't fail the update process
           console.error(
-            `[${new Date().toISOString()}] REMINDER | Failed to send email notification for reminder ID ${
+            `[${new Date().toISOString()}] REMINDER | Failed to send notifications for reminder ID ${
               originalReminder.id
             }:`,
             error
@@ -1155,22 +1155,23 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
   }
 
   /**
-   * Send email notification when a reminder becomes Pending.
+   * Send notifications when a reminder becomes Pending.
+   * Sends via all enabled channels (Email, Telegram) based on user preferences.
    * @param reminder - The reminder data
-   * @returns Promise resolving when email is sent
+   * @returns Promise resolving when notifications are sent
    * @private
    */
-  private async sendReminderEmailNotification(
+  private async sendReminderNotifications(
     reminder: ReminderData
   ): Promise<void> {
     try {
-      // Get user email
+      // Get user data
       const user = await User.loadById(reminder.user_id, this.db);
       if (!user) {
         console.warn(
           `[${new Date().toISOString()}] REMINDER | User not found for reminder ID ${
             reminder.id
-          }, cannot send email`
+          }, cannot send notifications`
         );
         return;
       }
@@ -1185,39 +1186,129 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
         console.warn(
           `[${new Date().toISOString()}] REMINDER | Tracking not found for reminder ID ${
             reminder.id
-          }, cannot send email`
+          }, cannot send notifications`
         );
         return;
       }
 
-      // Get email service
-      const emailService = ServiceManager.getEmailService();
+      // Get user notification preferences (default to Email if not set)
+      const notificationChannels =
+        user.notification_channels && user.notification_channels.length > 0
+          ? user.notification_channels
+          : ["Email"];
 
-      // Send reminder email
-      await emailService.sendReminderEmail(
-        user.email,
-        reminder.id,
-        tracking.question,
-        reminder.scheduled_time,
-        tracking.icon,
-        tracking.notes,
-        reminder.notes
-      );
+      // Send via all enabled channels
+      const sendPromises: Promise<void>[] = [];
+
+      // Send email if enabled
+      if (notificationChannels.includes("Email")) {
+        sendPromises.push(
+          this.sendReminderEmail(user, reminder, tracking).catch((error) => {
+            console.error(
+              `[${new Date().toISOString()}] REMINDER | Error sending email notification for reminder ID ${
+                reminder.id
+              }:`,
+              error
+            );
+          })
+        );
+      }
+
+      // Send Telegram if enabled
+      if (notificationChannels.includes("Telegram") && user.telegram_chat_id) {
+        sendPromises.push(
+          this.sendReminderTelegram(user, reminder, tracking).catch((error) => {
+            console.error(
+              `[${new Date().toISOString()}] REMINDER | Error sending Telegram notification for reminder ID ${
+                reminder.id
+              }:`,
+              error
+            );
+          })
+        );
+      }
+
+      // Wait for all notifications to be sent (errors are caught individually)
+      await Promise.allSettled(sendPromises);
 
       console.log(
-        `[${new Date().toISOString()}] REMINDER | Email notification sent for reminder ID ${
+        `[${new Date().toISOString()}] REMINDER | Notifications sent for reminder ID ${
           reminder.id
-        } to ${user.email}`
+        } via channels: ${notificationChannels.join(", ")}`
       );
     } catch (error) {
-      // Log error but don't throw - email sending failure shouldn't break reminder updates
+      // Log error but don't throw - notification sending failure shouldn't break reminder updates
       console.error(
-        `[${new Date().toISOString()}] REMINDER | Error sending email notification for reminder ID ${
+        `[${new Date().toISOString()}] REMINDER | Error sending notifications for reminder ID ${
           reminder.id
         }:`,
         error
       );
     }
+  }
+
+  /**
+   * Send reminder via email.
+   * @param user - User instance
+   * @param reminder - Reminder data
+   * @param tracking - Tracking instance
+   * @returns Promise resolving when email is sent
+   * @private
+   */
+  private async sendReminderEmail(
+    user: User,
+    reminder: ReminderData,
+    tracking: Tracking
+  ): Promise<void> {
+    const emailService = ServiceManager.getEmailService();
+    await emailService.sendReminderEmail(
+      user.email,
+      reminder.id,
+      tracking.question,
+      reminder.scheduled_time,
+      tracking.icon,
+      tracking.notes,
+      reminder.notes
+    );
+    console.log(
+      `[${new Date().toISOString()}] REMINDER | Email notification sent for reminder ID ${
+        reminder.id
+      } to ${user.email}`
+    );
+  }
+
+  /**
+   * Send reminder via Telegram.
+   * @param user - User instance
+   * @param reminder - Reminder data
+   * @param tracking - Tracking instance
+   * @returns Promise resolving when Telegram message is sent
+   * @private
+   */
+  private async sendReminderTelegram(
+    user: User,
+    reminder: ReminderData,
+    tracking: Tracking
+  ): Promise<void> {
+    if (!user.telegram_chat_id) {
+      throw new Error("Telegram chat ID not configured for user");
+    }
+
+    const telegramService = ServiceManager.getTelegramService();
+    await telegramService.sendReminderMessage(
+      user.telegram_chat_id,
+      reminder.id,
+      tracking.question,
+      reminder.scheduled_time,
+      tracking.icon,
+      tracking.notes,
+      reminder.notes
+    );
+    console.log(
+      `[${new Date().toISOString()}] REMINDER | Telegram notification sent for reminder ID ${
+        reminder.id
+      } to chatId: ${user.telegram_chat_id}`
+    );
   }
 
   /**

@@ -532,6 +532,24 @@ export class ApiClient {
   }
 
   /**
+   * Update notification preferences.
+   * @param notificationChannels - Array of enabled channels (e.g., ["Email", "Telegram"])
+   * @param telegramChatId - Optional Telegram chat ID (required if Telegram is enabled)
+   * @returns Promise resolving to updated user data
+   * @throws Error if request fails
+   * @public
+   */
+  async updateNotificationPreferences(
+    notificationChannels: string[],
+    telegramChatId?: string
+  ): Promise<UserData> {
+    return this.put<UserData>(`${API_ENDPOINTS.users}/notifications`, {
+      notificationChannels,
+      telegramChatId,
+    });
+  }
+
+  /**
    * Delete user account.
    * @returns Promise resolving when account is deleted
    * @throws Error if request fails

@@ -1,9 +1,11 @@
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import './NotificationsModal.css';
+import { UserData } from '../models/User';
 
 interface NotificationsModalProps {
     onClose: () => void;
-    onSave: (selectedChannels: string[]) => Promise<void>;
+    onSave: (selectedChannels: string[], telegramChatId?: string) => Promise<void>;
+    user?: UserData | null;
 }
 
 /**
@@ -12,15 +14,29 @@ interface NotificationsModalProps {
  * @param props - Component props
  * @param props.onClose - Callback when modal is closed
  * @param props.onSave - Callback when settings are saved
+ * @param props.user - Current user data (optional, for loading existing preferences)
  * @public
  */
 export function NotificationsModal({
     onClose,
     onSave,
+    user,
 }: NotificationsModalProps) {
     const [selectedChannels, setSelectedChannels] = useState<string[]>(['Email']);
+    const [telegramChatId, setTelegramChatId] = useState<string>('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    /**
+     * Load existing preferences from user data.
+     * @internal
+     */
+    useEffect(() => {
+        if (user) {
+            setSelectedChannels(user.notification_channels || ['Email']);
+            setTelegramChatId(user.telegram_chat_id || '');
+        }
+    }, [user]);
 
     /**
      * Handle channel toggle.
@@ -28,14 +44,12 @@ export function NotificationsModal({
      * @internal
      */
     const handleChannelToggle = (channel: string) => {
-        if (channel === 'Email') {
-            // Email is always enabled, so we just ensure it's selected
-            if (!selectedChannels.includes(channel)) {
-                setSelectedChannels([...selectedChannels, channel]);
-            }
+        if (selectedChannels.includes(channel)) {
+            // Remove channel if already selected
+            setSelectedChannels(selectedChannels.filter((ch) => ch !== channel));
         } else {
-            // Other channels are disabled for now
-            return;
+            // Add channel if not selected
+            setSelectedChannels([...selectedChannels, channel]);
         }
     };
 
@@ -55,8 +69,18 @@ export function NotificationsModal({
         setIsSubmitting(true);
         setError(null);
 
+        // Validate that Telegram chat ID is provided if Telegram is selected
+        if (selectedChannels.includes('Telegram') && !telegramChatId.trim()) {
+            setError('Telegram chat ID is required when Telegram notifications are enabled');
+            setIsSubmitting(false);
+            return;
+        }
+
         try {
-            await onSave(selectedChannels);
+            await onSave(
+                selectedChannels,
+                selectedChannels.includes('Telegram') ? telegramChatId.trim() : undefined
+            );
             onClose();
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Error saving notification settings');
@@ -67,9 +91,7 @@ export function NotificationsModal({
 
     const channels = [
         { id: 'Email', label: 'Email', enabled: true },
-        { id: 'Whatsapp', label: 'Whatsapp', enabled: false },
-        { id: 'Telegram', label: 'Telegram', enabled: false },
-        { id: 'MS Teams', label: 'MS Teams', enabled: false },
+        { id: 'Telegram', label: 'Telegram', enabled: true },
     ];
 
     return (
@@ -121,6 +143,26 @@ export function NotificationsModal({
                             ))}
                         </div>
                     </div>
+
+                    {selectedChannels.includes('Telegram') && (
+                        <div className="form-group">
+                            <label htmlFor="telegram-chat-id" className="notifications-label">
+                                Telegram Chat ID
+                            </label>
+                            <input
+                                id="telegram-chat-id"
+                                type="text"
+                                value={telegramChatId}
+                                onChange={(e) => setTelegramChatId(e.target.value)}
+                                placeholder="Enter your Telegram chat ID"
+                                disabled={isSubmitting}
+                                className="form-input"
+                            />
+                            <p className="form-help-text">
+                                To get your chat ID, start a conversation with your bot and send /start, then check the bot's logs or use @userinfobot
+                            </p>
+                        </div>
+                    )}
 
                     <div className="modal-actions">
                         <button

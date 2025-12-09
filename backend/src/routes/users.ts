@@ -154,6 +154,54 @@ router.delete(
 );
 
 /**
+ * PUT /api/users/notifications
+ * Update authenticated user's notification preferences.
+ * @route PUT /api/users/notifications
+ * @header {string} Authorization - Bearer token
+ * @body {string[]} notificationChannels - Array of enabled channels (e.g., ["Email", "Telegram"])
+ * @body {string} telegramChatId - Optional Telegram chat ID (required if Telegram is enabled)
+ * @returns {UserData} Updated user data
+ */
+router.put(
+  "/notifications",
+  authenticateToken,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId!;
+      const { notificationChannels, telegramChatId } = req.body;
+
+      if (!notificationChannels || !Array.isArray(notificationChannels)) {
+        return res
+          .status(400)
+          .json({ error: "notificationChannels must be an array" });
+      }
+
+      const user = await getUserServiceInstance().updateNotificationPreferences(
+        userId,
+        notificationChannels,
+        telegramChatId
+      );
+
+      res.json(user);
+    } catch (error) {
+      if (error instanceof TypeError) {
+        return res.status(400).json({ error: error.message });
+      }
+      if (error instanceof Error && error.message === "User not found") {
+        return res.status(404).json({ error: error.message });
+      }
+      console.error(
+        `[${new Date().toISOString()}] USER_ROUTE | Error updating notification preferences:`,
+        error
+      );
+      res
+        .status(500)
+        .json({ error: "Error updating notification preferences" });
+    }
+  }
+);
+
+/**
  * GET /api/users/:id
  * Get a user by ID.
  * @route GET /api/users/:id

@@ -72,10 +72,12 @@ export class UserService {
       name: string;
       email: string;
       profile_picture_url: string | null;
+      telegram_chat_id: string | null;
+      notification_channels: string | null;
       last_access: string | null;
       created_at: string;
     }>(
-      "SELECT id, name, email, profile_picture_url, last_access, created_at FROM users WHERE id = ?",
+      "SELECT id, name, email, profile_picture_url, telegram_chat_id, notification_channels, last_access, created_at FROM users WHERE id = ?",
       [id]
     );
 
@@ -97,6 +99,10 @@ export class UserService {
       name: row.name,
       email: row.email,
       profile_picture_url: row.profile_picture_url || undefined,
+      telegram_chat_id: row.telegram_chat_id || undefined,
+      notification_channels: row.notification_channels
+        ? JSON.parse(row.notification_channels)
+        : undefined,
       last_access: row.last_access || undefined,
       created_at: row.created_at,
     };
@@ -226,6 +232,89 @@ export class UserService {
     );
 
     return user;
+  }
+
+  /**
+   * Update notification preferences for a user.
+   * @param userId - The user ID
+   * @param notificationChannels - Array of enabled notification channels (e.g., ["Email", "Telegram"])
+   * @param telegramChatId - Optional Telegram chat ID
+   * @returns Promise resolving to updated user data
+   * @throws Error if user not found or validation fails
+   * @public
+   */
+  async updateNotificationPreferences(
+    userId: number,
+    notificationChannels: string[],
+    telegramChatId?: string
+  ): Promise<UserData> {
+    console.log(
+      `[${new Date().toISOString()}] USER | Updating notification preferences for userId: ${userId}, channels: ${JSON.stringify(
+        notificationChannels
+      )}, telegramChatId: ${telegramChatId ? "provided" : "not provided"}`
+    );
+
+    // Validate notification channels
+    const validChannels = ["Email", "Telegram"];
+    const invalidChannels = notificationChannels.filter(
+      (ch) => !validChannels.includes(ch)
+    );
+    if (invalidChannels.length > 0) {
+      throw new TypeError(
+        `Invalid notification channels: ${invalidChannels.join(
+          ", "
+        )}. Valid channels are: ${validChannels.join(", ")}`
+      );
+    }
+
+    // Validate that Telegram chat ID is provided if Telegram is enabled
+    if (
+      notificationChannels.includes("Telegram") &&
+      (!telegramChatId || telegramChatId.trim() === "")
+    ) {
+      throw new TypeError(
+        "Telegram chat ID is required when Telegram notifications are enabled"
+      );
+    }
+
+    // Get current user
+    const user = await User.loadById(userId, this.db);
+    if (!user) {
+      console.warn(
+        `[${new Date().toISOString()}] USER | Update notification preferences failed: user not found for userId: ${userId}`
+      );
+      throw new Error("User not found");
+    }
+
+    // Update notification preferences
+    // If Telegram is not in channels, clear telegram_chat_id (set to undefined)
+    // If Telegram is in channels, use provided telegramChatId or keep existing
+    const finalTelegramChatId = notificationChannels.includes("Telegram")
+      ? telegramChatId || user.telegram_chat_id
+      : undefined;
+
+    await user.update(
+      {
+        notification_channels: notificationChannels,
+        telegram_chat_id: finalTelegramChatId,
+      },
+      this.db
+    );
+
+    // Retrieve updated user
+    const updatedUser = await this.getUserById(userId);
+    if (!updatedUser) {
+      console.error(
+        `[${new Date().toISOString()}] USER | Failed to retrieve updated user for userId: ${userId}`
+      );
+      throw new Error("Failed to retrieve updated user");
+    }
+
+    console.log(
+      `[${new Date().toISOString()}] USER | Notification preferences updated successfully for userId: ${userId}`
+    );
+
+    return updatedUser;
   }
 
   /**

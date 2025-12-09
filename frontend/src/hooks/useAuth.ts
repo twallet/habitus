@@ -257,6 +257,44 @@ export function useAuth() {
   };
 
   /**
+   * Update notification preferences.
+   * @param notificationChannels - Array of enabled channels (e.g., ["Email", "Telegram"])
+   * @param telegramChatId - Optional Telegram chat ID (required if Telegram is enabled)
+   * @returns Promise resolving to updated user data
+   * @throws Error if request fails
+   * @public
+   */
+  const updateNotificationPreferences = async (
+    notificationChannels: string[],
+    telegramChatId?: string
+  ): Promise<UserData> => {
+    if (!token) {
+      console.error(
+        `[${new Date().toISOString()}] FRONTEND_AUTH | Notification preferences update failed: not authenticated`
+      );
+      throw new Error("Not authenticated");
+    }
+
+    console.log(
+      `[${new Date().toISOString()}] FRONTEND_AUTH | Updating notification preferences for user ID: ${
+        user?.id
+      }`
+    );
+
+    const updatedUser = await apiClient.updateNotificationPreferences(
+      notificationChannels,
+      telegramChatId
+    );
+    console.log(
+      `[${new Date().toISOString()}] FRONTEND_AUTH | Notification preferences updated successfully for user ID: ${
+        updatedUser.id
+      }`
+    );
+    setUser(updatedUser);
+    return updatedUser;
+  };
+
+  /**
    * Delete user account.
    * @returns Promise resolving when account is deleted
    * @throws Error if request fails
@@ -310,6 +348,7 @@ export function useAuth() {
     logout,
     setTokenFromCallback,
     updateProfile,
+    updateNotificationPreferences,
     deleteUser,
   };
 }

@@ -19,7 +19,7 @@ import { DebugLogWindow } from '../../components/DebugLogWindow';
 import { OutletContextType } from '../../context/AppContext';
 
 export function MainLayout() {
-    const { isAuthenticated, isLoading, user, logout, updateProfile, deleteUser, requestEmailChange } = useAuth();
+    const { isAuthenticated, isLoading, user, logout, updateProfile, updateNotificationPreferences, deleteUser, requestEmailChange } = useAuth();
 
     // State
     const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -316,10 +316,11 @@ export function MainLayout() {
                 {showNotifications && (
                     <NotificationsModal
                         onClose={() => setShowNotifications(false)}
-                        onSave={async (_selectedChannels) => {
-                            // TODO: Implement notification settings save
+                        onSave={async (selectedChannels, telegramChatId) => {
+                            await updateNotificationPreferences(selectedChannels, telegramChatId);
                             setMessage({ text: 'Notification settings saved', type: 'success' });
                         }}
+                        user={user}
                     />
                 )}
             </div>

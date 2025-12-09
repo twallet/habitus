@@ -147,6 +147,8 @@ export class Database {
               pending_email TEXT,
               email_verification_token TEXT,
               email_verification_expires DATETIME,
+              telegram_chat_id TEXT,
+              notification_channels TEXT,
               last_access DATETIME,
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP

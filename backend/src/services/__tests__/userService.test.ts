@@ -44,6 +44,8 @@ async function createTestDatabase(): Promise<Database> {
               profile_picture_url TEXT,
               magic_link_token TEXT,
               magic_link_expires DATETIME,
+              telegram_chat_id TEXT,
+              notification_channels TEXT,
               last_access DATETIME,
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -559,6 +561,87 @@ describe("UserService", () => {
       );
       expect(updatedUser).toBeDefined();
       expect(updatedUser.email).toBe("newemail@example.com");
+    });
+  });
+
+  describe("updateNotificationPreferences", () => {
+    it("should update notification channels and telegram chat ID", async () => {
+      // Create a test user
+      await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
+        "Test User",
+        "test@example.com",
+      ]);
+      const users = await userService.getAllUsers();
+      const user = users[0];
+      expect(user).toBeDefined();
+
+      // Update notification preferences
+      const updatedUser = await userService.updateNotificationPreferences(
+        user.id,
+        ["Email", "Telegram"],
+        "123456789"
+      );
+
+      expect(updatedUser.notification_channels).toEqual(["Email", "Telegram"]);
+      expect(updatedUser.telegram_chat_id).toBe("123456789");
+    });
+
+    it("should update only notification channels without telegram chat ID", async () => {
+      // Create a test user
+      await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
+        "Test User",
+        "test@example.com",
+      ]);
+      const users = await userService.getAllUsers();
+      const user = users[0];
+      expect(user).toBeDefined();
+
+      // Update notification preferences with only Email
+      const updatedUser = await userService.updateNotificationPreferences(
+        user.id,
+        ["Email"]
+      );
+
+      expect(updatedUser.notification_channels).toEqual(["Email"]);
+      expect(updatedUser.telegram_chat_id).toBeUndefined();
+    });
+
+    it("should throw error if Telegram is enabled without chat ID", async () => {
+      // Create a test user
+      await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
+        "Test User",
+        "test@example.com",
+      ]);
+      const users = await userService.getAllUsers();
+      const user = users[0];
+      expect(user).toBeDefined();
+
+      // Try to enable Telegram without providing chat ID
+      await expect(
+        userService.updateNotificationPreferences(user.id, ["Telegram"])
+      ).rejects.toThrow("Telegram chat ID is required");
+    });
+
+    it("should throw error for invalid notification channels", async () => {
+      // Create a test user
+      await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
+        "Test User",
+        "test@example.com",
+      ]);
+      const users = await userService.getAllUsers();
+      const user = users[0];
+      expect(user).toBeDefined();
+
+      // Try to use invalid channel
+      await expect(
+        userService.updateNotificationPreferences(user.id, ["InvalidChannel"])
+      ).rejects.toThrow("Invalid notification channels");
+    });
+
+    it("should throw error if user not found", async () => {
+      await expect(
+        userService.updateNotificationPreferences(999, ["Email"])
+      ).rejects.toThrow("User not found");
     });
   });
 });
