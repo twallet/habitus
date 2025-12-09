@@ -263,17 +263,17 @@ export class EmailService {
                 <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #dee2e6;">
                   <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%; margin: 0;">
                     <tr>
-                      <td style="padding-right: 8px;">
+                      <td style="padding-right: 4px;">
                         <a href="${addNotesUrl}" style="background-color: #fff3cd; border: 1px solid #ffc107; color: #856404; padding: 8px 16px; text-decoration: none; border-radius: 4px; display: inline-block; text-align: center; font-weight: 500; font-size: 14px; white-space: nowrap;">
                           📝 Add Notes
                         </a>
                       </td>
-                      <td style="padding-right: 8px;">
+                      <td style="padding-right: 4px;">
                         <a href="${completeUrl}" style="background-color: #c8e6c9; border: 1px solid #66bb6a; color: #2e7d32; padding: 8px 16px; text-decoration: none; border-radius: 4px; display: inline-block; text-align: center; font-weight: 500; font-size: 14px; white-space: nowrap;">
                           ✓ Complete
                         </a>
                       </td>
-                      <td style="padding-right: 8px;">
+                      <td style="padding-right: 4px;">
                         <a href="${dismissUrl}" style="background-color: #ffcdd2; border: 1px solid #ef5350; color: #c62828; padding: 8px 16px; text-decoration: none; border-radius: 4px; display: inline-block; text-align: center; font-weight: 500; font-size: 14px; white-space: nowrap;">
                           ✕ Dismiss
                         </a>

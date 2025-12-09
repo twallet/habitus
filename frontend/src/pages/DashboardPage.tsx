@@ -5,6 +5,8 @@ import { OutletContextType } from '../context/AppContext';
 import { ReminderStatus, ReminderData } from '../models/Reminder';
 import { ReminderFormatter } from '../components/RemindersList';
 import { Message } from '../components/Message';
+import { ApiClient } from '../config/api';
+import { tokenManager } from '../hooks/base/TokenManager';
 import './DashboardPage.css';
 
 /**
@@ -56,6 +58,7 @@ const SNOOZE_OPTIONS = [
 export function DashboardPage() {
     const {
         reminders,
+        remindersLoading,
         trackings,
         updateReminder,
         completeReminder,
@@ -73,6 +76,16 @@ export function DashboardPage() {
     const snoozeDropdownRefs = useRef<Record<number, HTMLDivElement | null>>({});
     const snoozeButtonRefs = useRef<Record<number, HTMLButtonElement | null>>({});
     const notesTextareaRefs = useRef<Record<number, HTMLTextAreaElement | null>>({});
+    const apiClientRef = useRef<ApiClient | null>(null);
+
+    // Initialize API client
+    if (!apiClientRef.current) {
+        apiClientRef.current = new ApiClient();
+        const token = tokenManager.getToken();
+        if (token) {
+            apiClientRef.current.setToken(token);
+        }
+    }
 
     // Filter for today's pending reminders
     const todayPendingReminders = useMemo(() => {
@@ -230,6 +243,104 @@ export function DashboardPage() {
     }, [dismissReminder]);
 
     /**
+     * Process action with a reminder.
+     * @param reminder - The reminder to process
+     * @param action - The action to perform
+     * @param reminderIdParam - The reminder ID parameter
+     * @param notesParam - Optional notes parameter
+     * @internal
+     */
+    const processActionWithReminder = useCallback((reminder: ReminderData | undefined, action: string, reminderIdParam: string, notesParam: string | null) => {
+        if (!reminder) {
+            // Reminder not found (only show error after loading is complete and API fetch failed)
+            setMessage({
+                text: 'Reminder not found. It may have been deleted.',
+                type: 'error'
+            });
+            setSearchParams({});
+            return;
+        }
+
+        const reminderId = reminder.id;
+
+        if (reminder.status !== ReminderStatus.PENDING) {
+            // Reminder already resolved
+            setMessage({
+                text: 'This reminder has already been resolved.',
+                type: 'error'
+            });
+            setSearchParams({});
+            return;
+        }
+
+        // If notes are provided, save them first
+        const saveNotesAndAction = async () => {
+            if (notesParam !== null) {
+                try {
+                    const decodedNotes = decodeURIComponent(notesParam);
+                    await updateReminder(reminderId, decodedNotes);
+                    // Update local state
+                    setNotesValues(prev => ({
+                        ...prev,
+                        [reminderId]: decodedNotes
+                    }));
+                } catch (error) {
+                    console.error("Error updating notes from email:", error);
+                    setMessage({
+                        text: 'Error saving notes. The action will proceed without updating notes.',
+                        type: 'error'
+                    });
+                }
+            }
+        };
+
+        // Reminder is pending, proceed with action
+        if (action === 'complete') {
+            saveNotesAndAction().then(() => {
+                return handleComplete(reminder);
+            }).finally(() => {
+                // Clear URL parameters after action
+                setSearchParams({});
+            });
+        } else if (action === 'dismiss') {
+            saveNotesAndAction().then(() => {
+                return handleDismiss(reminder);
+            }).finally(() => {
+                // Clear URL parameters after action
+                setSearchParams({});
+            });
+        } else if (action === 'snooze') {
+            // Save notes first if provided
+            saveNotesAndAction().then(() => {
+                // Show snooze modal for email actions
+                setShowSnoozeModal(reminderId);
+                // Clear action and notes parameters but keep reminderId for modal
+                setSearchParams({ reminderId: reminderIdParam });
+            });
+        } else if (action === 'editNotes') {
+            // Focus on notes textarea for this reminder
+            if (notesParam !== null) {
+                const decodedNotes = decodeURIComponent(notesParam);
+                setNotesValues(prev => ({
+                    ...prev,
+                    [reminderId]: decodedNotes
+                }));
+            }
+            setEditingNotesId(reminderId);
+            // Scroll to the reminder card and focus the textarea
+            setTimeout(() => {
+                const textarea = notesTextareaRefs.current[reminderId];
+                if (textarea) {
+                    textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    textarea.focus();
+                }
+            }, 100);
+            // Clear URL parameters after focusing
+            setSearchParams({});
+        }
+    }, [setSearchParams, updateReminder, handleComplete, handleDismiss, setMessage, setNotesValues, setEditingNotesId, setShowSnoozeModal, notesTextareaRefs]);
+
+    /**
      * Handle action parameters from email links.
      * @internal
      */
@@ -238,97 +349,45 @@ export function DashboardPage() {
         const reminderIdParam = searchParams.get('reminderId');
         const notesParam = searchParams.get('notes');
 
+        // Wait for reminders to finish loading before processing actions
+        if (remindersLoading) {
+            return;
+        }
+
         if (action && reminderIdParam) {
             const reminderId = parseInt(reminderIdParam, 10);
-            const reminder = reminders.find(r => r.id === reminderId);
+            let reminder = reminders.find(r => r.id === reminderId);
 
-            if (!reminder) {
-                // Reminder not found
-                setMessage({
-                    text: 'Reminder not found. It may have been deleted.',
-                    type: 'error'
-                });
-                setSearchParams({});
-                return;
-            }
-
-            if (reminder.status !== ReminderStatus.PENDING) {
-                // Reminder already resolved
-                setMessage({
-                    text: 'This reminder has already been resolved.',
-                    type: 'error'
-                });
-                setSearchParams({});
-                return;
-            }
-
-            // If notes are provided, save them first
-            const saveNotesAndAction = async () => {
-                if (notesParam !== null) {
+            // If reminder not found locally, try fetching from API
+            if (!reminder && apiClientRef.current) {
+                (async () => {
                     try {
-                        const decodedNotes = decodeURIComponent(notesParam);
-                        await updateReminder(reminderId, decodedNotes);
-                        // Update local state
-                        setNotesValues(prev => ({
-                            ...prev,
-                            [reminderId]: decodedNotes
-                        }));
+                        const token = tokenManager.getToken();
+                        if (token) {
+                            apiClientRef.current!.setToken(token);
+                            const fetchedReminder = await apiClientRef.current!.getReminder(reminderId);
+                            // Process the action with the fetched reminder
+                            processActionWithReminder(fetchedReminder, action, reminderIdParam, notesParam);
+                            return;
+                        }
                     } catch (error) {
-                        console.error("Error updating notes from email:", error);
+                        console.error("Error fetching reminder from API:", error);
+                        // Reminder not found after API fetch attempt
                         setMessage({
-                            text: 'Error saving notes. The action will proceed without updating notes.',
+                            text: 'Reminder not found. It may have been deleted.',
                             type: 'error'
                         });
+                        setSearchParams({});
+                        return;
                     }
-                }
-            };
-
-            // Reminder is pending, proceed with action
-            if (action === 'complete') {
-                saveNotesAndAction().then(() => {
-                    return handleComplete(reminder);
-                }).finally(() => {
-                    // Clear URL parameters after action
-                    setSearchParams({});
-                });
-            } else if (action === 'dismiss') {
-                saveNotesAndAction().then(() => {
-                    return handleDismiss(reminder);
-                }).finally(() => {
-                    // Clear URL parameters after action
-                    setSearchParams({});
-                });
-            } else if (action === 'snooze') {
-                // Save notes first if provided
-                saveNotesAndAction().then(() => {
-                    // Show snooze modal for email actions
-                    setShowSnoozeModal(reminderId);
-                    // Clear action and notes parameters but keep reminderId for modal
-                    setSearchParams({ reminderId: reminderIdParam });
-                });
-            } else if (action === 'editNotes') {
-                // Focus on notes textarea for this reminder
-                if (notesParam !== null) {
-                    const decodedNotes = decodeURIComponent(notesParam);
-                    setNotesValues(prev => ({
-                        ...prev,
-                        [reminderId]: decodedNotes
-                    }));
-                }
-                setEditingNotesId(reminderId);
-                // Scroll to the reminder card and focus the textarea
-                setTimeout(() => {
-                    const textarea = notesTextareaRefs.current[reminderId];
-                    if (textarea) {
-                        textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        textarea.focus();
-                    }
-                }, 100);
-                // Clear URL parameters after focusing
-                setSearchParams({});
+                })();
+                return; // Exit early, async function will handle the action
             }
+
+            // Process action with locally found reminder
+            processActionWithReminder(reminder, action, reminderIdParam, notesParam);
         }
-    }, [searchParams, reminders, setSearchParams, updateReminder, handleComplete, handleDismiss]);
+    }, [searchParams, reminders, remindersLoading, setSearchParams, processActionWithReminder, apiClientRef]);
 
     /**
      * Close dropdowns when clicking outside.
