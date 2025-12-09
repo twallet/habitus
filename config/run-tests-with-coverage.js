@@ -21,7 +21,7 @@ if (!existsSync(coverageTmpDir)) {
   mkdirSync(coverageTmpDir, { recursive: true });
 }
 
-console.log("Running tests with coverage...\n");
+//console.log("Running tests with coverage...\n");
 
 let vitestExitCode = 0;
 
@@ -44,7 +44,7 @@ try {
 // But only if the coverage file exists (tests may have failed before generating coverage)
 const coverageFile = join(coverageDir, "coverage-final.json");
 if (existsSync(coverageFile)) {
-  console.log("\nGenerating coverage report...\n");
+  //console.log("\nGenerating coverage report...\n");
 
   try {
     execSync("node config/coverage-report-low.js", {
@@ -58,10 +58,10 @@ if (existsSync(coverageFile)) {
     console.error("Error generating coverage report:", reportError.message);
   }
 } else {
-  console.log("\n⚠️  Coverage file not found. Skipping coverage report.\n");
+  /*console.log("\n⚠️  Coverage file not found. Skipping coverage report.\n");
   console.log(
     "   (This may happen if tests failed before coverage was generated)\n"
-  );
+  );*/
 }
 
 // Exit with the vitest code so test failures are still reported

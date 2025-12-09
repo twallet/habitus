@@ -3,7 +3,7 @@
  * Reads the coverage JSON file and filters files that don't meet the branches coverage threshold.
  */
 
-import { readFileSync, existsSync } from "fs";
+import { readFileSync } from "fs";
 import { join, dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 
