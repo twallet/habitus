@@ -19,7 +19,7 @@
 4. **Testing**:
    4.1. Always run all available test suites after changing code.
    4.2. Tests must be in English.
-   4.3. Maintain test coverage above 75%.
+   4.3. Maintain test coverage above 75% for branches.
    4.4. Write tests for new features and bug fixes.
 
 5. **Documentation**:
