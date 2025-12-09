@@ -12,8 +12,10 @@ import {
   DaysPatternType,
 } from "../models/Tracking.js";
 import { TrackingSchedule } from "../models/TrackingSchedule.js";
+import { User } from "../models/User.js";
 import { BaseEntityService } from "./base/BaseEntityService.js";
 import { ReminderLifecycleManager } from "./lifecycle/ReminderLifecycleManager.js";
+import { ServiceManager } from "./index.js";
 
 /**
  * Service for reminder-related database operations.
@@ -214,6 +216,21 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
         savedReminder.id
       } with status ${status}`
     );
+
+    // Send email notification if reminder is created as Pending
+    if (status === ReminderStatus.PENDING) {
+      try {
+        await this.sendReminderEmailNotification(savedReminder);
+      } catch (error) {
+        // Log error but don't fail reminder creation
+        console.error(
+          `[${new Date().toISOString()}] REMINDER | Failed to send email notification for newly created reminder ID ${
+            savedReminder.id
+          }:`,
+          error
+        );
+      }
+    }
 
     return savedReminder;
   }
@@ -1040,6 +1057,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
   /**
    * Check and update expired upcoming reminders to Pending status.
    * Also creates new Upcoming reminders for trackings whose reminders became Pending.
+   * Sends email notifications when reminders become Pending.
    * @param reminders - Array of reminder instances to check
    * @returns Promise resolving when all updates are complete
    * @private
@@ -1049,6 +1067,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
   ): Promise<void> {
     const now = new Date();
     const updatePromises: Promise<ReminderData>[] = [];
+    const remindersToEmail: Reminder[] = [];
     const trackingIdsToCreateNext: Set<number> = new Set();
     const userIdsByTrackingId: Map<number, number> = new Map();
 
@@ -1064,6 +1083,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
           updatePromises.push(
             reminder.update({ status: ReminderStatus.PENDING }, this.db)
           );
+          remindersToEmail.push(reminder);
           // Track which trackings need a new Upcoming reminder created
           trackingIdsToCreateNext.add(reminder.tracking_id);
           userIdsByTrackingId.set(reminder.tracking_id, reminder.user_id);
@@ -1072,12 +1092,29 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
     }
 
     if (updatePromises.length > 0) {
-      await Promise.all(updatePromises);
+      const updatedReminders = await Promise.all(updatePromises);
       console.log(
         `[${new Date().toISOString()}] REMINDER | Updated ${
           updatePromises.length
         } expired upcoming reminder(s) to Pending status`
       );
+
+      // Send email notifications for reminders that became Pending
+      for (let i = 0; i < updatedReminders.length; i++) {
+        const updatedReminder = updatedReminders[i];
+        const originalReminder = remindersToEmail[i];
+        try {
+          await this.sendReminderEmailNotification(updatedReminder);
+        } catch (error) {
+          // Log error but don't fail the update process
+          console.error(
+            `[${new Date().toISOString()}] REMINDER | Failed to send email notification for reminder ID ${
+              originalReminder.id
+            }:`,
+            error
+          );
+        }
+      }
 
       // Create new Upcoming reminders for trackings whose reminders became Pending
       for (const trackingId of trackingIdsToCreateNext) {
@@ -1097,6 +1134,71 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
           }
         }
       }
+    }
+  }
+
+  /**
+   * Send email notification when a reminder becomes Pending.
+   * @param reminder - The reminder data
+   * @returns Promise resolving when email is sent
+   * @private
+   */
+  private async sendReminderEmailNotification(
+    reminder: ReminderData
+  ): Promise<void> {
+    try {
+      // Get user email
+      const user = await User.loadById(reminder.user_id, this.db);
+      if (!user) {
+        console.warn(
+          `[${new Date().toISOString()}] REMINDER | User not found for reminder ID ${
+            reminder.id
+          }, cannot send email`
+        );
+        return;
+      }
+
+      // Get tracking information
+      const tracking = await Tracking.loadById(
+        reminder.tracking_id,
+        reminder.user_id,
+        this.db
+      );
+      if (!tracking) {
+        console.warn(
+          `[${new Date().toISOString()}] REMINDER | Tracking not found for reminder ID ${
+            reminder.id
+          }, cannot send email`
+        );
+        return;
+      }
+
+      // Get email service
+      const emailService = ServiceManager.getEmailService();
+
+      // Send reminder email
+      await emailService.sendReminderEmail(
+        user.email,
+        reminder.id,
+        tracking.question,
+        reminder.scheduled_time,
+        tracking.icon,
+        reminder.notes
+      );
+
+      console.log(
+        `[${new Date().toISOString()}] REMINDER | Email notification sent for reminder ID ${
+          reminder.id
+        } to ${user.email}`
+      );
+    } catch (error) {
+      // Log error but don't throw - email sending failure shouldn't break reminder updates
+      console.error(
+        `[${new Date().toISOString()}] REMINDER | Error sending email notification for reminder ID ${
+          reminder.id
+        }:`,
+        error
+      );
     }
   }
 

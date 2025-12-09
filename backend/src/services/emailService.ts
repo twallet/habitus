@@ -183,6 +183,141 @@ export class EmailService {
   }
 
   /**
+   * Send a reminder email with action buttons.
+   * @param email - Recipient email address
+   * @param reminderId - Reminder ID
+   * @param trackingQuestion - Tracking question text
+   * @param scheduledTime - Scheduled time for the reminder
+   * @param trackingIcon - Tracking icon (emoji)
+   * @param notes - Optional reminder notes
+   * @returns Promise that resolves when email is sent
+   * @throws Error if email sending fails
+   * @public
+   */
+  async sendReminderEmail(
+    email: string,
+    reminderId: number,
+    trackingQuestion: string,
+    scheduledTime: string,
+    trackingIcon?: string,
+    notes?: string
+  ): Promise<void> {
+    console.log(
+      `[${new Date().toISOString()}] EMAIL | Preparing to send reminder email to: ${email}, reminderId: ${reminderId}`
+    );
+
+    const dashboardUrl = `${this.config.frontendUrl}/`;
+    const baseUrl = `${dashboardUrl}?reminderId=${reminderId}`;
+    const completeUrl = `${baseUrl}&action=complete`;
+    const dismissUrl = `${baseUrl}&action=dismiss`;
+    const snoozeUrl = `${baseUrl}&action=snooze`;
+
+    const scheduledDate = new Date(scheduledTime);
+    const formattedTime = scheduledDate.toLocaleString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    const icon = trackingIcon || "📝";
+    const subject = `🌱 Reminder: ${icon} ${trackingQuestion}`;
+    const text = `You have a pending reminder:\n\n${icon} ${trackingQuestion}\n\nScheduled for: ${formattedTime}${
+      notes ? `\n\nNotes: ${notes}` : ""
+    }\n\nAvailable actions:\n- Complete: ${completeUrl}\n- Dismiss: ${dismissUrl}\n- Snooze: ${snoozeUrl}`;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script type="text/javascript">
+          function updateActionUrl(action, notesField) {
+            var notes = encodeURIComponent(notesField.value || '');
+            var baseUrl = '${baseUrl}&action=' + action;
+            if (notes) {
+              baseUrl += '&notes=' + notes;
+            }
+            return baseUrl;
+          }
+          function handleAction(action, notesField) {
+            var url = updateActionUrl(action, notesField);
+            window.location.href = url;
+            return false;
+          }
+        </script>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #ffffff;">
+        <table role="presentation" style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 40px 30px; text-align: left;">
+              <h2 style="color: #333; text-align: left; margin: 0 0 16px 0; font-size: 24px; font-weight: bold;">🌱 Pending Reminder</h2>
+              <div style="background-color: #f8f9fa; padding: 20px; border-radius: 4px; margin-bottom: 24px;">
+                <p style="color: #333; font-size: 18px; font-weight: bold; margin: 0 0 12px 0; line-height: 1.5; display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 1.2em;">${icon}</span>
+                  <span>${this.escapeHtml(trackingQuestion)}</span>
+                </p>
+                <p style="color: #666; font-size: 14px; margin: 8px 0 0 0; line-height: 1.5;">
+                  <strong>Scheduled for:</strong> ${this.escapeHtml(
+                    formattedTime
+                  )}
+                </p>
+                <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #dee2e6;">
+                  <p style="color: #666; font-size: 14px; margin: 0 0 8px 0; line-height: 1.5;"><strong>Notes:</strong></p>
+                  <textarea id="reminder-notes-${reminderId}" name="notes" rows="3" style="width: 100%; padding: 8px; border: 1px solid #dee2e6; border-radius: 4px; font-size: 14px; font-family: Arial, sans-serif; resize: vertical; box-sizing: border-box; margin-bottom: 16px;">${
+      notes ? this.escapeHtml(notes) : ""
+    }</textarea>
+                  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <a href="${completeUrl}" onclick="return handleAction('complete', document.getElementById('reminder-notes-${reminderId}'));" style="background-color: #c8e6c9; border: 1px solid #66bb6a; color: #2e7d32; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; text-align: center; font-weight: 500; flex: 1; min-width: 120px;">
+                      ✓ Complete
+                    </a>
+                    <a href="${dismissUrl}" onclick="return handleAction('dismiss', document.getElementById('reminder-notes-${reminderId}'));" style="background-color: #ffcdd2; border: 1px solid #ef5350; color: #c62828; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; text-align: center; font-weight: 500; flex: 1; min-width: 120px;">
+                      ✕ Dismiss
+                    </a>
+                    <a href="${snoozeUrl}" onclick="return handleAction('snooze', document.getElementById('reminder-notes-${reminderId}'));" style="background-color: #e1bee7; border: 1px solid #ba68c8; color: #6a1b9a; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; text-align: center; font-weight: 500; flex: 1; min-width: 120px;">
+                      💤 Snooze
+                    </a>
+                  </div>
+                </div>
+              </div>
+              <p style="color: #666; font-size: 14px; text-align: left; margin: 24px 0 0 0; line-height: 1.5;">
+                Visit your <a href="${dashboardUrl}" style="color: #007bff; text-decoration: none;">dashboard</a> to manage all your reminders.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+
+    await this.sendEmail(email, subject, text, html);
+
+    console.log(
+      `[${new Date().toISOString()}] EMAIL | Reminder email sent successfully to: ${email}, reminderId: ${reminderId}`
+    );
+  }
+
+  /**
+   * Escape HTML special characters to prevent XSS.
+   * @param text - Text to escape
+   * @returns Escaped text
+   * @private
+   */
+  private escapeHtml(text: string): string {
+    const map: { [key: string]: string } = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;",
+    };
+    return text.replace(/[&<>"']/g, (m) => map[m]);
+  }
+
+  /**
    * Send a generic email.
    * @param email - Recipient email address
    * @param subject - Email subject

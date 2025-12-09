@@ -1,9 +1,10 @@
-import { useMemo, useState, useRef, useEffect, useLayoutEffect } from 'react';
+import { useMemo, useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { OutletContextType } from '../context/AppContext';
 import { ReminderStatus, ReminderData } from '../models/Reminder';
 import { ReminderFormatter } from '../components/RemindersList';
+import { Message } from '../components/Message';
 import './DashboardPage.css';
 
 /**
@@ -62,10 +63,13 @@ export function DashboardPage() {
         snoozeReminder
     } = useOutletContext<OutletContextType>();
 
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
     const [editingNotesId, setEditingNotesId] = useState<number | null>(null);
     const [notesValues, setNotesValues] = useState<Record<number, string>>({});
     const [openSnoozeId, setOpenSnoozeId] = useState<number | null>(null);
     const [snoozeDropdownPosition, setSnoozeDropdownPosition] = useState<Record<number, { top: number; left: number }>>({});
+    const [showSnoozeModal, setShowSnoozeModal] = useState<number | null>(null);
     const snoozeDropdownRefs = useRef<Record<number, HTMLDivElement | null>>({});
     const snoozeButtonRefs = useRef<Record<number, HTMLButtonElement | null>>({});
     const notesTextareaRefs = useRef<Record<number, HTMLTextAreaElement | null>>({});
@@ -138,6 +142,195 @@ export function DashboardPage() {
     }, [reminders]);
 
     /**
+     * Handle complete.
+     * @param reminder - Reminder data
+     * @internal
+     */
+    const handleComplete = useCallback(async (reminder: ReminderData) => {
+        // Check if reminder is still pending
+        if (reminder.status !== ReminderStatus.PENDING) {
+            setMessage({
+                text: 'This reminder has already been resolved.',
+                type: 'error'
+            });
+            return;
+        }
+
+        try {
+            await completeReminder(reminder.id);
+            setMessage({
+                text: 'Reminder completed successfully',
+                type: 'success'
+            });
+        } catch (error) {
+            console.error("Error completing reminder:", error);
+            const errorMessage = error instanceof Error
+                ? error.message
+                : 'Error completing reminder';
+
+            // Check if error is about reminder already resolved
+            if (errorMessage.includes('already been resolved') ||
+                errorMessage.includes('Cannot transition from Answered') ||
+                errorMessage.includes('Cannot transition to the same status')) {
+                setMessage({
+                    text: 'This reminder has already been resolved.',
+                    type: 'error'
+                });
+            } else {
+                setMessage({
+                    text: errorMessage,
+                    type: 'error'
+                });
+            }
+        }
+    }, [completeReminder]);
+
+    /**
+     * Handle dismiss.
+     * @param reminder - Reminder data
+     * @internal
+     */
+    const handleDismiss = useCallback(async (reminder: ReminderData) => {
+        // Check if reminder is still pending
+        if (reminder.status !== ReminderStatus.PENDING) {
+            setMessage({
+                text: 'This reminder has already been resolved.',
+                type: 'error'
+            });
+            return;
+        }
+
+        try {
+            await dismissReminder(reminder.id);
+            setMessage({
+                text: 'Reminder dismissed successfully',
+                type: 'success'
+            });
+        } catch (error) {
+            console.error("Error dismissing reminder:", error);
+            const errorMessage = error instanceof Error
+                ? error.message
+                : 'Error dismissing reminder';
+
+            // Check if error is about reminder already resolved
+            if (errorMessage.includes('already been resolved') ||
+                errorMessage.includes('Cannot transition from Answered') ||
+                errorMessage.includes('Cannot transition to the same status')) {
+                setMessage({
+                    text: 'This reminder has already been resolved.',
+                    type: 'error'
+                });
+            } else {
+                setMessage({
+                    text: errorMessage,
+                    type: 'error'
+                });
+            }
+        }
+    }, [dismissReminder]);
+
+    /**
+     * Handle action parameters from email links.
+     * @internal
+     */
+    useEffect(() => {
+        const action = searchParams.get('action');
+        const reminderIdParam = searchParams.get('reminderId');
+        const notesParam = searchParams.get('notes');
+
+        if (action && reminderIdParam) {
+            const reminderId = parseInt(reminderIdParam, 10);
+            const reminder = reminders.find(r => r.id === reminderId);
+
+            if (!reminder) {
+                // Reminder not found
+                setMessage({
+                    text: 'Reminder not found. It may have been deleted.',
+                    type: 'error'
+                });
+                setSearchParams({});
+                return;
+            }
+
+            if (reminder.status !== ReminderStatus.PENDING) {
+                // Reminder already resolved
+                setMessage({
+                    text: 'This reminder has already been resolved.',
+                    type: 'error'
+                });
+                setSearchParams({});
+                return;
+            }
+
+            // If notes are provided, save them first
+            const saveNotesAndAction = async () => {
+                if (notesParam !== null) {
+                    try {
+                        const decodedNotes = decodeURIComponent(notesParam);
+                        await updateReminder(reminderId, decodedNotes);
+                        // Update local state
+                        setNotesValues(prev => ({
+                            ...prev,
+                            [reminderId]: decodedNotes
+                        }));
+                    } catch (error) {
+                        console.error("Error updating notes from email:", error);
+                        setMessage({
+                            text: 'Error saving notes. The action will proceed without updating notes.',
+                            type: 'error'
+                        });
+                    }
+                }
+            };
+
+            // Reminder is pending, proceed with action
+            if (action === 'complete') {
+                saveNotesAndAction().then(() => {
+                    return handleComplete(reminder);
+                }).finally(() => {
+                    // Clear URL parameters after action
+                    setSearchParams({});
+                });
+            } else if (action === 'dismiss') {
+                saveNotesAndAction().then(() => {
+                    return handleDismiss(reminder);
+                }).finally(() => {
+                    // Clear URL parameters after action
+                    setSearchParams({});
+                });
+            } else if (action === 'snooze') {
+                // Save notes first if provided
+                saveNotesAndAction().then(() => {
+                    // Show snooze modal for email actions
+                    setShowSnoozeModal(reminderId);
+                    // Clear action and notes parameters but keep reminderId for modal
+                    setSearchParams({ reminderId: reminderIdParam });
+                });
+            } else if (action === 'editNotes') {
+                // Focus on notes textarea for this reminder
+                if (notesParam !== null) {
+                    const decodedNotes = decodeURIComponent(notesParam);
+                    setNotesValues(prev => ({
+                        ...prev,
+                        [reminderId]: decodedNotes
+                    }));
+                }
+                setEditingNotesId(reminderId);
+                // Scroll to the reminder card and focus the textarea
+                setTimeout(() => {
+                    const textarea = notesTextareaRefs.current[reminderId];
+                    if (textarea) {
+                        textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        textarea.focus();
+                    }
+                }, 100);
+                // Clear URL parameters after focusing
+                setSearchParams({});
+            }
+        }
+    }, [searchParams, reminders, setSearchParams, updateReminder, handleComplete, handleDismiss]);
+
+    /**
      * Close dropdowns when clicking outside.
      * @internal
      */
@@ -185,11 +378,44 @@ export function DashboardPage() {
      */
     const handleSaveNotes = async (reminderId: number) => {
         const notesToSave = notesValues[reminderId] ?? "";
+        const reminder = reminders.find(r => r.id === reminderId);
+
+        // Check if reminder is still pending
+        if (reminder && reminder.status !== ReminderStatus.PENDING) {
+            setMessage({
+                text: 'Cannot edit notes. This reminder has already been resolved.',
+                type: 'error'
+            });
+            setEditingNotesId(null);
+            return;
+        }
+
         try {
             await updateReminder(reminderId, notesToSave);
             setEditingNotesId(null);
+            setMessage({
+                text: 'Notes updated successfully',
+                type: 'success'
+            });
         } catch (error) {
             console.error("Error updating notes:", error);
+            const errorMessage = error instanceof Error
+                ? error.message
+                : 'Error updating notes';
+
+            // Check if error is about reminder already resolved
+            if (errorMessage.includes('already been resolved') ||
+                errorMessage.includes('Cannot transition from Answered')) {
+                setMessage({
+                    text: 'Cannot edit notes. This reminder has already been resolved.',
+                    type: 'error'
+                });
+            } else {
+                setMessage({
+                    text: errorMessage,
+                    type: 'error'
+                });
+            }
         }
     };
 
@@ -277,6 +503,18 @@ export function DashboardPage() {
      * @internal
      */
     const handleSnooze = async (reminderId: number, minutes: number) => {
+        const reminder = reminders.find(r => r.id === reminderId);
+
+        // Check if reminder is still pending
+        if (reminder && reminder.status !== ReminderStatus.PENDING) {
+            setMessage({
+                text: 'Cannot snooze. This reminder has already been resolved.',
+                type: 'error'
+            });
+            setOpenSnoozeId(null);
+            return;
+        }
+
         try {
             await snoozeReminder(reminderId, minutes);
             setOpenSnoozeId(null);
@@ -285,39 +523,94 @@ export function DashboardPage() {
                 delete newPos[reminderId];
                 return newPos;
             });
+            setMessage({
+                text: 'Reminder snoozed successfully',
+                type: 'success'
+            });
         } catch (error) {
             console.error("Error snoozing reminder:", error);
+            const errorMessage = error instanceof Error
+                ? error.message
+                : 'Error snoozing reminder';
+
+            // Check if error is about reminder already resolved
+            if (errorMessage.includes('already been resolved') ||
+                errorMessage.includes('Cannot transition from Answered')) {
+                setMessage({
+                    text: 'Cannot snooze. This reminder has already been resolved.',
+                    type: 'error'
+                });
+            } else {
+                setMessage({
+                    text: errorMessage,
+                    type: 'error'
+                });
+            }
         }
     };
 
-    /**
-     * Handle complete.
-     * @param reminder - Reminder data
-     * @internal
-     */
-    const handleComplete = async (reminder: ReminderData) => {
-        try {
-            await completeReminder(reminder.id);
-        } catch (error) {
-            console.error("Error completing reminder:", error);
-        }
-    };
 
     /**
-     * Handle dismiss.
-     * @param reminder - Reminder data
+     * Handle snooze from modal (email action).
+     * @param reminderId - Reminder ID
+     * @param minutes - Minutes to snooze
      * @internal
      */
-    const handleDismiss = async (reminder: ReminderData) => {
+    const handleSnoozeFromModal = async (reminderId: number, minutes: number) => {
+        const reminder = reminders.find(r => r.id === reminderId);
+
+        // Check if reminder is still pending
+        if (reminder && reminder.status !== ReminderStatus.PENDING) {
+            setMessage({
+                text: 'Cannot snooze. This reminder has already been resolved.',
+                type: 'error'
+            });
+            setShowSnoozeModal(null);
+            setSearchParams({});
+            return;
+        }
+
         try {
-            await dismissReminder(reminder.id);
+            await snoozeReminder(reminderId, minutes);
+            setShowSnoozeModal(null);
+            setSearchParams({});
+            setMessage({
+                text: 'Reminder snoozed successfully',
+                type: 'success'
+            });
         } catch (error) {
-            console.error("Error dismissing reminder:", error);
+            console.error("Error snoozing reminder:", error);
+            const errorMessage = error instanceof Error
+                ? error.message
+                : 'Error snoozing reminder';
+
+            // Check if error is about reminder already resolved
+            if (errorMessage.includes('already been resolved') ||
+                errorMessage.includes('Cannot transition from Answered')) {
+                setMessage({
+                    text: 'Cannot snooze. This reminder has already been resolved.',
+                    type: 'error'
+                });
+            } else {
+                setMessage({
+                    text: errorMessage,
+                    type: 'error'
+                });
+            }
+            setShowSnoozeModal(null);
+            setSearchParams({});
         }
     };
 
     return (
         <div className="dashboard">
+            {message && (
+                <Message
+                    text={message.text}
+                    type={message.type}
+                    onHide={() => setMessage(null)}
+                />
+            )}
             <div className="dashboard-section">
                 <div className="section-header">
                     <h3>Pending reminders</h3>
@@ -463,6 +756,96 @@ export function DashboardPage() {
                     </div>
                 )}
             </div>
+
+            {/* Snooze Modal for Email Actions */}
+            {showSnoozeModal !== null && createPortal(
+                <div
+                    className="modal-overlay"
+                    onClick={() => {
+                        setShowSnoozeModal(null);
+                        setSearchParams({});
+                    }}
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1000,
+                    }}
+                >
+                    <div
+                        className="snooze-modal"
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            backgroundColor: 'white',
+                            borderRadius: '8px',
+                            padding: '24px',
+                            maxWidth: '400px',
+                            width: '90%',
+                            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                        }}
+                    >
+                        <h3 style={{ margin: '0 0 16px 0', fontSize: '20px', fontWeight: 'bold' }}>
+                            Snooze Reminder
+                        </h3>
+                        <p style={{ margin: '0 0 20px 0', color: '#666', fontSize: '14px' }}>
+                            Select how long you want to snooze this reminder:
+                        </p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {SNOOZE_OPTIONS.map((option) => (
+                                <button
+                                    key={option.minutes}
+                                    type="button"
+                                    onClick={() => handleSnoozeFromModal(showSnoozeModal, option.minutes)}
+                                    style={{
+                                        padding: '12px 16px',
+                                        border: '1px solid #ddd',
+                                        borderRadius: '4px',
+                                        backgroundColor: 'white',
+                                        cursor: 'pointer',
+                                        fontSize: '14px',
+                                        textAlign: 'left',
+                                        transition: 'background-color 0.2s',
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.backgroundColor = '#f5f5f5';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.backgroundColor = 'white';
+                                    }}
+                                >
+                                    {option.label}
+                                </button>
+                            ))}
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setShowSnoozeModal(null);
+                                setSearchParams({});
+                            }}
+                            style={{
+                                marginTop: '16px',
+                                padding: '8px 16px',
+                                border: '1px solid #ddd',
+                                borderRadius: '4px',
+                                backgroundColor: '#f5f5f5',
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                                width: '100%',
+                            }}
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>,
+                document.body
+            )}
         </div>
     );
 }
