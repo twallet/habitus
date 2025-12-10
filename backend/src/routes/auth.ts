@@ -275,7 +275,8 @@ router.get("/verify-email-change", async (req: Request, res: Response) => {
       error instanceof Error &&
       (error.message.includes("Invalid") ||
         error.message.includes("expired") ||
-        error.message.includes("already registered"))
+        error.message.includes("already registered") ||
+        error.message.includes("Failed to retrieve"))
     ) {
       const serverUrl = ServerConfig.getServerUrl();
       const port = ServerConfig.getPort();
