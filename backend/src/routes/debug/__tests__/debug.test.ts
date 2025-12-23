@@ -5,6 +5,7 @@ import sqlite3 from "sqlite3";
 import { Database } from "../../../db/database.js";
 import { TrackingService } from "../../../services/trackingService.js";
 import { ReminderService } from "../../../services/reminderService.js";
+import { UserService } from "../../../services/userService.js";
 import * as authMiddlewareModule from "../../../middleware/authMiddleware.js";
 import * as servicesModule from "../../../services/index.js";
 
@@ -19,6 +20,7 @@ vi.mock("../../../services/index.js", () => ({
   ServiceManager: {
     getTrackingService: vi.fn(),
     getReminderService: vi.fn(),
+    getUserService: vi.fn(),
     initializeServices: vi.fn(),
   },
 }));
@@ -130,9 +132,14 @@ describe("Debug Routes", () => {
     ]);
 
     // Setup service mocks
+    const userService = new UserService(testDb);
     const trackingService = new TrackingService(testDb);
     const reminderService = new ReminderService(testDb);
 
+    vi.spyOn(
+      servicesModule.ServiceManager,
+      "getUserService"
+    ).mockReturnValue(userService);
     vi.spyOn(
       servicesModule.ServiceManager,
       "getTrackingService"
@@ -169,6 +176,12 @@ describe("Debug Routes", () => {
         .set("Authorization", "Bearer test-token");
 
       expect(response.status).toBe(200);
+      expect(response.body.log).toContain("=== USERS ===");
+      expect(response.body.log).toContain("USER #1");
+      expect(response.body.log).toContain("ID=1");
+      expect(response.body.log).toContain("Name=Test User");
+      expect(response.body.log).toContain("Email=test@example.com");
+      expect(response.body.log).toContain("=== TRACKINGS ===");
       expect(response.body.log).toContain(
         "No trackings found in the database."
       );
