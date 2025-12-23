@@ -110,7 +110,7 @@ describe("TrackingForm", () => {
     });
 
     it("should show icon field as the last field before form actions", () => {
-        render(<TrackingForm onSubmit={mockOnSubmit} />);
+        const { container } = render(<TrackingForm onSubmit={mockOnSubmit} />);
 
         const iconInput = document.getElementById("tracking-icon") as HTMLInputElement;
         const notesInput = screen.getByRole("textbox", { name: /^notes/i });
@@ -120,13 +120,26 @@ describe("TrackingForm", () => {
         expect(notesInput).toBeInTheDocument();
         expect(createButton).toBeInTheDocument();
 
-        // Icon should appear after notes in the DOM
-        const notesToIcon = notesInput.compareDocumentPosition(iconInput);
-        expect(notesToIcon & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        // Get all form groups and verify order
+        const formGroups = container.querySelectorAll(".form-group");
+        const notesGroup = Array.from(formGroups).find(group => group.contains(notesInput));
+        const iconGroup = Array.from(formGroups).find(group => group.contains(iconInput));
+        const actionsGroup = container.querySelector(".form-actions");
 
-        // Icon should appear before create button
-        const iconToButton = iconInput.compareDocumentPosition(createButton);
-        expect(iconToButton & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+        expect(notesGroup).toBeTruthy();
+        expect(iconGroup).toBeTruthy();
+        expect(actionsGroup).toBeTruthy();
+
+        // Icon group should come after notes group
+        const notesIndex = Array.from(formGroups).indexOf(notesGroup!);
+        const iconIndex = Array.from(formGroups).indexOf(iconGroup!);
+        expect(iconIndex).toBeGreaterThan(notesIndex);
+
+        // Actions should come after icon
+        const allElements = Array.from(container.querySelectorAll(".form-group, .form-actions"));
+        const iconGroupIndex = allElements.indexOf(iconGroup!);
+        const actionsIndex = allElements.indexOf(actionsGroup!);
+        expect(actionsIndex).toBeGreaterThan(iconGroupIndex);
     });
 
     it("should default to Daily frequency", () => {
