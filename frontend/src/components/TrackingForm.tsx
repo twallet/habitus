@@ -76,18 +76,19 @@ export function TrackingForm({
                     break;
                 }
                 case "Weekly": {
+                    // Weekly uses DAY_OF_WEEK pattern, default to Monday
                     setDays({
-                        pattern_type: DaysPatternType.INTERVAL,
-                        interval_value: 1,
-                        interval_unit: "weeks",
+                        pattern_type: DaysPatternType.DAY_OF_WEEK,
+                        days: [1], // Monday by default
                     });
                     break;
                 }
                 case "Monthly": {
+                    // Monthly uses DAY_OF_MONTH pattern, default to day 1
                     setDays({
-                        pattern_type: DaysPatternType.INTERVAL,
-                        interval_value: 1,
-                        interval_unit: "months",
+                        pattern_type: DaysPatternType.DAY_OF_MONTH,
+                        type: "day_number",
+                        day_numbers: [1],
                     });
                     break;
                 }

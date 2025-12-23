@@ -238,7 +238,10 @@ export function DaysPatternInput({
         if (value) {
             builderRef.current = new DaysPatternBuilder(value);
             const detectedPreset = builderRef.current.getPreset();
-            setPreset(detectedPreset);
+            // Only update preset if not controlled by parent
+            if (!frequency || frequency === "One-time") {
+                setPreset(detectedPreset);
+            }
             setSelectedDays(builderRef.current.getSelectedDays());
             setMonthlyDay(builderRef.current.getMonthlyDay());
             setMonthlyType(builderRef.current.getMonthlyType());
@@ -249,14 +252,16 @@ export function DaysPatternInput({
         } else {
             // Initialize with default daily pattern (mandatory field)
             builderRef.current = new DaysPatternBuilder();
-            setPreset("daily");
+            if (!frequency || frequency === "One-time") {
+                setPreset("daily");
+            }
             setSelectedDays([1]);
             // Immediately provide default pattern
             const defaultPattern = builderRef.current.buildPattern();
             onChange(defaultPattern);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [value]);
 
     return (
         <div className="days-pattern-input">
