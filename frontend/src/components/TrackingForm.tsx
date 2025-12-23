@@ -1,4 +1,4 @@
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import { DaysPattern, DaysPatternType } from "../models/Tracking";
 import { ApiClient } from "../config/api";
 import { DaysPatternInput } from "./DaysPatternInput";
@@ -37,7 +37,7 @@ export function TrackingForm({
         Array<{ hour: number; minutes: number }>
     >([]);
     const [scheduleTime, setScheduleTime] = useState<string>("09:00");
-    const [isRecurring, setIsRecurring] = useState<boolean>(false);
+    const [frequency, setFrequency] = useState<"Daily" | "Weekly" | "Monthly" | "One-time">("Daily");
     const [oneTimeDate, setOneTimeDate] = useState<string>("");
     const [oneTimeSchedules, setOneTimeSchedules] = useState<
         Array<{ hour: number; minutes: number }>
@@ -59,6 +59,33 @@ export function TrackingForm({
         }
         return client;
     });
+
+    /**
+     * Update days pattern when frequency changes.
+     * @internal
+     */
+    useEffect(() => {
+        if (frequency !== "One-time") {
+            let intervalUnit: "days" | "weeks" | "months";
+            switch (frequency) {
+                case "Daily":
+                    intervalUnit = "days";
+                    break;
+                case "Weekly":
+                    intervalUnit = "weeks";
+                    break;
+                case "Monthly":
+                    intervalUnit = "months";
+                    break;
+            }
+            setDays({
+                pattern_type: DaysPatternType.INTERVAL,
+                interval_value: 1,
+                interval_unit: intervalUnit,
+            });
+            setDaysError(null);
+        }
+    }, [frequency]);
 
     /**
      * Handle emoji suggestion.
@@ -251,8 +278,9 @@ export function TrackingForm({
         }
 
         let finalSchedules: Array<{ hour: number; minutes: number }>;
+        const isOneTime = frequency === "One-time";
 
-        if (isRecurring) {
+        if (!isOneTime) {
             if (schedules.length === 0) {
                 setError("At least one time is required");
                 return;
@@ -307,14 +335,14 @@ export function TrackingForm({
             // For one-time tracking, construct oneTimeDate from date + first schedule (date only, backend will handle schedules)
             // We'll pass the date as ISO date string (YYYY-MM-DD) - backend expects ISO datetime but we'll construct it there
             // Actually, let's keep the format consistent - pass date as YYYY-MM-DD and backend will combine with schedules
-            const oneTimeDateToSubmit = !isRecurring ? oneTimeDate : undefined;
+            const oneTimeDateToSubmit = isOneTime ? oneTimeDate : undefined;
 
             await onSubmit(
                 question.trim(),
                 notes.trim() || undefined,
                 icon.trim() || undefined,
                 finalSchedules,
-                isRecurring ? days : undefined,
+                !isOneTime ? days : undefined,
                 oneTimeDateToSubmit
             );
             // Reset form on success
@@ -323,7 +351,7 @@ export function TrackingForm({
             setIcon("");
             setSchedules([]);
             setScheduleTime("09:00");
-            setIsRecurring(false);
+            setFrequency("Daily");
             setOneTimeDate("");
             setOneTimeSchedules([]);
             setOneTimeScheduleTime("09:00");
@@ -380,81 +408,37 @@ export function TrackingForm({
                         rows={1}
                     />
                 </div>
-
-                <div className="icon-type-row">
-                    <div className="icon-field-wrapper">
-                        <div className="form-label-row">
-                            <label htmlFor="tracking-icon">
-                                Icon{" "}
-                                <button
-                                    type="button"
-                                    className="field-help"
-                                    aria-label="Icon help"
-                                    title="Optional emoji or icon to visually identify this tracking."
-                                >
-                                    ?
-                                </button>
-                            </label>
-                        </div>
-                        <div className="icon-input-row">
-                            <input
-                                type="text"
-                                id="tracking-icon"
-                                name="icon"
-                                placeholder="e.g., 💪🏼"
-                                value={icon}
-                                onChange={(e) => setIcon(e.target.value)}
-                                disabled={isSubmitting}
-                                maxLength={30}
-                            />
-                            <button
-                                type="button"
-                                className="icon-suggest-button"
-                                onClick={handleSuggestEmoji}
-                                disabled={isSubmitting || isSuggestingEmoji || !question.trim()}
-                                aria-label="Suggest emoji based on question"
-                                title="Suggest an emoji based on the question text"
-                            >
-                                <span className="icon-suggest-text">{isSuggestingEmoji ? "..." : "✨"}</span>
-                                <span className="sr-only">Suggest emoji</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <div className="form-group">
                 <div className="form-label-row">
-                    <label>
-                        Type{" "}
+                    <label htmlFor="tracking-frequency">
+                        Frequency{" "}
                         <button
                             type="button"
                             className="field-help"
-                            aria-label="Type help"
-                            title="Choose whether this tracking should repeat regularly or happen only once"
+                            aria-label="Frequency help"
+                            title="Choose how often this tracking should repeat: Daily, Weekly, Monthly, or One-time"
                         >
                             ?
                         </button>
                     </label>
                 </div>
-                <div className="recurring-toggle-row">
-                    <label className="toggle-switch">
-                        <input
-                            type="checkbox"
-                            checked={isRecurring}
-                            onChange={(e) => setIsRecurring(e.target.checked)}
-                            disabled={isSubmitting}
-                            aria-label="Toggle recurring tracking"
-                        />
-                        <span className="toggle-slider"></span>
-                        <span className="toggle-label">
-                            {isRecurring ? "Recurring" : "One-time"}
-                        </span>
-                    </label>
-                </div>
+                <select
+                    id="tracking-frequency"
+                    name="frequency"
+                    value={frequency}
+                    onChange={(e) => setFrequency(e.target.value as "Daily" | "Weekly" | "Monthly" | "One-time")}
+                    disabled={isSubmitting}
+                >
+                    <option value="Daily">Daily</option>
+                    <option value="Weekly">Weekly</option>
+                    <option value="Monthly">Monthly</option>
+                    <option value="One-time">One-time</option>
+                </select>
             </div>
 
-            {isRecurring && (
+            {frequency !== "One-time" && (
                 <div className="form-group">
                     <div className="form-label-row">
                         <label htmlFor="tracking-schedules">
@@ -527,7 +511,7 @@ export function TrackingForm({
                 </div>
             )}
 
-            {isRecurring ? (
+            {frequency !== "One-time" ? (
                 <div className="form-group">
                     <DaysPatternInput
                         value={days}
@@ -560,7 +544,7 @@ export function TrackingForm({
                             value={oneTimeDate}
                             onChange={(e) => setOneTimeDate(e.target.value)}
                             disabled={isSubmitting}
-                            required={!isRecurring}
+                            required={frequency === "One-time"}
                             min={new Date().toISOString().slice(0, 10)}
                         />
                     </div>
@@ -663,6 +647,45 @@ export function TrackingForm({
                 />
             </div>
 
+            <div className="form-group">
+                <div className="form-label-row">
+                    <label htmlFor="tracking-icon">
+                        Icon{" "}
+                        <button
+                            type="button"
+                            className="field-help"
+                            aria-label="Icon help"
+                            title="Optional emoji or icon to visually identify this tracking."
+                        >
+                            ?
+                        </button>
+                    </label>
+                </div>
+                <div className="icon-input-row">
+                    <input
+                        type="text"
+                        id="tracking-icon"
+                        name="icon"
+                        placeholder="e.g., 💪🏼"
+                        value={icon}
+                        onChange={(e) => setIcon(e.target.value)}
+                        disabled={isSubmitting}
+                        maxLength={30}
+                    />
+                    <button
+                        type="button"
+                        className="icon-suggest-button"
+                        onClick={handleSuggestEmoji}
+                        disabled={isSubmitting || isSuggestingEmoji || !question.trim()}
+                        aria-label="Suggest emoji based on question"
+                        title="Suggest an emoji based on the question text"
+                    >
+                        <span className="icon-suggest-text">{isSuggestingEmoji ? "..." : "✨"}</span>
+                        <span className="sr-only">Suggest emoji</span>
+                    </button>
+                </div>
+            </div>
+
             <div className="form-actions">
                 {onCancel && (
                     <button
@@ -680,8 +703,8 @@ export function TrackingForm({
                     disabled={
                         isSubmitting ||
                         !question.trim() ||
-                        (isRecurring && schedules.length === 0) ||
-                        (!isRecurring && (!oneTimeDate || oneTimeSchedules.length === 0))
+                        (frequency !== "One-time" && schedules.length === 0) ||
+                        (frequency === "One-time" && (!oneTimeDate || oneTimeSchedules.length === 0))
                     }
                 >
                     {isSubmitting ? "Creating..." : "Create"}

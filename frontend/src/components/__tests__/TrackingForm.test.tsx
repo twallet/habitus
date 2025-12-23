@@ -13,14 +13,13 @@ describe("TrackingForm", () => {
     });
 
     /**
-     * Helper function to toggle to recurring mode.
+     * Helper function to set frequency to recurring mode.
      * @param user - User event instance
+     * @param frequency - Frequency value (default: "Daily")
      */
-    const toggleToRecurring = async (user: ReturnType<typeof userEvent.setup>) => {
-        const toggle = screen.getByRole("checkbox", { name: /toggle recurring tracking/i }) as HTMLInputElement;
-        if (!toggle.checked) {
-            await user.click(toggle);
-        }
+    const setFrequency = async (user: ReturnType<typeof userEvent.setup>, frequency: "Daily" | "Weekly" | "Monthly" | "One-time" = "Daily") => {
+        const frequencySelect = screen.getByLabelText(/^frequency/i) as HTMLSelectElement;
+        await user.selectOptions(frequencySelect, frequency);
     };
 
     /**
@@ -102,7 +101,7 @@ describe("TrackingForm", () => {
         });
 
         await user.type(questionInput, "Did I exercise today?");
-        await toggleToRecurring(user);
+        // Frequency defaults to Daily, so no need to change it
         await addSchedule(user);
         const submitButton = screen.getByRole("button", { name: /^create$/i });
         await user.click(submitButton);
@@ -132,6 +131,7 @@ describe("TrackingForm", () => {
         });
 
         await user.type(questionInput, "Did I exercise today?");
+        await setFrequency(user, "One-time");
         const futureDate = new Date();
         futureDate.setDate(futureDate.getDate() + 1); // Tomorrow to avoid time validation issues
         const dateString = futureDate.toISOString().slice(0, 10); // YYYY-MM-DD
@@ -164,7 +164,7 @@ describe("TrackingForm", () => {
         });
         await user.type(questionInput, "Did I exercise?");
         await user.type(notesInput, "Exercise notes");
-        await toggleToRecurring(user);
+        // Frequency defaults to Daily, so no need to change it
         await addSchedule(user);
         const submitButton = screen.getByRole("button", { name: /^create$/i });
         await user.click(submitButton);
@@ -208,6 +208,7 @@ describe("TrackingForm", () => {
         }) as HTMLInputElement;
         const longQuestion = "a".repeat(101);
         fireEvent.change(questionInput, { target: { value: longQuestion } });
+        await setFrequency(user, "One-time");
         const futureDate = new Date();
         futureDate.setDate(futureDate.getDate() + 1); // Tomorrow
         const dateString = futureDate.toISOString().slice(0, 10); // YYYY-MM-DD
@@ -231,6 +232,7 @@ describe("TrackingForm", () => {
             name: /^question \*/i,
         }) as HTMLInputElement;
         await user.type(questionInput, "Did I exercise?");
+        await setFrequency(user, "One-time");
         const futureDate = new Date();
         futureDate.setDate(futureDate.getDate() + 1); // Tomorrow
         const dateString = futureDate.toISOString().slice(0, 10); // YYYY-MM-DD
@@ -270,13 +272,15 @@ describe("TrackingForm", () => {
         expect(submitBtn.disabled).toBe(true);
     });
 
-    it("should disable submit button when no one-time date is set", () => {
+    it("should disable submit button when no one-time date is set", async () => {
+        const user = userEvent.setup();
         render(<TrackingForm onSubmit={mockOnSubmit} />);
 
         const questionInput = screen.getByRole("textbox", {
             name: /^question \*/i,
         }) as HTMLInputElement;
-        fireEvent.change(questionInput, { target: { value: "Test question" } });
+        await user.type(questionInput, "Test question");
+        await setFrequency(user, "One-time");
 
         const submitBtn = screen.getByRole("button", { name: /^create$/i }) as HTMLButtonElement;
         expect(submitBtn.disabled).toBe(true);
@@ -290,6 +294,7 @@ describe("TrackingForm", () => {
             name: /^question \*/i,
         });
         await user.type(questionInput, "Did I exercise?");
+        await setFrequency(user, "One-time");
 
         // Submit button should be disabled when no one-time date
         const submitBtn = screen.getByRole("button", { name: /^create$/i }) as HTMLButtonElement;
@@ -315,7 +320,7 @@ describe("TrackingForm", () => {
             name: /^question \*/i,
         });
         await user.type(questionInput, "Did I exercise?");
-        await toggleToRecurring(user);
+        // Frequency defaults to Daily, so no need to change it
 
         // Submit button should be disabled when no schedules
         const submitBtn = screen.getByRole("button", { name: /^create$/i }) as HTMLButtonElement;
