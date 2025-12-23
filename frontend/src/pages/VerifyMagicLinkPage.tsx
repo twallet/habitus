@@ -11,9 +11,10 @@ import { Message } from '../components/Message';
 export function VerifyMagicLinkPage() {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
-    const { verifyMagicLink } = useAuth();
+    const { verifyMagicLink, isAuthenticated } = useAuth();
     const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
     const [isVerifying, setIsVerifying] = useState(true);
+    const [verificationComplete, setVerificationComplete] = useState(false);
 
     useEffect(() => {
         /**
@@ -51,16 +52,14 @@ export function VerifyMagicLinkPage() {
                 );
                 await verifyMagicLink(decodedToken);
                 console.log(
-                    `[${new Date().toISOString()}] VERIFY_MAGIC_LINK | Token verified successfully, redirecting to trackings`
+                    `[${new Date().toISOString()}] VERIFY_MAGIC_LINK | Token verified successfully, waiting for auth state update`
                 );
                 setMessage({
                     text: 'Email verified successfully! Redirecting...',
                     type: 'success',
                 });
-                // Redirect to trackings after successful verification
-                setTimeout(() => {
-                    navigate('/', { replace: true });
-                }, 1500);
+                setIsVerifying(false);
+                setVerificationComplete(true);
             } catch (error) {
                 console.error(
                     `[${new Date().toISOString()}] VERIFY_MAGIC_LINK | Token verification failed:`,
@@ -80,6 +79,24 @@ export function VerifyMagicLinkPage() {
 
         handleVerification();
     }, [searchParams, verifyMagicLink, navigate]);
+
+    /**
+     * Navigate to trackings once authentication state is confirmed.
+     * This ensures the auth state has been properly updated before navigation.
+     * @internal
+     */
+    useEffect(() => {
+        if (verificationComplete && isAuthenticated) {
+            console.log(
+                `[${new Date().toISOString()}] VERIFY_MAGIC_LINK | Auth state confirmed, redirecting to trackings`
+            );
+            // Small delay to ensure UI shows success message
+            const timer = setTimeout(() => {
+                navigate('/trackings', { replace: true });
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [verificationComplete, isAuthenticated, navigate]);
 
     return (
         <div className="container">
