@@ -8,7 +8,6 @@ const MainLayout = lazy(() => import('./components/layouts/MainLayout').then(m =
 // Lazy load page components
 const LoginPage = lazy(() => import('./pages/LoginPage').then(m => ({ default: m.LoginPage })));
 const VerifyMagicLinkPage = lazy(() => import('./pages/VerifyMagicLinkPage').then(m => ({ default: m.VerifyMagicLinkPage })));
-const DashboardPage = lazy(() => import('./pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const TrackingsPage = lazy(() => import('./pages/TrackingsPage').then(m => ({ default: m.TrackingsPage })));
 const RemindersPage = lazy(() => import('./pages/RemindersPage').then(m => ({ default: m.RemindersPage })));
 const ProfilePage = lazy(() => import('./pages/ProfilePage').then(m => ({ default: m.ProfilePage })));

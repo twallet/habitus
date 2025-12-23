@@ -51,13 +51,13 @@ export function VerifyMagicLinkPage() {
                 );
                 await verifyMagicLink(decodedToken);
                 console.log(
-                    `[${new Date().toISOString()}] VERIFY_MAGIC_LINK | Token verified successfully, redirecting to dashboard`
+                    `[${new Date().toISOString()}] VERIFY_MAGIC_LINK | Token verified successfully, redirecting to trackings`
                 );
                 setMessage({
                     text: 'Email verified successfully! Redirecting...',
                     type: 'success',
                 });
-                // Redirect to dashboard after successful verification
+                // Redirect to trackings after successful verification
                 setTimeout(() => {
                     navigate('/', { replace: true });
                 }, 1500);

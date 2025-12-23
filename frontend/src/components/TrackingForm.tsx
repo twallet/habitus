@@ -37,7 +37,7 @@ export function TrackingForm({
         Array<{ hour: number; minutes: number }>
     >([]);
     const [scheduleTime, setScheduleTime] = useState<string>("09:00");
-    const [isRecurring, setIsRecurring] = useState<boolean>(true);
+    const [isRecurring, setIsRecurring] = useState<boolean>(false);
     const [oneTimeDate, setOneTimeDate] = useState<string>("");
     const [days, setDays] = useState<DaysPattern>({
         pattern_type: DaysPatternType.INTERVAL,
@@ -183,6 +183,8 @@ export function TrackingForm({
             return;
         }
 
+        let finalSchedules: Array<{ hour: number; minutes: number }>;
+
         if (isRecurring) {
             if (schedules.length === 0) {
                 setError("At least one time is required");
@@ -193,6 +195,8 @@ export function TrackingForm({
                 setError(daysError);
                 return;
             }
+
+            finalSchedules = sortSchedules(schedules);
         } else {
             if (!oneTimeDate) {
                 setError("Date and time are required for one-time tracking");
@@ -206,6 +210,10 @@ export function TrackingForm({
                 setError("Date and time must be in the future");
                 return;
             }
+
+            // Extract hour and minutes from oneTimeDate for one-time tracking
+            const dateObj = new Date(oneTimeDate);
+            finalSchedules = [{ hour: dateObj.getHours(), minutes: dateObj.getMinutes() }];
         }
 
         try {
@@ -213,7 +221,7 @@ export function TrackingForm({
                 question.trim(),
                 notes.trim() || undefined,
                 icon.trim() || undefined,
-                sortSchedules(schedules),
+                finalSchedules,
                 isRecurring ? days : undefined,
                 isRecurring ? undefined : oneTimeDate
             );
@@ -223,7 +231,7 @@ export function TrackingForm({
             setIcon("");
             setSchedules([]);
             setScheduleTime("09:00");
-            setIsRecurring(true);
+            setIsRecurring(false);
             setOneTimeDate("");
             setDays({
                 pattern_type: DaysPatternType.INTERVAL,
@@ -323,77 +331,6 @@ export function TrackingForm({
 
             <div className="form-group">
                 <div className="form-label-row">
-                    <label htmlFor="tracking-schedules">
-                        Times <span className="required-asterisk">*</span>{" "}
-                        <button
-                            type="button"
-                            className="field-help"
-                            aria-label="Times help"
-                            title="Define up to 5 times (hour and minutes) when reminders will be sent for this tracking. At least one time is required."
-                        >
-                            ?
-                        </button>
-                    </label>
-                </div>
-                <div className="schedule-input-row">
-                    <div className="schedule-time-inputs">
-                        <input
-                            type="time"
-                            id="schedule-time"
-                            name="schedule-time"
-                            value={scheduleTime}
-                            onChange={(e) => setScheduleTime(e.target.value)}
-                            disabled={isSubmitting || schedules.length >= 5}
-                        />
-                    </div>
-                    <button
-                        type="button"
-                        className="btn-primary schedule-add-button"
-                        onClick={handleAddOrUpdateSchedule}
-                        disabled={
-                            isSubmitting || schedules.length >= 5
-                        }
-                    >
-                        Add
-                    </button>
-                    {schedules.length > 0 && (
-                        <div className="schedules-list">
-                            {sortSchedules(schedules).map((schedule) => {
-                                const originalIndex = schedules.findIndex(
-                                    (s) =>
-                                        s.hour === schedule.hour &&
-                                        s.minutes === schedule.minutes
-                                );
-                                return (
-                                    <div
-                                        key={`${schedule.hour}-${schedule.minutes}-${originalIndex}`}
-                                        className="schedule-item"
-                                    >
-                                        <span className="schedule-time">
-                                            {String(schedule.hour).padStart(2, "0")}:
-                                            {String(schedule.minutes).padStart(2, "0")}
-                                        </span>
-                                        <button
-                                            type="button"
-                                            className="btn-icon"
-                                            onClick={() =>
-                                                handleDeleteSchedule(originalIndex)
-                                            }
-                                            disabled={isSubmitting}
-                                            aria-label="Delete schedule"
-                                        >
-                                            ×
-                                        </button>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            <div className="form-group">
-                <div className="form-label-row">
                     <label>
                         Type{" "}
                         <button
@@ -407,24 +344,94 @@ export function TrackingForm({
                     </label>
                 </div>
                 <div className="recurring-toggle-row">
-                    <button
-                        type="button"
-                        className={`recurring-toggle-button ${isRecurring ? "active" : ""}`}
-                        onClick={() => setIsRecurring(true)}
-                        disabled={isSubmitting}
-                    >
-                        Recurring
-                    </button>
-                    <button
-                        type="button"
-                        className={`recurring-toggle-button ${!isRecurring ? "active" : ""}`}
-                        onClick={() => setIsRecurring(false)}
-                        disabled={isSubmitting}
-                    >
-                        One-time
-                    </button>
+                    <label className="toggle-switch">
+                        <input
+                            type="checkbox"
+                            checked={isRecurring}
+                            onChange={(e) => setIsRecurring(e.target.checked)}
+                            disabled={isSubmitting}
+                            aria-label="Toggle recurring tracking"
+                        />
+                        <span className="toggle-slider"></span>
+                        <span className="toggle-label">
+                            {isRecurring ? "Recurring" : "One-time"}
+                        </span>
+                    </label>
                 </div>
             </div>
+
+            {isRecurring && (
+                <div className="form-group">
+                    <div className="form-label-row">
+                        <label htmlFor="tracking-schedules">
+                            Times <span className="required-asterisk">*</span>{" "}
+                            <button
+                                type="button"
+                                className="field-help"
+                                aria-label="Times help"
+                                title="Define up to 5 times (hour and minutes) when reminders will be sent for this tracking. At least one time is required."
+                            >
+                                ?
+                            </button>
+                        </label>
+                    </div>
+                    <div className="schedule-input-row">
+                        <div className="schedule-time-inputs">
+                            <input
+                                type="time"
+                                id="schedule-time"
+                                name="schedule-time"
+                                value={scheduleTime}
+                                onChange={(e) => setScheduleTime(e.target.value)}
+                                disabled={isSubmitting || schedules.length >= 5}
+                            />
+                        </div>
+                        <button
+                            type="button"
+                            className="btn-primary schedule-add-button"
+                            onClick={handleAddOrUpdateSchedule}
+                            disabled={
+                                isSubmitting || schedules.length >= 5
+                            }
+                        >
+                            Add
+                        </button>
+                        {schedules.length > 0 && (
+                            <div className="schedules-list">
+                                {sortSchedules(schedules).map((schedule) => {
+                                    const originalIndex = schedules.findIndex(
+                                        (s) =>
+                                            s.hour === schedule.hour &&
+                                            s.minutes === schedule.minutes
+                                    );
+                                    return (
+                                        <div
+                                            key={`${schedule.hour}-${schedule.minutes}-${originalIndex}`}
+                                            className="schedule-item"
+                                        >
+                                            <span className="schedule-time">
+                                                {String(schedule.hour).padStart(2, "0")}:
+                                                {String(schedule.minutes).padStart(2, "0")}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                className="btn-icon"
+                                                onClick={() =>
+                                                    handleDeleteSchedule(originalIndex)
+                                                }
+                                                disabled={isSubmitting}
+                                                aria-label="Delete schedule"
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {isRecurring ? (
                 <div className="form-group">

@@ -400,33 +400,65 @@
   align-items: center;
 }
 
-.recurring-toggle-button {
-  padding: 10px 20px;
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  font-size: 0.95rem;
-  font-weight: 500;
+.toggle-switch {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   cursor: pointer;
+  user-select: none;
+}
+
+.toggle-switch input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 26px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 26px;
   transition: var(--transition);
 }
 
-.recurring-toggle-button:hover:not(:disabled) {
-  background: var(--border-color);
+.toggle-slider::before {
+  content: "";
+  position: absolute;
+  height: 20px;
+  width: 20px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  border-radius: 50%;
+  transition: var(--transition);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.recurring-toggle-button.active {
-  background: var(--primary-color);
-  color: white;
+.toggle-switch input[type="checkbox"]:checked + .toggle-slider {
+  background-color: var(--primary-color);
   border-color: var(--primary-color);
 }
 
-.recurring-toggle-button.active:hover:not(:disabled) {
-  background: var(--primary-hover);
+.toggle-switch input[type="checkbox"]:checked + .toggle-slider::before {
+  transform: translateX(24px);
 }
 
-.recurring-toggle-button:disabled {
+.toggle-switch input[type="checkbox"]:disabled + .toggle-slider {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.toggle-switch input[type="checkbox"]:focus + .toggle-slider {
+  box-shadow: 0 0 0 3px rgba(0, 90, 127, 0.1);
+}
+
+.toggle-label {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-primary);
 }

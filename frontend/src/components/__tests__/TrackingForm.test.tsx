@@ -13,7 +13,18 @@ describe("TrackingForm", () => {
     });
 
     /**
-     * Helper function to add a schedule in tests.
+     * Helper function to toggle to recurring mode.
+     * @param user - User event instance
+     */
+    const toggleToRecurring = async (user: ReturnType<typeof userEvent.setup>) => {
+        const toggle = screen.getByRole("checkbox", { name: /toggle recurring tracking/i }) as HTMLInputElement;
+        if (!toggle.checked) {
+            await user.click(toggle);
+        }
+    };
+
+    /**
+     * Helper function to add a schedule in tests (requires recurring mode).
      * @param user - User event instance
      * @param hour - Hour value (default: 9)
      * @param minutes - Minutes value (default: 0)
@@ -36,6 +47,23 @@ describe("TrackingForm", () => {
         await user.click(addButton);
     };
 
+    /**
+     * Helper function to set one-time date.
+     * @param user - User event instance
+     * @param dateTime - Date and time string in format "YYYY-MM-DDTHH:mm"
+     */
+    const setOneTimeDate = async (
+        user: ReturnType<typeof userEvent.setup>,
+        dateTime: string
+    ) => {
+        const dateInput = document.getElementById("one-time-date") as HTMLInputElement;
+        if (!dateInput) {
+            throw new Error("One-time date input not found");
+        }
+        await user.clear(dateInput);
+        await user.type(dateInput, dateTime);
+    };
+
     it("should render form elements", () => {
         render(<TrackingForm onSubmit={mockOnSubmit} />);
 
@@ -46,7 +74,7 @@ describe("TrackingForm", () => {
     });
 
 
-    it("should call onSubmit with form data when submitted", async () => {
+    it("should call onSubmit with form data when submitted (recurring)", async () => {
         const user = userEvent.setup();
         render(<TrackingForm onSubmit={mockOnSubmit} />);
 
@@ -55,6 +83,7 @@ describe("TrackingForm", () => {
         });
 
         await user.type(questionInput, "Did I exercise today?");
+        await toggleToRecurring(user);
         await addSchedule(user);
         const submitButton = screen.getByRole("button", { name: /^create$/i });
         await user.click(submitButton);
@@ -69,12 +98,43 @@ describe("TrackingForm", () => {
                     pattern_type: DaysPatternType.INTERVAL,
                     interval_value: 1,
                     interval_unit: "days",
-                })
+                }),
+                undefined
             );
         });
     });
 
-    it("should call onSubmit with notes when provided", async () => {
+    it("should call onSubmit with form data when submitted (one-time)", async () => {
+        const user = userEvent.setup();
+        render(<TrackingForm onSubmit={mockOnSubmit} />);
+
+        const questionInput = screen.getByRole("textbox", {
+            name: /^question \*/i,
+        });
+
+        await user.type(questionInput, "Did I exercise today?");
+        const futureDate = new Date();
+        futureDate.setHours(futureDate.getHours() + 1);
+        const dateTimeString = futureDate.toISOString().slice(0, 16);
+        await setOneTimeDate(user, dateTimeString);
+        const submitButton = screen.getByRole("button", { name: /^create$/i });
+        await user.click(submitButton);
+
+        await waitFor(() => {
+            expect(mockOnSubmit).toHaveBeenCalled();
+            const callArgs = mockOnSubmit.mock.calls[0];
+            expect(callArgs[0]).toBe("Did I exercise today?");
+            expect(callArgs[1]).toBeUndefined();
+            expect(callArgs[2]).toBeUndefined();
+            expect(callArgs[3]).toHaveLength(1);
+            expect(callArgs[3][0]).toHaveProperty("hour");
+            expect(callArgs[3][0]).toHaveProperty("minutes");
+            expect(callArgs[4]).toBeUndefined();
+            expect(callArgs[5]).toBe(dateTimeString);
+        });
+    });
+
+    it("should call onSubmit with notes when provided (recurring)", async () => {
         const user = userEvent.setup();
         render(<TrackingForm onSubmit={mockOnSubmit} />);
 
@@ -86,6 +146,7 @@ describe("TrackingForm", () => {
         });
         await user.type(questionInput, "Did I exercise?");
         await user.type(notesInput, "Exercise notes");
+        await toggleToRecurring(user);
         await addSchedule(user);
         const submitButton = screen.getByRole("button", { name: /^create$/i });
         await user.click(submitButton);
@@ -100,7 +161,8 @@ describe("TrackingForm", () => {
                     pattern_type: DaysPatternType.INTERVAL,
                     interval_value: 1,
                     interval_unit: "days",
-                })
+                }),
+                undefined
             );
         });
     });
@@ -128,7 +190,10 @@ describe("TrackingForm", () => {
         }) as HTMLInputElement;
         const longQuestion = "a".repeat(101);
         fireEvent.change(questionInput, { target: { value: longQuestion } });
-        await addSchedule(user);
+        const futureDate = new Date();
+        futureDate.setHours(futureDate.getHours() + 1);
+        const dateTimeString = futureDate.toISOString().slice(0, 16);
+        await setOneTimeDate(user, dateTimeString);
         const form = questionInput.closest("form")!;
         fireEvent.submit(form);
 
@@ -148,7 +213,10 @@ describe("TrackingForm", () => {
             name: /^question \*/i,
         }) as HTMLInputElement;
         await user.type(questionInput, "Did I exercise?");
-        await addSchedule(user);
+        const futureDate = new Date();
+        futureDate.setHours(futureDate.getHours() + 1);
+        const dateTimeString = futureDate.toISOString().slice(0, 16);
+        await setOneTimeDate(user, dateTimeString);
         const submitBtn = screen.getByRole("button", { name: /^create$/i });
         await user.click(submitBtn);
 
@@ -184,7 +252,7 @@ describe("TrackingForm", () => {
         expect(submitBtn.disabled).toBe(true);
     });
 
-    it("should disable submit button when no schedules are added", () => {
+    it("should disable submit button when no one-time date is set", () => {
         render(<TrackingForm onSubmit={mockOnSubmit} />);
 
         const questionInput = screen.getByRole("textbox", {
@@ -196,7 +264,7 @@ describe("TrackingForm", () => {
         expect(submitBtn.disabled).toBe(true);
     });
 
-    it("should show error when submitting without schedules", async () => {
+    it("should show error when submitting without one-time date", async () => {
         const user = userEvent.setup();
         render(<TrackingForm onSubmit={mockOnSubmit} />);
 
@@ -204,6 +272,32 @@ describe("TrackingForm", () => {
             name: /^question \*/i,
         });
         await user.type(questionInput, "Did I exercise?");
+
+        // Submit button should be disabled when no one-time date
+        const submitBtn = screen.getByRole("button", { name: /^create$/i }) as HTMLButtonElement;
+        expect(submitBtn.disabled).toBe(true);
+
+        // Try to submit form directly
+        const form = questionInput.closest("form")!;
+        fireEvent.submit(form);
+
+        await waitFor(() => {
+            expect(
+                screen.getByText(/date and time are required for one-time tracking/i)
+            ).toBeInTheDocument();
+        });
+        expect(mockOnSubmit).not.toHaveBeenCalled();
+    });
+
+    it("should show error when submitting recurring without schedules", async () => {
+        const user = userEvent.setup();
+        render(<TrackingForm onSubmit={mockOnSubmit} />);
+
+        const questionInput = screen.getByRole("textbox", {
+            name: /^question \*/i,
+        });
+        await user.type(questionInput, "Did I exercise?");
+        await toggleToRecurring(user);
 
         // Submit button should be disabled when no schedules
         const submitBtn = screen.getByRole("button", { name: /^create$/i }) as HTMLButtonElement;

@@ -77,6 +77,7 @@ describe('MainLayout', () => {
             logout: vi.fn(),
             setTokenFromCallback: vi.fn(),
             updateProfile: vi.fn(),
+            updateNotificationPreferences: vi.fn(),
             deleteUser: vi.fn(),
         });
 
@@ -124,6 +125,7 @@ describe('MainLayout', () => {
             logout: vi.fn(),
             setTokenFromCallback: vi.fn(),
             updateProfile: vi.fn(),
+            updateNotificationPreferences: vi.fn(),
             deleteUser: vi.fn(),
         });
 
@@ -145,6 +147,7 @@ describe('MainLayout', () => {
             logout: vi.fn(),
             setTokenFromCallback: vi.fn(),
             updateProfile: vi.fn(),
+            updateNotificationPreferences: vi.fn(),
             deleteUser: vi.fn(),
         });
 
@@ -159,7 +162,7 @@ describe('MainLayout', () => {
         renderMainLayout();
 
         expect(screen.getByRole('heading', { name: /habitus/i })).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: /dashboard/i })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /trackings/i })).toBeInTheDocument();
     });
 
     it('should display user menu', () => {
@@ -171,7 +174,6 @@ describe('MainLayout', () => {
     it('should display navigation with correct badge counts', () => {
         renderMainLayout();
 
-        expect(screen.getByRole('link', { name: /dashboard/i })).toBeInTheDocument();
         expect(screen.getByRole('link', { name: /trackings/i })).toBeInTheDocument();
         expect(screen.getByRole('link', { name: /reminders/i })).toBeInTheDocument();
     });
@@ -369,6 +371,7 @@ describe('MainLayout', () => {
             logout: mockLogout,
             setTokenFromCallback: vi.fn(),
             updateProfile: vi.fn(),
+            updateNotificationPreferences: vi.fn(),
             deleteUser: vi.fn(),
         });
 
@@ -406,6 +409,7 @@ describe('MainLayout', () => {
             logout: vi.fn(),
             setTokenFromCallback: vi.fn(),
             updateProfile: mockUpdateProfile,
+            updateNotificationPreferences: vi.fn(),
             deleteUser: vi.fn(),
         });
 
@@ -444,6 +448,7 @@ describe('MainLayout', () => {
             logout: vi.fn(),
             setTokenFromCallback: vi.fn(),
             updateProfile: vi.fn(),
+            updateNotificationPreferences: vi.fn(),
             deleteUser: vi.fn(),
         });
 
@@ -482,6 +487,7 @@ describe('MainLayout', () => {
             logout: vi.fn(),
             setTokenFromCallback: vi.fn(),
             updateProfile: vi.fn(),
+            updateNotificationPreferences: vi.fn(),
             deleteUser: mockDeleteUser,
         });
 
@@ -759,6 +765,7 @@ describe('MainLayout', () => {
             logout: mockLogout,
             setTokenFromCallback: vi.fn(),
             updateProfile: vi.fn(),
+            updateNotificationPreferences: vi.fn(),
             deleteUser: vi.fn(),
         });
 

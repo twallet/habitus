@@ -10,14 +10,6 @@ export function Navigation({
 }) {
     return (
         <div className="tabs-header">
-            {/* Dashboard tab hidden temporarily */}
-            {/* <NavLink
-                to="/"
-                end
-                className={({ isActive }) => `tab-button ${isActive ? 'active' : ''}`}
-            >
-                Dashboard
-            </NavLink> */}
             <NavLink
                 to="/trackings"
                 className={({ isActive }) => `tab-button ${isActive ? 'active' : ''}`}
