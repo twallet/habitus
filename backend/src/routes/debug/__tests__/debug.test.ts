@@ -136,10 +136,9 @@ describe("Debug Routes", () => {
     const trackingService = new TrackingService(testDb);
     const reminderService = new ReminderService(testDb);
 
-    vi.spyOn(
-      servicesModule.ServiceManager,
-      "getUserService"
-    ).mockReturnValue(userService);
+    vi.spyOn(servicesModule.ServiceManager, "getUserService").mockReturnValue(
+      userService
+    );
     vi.spyOn(
       servicesModule.ServiceManager,
       "getTrackingService"
@@ -385,14 +384,35 @@ describe("Debug Routes", () => {
       expect(response.body.log).toContain("Notes=null");
     });
 
+    it("should return debug log with multiple users", async () => {
+      // Insert additional test user
+      await testDb.run("INSERT INTO users (id, name, email) VALUES (?, ?, ?)", [
+        2,
+        "Another User",
+        "another@example.com",
+      ]);
+
+      const response = await request(app)
+        .get("/api/debug")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("=== USERS ===");
+      expect(response.body.log).toContain("USER #1");
+      expect(response.body.log).toContain("Name=Test User");
+      expect(response.body.log).toContain("Email=test@example.com");
+      expect(response.body.log).toContain("USER #2");
+      expect(response.body.log).toContain("Name=Another User");
+      expect(response.body.log).toContain("Email=another@example.com");
+    });
+
     it("should return 500 when service throws error", async () => {
       // Mock services to throw error
-      vi.spyOn(
-        servicesModule.ServiceManager,
-        "getUserService"
-      ).mockReturnValue({
-        getAllUsers: vi.fn().mockRejectedValue(new Error("Database error")),
-      } as any);
+      vi.spyOn(servicesModule.ServiceManager, "getUserService").mockReturnValue(
+        {
+          getAllUsers: vi.fn().mockRejectedValue(new Error("Database error")),
+        } as any
+      );
       vi.spyOn(
         servicesModule.ServiceManager,
         "getTrackingService"
