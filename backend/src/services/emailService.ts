@@ -89,7 +89,9 @@ export class EmailService {
 
     try {
       const mailTransporter = this.getTransporter();
-      const magicLink = `${this.config.frontendUrl}/auth/verify-magic-link?token=${token}`;
+      // Encode token for URL to handle any special characters properly
+      const encodedToken = encodeURIComponent(token);
+      const magicLink = `${this.config.frontendUrl}/auth/verify-magic-link?token=${encodedToken}`;
       const subject = isRegistration
         ? "Welcome to 🌱 Habitus! Verify your email to complete registration"
         : "Your login link to 🌱 Habitus";

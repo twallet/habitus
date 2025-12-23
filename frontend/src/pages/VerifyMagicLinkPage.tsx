@@ -37,10 +37,19 @@ export function VerifyMagicLinkPage() {
             }
 
             try {
+                // React Router's useSearchParams already decodes URL parameters,
+                // but we decode again in case of double-encoding from email clients
+                let decodedToken = token;
+                try {
+                    decodedToken = decodeURIComponent(token);
+                } catch (e) {
+                    // If decodeURIComponent fails, token might already be decoded, use original
+                    decodedToken = token;
+                }
                 console.log(
-                    `[${new Date().toISOString()}] VERIFY_MAGIC_LINK | Verifying token from URL`
+                    `[${new Date().toISOString()}] VERIFY_MAGIC_LINK | Verifying token from URL (length: ${decodedToken.length}, original length: ${token.length})`
                 );
-                await verifyMagicLink(token);
+                await verifyMagicLink(decodedToken);
                 console.log(
                     `[${new Date().toISOString()}] VERIFY_MAGIC_LINK | Token verified successfully, redirecting to dashboard`
                 );
