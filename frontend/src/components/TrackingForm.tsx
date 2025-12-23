@@ -37,7 +37,7 @@ export function TrackingForm({
         Array<{ hour: number; minutes: number }>
     >([]);
     const [scheduleTime, setScheduleTime] = useState<string>("09:00");
-    const [frequency, setFrequency] = useState<"Daily" | "Weekly" | "Monthly" | "One-time">("Daily");
+    const [frequency, setFrequency] = useState<"Daily" | "Weekly" | "Monthly" | "Yearly" | "One-time">("Daily");
     const [oneTimeDate, setOneTimeDate] = useState<string>("");
     const [oneTimeSchedules, setOneTimeSchedules] = useState<
         Array<{ hour: number; minutes: number }>
@@ -66,23 +66,42 @@ export function TrackingForm({
      */
     useEffect(() => {
         if (frequency !== "One-time") {
-            let intervalUnit: "days" | "weeks" | "months";
             switch (frequency) {
-                case "Daily":
-                    intervalUnit = "days";
+                case "Daily": {
+                    setDays({
+                        pattern_type: DaysPatternType.INTERVAL,
+                        interval_value: 1,
+                        interval_unit: "days",
+                    });
                     break;
-                case "Weekly":
-                    intervalUnit = "weeks";
+                }
+                case "Weekly": {
+                    setDays({
+                        pattern_type: DaysPatternType.INTERVAL,
+                        interval_value: 1,
+                        interval_unit: "weeks",
+                    });
                     break;
-                case "Monthly":
-                    intervalUnit = "months";
+                }
+                case "Monthly": {
+                    setDays({
+                        pattern_type: DaysPatternType.INTERVAL,
+                        interval_value: 1,
+                        interval_unit: "months",
+                    });
                     break;
+                }
+                case "Yearly": {
+                    // Yearly uses a day-of-year pattern
+                    setDays({
+                        pattern_type: DaysPatternType.DAY_OF_YEAR,
+                        type: "date",
+                        month: 1,
+                        day: 1,
+                    });
+                    break;
+                }
             }
-            setDays({
-                pattern_type: DaysPatternType.INTERVAL,
-                interval_value: 1,
-                interval_unit: intervalUnit,
-            });
             setDaysError(null);
         }
     }, [frequency]);
@@ -419,12 +438,12 @@ export function TrackingForm({
                         error={daysError}
                         onErrorChange={setDaysError}
                         hideFrequencySelector={false}
-                        frequency={frequency === "Daily" ? "daily" : frequency === "Weekly" ? "weekly" : frequency === "Monthly" ? "monthly" : "daily"}
+                        frequency={frequency === "Daily" ? "daily" : frequency === "Weekly" ? "weekly" : frequency === "Monthly" ? "monthly" : frequency === "Yearly" ? "yearly" : "daily"}
                         onFrequencyChange={(freq) => {
                             if (freq === "One-time") {
                                 setFrequency("One-time");
                             } else {
-                                setFrequency(freq === "daily" ? "Daily" : freq === "weekly" ? "Weekly" : freq === "monthly" ? "Monthly" : "Daily");
+                                setFrequency(freq === "daily" ? "Daily" : freq === "weekly" ? "Weekly" : freq === "monthly" ? "Monthly" : freq === "yearly" ? "Yearly" : "Daily");
                             }
                         }}
                     />
@@ -435,7 +454,7 @@ export function TrackingForm({
                 <div className="form-group">
                     <div className="form-label-row">
                         <label htmlFor="tracking-schedules">
-                            Times <span className="required-asterisk">*</span>{" "}
+                            Time(s) <span className="required-asterisk">*</span>{" "}
                             <button
                                 type="button"
                                 className="field-help"
@@ -514,7 +533,7 @@ export function TrackingForm({
                                     type="button"
                                     className="field-help"
                                     aria-label="Frequency help"
-                                    title="Choose how often this tracking should repeat: Daily, Weekly, Monthly, or One-time"
+                                    title="Choose how often this tracking should repeat: Daily, Weekly, Monthly, Yearly, or One-time"
                                 >
                                     ?
                                 </button>
@@ -525,13 +544,14 @@ export function TrackingForm({
                                 id="tracking-frequency"
                                 name="frequency"
                                 value={frequency}
-                                onChange={(e) => setFrequency(e.target.value as "Daily" | "Weekly" | "Monthly" | "One-time")}
+                                onChange={(e) => setFrequency(e.target.value as "Daily" | "Weekly" | "Monthly" | "Yearly" | "One-time")}
                                 disabled={isSubmitting}
                                 className="frequency-preset-select"
                             >
                                 <option value="Daily">Daily</option>
                                 <option value="Weekly">Weekly</option>
                                 <option value="Monthly">Monthly</option>
+                                <option value="Yearly">Yearly</option>
                                 <option value="One-time">One-time</option>
                             </select>
                             <input
@@ -550,7 +570,7 @@ export function TrackingForm({
                     <div className="form-group">
                         <div className="form-label-row">
                             <label htmlFor="one-time-schedules">
-                                Times <span className="required-asterisk">*</span>{" "}
+                                Time(s) <span className="required-asterisk">*</span>{" "}
                                 <button
                                     type="button"
                                     className="field-help"
