@@ -7,6 +7,7 @@ const MainLayout = lazy(() => import('./components/layouts/MainLayout').then(m =
 
 // Lazy load page components
 const LoginPage = lazy(() => import('./pages/LoginPage').then(m => ({ default: m.LoginPage })));
+const VerifyMagicLinkPage = lazy(() => import('./pages/VerifyMagicLinkPage').then(m => ({ default: m.VerifyMagicLinkPage })));
 const DashboardPage = lazy(() => import('./pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const TrackingsPage = lazy(() => import('./pages/TrackingsPage').then(m => ({ default: m.TrackingsPage })));
 const RemindersPage = lazy(() => import('./pages/RemindersPage').then(m => ({ default: m.RemindersPage })));
@@ -25,6 +26,9 @@ export function AppRoutes() {
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/register" element={<Navigate to="/login" replace />} />
                 </Route>
+
+                {/* Magic Link Verification - Public route that authenticates user */}
+                <Route path="/auth/verify-magic-link" element={<VerifyMagicLinkPage />} />
 
                 {/* Protected Routes (Main App) */}
                 <Route element={<MainLayout />}>
