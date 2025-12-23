@@ -15,7 +15,6 @@ import { DeleteUserConfirmationModal } from '../../components/DeleteUserConfirma
 import { TrackingForm } from '../../components/TrackingForm';
 import { EditTrackingModal } from '../../components/EditTrackingModal';
 import { NotificationsModal } from '../../components/NotificationsModal';
-import { DebugLogWindow } from '../../components/DebugLogWindow';
 import { OutletContextType } from '../../context/AppContext';
 
 export function MainLayout() {
@@ -82,7 +81,7 @@ export function MainLayout() {
         return () => window.removeEventListener("trackingDeleted", handleTrackingDeleted);
     }, [removeRemindersForTracking, refreshReminders]);
 
-    // Debug Events
+    // Dispatch events for debug log window auto-refresh (when /debug page is open)
     useEffect(() => {
         window.dispatchEvent(new CustomEvent('trackingsChanged'));
     }, [trackings]);
@@ -325,7 +324,6 @@ export function MainLayout() {
                     />
                 )}
             </div>
-            <DebugLogWindow />
         </>
     );
 }

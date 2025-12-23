@@ -31,8 +31,66 @@ router.get("/", authenticateToken, async (req: AuthRequest, res: Response) => {
 });
 
 /**
+ * Format a date string to GMT-3 (Buenos Aires timezone).
+ * SQLite stores dates as UTC strings without timezone info, so we need to
+ * explicitly treat them as UTC before converting to Buenos Aires timezone.
+ * @param dateString - ISO date string or date string from database (UTC, no timezone)
+ * @returns Formatted date string in YYYY-MM-DD HH:mm:ss format (GMT-3)
+ * @internal
+ */
+function formatDateGMT3(dateString: string | null | undefined): string {
+  if (!dateString) {
+    return "null";
+  }
+  try {
+    // SQLite stores dates as UTC in format "YYYY-MM-DD HH:MM:SS" without timezone
+    // Convert to ISO format and mark as UTC by appending 'Z'
+    let utcString = dateString.trim();
+    
+    // Check if it's SQLite format: "YYYY-MM-DD HH:MM:SS" (has space, no T, no Z, no timezone offset)
+    if (utcString.includes(' ') && !utcString.includes('T') && !utcString.includes('Z')) {
+      // Check if it has a timezone offset (like +03:00 or -03:00)
+      const hasTimezoneOffset = /[+-]\d{2}:\d{2}$/.test(utcString);
+      if (!hasTimezoneOffset) {
+        // SQLite format: convert space to T and add Z to indicate UTC
+        utcString = utcString.replace(' ', 'T') + 'Z';
+      }
+    } else if (utcString.includes('T') && !utcString.includes('Z') && !utcString.match(/[+-]\d{2}:\d{2}$/)) {
+      // ISO format without timezone - assume UTC
+      utcString = utcString + 'Z';
+    }
+    
+    const date = new Date(utcString);
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return dateString; // Return original if invalid
+    }
+    
+    // Convert to Buenos Aires timezone (GMT-3, handles DST automatically)
+    const formatted = date.toLocaleString("en-US", {
+      timeZone: "America/Buenos_Aires",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+    // Convert from MM/DD/YYYY, HH:mm:ss to YYYY-MM-DD HH:mm:ss
+    const [datePart, timePart] = formatted.split(", ");
+    const [month, day, year] = datePart.split("/");
+    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")} ${timePart}`;
+  } catch {
+    return dateString;
+  }
+}
+
+/**
  * GET /api/trackings/debug
  * Get formatted debug log output showing all trackings and their reminders.
+ * All dates are displayed in GMT-3 (Buenos Aires timezone).
  * @route GET /api/trackings/debug
  * @header {string} Authorization - Bearer token
  * @returns {Object} Object with formatted log text
@@ -105,8 +163,8 @@ router.get(
             `Days=${tracking.days || "null"}`,
             `Schedules=[${schedulesStr}]`,
             `Notes=${tracking.notes || "null"}`,
-            `Created=${tracking.created_at}`,
-            `Updated=${tracking.updated_at}`,
+            `Created=${formatDateGMT3(tracking.created_at)}`,
+            `Updated=${formatDateGMT3(tracking.updated_at)}`,
           ];
 
           // Determine color based on tracking state
@@ -128,13 +186,8 @@ router.get(
           const trackingReminders = remindersByTracking.get(tracking.id) || [];
           if (trackingReminders.length > 0) {
             trackingReminders.forEach((reminder) => {
-              // Format scheduled time
-              const scheduledTime = reminder.scheduled_time
-                ? new Date(reminder.scheduled_time)
-                    .toISOString()
-                    .replace("T", " ")
-                    .substring(0, 19)
-                : "null";
+              // Format scheduled time in GMT-3
+              const scheduledTime = formatDateGMT3(reminder.scheduled_time);
 
               // Format notes
               const notesStr = reminder.notes || "null";
@@ -153,8 +206,8 @@ router.get(
                 `Status=${reminder.status}`,
                 `Answer=${answerStr}`,
                 `Notes=${notesStr}`,
-                `Created=${reminder.created_at}`,
-                `Updated=${reminder.updated_at}`,
+                `Created=${formatDateGMT3(reminder.created_at)}`,
+                `Updated=${formatDateGMT3(reminder.updated_at)}`,
               ];
 
               // Determine color based on reminder status
