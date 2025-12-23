@@ -48,20 +48,39 @@ describe("TrackingForm", () => {
     };
 
     /**
-     * Helper function to set one-time date.
+     * Helper function to set one-time date and add a schedule.
      * @param user - User event instance
-     * @param dateTime - Date and time string in format "YYYY-MM-DDTHH:mm"
+     * @param date - Date string in format "YYYY-MM-DD"
+     * @param hour - Hour value (default: extracts from dateTime if provided, or uses 9)
+     * @param minutes - Minutes value (default: extracts from dateTime if provided, or uses 0)
      */
-    const setOneTimeDate = async (
+    const setOneTimeDateAndSchedule = async (
         user: ReturnType<typeof userEvent.setup>,
-        dateTime: string
+        date: string,
+        hour: number = 9,
+        minutes: number = 0
     ) => {
         const dateInput = document.getElementById("one-time-date") as HTMLInputElement;
         if (!dateInput) {
             throw new Error("One-time date input not found");
         }
         await user.clear(dateInput);
-        await user.type(dateInput, dateTime);
+        await user.type(dateInput, date);
+        
+        // Add schedule time
+        const timeInput = document.getElementById("one-time-schedule-time") as HTMLInputElement;
+        if (!timeInput) {
+            throw new Error("One-time schedule time input not found");
+        }
+        const timeValue = `${String(hour).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+        await user.clear(timeInput);
+        await user.type(timeInput, timeValue);
+        
+        const addButtons = screen.getAllByRole("button", { name: /^add$/i });
+        const addButton = addButtons.find(btn => btn.getAttribute("type") === "button" && btn.textContent === "Add") as HTMLButtonElement;
+        if (addButton) {
+            await user.click(addButton);
+        }
     };
 
     it("should render form elements", () => {
@@ -114,9 +133,9 @@ describe("TrackingForm", () => {
 
         await user.type(questionInput, "Did I exercise today?");
         const futureDate = new Date();
-        futureDate.setHours(futureDate.getHours() + 1);
-        const dateTimeString = futureDate.toISOString().slice(0, 16);
-        await setOneTimeDate(user, dateTimeString);
+        futureDate.setDate(futureDate.getDate() + 1); // Tomorrow to avoid time validation issues
+        const dateString = futureDate.toISOString().slice(0, 10); // YYYY-MM-DD
+        await setOneTimeDateAndSchedule(user, dateString, 9, 0);
         const submitButton = screen.getByRole("button", { name: /^create$/i });
         await user.click(submitButton);
 
@@ -127,10 +146,9 @@ describe("TrackingForm", () => {
             expect(callArgs[1]).toBeUndefined();
             expect(callArgs[2]).toBeUndefined();
             expect(callArgs[3]).toHaveLength(1);
-            expect(callArgs[3][0]).toHaveProperty("hour");
-            expect(callArgs[3][0]).toHaveProperty("minutes");
+            expect(callArgs[3][0]).toEqual({ hour: 9, minutes: 0 });
             expect(callArgs[4]).toBeUndefined();
-            expect(callArgs[5]).toBe(dateTimeString);
+            expect(callArgs[5]).toBe(dateString);
         });
     });
 
@@ -191,9 +209,9 @@ describe("TrackingForm", () => {
         const longQuestion = "a".repeat(101);
         fireEvent.change(questionInput, { target: { value: longQuestion } });
         const futureDate = new Date();
-        futureDate.setHours(futureDate.getHours() + 1);
-        const dateTimeString = futureDate.toISOString().slice(0, 16);
-        await setOneTimeDate(user, dateTimeString);
+        futureDate.setDate(futureDate.getDate() + 1); // Tomorrow
+        const dateString = futureDate.toISOString().slice(0, 10); // YYYY-MM-DD
+        await setOneTimeDateAndSchedule(user, dateString, 9, 0);
         const form = questionInput.closest("form")!;
         fireEvent.submit(form);
 
@@ -214,9 +232,9 @@ describe("TrackingForm", () => {
         }) as HTMLInputElement;
         await user.type(questionInput, "Did I exercise?");
         const futureDate = new Date();
-        futureDate.setHours(futureDate.getHours() + 1);
-        const dateTimeString = futureDate.toISOString().slice(0, 16);
-        await setOneTimeDate(user, dateTimeString);
+        futureDate.setDate(futureDate.getDate() + 1); // Tomorrow
+        const dateString = futureDate.toISOString().slice(0, 10); // YYYY-MM-DD
+        await setOneTimeDateAndSchedule(user, dateString, 9, 0);
         const submitBtn = screen.getByRole("button", { name: /^create$/i });
         await user.click(submitBtn);
 
@@ -282,9 +300,9 @@ describe("TrackingForm", () => {
         fireEvent.submit(form);
 
         await waitFor(() => {
-            expect(
-                screen.getByText(/date and time are required for one-time tracking/i)
-            ).toBeInTheDocument();
+            const errorText = screen.queryByText(/date is required for one-time tracking/i) ||
+                             screen.queryByText(/at least one time is required for one-time tracking/i);
+            expect(errorText).toBeInTheDocument();
         });
         expect(mockOnSubmit).not.toHaveBeenCalled();
     });

@@ -83,7 +83,7 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
    * @param icon - Optional icon (emoji)
    * @param schedules - Array of schedules (required, 1-5 schedules)
    * @param days - Optional days pattern for reminder frequency (required for recurring trackings)
-   * @param oneTimeDate - Optional date/time for one-time tracking (ISO datetime string)
+   * @param oneTimeDate - Optional date for one-time tracking (ISO date string YYYY-MM-DD)
    * @returns Promise resolving to created tracking data
    * @throws Error if validation fails
    * @public
@@ -160,23 +160,32 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
       }`
     );
 
-    // For one-time trackings, create reminder directly with the specified date
+    // For one-time trackings, create reminders for each schedule on the specified date
     if (oneTimeDate) {
       try {
-        await this.reminderService.createReminder(
-          tracking.id,
-          validatedUserId,
-          oneTimeDate
-        );
-        console.log(
-          `[${new Date().toISOString()}] TRACKING | Created one-time reminder for tracking ${
-            tracking.id
-          } at ${oneTimeDate}`
-        );
+        // Create one reminder per schedule by combining date + schedule time
+        for (const schedule of validatedSchedules) {
+          // Construct ISO datetime string from date + schedule
+          // Create a Date object in local time, then convert to ISO string
+          const dateTimeString = `${oneTimeDate}T${String(schedule.hour).padStart(2, "0")}:${String(schedule.minutes).padStart(2, "0")}:00`;
+          const dateTime = new Date(dateTimeString);
+          const isoDateTimeString = dateTime.toISOString();
+          
+          await this.reminderService.createReminder(
+            tracking.id,
+            validatedUserId,
+            isoDateTimeString
+          );
+          console.log(
+            `[${new Date().toISOString()}] TRACKING | Created one-time reminder for tracking ${
+              tracking.id
+            } at ${isoDateTimeString}`
+          );
+        }
       } catch (error) {
         // Log error but don't fail tracking creation if reminder creation fails
         console.error(
-          `[${new Date().toISOString()}] TRACKING | Failed to create one-time reminder for tracking ${
+          `[${new Date().toISOString()}] TRACKING | Failed to create one-time reminders for tracking ${
             tracking.id
           }:`,
           error

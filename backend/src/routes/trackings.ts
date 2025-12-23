@@ -80,7 +80,7 @@ router.get(
  * @body {string} icon - Optional icon (emoji)
  * @body {Array<{hour: number, minutes: number}>} schedules - Required schedules array (1-5 schedules)
  * @body {DaysPattern} days - Optional days pattern for reminder frequency (required for recurring trackings)
- * @body {string} oneTimeDate - Optional date/time for one-time tracking (ISO datetime string)
+ * @body {string} oneTimeDate - Optional date for one-time tracking (ISO date string YYYY-MM-DD)
  * @returns {TrackingData} Created tracking data
  */
 router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
@@ -113,15 +113,39 @@ router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
 
     // Validate oneTimeDate if provided
     if (oneTimeDate) {
-      const oneTimeDateObj = new Date(oneTimeDate);
+      // Validate date format (YYYY-MM-DD)
+      const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+      if (!datePattern.test(oneTimeDate)) {
+        return res.status(400).json({ error: "Invalid oneTimeDate format. Expected YYYY-MM-DD" });
+      }
+      
+      const oneTimeDateObj = new Date(oneTimeDate + "T00:00:00");
       if (isNaN(oneTimeDateObj.getTime())) {
         return res.status(400).json({ error: "Invalid oneTimeDate format" });
       }
+      
+      // Validate that the date is today or in the future
       const now = new Date();
-      if (oneTimeDateObj <= now) {
-        return res
-          .status(400)
-          .json({ error: "oneTimeDate must be in the future" });
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const selectedDateOnly = new Date(oneTimeDateObj.getFullYear(), oneTimeDateObj.getMonth(), oneTimeDateObj.getDate());
+      
+      if (selectedDateOnly < today) {
+        return res.status(400).json({ error: "oneTimeDate must be today or in the future" });
+      }
+      
+      // If it's today, validate that all schedules are in the future
+      if (selectedDateOnly.getTime() === today.getTime()) {
+        const currentHour = now.getHours();
+        const currentMinutes = now.getMinutes();
+        
+        for (const schedule of schedules) {
+          if (schedule.hour < currentHour || 
+              (schedule.hour === currentHour && schedule.minutes <= currentMinutes)) {
+            return res.status(400).json({ 
+              error: "If the date is today, all times must be after the current time" 
+            });
+          }
+        }
       }
     }
 

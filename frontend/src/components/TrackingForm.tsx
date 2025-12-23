@@ -39,6 +39,10 @@ export function TrackingForm({
     const [scheduleTime, setScheduleTime] = useState<string>("09:00");
     const [isRecurring, setIsRecurring] = useState<boolean>(false);
     const [oneTimeDate, setOneTimeDate] = useState<string>("");
+    const [oneTimeSchedules, setOneTimeSchedules] = useState<
+        Array<{ hour: number; minutes: number }>
+    >([]);
+    const [oneTimeScheduleTime, setOneTimeScheduleTime] = useState<string>("09:00");
     const [days, setDays] = useState<DaysPattern>({
         pattern_type: DaysPatternType.INTERVAL,
         interval_value: 1,
@@ -143,6 +147,69 @@ export function TrackingForm({
     };
 
     /**
+     * Add or update a one-time schedule.
+     * @internal
+     */
+    const handleAddOrUpdateOneTimeSchedule = () => {
+        setError(null);
+
+        // Parse time string (format: "HH:MM")
+        const [hourStr, minutesStr] = oneTimeScheduleTime.split(":");
+        const hour = parseInt(hourStr, 10);
+        const minutes = parseInt(minutesStr, 10);
+
+        // Validate hour and minutes
+        if (
+            isNaN(hour) ||
+            isNaN(minutes) ||
+            hour < 0 ||
+            hour > 23 ||
+            minutes < 0 ||
+            minutes > 59
+        ) {
+            setError("Invalid time format. Please use HH:MM format (e.g., 09:00)");
+            return;
+        }
+
+        const newSchedule = { hour, minutes };
+
+        // Check for duplicates
+        const isDuplicate = oneTimeSchedules.some(
+            (s) =>
+                s.hour === newSchedule.hour &&
+                s.minutes === newSchedule.minutes
+        );
+
+        if (isDuplicate) {
+            setError(
+                `Time ${String(hour).padStart(2, "0")}:${String(minutes).padStart(2, "0")} already exists`
+            );
+            return;
+        }
+
+        // Add new schedule
+        if (oneTimeSchedules.length >= 5) {
+            setError("Maximum 5 times allowed");
+            return;
+        }
+        setOneTimeSchedules([...oneTimeSchedules, newSchedule]);
+
+        // Reset input
+        setOneTimeScheduleTime("09:00");
+    };
+
+    /**
+     * Delete a one-time schedule.
+     * @param index - Index of schedule to delete
+     * @internal
+     */
+    const handleDeleteOneTimeSchedule = (index: number) => {
+        const updatedSchedules = oneTimeSchedules.filter((_, i) => i !== index);
+        setOneTimeSchedules(updatedSchedules);
+        setError(null);
+    };
+
+    /**
      * Sort schedules by hour and minutes.
      * @param schedules - Array of schedules to sort
      * @returns Sorted array of schedules
@@ -199,31 +266,56 @@ export function TrackingForm({
             finalSchedules = sortSchedules(schedules);
         } else {
             if (!oneTimeDate) {
-                setError("Date and time are required for one-time tracking");
+                setError("Date is required for one-time tracking");
                 return;
             }
 
-            // Validate that the date is in the future
-            const selectedDate = new Date(oneTimeDate);
+            if (oneTimeSchedules.length === 0) {
+                setError("At least one time is required for one-time tracking");
+                return;
+            }
+
+            // Validate that the date is today or in the future
+            const selectedDate = new Date(oneTimeDate + "T00:00:00");
             const now = new Date();
-            if (selectedDate <= now) {
-                setError("Date and time must be in the future");
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const selectedDateOnly = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+            
+            if (selectedDateOnly < today) {
+                setError("Date must be today or in the future");
                 return;
             }
 
-            // Extract hour and minutes from oneTimeDate for one-time tracking
-            const dateObj = new Date(oneTimeDate);
-            finalSchedules = [{ hour: dateObj.getHours(), minutes: dateObj.getMinutes() }];
+            // If it's today, validate that all times are in the future
+            if (selectedDateOnly.getTime() === today.getTime()) {
+                const currentHour = now.getHours();
+                const currentMinutes = now.getMinutes();
+                
+                for (const schedule of oneTimeSchedules) {
+                    if (schedule.hour < currentHour || 
+                        (schedule.hour === currentHour && schedule.minutes <= currentMinutes)) {
+                        setError("If the date is today, all times must be after the current time");
+                        return;
+                    }
+                }
+            }
+
+            finalSchedules = sortSchedules(oneTimeSchedules);
         }
 
         try {
+            // For one-time tracking, construct oneTimeDate from date + first schedule (date only, backend will handle schedules)
+            // We'll pass the date as ISO date string (YYYY-MM-DD) - backend expects ISO datetime but we'll construct it there
+            // Actually, let's keep the format consistent - pass date as YYYY-MM-DD and backend will combine with schedules
+            const oneTimeDateToSubmit = !isRecurring ? oneTimeDate : undefined;
+            
             await onSubmit(
                 question.trim(),
                 notes.trim() || undefined,
                 icon.trim() || undefined,
                 finalSchedules,
                 isRecurring ? days : undefined,
-                isRecurring ? undefined : oneTimeDate
+                oneTimeDateToSubmit
             );
             // Reset form on success
             setQuestion("");
@@ -233,6 +325,8 @@ export function TrackingForm({
             setScheduleTime("09:00");
             setIsRecurring(false);
             setOneTimeDate("");
+            setOneTimeSchedules([]);
+            setOneTimeScheduleTime("09:00");
             setDays({
                 pattern_type: DaysPatternType.INTERVAL,
                 interval_value: 1,
@@ -444,31 +538,103 @@ export function TrackingForm({
                     />
                 </div>
             ) : (
-                <div className="form-group">
-                    <div className="form-label-row">
-                        <label htmlFor="one-time-date">
-                            Date & Time <span className="required-asterisk">*</span>{" "}
+                <>
+                    <div className="form-group">
+                        <div className="form-label-row">
+                            <label htmlFor="one-time-date">
+                                Date <span className="required-asterisk">*</span>{" "}
+                                <button
+                                    type="button"
+                                    className="field-help"
+                                    aria-label="Date help"
+                                    title="Select the date when you want to be reminded for this one-time tracking. Must be today or in the future."
+                                >
+                                    ?
+                                </button>
+                            </label>
+                        </div>
+                        <input
+                            type="date"
+                            id="one-time-date"
+                            name="one-time-date"
+                            value={oneTimeDate}
+                            onChange={(e) => setOneTimeDate(e.target.value)}
+                            disabled={isSubmitting}
+                            required={!isRecurring}
+                            min={new Date().toISOString().slice(0, 10)}
+                        />
+                    </div>
+                    <div className="form-group">
+                        <div className="form-label-row">
+                            <label htmlFor="one-time-schedules">
+                                Times <span className="required-asterisk">*</span>{" "}
+                                <button
+                                    type="button"
+                                    className="field-help"
+                                    aria-label="Times help"
+                                    title="Define up to 5 times (hour and minutes) when reminders will be sent for this one-time tracking. If the date is today, all times must be after the current time."
+                                >
+                                    ?
+                                </button>
+                            </label>
+                        </div>
+                        <div className="schedule-input-row">
+                            <div className="schedule-time-inputs">
+                                <input
+                                    type="time"
+                                    id="one-time-schedule-time"
+                                    name="one-time-schedule-time"
+                                    value={oneTimeScheduleTime}
+                                    onChange={(e) => setOneTimeScheduleTime(e.target.value)}
+                                    disabled={isSubmitting || oneTimeSchedules.length >= 5}
+                                />
+                            </div>
                             <button
                                 type="button"
-                                className="field-help"
-                                aria-label="Date and time help"
-                                title="Select the date and time when you want to be reminded for this one-time tracking"
+                                className="btn-primary schedule-add-button"
+                                onClick={handleAddOrUpdateOneTimeSchedule}
+                                disabled={
+                                    isSubmitting || oneTimeSchedules.length >= 5
+                                }
                             >
-                                ?
+                                Add
                             </button>
-                        </label>
+                            {oneTimeSchedules.length > 0 && (
+                                <div className="schedules-list">
+                                    {sortSchedules(oneTimeSchedules).map((schedule) => {
+                                        const originalIndex = oneTimeSchedules.findIndex(
+                                            (s) =>
+                                                s.hour === schedule.hour &&
+                                                s.minutes === schedule.minutes
+                                        );
+                                        return (
+                                            <div
+                                                key={`${schedule.hour}-${schedule.minutes}-${originalIndex}`}
+                                                className="schedule-item"
+                                            >
+                                                <span className="schedule-time">
+                                                    {String(schedule.hour).padStart(2, "0")}:
+                                                    {String(schedule.minutes).padStart(2, "0")}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    className="btn-icon"
+                                                    onClick={() =>
+                                                        handleDeleteOneTimeSchedule(originalIndex)
+                                                    }
+                                                    disabled={isSubmitting}
+                                                    aria-label="Delete schedule"
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
                     </div>
-                    <input
-                        type="datetime-local"
-                        id="one-time-date"
-                        name="one-time-date"
-                        value={oneTimeDate}
-                        onChange={(e) => setOneTimeDate(e.target.value)}
-                        disabled={isSubmitting}
-                        required={!isRecurring}
-                        min={new Date().toISOString().slice(0, 16)}
-                    />
-                </div>
+                </>
             )}
 
             <div className="form-group">
@@ -515,7 +681,7 @@ export function TrackingForm({
                         isSubmitting ||
                         !question.trim() ||
                         (isRecurring && schedules.length === 0) ||
-                        (!isRecurring && !oneTimeDate)
+                        (!isRecurring && (!oneTimeDate || oneTimeSchedules.length === 0))
                     }
                 >
                     {isSubmitting ? "Creating..." : "Create"}
