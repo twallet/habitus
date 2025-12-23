@@ -65,6 +65,7 @@ describe('UserMenu', () => {
                 user={singleNameUser}
                 onEditProfile={mockOnEditProfile}
                 onChangeEmail={mockOnChangeEmail}
+                onNotifications={mockOnNotifications}
                 onLogout={mockOnLogout}
                 onDeleteUser={mockOnDeleteUser}
             />
@@ -84,6 +85,7 @@ describe('UserMenu', () => {
                 user={multiWordUser}
                 onEditProfile={mockOnEditProfile}
                 onChangeEmail={mockOnChangeEmail}
+                onNotifications={mockOnNotifications}
                 onLogout={mockOnLogout}
                 onDeleteUser={mockOnDeleteUser}
             />
@@ -103,6 +105,7 @@ describe('UserMenu', () => {
                 user={userWithPicture}
                 onEditProfile={mockOnEditProfile}
                 onChangeEmail={mockOnChangeEmail}
+                onNotifications={mockOnNotifications}
                 onLogout={mockOnLogout}
                 onDeleteUser={mockOnDeleteUser}
             />
@@ -380,6 +383,7 @@ describe('UserMenu', () => {
                 user={userWithWhitespace}
                 onEditProfile={mockOnEditProfile}
                 onChangeEmail={mockOnChangeEmail}
+                onNotifications={mockOnNotifications}
                 onLogout={mockOnLogout}
                 onDeleteUser={mockOnDeleteUser}
             />
