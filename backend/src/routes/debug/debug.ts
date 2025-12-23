@@ -147,9 +147,9 @@ router.get("/", authenticateToken, async (req: AuthRequest, res: Response) => {
     // Add separator between users and trackings
     if (users.length > 0) {
       lines.push("");
-      lines.push(`${ANSI_GRAY}=== TRACKINGS ===${ANSI_RESET}`);
-      lines.push("");
     }
+    lines.push(`${ANSI_GRAY}=== TRACKINGS ===${ANSI_RESET}`);
+    lines.push("");
 
     if (trackings.length === 0) {
       lines.push(
