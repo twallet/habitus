@@ -6,7 +6,7 @@ import { PathConfig } from "../paths.js";
 describe("PathConfig", () => {
   const originalEnv = process.env;
   const originalExistsSync = fs.existsSync;
-  let mockExistsSync: ReturnType<typeof vi.fn>;
+  let mockExistsSync: ReturnType<typeof vi.fn<typeof fs.existsSync>>;
 
   beforeEach(() => {
     // Reset environment variables to original state
@@ -17,7 +17,7 @@ describe("PathConfig", () => {
     (PathConfig as any).cachedPaths = null;
 
     // Mock fs.existsSync
-    mockExistsSync = vi.fn().mockReturnValue(true);
+    mockExistsSync = vi.fn<typeof fs.existsSync>().mockReturnValue(true);
     fs.existsSync = mockExistsSync;
   });
 
