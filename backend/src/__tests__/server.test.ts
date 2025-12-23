@@ -1890,6 +1890,10 @@ describe("Server Configuration - Integration Tests", () => {
                 Router: express.Router,
               }
             ),
+            // Export Router as named export for ES module imports
+            Router: express.Router,
+            Request: {} as any,
+            Response: {} as any,
           };
         },
       });
