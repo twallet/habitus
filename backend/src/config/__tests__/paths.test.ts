@@ -228,10 +228,10 @@ describe("PathConfig", () => {
 
     it("should handle empty string PROJECT_ROOT", () => {
       process.env.PROJECT_ROOT = "";
-      mockExistsSync.mockReturnValue(false);
 
+      // Empty string is falsy, so it should throw "required" error
       expect(() => PathConfig.getWorkspaceRoot()).toThrow(
-        "PROJECT_ROOT environment variable points to non-existent path"
+        "PROJECT_ROOT environment variable is required. Please set it in config/.env file."
       );
     });
 
