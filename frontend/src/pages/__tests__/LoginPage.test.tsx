@@ -68,7 +68,9 @@ describe('LoginPage', () => {
         await userEvent.click(submitButton);
 
         await waitFor(() => {
-            expect(screen.getByText('Login link sent successfully')).toBeInTheDocument();
+            // Message should be cleared, and AuthForm should show "Check your email!" screen
+            expect(screen.getByText(/check your email/i)).toBeInTheDocument();
+            expect(screen.queryByText('Login link sent successfully')).not.toBeInTheDocument();
         });
     });
 
@@ -195,8 +197,8 @@ describe('LoginPage', () => {
 
     it('should hide message when Message component calls onHide', async () => {
         mockRequestLoginMagicLink.mockResolvedValue({
-            message: 'Login link sent',
-            cooldown: false,
+            message: 'Please wait before requesting another link',
+            cooldown: true,
         });
 
         render(<LoginPage />);
@@ -208,14 +210,14 @@ describe('LoginPage', () => {
         await userEvent.click(submitButton);
 
         await waitFor(() => {
-            expect(screen.getByText('Login link sent')).toBeInTheDocument();
+            expect(screen.getByText('Please wait before requesting another link')).toBeInTheDocument();
         });
 
         const closeButton = screen.getByRole('button', { name: /close/i });
         await userEvent.click(closeButton);
 
         await waitFor(() => {
-            expect(screen.queryByText('Login link sent')).not.toBeInTheDocument();
+            expect(screen.queryByText('Please wait before requesting another link')).not.toBeInTheDocument();
         });
     });
 
