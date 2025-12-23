@@ -447,11 +447,11 @@ export class AuthService {
   }> {
     // Trim whitespace in case of encoding issues
     const trimmedToken = token?.trim();
-    
+
     console.log(
       `[${new Date().toISOString()}] AUTH | Magic link verification attempted (token length: ${
         trimmedToken?.length || 0
-      }, first 10 chars: ${trimmedToken?.substring(0, 10) || 'none'})`
+      }, first 10 chars: ${trimmedToken?.substring(0, 10) || "none"})`
     );
 
     if (!trimmedToken || typeof trimmedToken !== "string") {
@@ -473,7 +473,10 @@ export class AuthService {
 
     if (!user) {
       console.warn(
-        `[${new Date().toISOString()}] AUTH | Magic link verification failed: token not found (searched for token starting with: ${trimmedToken.substring(0, 10)})`
+        `[${new Date().toISOString()}] AUTH | Magic link verification failed: token not found (searched for token starting with: ${trimmedToken.substring(
+          0,
+          10
+        )})`
       );
       throw new Error("Invalid or expired link");
     }

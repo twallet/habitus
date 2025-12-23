@@ -278,7 +278,9 @@ describe("ReminderService", () => {
       expect(reminders.some((r) => r.id === pendingReminder.id)).toBe(true);
       expect(reminders.some((r) => r.id === upcomingReminder.id)).toBe(true);
       expect(reminders.some((r) => r.id === answeredReminder.id)).toBe(false);
-      expect(reminders.some((r) => r.status === ReminderStatus.ANSWERED)).toBe(false);
+      expect(reminders.some((r) => r.status === ReminderStatus.ANSWERED)).toBe(
+        false
+      );
     });
 
     it("should update expired upcoming reminders to Pending and create new Upcoming reminder", async () => {

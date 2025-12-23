@@ -297,7 +297,13 @@ describe("Reminder Model", () => {
       );
       await db.run(
         "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status, value) VALUES (?, ?, ?, ?, ?)",
-        [trackingId, userId, "2024-01-03T10:00:00Z", ReminderStatus.ANSWERED, ReminderValue.COMPLETED]
+        [
+          trackingId,
+          userId,
+          "2024-01-03T10:00:00Z",
+          ReminderStatus.ANSWERED,
+          ReminderValue.COMPLETED,
+        ]
       );
 
       const reminders = await Reminder.loadActiveByUserId(userId, db);
@@ -305,7 +311,9 @@ describe("Reminder Model", () => {
       expect(reminders.length).toBe(2);
       expect(reminders[0].status).toBe(ReminderStatus.PENDING);
       expect(reminders[1].status).toBe(ReminderStatus.UPCOMING);
-      expect(reminders.some((r) => r.status === ReminderStatus.ANSWERED)).toBe(false);
+      expect(reminders.some((r) => r.status === ReminderStatus.ANSWERED)).toBe(
+        false
+      );
     });
   });
 
