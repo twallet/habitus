@@ -103,7 +103,10 @@ async function createTestDatabase(): Promise<Database> {
               reject(err);
               return;
             }
-            resolve(new Database(db));
+            // Create Database instance and manually set its internal db
+            const database = new Database();
+            (database as any).db = db;
+            resolve(database);
           }
         );
       });
@@ -205,16 +208,18 @@ describe("Debug Routes", () => {
         [trackingId, 9, 0]
       );
 
-      // Insert reminder
+      // Insert reminder (use Pending status since getAllByUserId filters out Answered reminders)
+      const futureDate = new Date();
+      futureDate.setHours(futureDate.getHours() + 1);
       const reminderResult = await testDb.run(
         "INSERT INTO reminders (tracking_id, user_id, scheduled_time, notes, status, value) VALUES (?, ?, ?, ?, ?, ?)",
         [
           trackingId,
           testUserId,
-          "2024-01-01 09:00:00",
+          futureDate.toISOString().slice(0, 19).replace("T", " "),
           "Reminder notes",
-          "Answered",
-          "Completed",
+          "Pending",
+          "Dismissed",
         ]
       );
       const reminderId = reminderResult.lastID;
@@ -229,9 +234,9 @@ describe("Debug Routes", () => {
       expect(response.body.log).toContain(`ID=${reminderId}`);
       expect(response.body.log).toContain(`TrackingID=${trackingId}`);
       expect(response.body.log).toContain(`UserID=${testUserId}`);
-      expect(response.body.log).toContain("Answer=Completed");
+      expect(response.body.log).toContain("Answer=null");
       expect(response.body.log).toContain("Notes=Reminder notes");
-      expect(response.body.log).toContain("Status=Answered");
+      expect(response.body.log).toContain("Status=Pending");
     });
 
     it("should return debug log with multiple trackings and reminders", async () => {
