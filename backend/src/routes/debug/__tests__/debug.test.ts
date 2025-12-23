@@ -386,7 +386,13 @@ describe("Debug Routes", () => {
     });
 
     it("should return 500 when service throws error", async () => {
-      // Mock service to throw error
+      // Mock services to throw error
+      vi.spyOn(
+        servicesModule.ServiceManager,
+        "getUserService"
+      ).mockReturnValue({
+        getAllUsers: vi.fn().mockRejectedValue(new Error("Database error")),
+      } as any);
       vi.spyOn(
         servicesModule.ServiceManager,
         "getTrackingService"
