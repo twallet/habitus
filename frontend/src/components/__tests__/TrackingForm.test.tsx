@@ -18,7 +18,10 @@ describe("TrackingForm", () => {
      * @param frequency - Frequency value (default: "Daily")
      */
     const setFrequency = async (user: ReturnType<typeof userEvent.setup>, frequency: "Daily" | "Weekly" | "Monthly" | "One-time" = "Daily") => {
-        const frequencySelect = screen.getByLabelText(/^frequency/i) as HTMLSelectElement;
+        const frequencySelect = document.getElementById("tracking-frequency") as HTMLSelectElement;
+        if (!frequencySelect) {
+            throw new Error("Frequency select not found");
+        }
         await user.selectOptions(frequencySelect, frequency);
     };
 
