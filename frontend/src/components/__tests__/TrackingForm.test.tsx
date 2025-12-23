@@ -13,12 +13,16 @@ describe("TrackingForm", () => {
     });
 
     /**
-     * Helper function to set frequency to recurring mode.
+     * Helper function to set frequency.
      * @param user - User event instance
      * @param frequency - Frequency value (default: "Daily")
      */
-    const setFrequency = async (user: ReturnType<typeof userEvent.setup>, frequency: "Daily" | "Weekly" | "Monthly" | "One-time" = "Daily") => {
-        const frequencySelect = document.getElementById("tracking-frequency") as HTMLSelectElement;
+    const setFrequency = async (user: ReturnType<typeof userEvent.setup>, frequency: "Daily" | "Weekly" | "Monthly" | "Yearly" | "One-time" = "Daily") => {
+        // Try both frequency selectors (one in DaysPatternInput, one for One-time)
+        let frequencySelect = document.getElementById("tracking-frequency") as HTMLSelectElement;
+        if (!frequencySelect) {
+            frequencySelect = document.getElementById("frequency-preset") as HTMLSelectElement;
+        }
         if (!frequencySelect) {
             throw new Error("Frequency select not found");
         }
@@ -92,6 +96,172 @@ describe("TrackingForm", () => {
             screen.getByRole("textbox", { name: /^question \*/i })
         ).toBeInTheDocument();
         expect(screen.getByRole("button", { name: /^create$/i })).toBeInTheDocument();
+    });
+
+    it("should show frequency field below question field", () => {
+        render(<TrackingForm onSubmit={mockOnSubmit} />);
+
+        const questionInput = screen.getByRole("textbox", { name: /^question \*/i });
+        const frequencyLabel = screen.getByText(/^frequency/i);
+
+        // Frequency should appear after question in the DOM
+        expect(questionInput.compareDocumentPosition(frequencyLabel)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+
+    it("should show icon field as the last field before form actions", () => {
+        render(<TrackingForm onSubmit={mockOnSubmit} />);
+
+        const iconInput = screen.getByLabelText(/^icon/i);
+        const notesInput = screen.getByLabelText(/^notes/i);
+        const createButton = screen.getByRole("button", { name: /^create$/i });
+
+        // Icon should appear after notes in the DOM
+        expect(notesInput.compareDocumentPosition(iconInput)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+        // Icon should appear before create button
+        expect(iconInput.compareDocumentPosition(createButton)).toBe(Node.DOCUMENT_POSITION_PRECEDING);
+    });
+
+    it("should default to Daily frequency", () => {
+        render(<TrackingForm onSubmit={mockOnSubmit} />);
+
+        const frequencySelect = document.getElementById("frequency-preset") as HTMLSelectElement;
+        expect(frequencySelect).toBeInTheDocument();
+        expect(frequencySelect.value).toBe("daily");
+    });
+
+    it("should show all frequency options: Daily, Weekly, Monthly, Yearly, One-time", () => {
+        render(<TrackingForm onSubmit={mockOnSubmit} />);
+
+        const frequencySelect = document.getElementById("frequency-preset") as HTMLSelectElement;
+        expect(frequencySelect).toBeInTheDocument();
+
+        const options = Array.from(frequencySelect.options).map(opt => opt.value);
+        expect(options).toContain("daily");
+        expect(options).toContain("weekly");
+        expect(options).toContain("monthly");
+        expect(options).toContain("yearly");
+        expect(options).toContain("One-time");
+    });
+
+    it("should create DAY_OF_WEEK pattern when Weekly is selected", async () => {
+        const user = userEvent.setup();
+        render(<TrackingForm onSubmit={mockOnSubmit} />);
+
+        const questionInput = screen.getByRole("textbox", { name: /^question \*/i });
+        await user.type(questionInput, "Did I exercise?");
+
+        await setFrequency(user, "Weekly");
+        await addSchedule(user);
+
+        const submitButton = screen.getByRole("button", { name: /^create$/i });
+        await user.click(submitButton);
+
+        await waitFor(() => {
+            expect(mockOnSubmit).toHaveBeenCalledWith(
+                "Did I exercise?",
+                undefined,
+                undefined,
+                [{ hour: 9, minutes: 0 }],
+                expect.objectContaining({
+                    pattern_type: DaysPatternType.DAY_OF_WEEK,
+                    days: expect.any(Array),
+                }),
+                undefined
+            );
+        });
+    });
+
+    it("should create DAY_OF_MONTH pattern when Monthly is selected", async () => {
+        const user = userEvent.setup();
+        render(<TrackingForm onSubmit={mockOnSubmit} />);
+
+        const questionInput = screen.getByRole("textbox", { name: /^question \*/i });
+        await user.type(questionInput, "Did I exercise?");
+
+        await setFrequency(user, "Monthly");
+        await addSchedule(user);
+
+        const submitButton = screen.getByRole("button", { name: /^create$/i });
+        await user.click(submitButton);
+
+        await waitFor(() => {
+            expect(mockOnSubmit).toHaveBeenCalledWith(
+                "Did I exercise?",
+                undefined,
+                undefined,
+                [{ hour: 9, minutes: 0 }],
+                expect.objectContaining({
+                    pattern_type: DaysPatternType.DAY_OF_MONTH,
+                }),
+                undefined
+            );
+        });
+    });
+
+    it("should create DAY_OF_YEAR pattern when Yearly is selected", async () => {
+        const user = userEvent.setup();
+        render(<TrackingForm onSubmit={mockOnSubmit} />);
+
+        const questionInput = screen.getByRole("textbox", { name: /^question \*/i });
+        await user.type(questionInput, "Did I exercise?");
+
+        await setFrequency(user, "Yearly");
+        await addSchedule(user);
+
+        const submitButton = screen.getByRole("button", { name: /^create$/i });
+        await user.click(submitButton);
+
+        await waitFor(() => {
+            expect(mockOnSubmit).toHaveBeenCalledWith(
+                "Did I exercise?",
+                undefined,
+                undefined,
+                [{ hour: 9, minutes: 0 }],
+                expect.objectContaining({
+                    pattern_type: DaysPatternType.DAY_OF_YEAR,
+                    type: "date",
+                    month: expect.any(Number),
+                    day: expect.any(Number),
+                }),
+                undefined
+            );
+        });
+    });
+
+    it("should show date field on same line as frequency when One-time is selected", async () => {
+        const user = userEvent.setup();
+        render(<TrackingForm onSubmit={mockOnSubmit} />);
+
+        await setFrequency(user, "One-time");
+
+        const frequencySelect = document.getElementById("tracking-frequency") as HTMLSelectElement;
+        const dateInput = document.getElementById("one-time-date") as HTMLInputElement;
+
+        expect(frequencySelect).toBeInTheDocument();
+        expect(dateInput).toBeInTheDocument();
+
+        // Both should be in the same frequency-field-row
+        const frequencyFieldRow = frequencySelect.closest(".frequency-field-row");
+        const dateFieldRow = dateInput.closest(".frequency-field-row");
+        expect(frequencyFieldRow).toBe(dateFieldRow);
+    });
+
+    it("should reset frequency to Daily after successful submission", async () => {
+        const user = userEvent.setup();
+        render(<TrackingForm onSubmit={mockOnSubmit} />);
+
+        const questionInput = screen.getByRole("textbox", { name: /^question \*/i });
+        await user.type(questionInput, "Did I exercise?");
+        await setFrequency(user, "Weekly");
+        await addSchedule(user);
+
+        const submitBtn = screen.getByRole("button", { name: /^create$/i });
+        await user.click(submitBtn);
+
+        await waitFor(() => {
+            const frequencySelect = document.getElementById("frequency-preset") as HTMLSelectElement;
+            expect(frequencySelect.value).toBe("daily");
+        });
     });
 
 

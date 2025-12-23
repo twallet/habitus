@@ -431,5 +431,237 @@ describe("DaysPatternInput", () => {
         const select = screen.getByRole("combobox", { name: /frequency/i });
         expect(select).toBeDisabled();
     });
+
+    it("should call onFrequencyChange when frequency changes", async () => {
+        const user = userEvent.setup();
+        const mockOnFrequencyChange = vi.fn();
+        render(
+            <DaysPatternInput
+                onChange={mockOnChange}
+                onErrorChange={mockOnErrorChange}
+                onFrequencyChange={mockOnFrequencyChange}
+            />
+        );
+
+        const select = screen.getByRole("combobox", { name: /frequency/i });
+        await user.selectOptions(select, "weekly");
+
+        await waitFor(() => {
+            expect(mockOnFrequencyChange).toHaveBeenCalledWith("weekly");
+        });
+    });
+
+    it("should call onFrequencyChange with One-time when One-time is selected", async () => {
+        const user = userEvent.setup();
+        const mockOnFrequencyChange = vi.fn();
+        render(
+            <DaysPatternInput
+                onChange={mockOnChange}
+                onErrorChange={mockOnErrorChange}
+                onFrequencyChange={mockOnFrequencyChange}
+            />
+        );
+
+        const select = screen.getByRole("combobox", { name: /frequency/i });
+        await user.selectOptions(select, "One-time");
+
+        await waitFor(() => {
+            expect(mockOnFrequencyChange).toHaveBeenCalledWith("One-time");
+        });
+    });
+
+    it("should sync preset with controlled frequency prop", async () => {
+        const { rerender } = render(
+            <DaysPatternInput
+                onChange={mockOnChange}
+                onErrorChange={mockOnErrorChange}
+                frequency="weekly"
+            />
+        );
+
+        const select = screen.getByRole("combobox", { name: /frequency/i });
+        expect(select).toHaveValue("weekly");
+
+        // Change controlled frequency
+        rerender(
+            <DaysPatternInput
+                onChange={mockOnChange}
+                onErrorChange={mockOnErrorChange}
+                frequency="monthly"
+            />
+        );
+
+        await waitFor(() => {
+            expect(select).toHaveValue("monthly");
+        });
+    });
+
+    it("should not re-initialize from value when value matches last sent pattern", async () => {
+        const initialPattern: DaysPattern = {
+            pattern_type: DaysPatternType.DAY_OF_WEEK,
+            days: [1],
+        };
+
+        const { rerender } = render(
+            <DaysPatternInput
+                value={initialPattern}
+                onChange={mockOnChange}
+                onErrorChange={mockOnErrorChange}
+            />
+        );
+
+        // Wait for initial render
+        await waitFor(() => {
+            expect(mockOnChange).toHaveBeenCalled();
+        });
+
+        const select = screen.getByRole("combobox", { name: /frequency/i });
+        expect(select).toHaveValue("weekly");
+
+        // Get the last pattern that was sent
+        const lastCall = mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1][0];
+        mockOnChange.mockClear();
+
+        // Simulate parent updating value with the same pattern we sent
+        rerender(
+            <DaysPatternInput
+                value={lastCall}
+                onChange={mockOnChange}
+                onErrorChange={mockOnErrorChange}
+            />
+        );
+
+        // Should not call onChange again (no infinite loop)
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // onChange should not be called again with the same value
+        expect(mockOnChange).not.toHaveBeenCalled();
+    });
+
+    it("should re-initialize when value prop changes to a different pattern", async () => {
+        const initialPattern: DaysPattern = {
+            pattern_type: DaysPatternType.DAY_OF_WEEK,
+            days: [1],
+        };
+
+        const newPattern: DaysPattern = {
+            pattern_type: DaysPatternType.DAY_OF_WEEK,
+            days: [1, 3, 5],
+        };
+
+        const { rerender } = render(
+            <DaysPatternInput
+                value={initialPattern}
+                onChange={mockOnChange}
+                onErrorChange={mockOnErrorChange}
+            />
+        );
+
+        await waitFor(() => {
+            expect(mockOnChange).toHaveBeenCalled();
+        });
+
+        mockOnChange.mockClear();
+
+        // Change to a different pattern
+        rerender(
+            <DaysPatternInput
+                value={newPattern}
+                onChange={mockOnChange}
+                onErrorChange={mockOnErrorChange}
+            />
+        );
+
+        // Should update to show the new days
+        await waitFor(() => {
+            // The weekday buttons should reflect the new days
+            const mondayButton = screen.getByRole("button", { name: /mo/i });
+            const wednesdayButton = screen.getByRole("button", { name: /we/i });
+            const fridayButton = screen.getByRole("button", { name: /fr/i });
+
+            expect(mondayButton).toHaveClass("selected");
+            expect(wednesdayButton).toHaveClass("selected");
+            expect(fridayButton).toHaveClass("selected");
+        });
+    });
+
+    it("should show Yearly option in frequency selector", () => {
+        render(
+            <DaysPatternInput
+                onChange={mockOnChange}
+                onErrorChange={mockOnErrorChange}
+            />
+        );
+
+        const select = screen.getByRole("combobox", { name: /frequency/i }) as HTMLSelectElement;
+        const options = Array.from(select.options).map(opt => opt.value);
+
+        expect(options).toContain("yearly");
+    });
+
+    it("should show One-time option in frequency selector", () => {
+        render(
+            <DaysPatternInput
+                onChange={mockOnChange}
+                onErrorChange={mockOnErrorChange}
+            />
+        );
+
+        const select = screen.getByRole("combobox", { name: /frequency/i }) as HTMLSelectElement;
+        const options = Array.from(select.options).map(opt => opt.value);
+
+        expect(options).toContain("One-time");
+    });
+
+    it("should hide frequency selector when hideFrequencySelector is true", () => {
+        render(
+            <DaysPatternInput
+                onChange={mockOnChange}
+                onErrorChange={mockOnErrorChange}
+                hideFrequencySelector={true}
+            />
+        );
+
+        const select = document.getElementById("frequency-preset");
+        expect(select).not.toBeInTheDocument();
+    });
+
+    it("should not cause infinite loop when selecting weekly days", async () => {
+        const user = userEvent.setup();
+        render(
+            <DaysPatternInput
+                onChange={mockOnChange}
+                onErrorChange={mockOnErrorChange}
+            />
+        );
+
+        // Select weekly preset
+        const select = screen.getByRole("combobox", { name: /frequency/i });
+        await user.selectOptions(select, "weekly");
+
+        // Wait for initial weekly setup
+        await waitFor(() => {
+            expect(mockOnChange).toHaveBeenCalled();
+        });
+
+        mockOnChange.mockClear();
+
+        // Click a day button multiple times
+        const mondayButton = screen.getByRole("button", { name: /mo/i });
+        await user.click(mondayButton);
+        await user.click(mondayButton); // Toggle off and on
+
+        // Should call onChange only a reasonable number of times (not infinite)
+        await waitFor(() => {
+            expect(mockOnChange).toHaveBeenCalled();
+        });
+
+        // Wait a bit to ensure no more calls are made
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Should have called onChange, but not excessively
+        const callCount = mockOnChange.mock.calls.length;
+        expect(callCount).toBeLessThan(10); // Reasonable upper bound
+    });
 });
 
