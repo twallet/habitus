@@ -12,7 +12,7 @@ const VerifyMagicLinkPage = lazy(() => import('./pages/VerifyMagicLinkPage').the
 const TrackingsPage = lazy(() => import('./pages/TrackingsPage').then(m => ({ default: m.TrackingsPage })));
 const RemindersPage = lazy(() => import('./pages/RemindersPage').then(m => ({ default: m.RemindersPage })));
 const ProfilePage = lazy(() => import('./pages/ProfilePage').then(m => ({ default: m.ProfilePage })));
-const DebugPage = lazy(() => import('./pages/DebugPage').then(m => ({ default: m.DebugPage })));
+const DebugPage = lazy(() => import('./pages/debug/DebugPage').then(m => ({ default: m.DebugPage })));
 
 /**
  * Defines the application route structure with lazy-loaded components.

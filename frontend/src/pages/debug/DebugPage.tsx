@@ -1,4 +1,4 @@
-import { DebugLogWindow } from '../components/DebugLogWindow';
+import { DebugLogWindow } from '../../components/debug/DebugLogWindow';
 
 /**
  * Debug page component that displays the debug log window.

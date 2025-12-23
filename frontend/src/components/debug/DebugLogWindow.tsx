@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { API_BASE_URL } from '../config/api';
+import { API_BASE_URL } from '../../config/api';
 import './DebugLogWindow.css';
 
 /**
@@ -66,7 +66,7 @@ export function DebugLogWindow() {
 
         try {
             const token = localStorage.getItem('habitus_token');
-            const url = `${API_BASE_URL}/api/trackings/debug`;
+            const url = `${API_BASE_URL}/api/debug`;
             const headers: Record<string, string> = {};
 
             if (token) {
