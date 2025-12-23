@@ -12,10 +12,16 @@ export function LoginPage() {
     const handleRequestLoginMagicLink = async (email: string) => {
         try {
             const response = await requestLoginMagicLink(email);
-            setMessage({
-                text: response.message,
-                type: response.cooldown ? 'error' : 'success',
-            });
+            // Clear message when email is sent - the AuthForm will show "Check your email!" screen
+            // Only show error message if there's a cooldown
+            if (response.cooldown) {
+                setMessage({
+                    text: response.message,
+                    type: 'error',
+                });
+            } else {
+                setMessage(null);
+            }
             return response;
         } catch (error) {
             setMessage({
