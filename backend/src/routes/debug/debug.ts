@@ -77,7 +77,7 @@ function formatDateGMT3(dateString: string | null | undefined): string {
 
 /**
  * GET /api/debug
- * Get formatted debug log output showing all trackings and their reminders.
+ * Get formatted debug log output showing all users, trackings and their reminders.
  * All dates are displayed in GMT-3 (Buenos Aires timezone).
  * @route GET /api/debug
  * @header {string} Authorization - Bearer token
@@ -86,9 +86,11 @@ function formatDateGMT3(dateString: string | null | undefined): string {
 router.get("/", authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
+    const userService = ServiceManager.getUserService();
     const trackingService = ServiceManager.getTrackingService();
     const reminderService = ServiceManager.getReminderService();
 
+    const users = await userService.getAllUsers();
     const trackings = await trackingService.getAllByUserId(userId);
     const reminders = await reminderService.getAllByUserId(userId);
 
@@ -114,6 +116,40 @@ router.get("/", authenticateToken, async (req: AuthRequest, res: Response) => {
 
     // Format output similar to PowerShell script with ANSI color codes
     const lines: string[] = [];
+
+    // Add users section
+    if (users.length === 0) {
+      lines.push(`${ANSI_YELLOW}No users found in the database.${ANSI_RESET}`);
+    } else {
+      lines.push(`${ANSI_CYAN}=== USERS ===${ANSI_RESET}`);
+      users.forEach((user, index) => {
+        if (index > 0) {
+          lines.push("");
+        }
+
+        const userAttrs = [
+          `ID=${user.id}`,
+          `Name=${user.name}`,
+          `Email=${user.email}`,
+          `ProfilePicture=${user.profile_picture_url || "null"}`,
+          `LastAccess=${formatDateGMT3(user.last_access)}`,
+          `Created=${formatDateGMT3(user.created_at)}`,
+        ];
+
+        lines.push(
+          `${ANSI_CYAN}USER #${index + 1} : ${userAttrs.join(
+            " | "
+          )}${ANSI_RESET}`
+        );
+      });
+    }
+
+    // Add separator between users and trackings
+    if (users.length > 0) {
+      lines.push("");
+      lines.push(`${ANSI_GRAY}=== TRACKINGS ===${ANSI_RESET}`);
+      lines.push("");
+    }
 
     if (trackings.length === 0) {
       lines.push(
