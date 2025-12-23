@@ -240,6 +240,47 @@ describe("ReminderService", () => {
       expect(reminders[1].scheduled_time).toBe(scheduledTime2);
     });
 
+    it("should exclude Answered reminders from results", async () => {
+      const pendingTime = new Date(Date.now() - 3600000).toISOString(); // 1 hour ago
+      const upcomingTime = new Date(Date.now() + 3600000).toISOString(); // 1 hour from now
+      const pastTime = new Date(Date.now() - 7200000).toISOString(); // 2 hours ago
+
+      // Create a Pending reminder
+      const pendingReminder = await reminderService.createReminder(
+        testTrackingId,
+        testUserId,
+        pendingTime
+      );
+
+      // Create an Upcoming reminder
+      const upcomingReminder = await reminderService.createReminder(
+        testTrackingId,
+        testUserId,
+        upcomingTime
+      );
+
+      // Create an Answered reminder directly in the database (simulating a completed reminder)
+      const answeredReminder = new Reminder({
+        id: 0,
+        tracking_id: testTrackingId,
+        user_id: testUserId,
+        scheduled_time: pastTime,
+        status: ReminderStatus.ANSWERED,
+        value: ReminderValue.COMPLETED,
+      });
+      await answeredReminder.save(testDb);
+
+      // Fetch reminders - should exclude Answered
+      const reminders = await reminderService.getAllByUserId(testUserId);
+
+      // Should only return Pending and Upcoming, not Answered
+      expect(reminders.length).toBe(2);
+      expect(reminders.some((r) => r.id === pendingReminder.id)).toBe(true);
+      expect(reminders.some((r) => r.id === upcomingReminder.id)).toBe(true);
+      expect(reminders.some((r) => r.id === answeredReminder.id)).toBe(false);
+      expect(reminders.some((r) => r.status === ReminderStatus.ANSWERED)).toBe(false);
+    });
+
     it("should update expired upcoming reminders to Pending and create new Upcoming reminder", async () => {
       // Create a reminder and snooze it to a past time
       const pastTime = new Date(Date.now() - 60000).toISOString(); // 1 minute ago
