@@ -285,6 +285,30 @@ describe("Reminder Model", () => {
     });
   });
 
+  describe("loadActiveByUserId", () => {
+    it("should load only active reminders (excludes Answered)", async () => {
+      await db.run(
+        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status) VALUES (?, ?, ?, ?)",
+        [trackingId, userId, "2024-01-01T10:00:00Z", ReminderStatus.PENDING]
+      );
+      await db.run(
+        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status) VALUES (?, ?, ?, ?)",
+        [trackingId, userId, "2024-01-02T10:00:00Z", ReminderStatus.UPCOMING]
+      );
+      await db.run(
+        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status, value) VALUES (?, ?, ?, ?, ?)",
+        [trackingId, userId, "2024-01-03T10:00:00Z", ReminderStatus.ANSWERED, ReminderValue.COMPLETED]
+      );
+
+      const reminders = await Reminder.loadActiveByUserId(userId, db);
+
+      expect(reminders.length).toBe(2);
+      expect(reminders[0].status).toBe(ReminderStatus.PENDING);
+      expect(reminders[1].status).toBe(ReminderStatus.UPCOMING);
+      expect(reminders.some((r) => r.status === ReminderStatus.ANSWERED)).toBe(false);
+    });
+  });
+
   describe("loadByTrackingId", () => {
     it("should load reminder by tracking ID", async () => {
       await db.run(

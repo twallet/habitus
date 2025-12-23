@@ -49,13 +49,13 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
   }
 
   /**
-   * Load all entity models for a user.
+   * Load all entity models for a user (active reminders only, excludes Answered).
    * @param userId - The user ID
-   * @returns Promise resolving to array of reminder models
+   * @returns Promise resolving to array of reminder models (Pending and Upcoming only)
    * @protected
    */
   protected async loadModelsByUserId(userId: number): Promise<Reminder[]> {
-    return await Reminder.loadByUserId(userId, this.db);
+    return await Reminder.loadActiveByUserId(userId, this.db);
   }
 
   /**
@@ -132,12 +132,11 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       );
     }
 
-    // Return all reminders (including future ones) for tooltip display
-    // Frontend will filter them for display in RemindersList
+    // Return active reminders (Pending and Upcoming only, Answered are excluded)
     console.log(
       `[${new Date().toISOString()}] REMINDER | Returning ${
         finalReminders.length
-      } valid reminders for userId: ${userId} (frontend will filter for display)`
+      } active reminders for userId: ${userId} (Answered reminders excluded)`
     );
 
     return finalReminders.map((reminder) => this.toData(reminder));

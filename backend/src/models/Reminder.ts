@@ -224,6 +224,46 @@ export class Reminder extends BaseReminder {
   }
 
   /**
+   * Load active reminders for a user from database (excludes Answered reminders).
+   * Only returns Pending and Upcoming reminders, which are the ones needed for frontend display.
+   * @param userId - User ID
+   * @param db - Database instance
+   * @returns Promise resolving to array of Reminder instances (Pending and Upcoming only)
+   * @public
+   */
+  static async loadActiveByUserId(userId: number, db: Database): Promise<Reminder[]> {
+    const rows = await db.all<{
+      id: number;
+      tracking_id: number;
+      user_id: number;
+      scheduled_time: string;
+      notes: string | null;
+      status: string;
+      value: string;
+      created_at: string;
+      updated_at: string;
+    }>(
+      "SELECT id, tracking_id, user_id, scheduled_time, notes, status, value, created_at, updated_at FROM reminders WHERE user_id = ? AND status != ? ORDER BY scheduled_time ASC",
+      [userId, ReminderStatus.ANSWERED]
+    );
+
+    return rows.map(
+      (row) =>
+        new Reminder({
+          id: row.id,
+          tracking_id: row.tracking_id,
+          user_id: row.user_id,
+          scheduled_time: row.scheduled_time,
+          notes: row.notes || undefined,
+          status: (row.status as ReminderStatus) || ReminderStatus.PENDING,
+          value: (row.value as ReminderValue) || ReminderValue.DISMISSED,
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+        })
+    );
+  }
+
+  /**
    * Load reminder by tracking ID for a user.
    * @param trackingId - Tracking ID
    * @param userId - User ID (for authorization)
