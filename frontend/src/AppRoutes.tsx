@@ -32,14 +32,14 @@ export function AppRoutes() {
 
                 {/* Protected Routes (Main App) */}
                 <Route element={<MainLayout />}>
-                    <Route path="/" element={<DashboardPage />} />
+                    <Route path="/" element={<Navigate to="/trackings" replace />} />
                     <Route path="/trackings" element={<TrackingsPage />} />
                     <Route path="/reminders" element={<RemindersPage />} />
                     <Route path="/profile" element={<ProfilePage />} />
                 </Route>
 
-                {/* Catch all - redirect to root */}
-                <Route path="*" element={<Navigate to="/" replace />} />
+                {/* Catch all - redirect to trackings */}
+                <Route path="*" element={<Navigate to="/trackings" replace />} />
             </Routes>
         </Suspense>
     );
