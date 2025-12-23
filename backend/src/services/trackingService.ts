@@ -167,10 +167,12 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
         for (const schedule of validatedSchedules) {
           // Construct ISO datetime string from date + schedule
           // Create a Date object in local time, then convert to ISO string
-          const dateTimeString = `${oneTimeDate}T${String(schedule.hour).padStart(2, "0")}:${String(schedule.minutes).padStart(2, "0")}:00`;
+          const dateTimeString = `${oneTimeDate}T${String(
+            schedule.hour
+          ).padStart(2, "0")}:${String(schedule.minutes).padStart(2, "0")}:00`;
           const dateTime = new Date(dateTimeString);
           const isoDateTimeString = dateTime.toISOString();
-          
+
           await this.reminderService.createReminder(
             tracking.id,
             validatedUserId,

@@ -66,7 +66,7 @@ describe("TrackingForm", () => {
         }
         await user.clear(dateInput);
         await user.type(dateInput, date);
-        
+
         // Add schedule time
         const timeInput = document.getElementById("one-time-schedule-time") as HTMLInputElement;
         if (!timeInput) {
@@ -75,7 +75,7 @@ describe("TrackingForm", () => {
         const timeValue = `${String(hour).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
         await user.clear(timeInput);
         await user.type(timeInput, timeValue);
-        
+
         const addButtons = screen.getAllByRole("button", { name: /^add$/i });
         const addButton = addButtons.find(btn => btn.getAttribute("type") === "button" && btn.textContent === "Add") as HTMLButtonElement;
         if (addButton) {
@@ -301,7 +301,7 @@ describe("TrackingForm", () => {
 
         await waitFor(() => {
             const errorText = screen.queryByText(/date is required for one-time tracking/i) ||
-                             screen.queryByText(/at least one time is required for one-time tracking/i);
+                screen.queryByText(/at least one time is required for one-time tracking/i);
             expect(errorText).toBeInTheDocument();
         });
         expect(mockOnSubmit).not.toHaveBeenCalled();

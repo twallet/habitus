@@ -280,7 +280,7 @@ export function TrackingForm({
             const now = new Date();
             const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const selectedDateOnly = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
-            
+
             if (selectedDateOnly < today) {
                 setError("Date must be today or in the future");
                 return;
@@ -290,9 +290,9 @@ export function TrackingForm({
             if (selectedDateOnly.getTime() === today.getTime()) {
                 const currentHour = now.getHours();
                 const currentMinutes = now.getMinutes();
-                
+
                 for (const schedule of oneTimeSchedules) {
-                    if (schedule.hour < currentHour || 
+                    if (schedule.hour < currentHour ||
                         (schedule.hour === currentHour && schedule.minutes <= currentMinutes)) {
                         setError("If the date is today, all times must be after the current time");
                         return;
@@ -308,7 +308,7 @@ export function TrackingForm({
             // We'll pass the date as ISO date string (YYYY-MM-DD) - backend expects ISO datetime but we'll construct it there
             // Actually, let's keep the format consistent - pass date as YYYY-MM-DD and backend will combine with schedules
             const oneTimeDateToSubmit = !isRecurring ? oneTimeDate : undefined;
-            
+
             await onSubmit(
                 question.trim(),
                 notes.trim() || undefined,
