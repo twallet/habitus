@@ -82,7 +82,8 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
    * @param notes - Optional notes (rich text)
    * @param icon - Optional icon (emoji)
    * @param schedules - Array of schedules (required, 1-5 schedules)
-   * @param days - Optional days pattern for reminder frequency
+   * @param days - Optional days pattern for reminder frequency (required for recurring trackings)
+   * @param oneTimeDate - Optional date/time for one-time tracking (ISO datetime string)
    * @returns Promise resolving to created tracking data
    * @throws Error if validation fails
    * @public
@@ -93,7 +94,8 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
     notes?: string,
     icon?: string,
     schedules?: Array<{ hour: number; minutes: number }>,
-    days?: import("../models/Tracking.js").DaysPattern
+    days?: import("../models/Tracking.js").DaysPattern,
+    oneTimeDate?: string
   ): Promise<TrackingData> {
     console.log(
       `[${new Date().toISOString()}] TRACKING | Creating tracking for userId: ${userId}`
@@ -158,8 +160,32 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
       }`
     );
 
-    // Execute onCreate lifecycle hooks (creates initial reminder)
-    await this.lifecycleManager.onCreate(tracking);
+    // For one-time trackings, create reminder directly with the specified date
+    if (oneTimeDate) {
+      try {
+        await this.reminderService.createReminder(
+          tracking.id,
+          validatedUserId,
+          oneTimeDate
+        );
+        console.log(
+          `[${new Date().toISOString()}] TRACKING | Created one-time reminder for tracking ${
+            tracking.id
+          } at ${oneTimeDate}`
+        );
+      } catch (error) {
+        // Log error but don't fail tracking creation if reminder creation fails
+        console.error(
+          `[${new Date().toISOString()}] TRACKING | Failed to create one-time reminder for tracking ${
+            tracking.id
+          }:`,
+          error
+        );
+      }
+    } else {
+      // Execute onCreate lifecycle hooks (creates initial reminder for recurring trackings)
+      await this.lifecycleManager.onCreate(tracking);
+    }
 
     return tracking;
   }

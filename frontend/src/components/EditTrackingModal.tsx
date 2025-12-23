@@ -10,7 +10,7 @@ interface EditTrackingModalProps {
     onClose: () => void;
     onSave: (
         trackingId: number,
-        days: DaysPattern,
+        days: DaysPattern | undefined,
         question?: string,
         notes?: string,
         icon?: string,
@@ -43,6 +43,7 @@ export function EditTrackingModal({
         })) || []
     );
     const [scheduleTime, setScheduleTime] = useState<string>("09:00");
+    const isOneTime = !tracking.days;
     const [days, setDays] = useState<DaysPattern>(
         tracking.days || {
             pattern_type: DaysPatternType.INTERVAL,
@@ -213,7 +214,8 @@ export function EditTrackingModal({
             return;
         }
 
-        if (daysError) {
+        // For one-time trackings, don't validate days pattern
+        if (!isOneTime && daysError) {
             setError(daysError);
             setIsSubmitting(false);
             return;
@@ -244,7 +246,7 @@ export function EditTrackingModal({
 
             await onSave(
                 tracking.id,
-                days, // Always pass days (mandatory field)
+                isOneTime ? undefined : days, // Pass undefined for one-time trackings
                 question.trim() !== tracking.question ? question.trim() : undefined,
                 notes.trim() !== (tracking.notes || "") ? notes.trim() || undefined : undefined,
                 iconValue,
@@ -444,15 +446,39 @@ export function EditTrackingModal({
                         </div>
                     </div>
 
-                    <div className="form-group">
-                        <DaysPatternInput
-                            value={days}
-                            onChange={setDays}
-                            disabled={isSubmitting}
-                            error={daysError}
-                            onErrorChange={setDaysError}
-                        />
-                    </div>
+                    {isOneTime ? (
+                        <div className="form-group">
+                            <div className="form-label-row">
+                                <label>
+                                    Type{" "}
+                                    <button
+                                        type="button"
+                                        className="field-help"
+                                        aria-label="Type help"
+                                        title="This is a one-time tracking. The reminder date cannot be changed here."
+                                    >
+                                        ?
+                                    </button>
+                                </label>
+                            </div>
+                            <div className="one-time-info">
+                                <span>One-time tracking</span>
+                                <p className="field-hint">
+                                    This tracking will only send one reminder. To change the reminder date, delete and recreate the tracking.
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="form-group">
+                            <DaysPatternInput
+                                value={days}
+                                onChange={setDays}
+                                disabled={isSubmitting}
+                                error={daysError}
+                                onErrorChange={setDaysError}
+                            />
+                        </div>
+                    )}
 
                     <div className="form-group">
                         <div className="form-label-row">

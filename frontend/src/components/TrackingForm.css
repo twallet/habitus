@@ -393,3 +393,40 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.recurring-toggle-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.recurring-toggle-button {
+  padding: 10px 20px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.recurring-toggle-button:hover:not(:disabled) {
+  background: var(--border-color);
+}
+
+.recurring-toggle-button.active {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.recurring-toggle-button.active:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.recurring-toggle-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

@@ -239,13 +239,14 @@ router.get(
  * @body {string} notes - Optional notes (rich text)
  * @body {string} icon - Optional icon (emoji)
  * @body {Array<{hour: number, minutes: number}>} schedules - Required schedules array (1-5 schedules)
- * @body {DaysPattern} days - Optional days pattern for reminder frequency
+ * @body {DaysPattern} days - Optional days pattern for reminder frequency (required for recurring trackings)
+ * @body {string} oneTimeDate - Optional date/time for one-time tracking (ISO datetime string)
  * @returns {TrackingData} Created tracking data
  */
 router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
-    const { question, notes, icon, schedules, days } = req.body;
+    const { question, notes, icon, schedules, days, oneTimeDate } = req.body;
 
     if (!question) {
       return res.status(400).json({ error: "Question is required" });
@@ -257,13 +258,41 @@ router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
         .json({ error: "At least one schedule is required" });
     }
 
+    // Validate that either days or oneTimeDate is provided, but not both
+    if (!days && !oneTimeDate) {
+      return res
+        .status(400)
+        .json({ error: "Either days pattern or oneTimeDate must be provided" });
+    }
+
+    if (days && oneTimeDate) {
+      return res
+        .status(400)
+        .json({ error: "Cannot provide both days pattern and oneTimeDate" });
+    }
+
+    // Validate oneTimeDate if provided
+    if (oneTimeDate) {
+      const oneTimeDateObj = new Date(oneTimeDate);
+      if (isNaN(oneTimeDateObj.getTime())) {
+        return res.status(400).json({ error: "Invalid oneTimeDate format" });
+      }
+      const now = new Date();
+      if (oneTimeDateObj <= now) {
+        return res
+          .status(400)
+          .json({ error: "oneTimeDate must be in the future" });
+      }
+    }
+
     const tracking = await getTrackingServiceInstance().createTracking(
       userId,
       question,
       notes,
       icon,
       schedules,
-      days
+      days,
+      oneTimeDate
     );
 
     res.status(201).json(tracking);

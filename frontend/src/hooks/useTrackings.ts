@@ -95,11 +95,11 @@ export function useTrackings() {
   /**
    * Create a new tracking via API.
    * @param question - The tracking question
-   * @param type - The tracking type (true_false or register)
    * @param notes - Optional notes (rich text)
    * @param icon - Optional icon (emoji)
    * @param schedules - Required schedules array (1-5 schedules)
-   * @param days - Required days pattern for reminder frequency
+   * @param days - Optional days pattern for reminder frequency (required for recurring trackings)
+   * @param oneTimeDate - Optional date/time for one-time tracking (ISO datetime string)
    * @returns The created tracking data
    * @throws Error if API request fails
    * @public
@@ -109,7 +109,8 @@ export function useTrackings() {
     notes: string | undefined,
     icon: string | undefined,
     schedules: Array<{ hour: number; minutes: number }>,
-    days: DaysPattern
+    days: DaysPattern | undefined,
+    oneTimeDate?: string
   ): Promise<TrackingData> => {
     const token = tokenManager.getToken();
     if (!token) {
@@ -129,7 +130,8 @@ export function useTrackings() {
         notes,
         icon,
         schedules,
-        days
+        days,
+        oneTimeDate
       );
       console.log(
         `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Tracking created successfully: ID ${
@@ -150,19 +152,18 @@ export function useTrackings() {
   /**
    * Update a tracking via API.
    * @param trackingId - The tracking ID
+   * @param days - Updated days pattern (optional, undefined for one-time trackings)
    * @param question - Updated question (optional)
-   * @param type - Updated type (optional)
    * @param notes - Updated notes (optional)
    * @param icon - Updated icon (optional)
    * @param schedules - Updated schedules array (optional, 1-5 schedules if provided)
-   * @param days - Updated days pattern (optional)
    * @returns The updated tracking data
    * @throws Error if API request fails
    * @public
    */
   const updateTracking = async (
     trackingId: number,
-    days: DaysPattern,
+    days: DaysPattern | undefined,
     question?: string,
     notes?: string,
     icon?: string,

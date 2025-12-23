@@ -111,10 +111,11 @@ export function MainLayout() {
         notes: string | undefined,
         icon: string | undefined,
         schedules: Array<{ hour: number; minutes: number }>,
-        days: import("../../models/Tracking").DaysPattern
+        days: import("../../models/Tracking").DaysPattern | undefined,
+        oneTimeDate?: string
     ) => {
         try {
-            const result = await createTracking(question, notes, icon, schedules, days);
+            const result = await createTracking(question, notes, icon, schedules, days, oneTimeDate);
             setShowTrackingForm(false);
             await refreshReminders();
             setMessage({ text: 'Tracking created successfully', type: 'success' });
@@ -127,7 +128,7 @@ export function MainLayout() {
 
     const handleUpdateTracking = async (
         trackingId: number,
-        days: import("../../models/Tracking").DaysPattern,
+        days: import("../../models/Tracking").DaysPattern | undefined,
         question?: string,
         notes?: string,
         icon?: string,

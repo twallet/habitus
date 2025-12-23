@@ -10,7 +10,8 @@ interface TrackingFormProps {
         notes: string | undefined,
         icon: string | undefined,
         schedules: Array<{ hour: number; minutes: number }>,
-        days: DaysPattern
+        days: DaysPattern | undefined,
+        oneTimeDate?: string
     ) => Promise<void>;
     onCancel?: () => void;
     isSubmitting?: boolean;
@@ -36,6 +37,8 @@ export function TrackingForm({
         Array<{ hour: number; minutes: number }>
     >([]);
     const [scheduleTime, setScheduleTime] = useState<string>("09:00");
+    const [isRecurring, setIsRecurring] = useState<boolean>(true);
+    const [oneTimeDate, setOneTimeDate] = useState<string>("");
     const [days, setDays] = useState<DaysPattern>({
         pattern_type: DaysPatternType.INTERVAL,
         interval_value: 1,
@@ -180,14 +183,29 @@ export function TrackingForm({
             return;
         }
 
-        if (schedules.length === 0) {
-            setError("At least one time is required");
-            return;
-        }
+        if (isRecurring) {
+            if (schedules.length === 0) {
+                setError("At least one time is required");
+                return;
+            }
 
-        if (daysError) {
-            setError(daysError);
-            return;
+            if (daysError) {
+                setError(daysError);
+                return;
+            }
+        } else {
+            if (!oneTimeDate) {
+                setError("Date and time are required for one-time tracking");
+                return;
+            }
+
+            // Validate that the date is in the future
+            const selectedDate = new Date(oneTimeDate);
+            const now = new Date();
+            if (selectedDate <= now) {
+                setError("Date and time must be in the future");
+                return;
+            }
         }
 
         try {
@@ -196,7 +214,8 @@ export function TrackingForm({
                 notes.trim() || undefined,
                 icon.trim() || undefined,
                 sortSchedules(schedules),
-                days
+                isRecurring ? days : undefined,
+                isRecurring ? undefined : oneTimeDate
             );
             // Reset form on success
             setQuestion("");
@@ -204,6 +223,8 @@ export function TrackingForm({
             setIcon("");
             setSchedules([]);
             setScheduleTime("09:00");
+            setIsRecurring(true);
+            setOneTimeDate("");
             setDays({
                 pattern_type: DaysPatternType.INTERVAL,
                 interval_value: 1,
@@ -372,14 +393,76 @@ export function TrackingForm({
             </div>
 
             <div className="form-group">
-                <DaysPatternInput
-                    value={days}
-                    onChange={setDays}
-                    disabled={isSubmitting}
-                    error={daysError}
-                    onErrorChange={setDaysError}
-                />
+                <div className="form-label-row">
+                    <label>
+                        Type{" "}
+                        <button
+                            type="button"
+                            className="field-help"
+                            aria-label="Type help"
+                            title="Choose whether this tracking should repeat regularly or happen only once"
+                        >
+                            ?
+                        </button>
+                    </label>
+                </div>
+                <div className="recurring-toggle-row">
+                    <button
+                        type="button"
+                        className={`recurring-toggle-button ${isRecurring ? "active" : ""}`}
+                        onClick={() => setIsRecurring(true)}
+                        disabled={isSubmitting}
+                    >
+                        Recurring
+                    </button>
+                    <button
+                        type="button"
+                        className={`recurring-toggle-button ${!isRecurring ? "active" : ""}`}
+                        onClick={() => setIsRecurring(false)}
+                        disabled={isSubmitting}
+                    >
+                        One-time
+                    </button>
+                </div>
             </div>
+
+            {isRecurring ? (
+                <div className="form-group">
+                    <DaysPatternInput
+                        value={days}
+                        onChange={setDays}
+                        disabled={isSubmitting}
+                        error={daysError}
+                        onErrorChange={setDaysError}
+                    />
+                </div>
+            ) : (
+                <div className="form-group">
+                    <div className="form-label-row">
+                        <label htmlFor="one-time-date">
+                            Date & Time <span className="required-asterisk">*</span>{" "}
+                            <button
+                                type="button"
+                                className="field-help"
+                                aria-label="Date and time help"
+                                title="Select the date and time when you want to be reminded for this one-time tracking"
+                            >
+                                ?
+                            </button>
+                        </label>
+                    </div>
+                    <input
+                        type="datetime-local"
+                        id="one-time-date"
+                        name="one-time-date"
+                        value={oneTimeDate}
+                        onChange={(e) => setOneTimeDate(e.target.value)}
+                        disabled={isSubmitting}
+                        required={!isRecurring}
+                        min={new Date().toISOString().slice(0, 16)}
+                    />
+                </div>
+            )}
 
             <div className="form-group">
                 <div className="form-label-row">
@@ -424,7 +507,8 @@ export function TrackingForm({
                     disabled={
                         isSubmitting ||
                         !question.trim() ||
-                        schedules.length === 0
+                        (isRecurring && schedules.length === 0) ||
+                        (!isRecurring && !oneTimeDate)
                     }
                 >
                     {isSubmitting ? "Creating..." : "Create"}
