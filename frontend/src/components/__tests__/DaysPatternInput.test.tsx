@@ -586,10 +586,15 @@ describe("DaysPatternInput", () => {
         // Should update to show the new days
         await waitFor(() => {
             // The weekday buttons should reflect the new days
-            const mondayButton = screen.getByRole("button", { name: /mo/i });
-            const wednesdayButton = screen.getByRole("button", { name: /we/i });
-            const fridayButton = screen.getByRole("button", { name: /fr/i });
+            // Use getAllByRole and filter to avoid multiple matches
+            const allButtons = screen.getAllByRole("button");
+            const mondayButton = allButtons.find(btn => btn.textContent === "Mo");
+            const wednesdayButton = allButtons.find(btn => btn.textContent === "We");
+            const fridayButton = allButtons.find(btn => btn.textContent === "Fr");
 
+            expect(mondayButton).toBeDefined();
+            expect(wednesdayButton).toBeDefined();
+            expect(fridayButton).toBeDefined();
             expect(mondayButton).toHaveClass("selected");
             expect(wednesdayButton).toHaveClass("selected");
             expect(fridayButton).toHaveClass("selected");
