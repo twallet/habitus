@@ -15,6 +15,7 @@ describe('UserMenu', () => {
 
     const mockOnEditProfile = vi.fn();
     const mockOnChangeEmail = vi.fn();
+    const mockOnNotifications = vi.fn();
     const mockOnLogout = vi.fn();
     const mockOnDeleteUser = vi.fn();
 
@@ -28,6 +29,7 @@ describe('UserMenu', () => {
                 user={mockUser}
                 onEditProfile={mockOnEditProfile}
                 onChangeEmail={mockOnChangeEmail}
+                onNotifications={mockOnNotifications}
                 onLogout={mockOnLogout}
                 onDeleteUser={mockOnDeleteUser}
             />
@@ -43,6 +45,7 @@ describe('UserMenu', () => {
                 user={mockUser}
                 onEditProfile={mockOnEditProfile}
                 onChangeEmail={mockOnChangeEmail}
+                onNotifications={mockOnNotifications}
                 onLogout={mockOnLogout}
                 onDeleteUser={mockOnDeleteUser}
             />
@@ -118,6 +121,7 @@ describe('UserMenu', () => {
                 user={mockUser}
                 onEditProfile={mockOnEditProfile}
                 onChangeEmail={mockOnChangeEmail}
+                onNotifications={mockOnNotifications}
                 onLogout={mockOnLogout}
                 onDeleteUser={mockOnDeleteUser}
             />
@@ -129,6 +133,7 @@ describe('UserMenu', () => {
         await waitFor(() => {
             expect(screen.getByText('Account settings')).toBeInTheDocument();
             expect(screen.getByText('Change email')).toBeInTheDocument();
+            expect(screen.getByText('Notifications')).toBeInTheDocument();
             expect(screen.getByText('Log out')).toBeInTheDocument();
             expect(screen.getByText('Delete account')).toBeInTheDocument();
         });
@@ -141,6 +146,7 @@ describe('UserMenu', () => {
                 user={mockUser}
                 onEditProfile={mockOnEditProfile}
                 onChangeEmail={mockOnChangeEmail}
+                onNotifications={mockOnNotifications}
                 onLogout={mockOnLogout}
                 onDeleteUser={mockOnDeleteUser}
             />
@@ -167,6 +173,7 @@ describe('UserMenu', () => {
                 user={mockUser}
                 onEditProfile={mockOnEditProfile}
                 onChangeEmail={mockOnChangeEmail}
+                onNotifications={mockOnNotifications}
                 onLogout={mockOnLogout}
                 onDeleteUser={mockOnDeleteUser}
             />
@@ -195,6 +202,7 @@ describe('UserMenu', () => {
                 user={mockUser}
                 onEditProfile={mockOnEditProfile}
                 onChangeEmail={mockOnChangeEmail}
+                onNotifications={mockOnNotifications}
                 onLogout={mockOnLogout}
                 onDeleteUser={mockOnDeleteUser}
             />
@@ -216,6 +224,35 @@ describe('UserMenu', () => {
         });
     });
 
+    it('should call onNotifications when Notifications is clicked', async () => {
+        const user = userEvent.setup();
+        render(
+            <UserMenu
+                user={mockUser}
+                onEditProfile={mockOnEditProfile}
+                onChangeEmail={mockOnChangeEmail}
+                onNotifications={mockOnNotifications}
+                onLogout={mockOnLogout}
+                onDeleteUser={mockOnDeleteUser}
+            />
+        );
+
+        const button = screen.getByRole('button', { name: /account settings/i });
+        await user.click(button);
+
+        await waitFor(() => {
+            expect(screen.getByText('Notifications')).toBeInTheDocument();
+        });
+
+        const notificationsItem = screen.getByText('Notifications');
+        await user.click(notificationsItem);
+
+        expect(mockOnNotifications).toHaveBeenCalledTimes(1);
+        await waitFor(() => {
+            expect(screen.queryByText('Notifications')).not.toBeInTheDocument();
+        });
+    });
+
     it('should call onLogout when Log out is clicked', async () => {
         const user = userEvent.setup();
         render(
@@ -223,6 +260,7 @@ describe('UserMenu', () => {
                 user={mockUser}
                 onEditProfile={mockOnEditProfile}
                 onChangeEmail={mockOnChangeEmail}
+                onNotifications={mockOnNotifications}
                 onLogout={mockOnLogout}
                 onDeleteUser={mockOnDeleteUser}
             />
@@ -251,6 +289,7 @@ describe('UserMenu', () => {
                 user={mockUser}
                 onEditProfile={mockOnEditProfile}
                 onChangeEmail={mockOnChangeEmail}
+                onNotifications={mockOnNotifications}
                 onLogout={mockOnLogout}
                 onDeleteUser={mockOnDeleteUser}
             />
@@ -279,6 +318,7 @@ describe('UserMenu', () => {
                 user={mockUser}
                 onEditProfile={mockOnEditProfile}
                 onChangeEmail={mockOnChangeEmail}
+                onNotifications={mockOnNotifications}
                 onLogout={mockOnLogout}
                 onDeleteUser={mockOnDeleteUser}
             />
@@ -306,6 +346,7 @@ describe('UserMenu', () => {
                 user={mockUser}
                 onEditProfile={mockOnEditProfile}
                 onChangeEmail={mockOnChangeEmail}
+                onNotifications={mockOnNotifications}
                 onLogout={mockOnLogout}
                 onDeleteUser={mockOnDeleteUser}
             />
@@ -354,6 +395,7 @@ describe('UserMenu', () => {
                 user={mockUser}
                 onEditProfile={mockOnEditProfile}
                 onChangeEmail={mockOnChangeEmail}
+                onNotifications={mockOnNotifications}
                 onLogout={mockOnLogout}
                 onDeleteUser={mockOnDeleteUser}
             />

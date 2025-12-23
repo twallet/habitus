@@ -243,19 +243,11 @@ export function MainLayout() {
                         >
                             +
                         </button>
-                        <button
-                            type="button"
-                            className="fab notifications-button"
-                            onClick={() => setShowNotifications(true)}
-                            aria-label="Configure notifications"
-                            title="Configure notifications"
-                        >
-                            🔔
-                        </button>
                         <UserMenu
                             user={user}
                             onEditProfile={() => setShowEditProfile(true)}
                             onChangeEmail={() => setShowChangeEmail(true)}
+                            onNotifications={() => setShowNotifications(true)}
                             onLogout={handleLogout}
                             onDeleteUser={() => setShowDeleteConfirmation(true)}
                         />
