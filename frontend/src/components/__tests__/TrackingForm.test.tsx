@@ -111,9 +111,13 @@ describe("TrackingForm", () => {
     it("should show icon field as the last field before form actions", () => {
         render(<TrackingForm onSubmit={mockOnSubmit} />);
 
-        const iconInput = screen.getByLabelText(/^icon/i);
-        const notesInput = screen.getByLabelText(/^notes/i);
+        const iconInput = document.getElementById("tracking-icon") as HTMLInputElement;
+        const notesInput = screen.getByRole("textbox", { name: /^notes/i });
         const createButton = screen.getByRole("button", { name: /^create$/i });
+
+        expect(iconInput).toBeInTheDocument();
+        expect(notesInput).toBeInTheDocument();
+        expect(createButton).toBeInTheDocument();
 
         // Icon should appear after notes in the DOM
         expect(notesInput.compareDocumentPosition(iconInput)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
