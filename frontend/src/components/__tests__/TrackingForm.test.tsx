@@ -105,7 +105,8 @@ describe("TrackingForm", () => {
         const frequencyLabel = screen.getByText(/^frequency/i);
 
         // Frequency should appear after question in the DOM
-        expect(questionInput.compareDocumentPosition(frequencyLabel)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+        const questionToFreq = questionInput.compareDocumentPosition(frequencyLabel);
+        expect(questionToFreq & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
 
     it("should show icon field as the last field before form actions", () => {
@@ -120,9 +121,12 @@ describe("TrackingForm", () => {
         expect(createButton).toBeInTheDocument();
 
         // Icon should appear after notes in the DOM
-        expect(notesInput.compareDocumentPosition(iconInput)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+        const notesToIcon = notesInput.compareDocumentPosition(iconInput);
+        expect(notesToIcon & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
         // Icon should appear before create button
-        expect(iconInput.compareDocumentPosition(createButton)).toBe(Node.DOCUMENT_POSITION_PRECEDING);
+        const iconToButton = iconInput.compareDocumentPosition(createButton);
+        expect(iconToButton & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
     });
 
     it("should default to Daily frequency", () => {
