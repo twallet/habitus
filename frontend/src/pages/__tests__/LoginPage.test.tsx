@@ -123,7 +123,7 @@ describe('LoginPage', () => {
         });
     });
 
-    it('should show success message when registration link is requested successfully', async () => {
+    it('should show check your email screen when registration link is requested successfully', async () => {
         mockRequestRegisterMagicLink.mockResolvedValue(undefined);
 
         render(<LoginPage />);
@@ -141,7 +141,9 @@ describe('LoginPage', () => {
         await userEvent.click(submitButton);
 
         await waitFor(() => {
-            expect(screen.getByText('Registration link sent! Check your email.')).toBeInTheDocument();
+            // Message should be cleared, and AuthForm should show "Check your email!" screen
+            expect(screen.getByText(/check your email/i)).toBeInTheDocument();
+            expect(screen.queryByText('Registration link sent! Check your email.')).not.toBeInTheDocument();
         });
     });
 

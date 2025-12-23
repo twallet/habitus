@@ -29,10 +29,8 @@ export function LoginPage() {
     const handleRequestRegisterMagicLink = async (name: string, email: string, profilePicture?: File) => {
         try {
             await requestRegisterMagicLink(name, email, profilePicture);
-            setMessage({
-                text: 'Registration link sent! Check your email.',
-                type: 'success',
-            });
+            // Clear message when email is sent - the AuthForm will show "Check your email!" screen
+            setMessage(null);
         } catch (error) {
             setMessage({
                 text: error instanceof Error ? error.message : 'Error requesting registration link',
