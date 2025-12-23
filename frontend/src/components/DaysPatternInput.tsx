@@ -38,6 +38,8 @@ export function DaysPatternInput({
     onFrequencyChange,
 }: DaysPatternInputProps) {
     const builderRef = useRef<DaysPatternBuilder>(new DaysPatternBuilder(value));
+    // Track the last pattern we sent to parent to avoid re-initializing from our own updates
+    const lastSentPatternRef = useRef<DaysPattern | null>(null);
     // Use controlled frequency if provided, otherwise use internal state
     const internalPreset = builderRef.current.getPreset();
     const [preset, setPreset] = useState<FrequencyPreset>(
@@ -215,6 +217,8 @@ export function DaysPatternInput({
      */
     useEffect(() => {
         const pattern = buildPattern();
+        // Track the pattern we're sending to avoid re-initializing from it
+        lastSentPatternRef.current = pattern;
         // Always call onChange with a valid pattern (field is mandatory)
         onChange(pattern);
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -231,25 +235,12 @@ export function DaysPatternInput({
 
     /**
      * Initialize from value prop.
-     * Always ensures a valid pattern is set (mandatory field).
+     * Only re-initialize if the value is different from what we last sent.
+     * This prevents infinite loops when our onChange updates the parent's value.
      * @internal
      */
     useEffect(() => {
-        if (value) {
-            builderRef.current = new DaysPatternBuilder(value);
-            const detectedPreset = builderRef.current.getPreset();
-            // Only update preset if not controlled by parent
-            if (!frequency || frequency === "One-time") {
-                setPreset(detectedPreset);
-            }
-            setSelectedDays(builderRef.current.getSelectedDays());
-            setMonthlyDay(builderRef.current.getMonthlyDay());
-            setMonthlyType(builderRef.current.getMonthlyType());
-            setWeekday(builderRef.current.getWeekday());
-            setOrdinal(builderRef.current.getOrdinal());
-            setYearlyMonth(builderRef.current.getYearlyMonth());
-            setYearlyDay(builderRef.current.getYearlyDay());
-        } else {
+        if (!value) {
             // Initialize with default daily pattern (mandatory field)
             builderRef.current = new DaysPatternBuilder();
             if (!frequency || frequency === "One-time") {
@@ -258,8 +249,36 @@ export function DaysPatternInput({
             setSelectedDays([1]);
             // Immediately provide default pattern
             const defaultPattern = builderRef.current.buildPattern();
+            lastSentPatternRef.current = defaultPattern;
             onChange(defaultPattern);
+            return;
         }
+
+        // Check if the incoming value is the same as what we last sent
+        // If so, don't re-initialize (it's our own update coming back)
+        if (lastSentPatternRef.current) {
+            const valueStr = JSON.stringify(value);
+            const lastSentStr = JSON.stringify(lastSentPatternRef.current);
+            if (valueStr === lastSentStr) {
+                // This is our own update, ignore it
+                return;
+            }
+        }
+
+        // Value is different, re-initialize from it
+        builderRef.current = new DaysPatternBuilder(value);
+        const detectedPreset = builderRef.current.getPreset();
+        // Only update preset if not controlled by parent
+        if (!frequency || frequency === "One-time") {
+            setPreset(detectedPreset);
+        }
+        setSelectedDays(builderRef.current.getSelectedDays());
+        setMonthlyDay(builderRef.current.getMonthlyDay());
+        setMonthlyType(builderRef.current.getMonthlyType());
+        setWeekday(builderRef.current.getWeekday());
+        setOrdinal(builderRef.current.getOrdinal());
+        setYearlyMonth(builderRef.current.getYearlyMonth());
+        setYearlyDay(builderRef.current.getYearlyDay());
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [value]);
 
