@@ -98,6 +98,9 @@ describe("Tracking", () => {
         user_id: 10,
         question: "Did you exercise?",
         notes: "Some notes",
+        icon: undefined,
+        days: undefined,
+        state: "Running",
         created_at: "2024-01-01T00:00:00Z",
         updated_at: "2024-01-02T00:00:00Z",
       });
@@ -117,6 +120,9 @@ describe("Tracking", () => {
         user_id: 10,
         question: "Did you exercise?",
         notes: undefined,
+        icon: undefined,
+        days: undefined,
+        state: "Running",
         created_at: undefined,
         updated_at: undefined,
       });
