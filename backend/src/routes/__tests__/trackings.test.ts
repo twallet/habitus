@@ -301,6 +301,11 @@ describe("Trackings Routes", () => {
         .send({
           question: "Did I exercise today?",
           schedules: [{ hour: 9, minutes: 0 }],
+          days: {
+            pattern_type: "interval",
+            interval_value: 1,
+            interval_unit: "days",
+          },
         });
 
       expect(response.status).toBe(201);
@@ -318,6 +323,11 @@ describe("Trackings Routes", () => {
           question: "Did I meditate?",
           notes: "Meditation notes",
           schedules: [{ hour: 10, minutes: 30 }],
+          days: {
+            pattern_type: "interval",
+            interval_value: 1,
+            interval_unit: "days",
+          },
         });
 
       expect(response.status).toBe(201);
@@ -390,6 +400,11 @@ describe("Trackings Routes", () => {
         .send({
           question: "Test question",
           schedules: [{ hour: 9, minutes: 0 }],
+          days: {
+            pattern_type: "interval",
+            interval_value: 1,
+            interval_unit: "days",
+          },
         });
 
       expect(response.status).toBe(400);
@@ -411,6 +426,11 @@ describe("Trackings Routes", () => {
         .send({
           question: "Test question",
           schedules: [{ hour: 9, minutes: 0 }],
+          days: {
+            pattern_type: "interval",
+            interval_value: 1,
+            interval_unit: "days",
+          },
         });
 
       expect(response.status).toBe(500);

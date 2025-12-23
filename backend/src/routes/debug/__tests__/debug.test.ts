@@ -123,17 +123,24 @@ describe("Debug Routes", () => {
     testDb = await createTestDatabase();
 
     // Insert test user
-    await testDb.run(
-      "INSERT INTO users (id, name, email) VALUES (?, ?, ?)",
-      [testUserId, "Test User", "test@example.com"]
-    );
+    await testDb.run("INSERT INTO users (id, name, email) VALUES (?, ?, ?)", [
+      testUserId,
+      "Test User",
+      "test@example.com",
+    ]);
 
     // Setup service mocks
     const trackingService = new TrackingService(testDb);
     const reminderService = new ReminderService(testDb);
 
-    vi.spyOn(servicesModule.ServiceManager, "getTrackingService").mockReturnValue(trackingService);
-    vi.spyOn(servicesModule.ServiceManager, "getReminderService").mockReturnValue(reminderService);
+    vi.spyOn(
+      servicesModule.ServiceManager,
+      "getTrackingService"
+    ).mockReturnValue(trackingService);
+    vi.spyOn(
+      servicesModule.ServiceManager,
+      "getReminderService"
+    ).mockReturnValue(reminderService);
 
     // Mock authenticateToken to set userId
     (authMiddlewareModule.authenticateToken as any).mockImplementation(
@@ -383,4 +390,3 @@ describe("Debug Routes", () => {
     });
   });
 });
-
