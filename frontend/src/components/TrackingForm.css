@@ -200,6 +200,16 @@
   width: fit-content !important;
 }
 
+.frequency-field-row input[type="date"] {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  height: 42px;
+  box-sizing: border-box;
+  width: fit-content;
+}
+
 .icon-suggest-button {
   padding-inline: 10px;
   min-width: auto;

@@ -509,7 +509,7 @@ export function TrackingForm({
                     <div className="form-group">
                         <div className="form-label-row">
                             <label htmlFor="tracking-frequency">
-                                Frequency{" "}
+                                Frequency <span className="required-asterisk">*</span>{" "}
                                 <button
                                     type="button"
                                     className="field-help"
@@ -520,44 +520,32 @@ export function TrackingForm({
                                 </button>
                             </label>
                         </div>
-                        <select
-                            id="tracking-frequency"
-                            name="frequency"
-                            value={frequency}
-                            onChange={(e) => setFrequency(e.target.value as "Daily" | "Weekly" | "Monthly" | "One-time")}
-                            disabled={isSubmitting}
-                        >
-                            <option value="Daily">Daily</option>
-                            <option value="Weekly">Weekly</option>
-                            <option value="Monthly">Monthly</option>
-                            <option value="One-time">One-time</option>
-                        </select>
-                    </div>
-                    <div className="form-group">
-                        <div className="form-label-row">
-                            <label htmlFor="one-time-date">
-                                Date <span className="required-asterisk">*</span>{" "}
-                                <button
-                                    type="button"
-                                    className="field-help"
-                                    aria-label="Date help"
-                                    title="Select the date when you want to be reminded for this one-time tracking. Must be today or in the future."
-                                >
-                                    ?
-                                </button>
-                            </label>
+                        <div className="frequency-field-row">
+                            <select
+                                id="tracking-frequency"
+                                name="frequency"
+                                value={frequency}
+                                onChange={(e) => setFrequency(e.target.value as "Daily" | "Weekly" | "Monthly" | "One-time")}
+                                disabled={isSubmitting}
+                                className="frequency-preset-select"
+                            >
+                                <option value="Daily">Daily</option>
+                                <option value="Weekly">Weekly</option>
+                                <option value="Monthly">Monthly</option>
+                                <option value="One-time">One-time</option>
+                            </select>
+                            <input
+                                type="date"
+                                id="one-time-date"
+                                name="one-time-date"
+                                value={oneTimeDate}
+                                onChange={(e) => setOneTimeDate(e.target.value)}
+                                disabled={isSubmitting}
+                                required={frequency === "One-time"}
+                                min={new Date().toISOString().slice(0, 10)}
+                                className="date-input-autofit"
+                            />
                         </div>
-                        <input
-                            type="date"
-                            id="one-time-date"
-                            name="one-time-date"
-                            value={oneTimeDate}
-                            onChange={(e) => setOneTimeDate(e.target.value)}
-                            disabled={isSubmitting}
-                            required={frequency === "One-time"}
-                            min={new Date().toISOString().slice(0, 10)}
-                            className="date-input-autofit"
-                        />
                     </div>
                     <div className="form-group">
                         <div className="form-label-row">
