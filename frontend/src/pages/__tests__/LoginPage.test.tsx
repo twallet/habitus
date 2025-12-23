@@ -35,6 +35,7 @@ describe('LoginPage', () => {
             logout: vi.fn(),
             setTokenFromCallback: vi.fn(),
             updateProfile: vi.fn(),
+            updateNotificationPreferences: vi.fn(),
             deleteUser: vi.fn(),
         });
     });
