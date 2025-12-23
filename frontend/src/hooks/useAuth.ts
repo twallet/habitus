@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { UserData } from "../models/User";
 import { ApiClient } from "../config/api";
 
@@ -140,28 +140,31 @@ export function useAuth() {
    * @throws Error if verification fails
    * @public
    */
-  const verifyMagicLink = async (magicLinkToken: string): Promise<UserData> => {
-    console.log(
-      `[${new Date().toISOString()}] FRONTEND_AUTH | Verifying magic link token (length: ${
-        magicLinkToken.length
-      })`
-    );
-    const data = await apiClient.verifyMagicLink(magicLinkToken);
-    console.log(
-      `[${new Date().toISOString()}] FRONTEND_AUTH | Magic link verified successfully, user authenticated: ${
-        data.user.email
-      } (ID: ${data.user.id})`
-    );
-    console.log(
-      `[${new Date().toISOString()}] FRONTEND_AUTH | Storing JWT token in localStorage`
-    );
-    setUser(data.user);
-    setToken(data.token);
-    apiClient.setToken(data.token);
-    localStorage.setItem(TOKEN_KEY, data.token);
+  const verifyMagicLink = useCallback(
+    async (magicLinkToken: string): Promise<UserData> => {
+      console.log(
+        `[${new Date().toISOString()}] FRONTEND_AUTH | Verifying magic link token (length: ${
+          magicLinkToken.length
+        })`
+      );
+      const data = await apiClient.verifyMagicLink(magicLinkToken);
+      console.log(
+        `[${new Date().toISOString()}] FRONTEND_AUTH | Magic link verified successfully, user authenticated: ${
+          data.user.email
+        } (ID: ${data.user.id})`
+      );
+      console.log(
+        `[${new Date().toISOString()}] FRONTEND_AUTH | Storing JWT token in localStorage`
+      );
+      setUser(data.user);
+      setToken(data.token);
+      apiClient.setToken(data.token);
+      localStorage.setItem(TOKEN_KEY, data.token);
 
-    return data.user;
-  };
+      return data.user;
+    },
+    [apiClient]
+  );
 
   /**
    * Logout the current user.

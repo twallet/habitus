@@ -15,6 +15,7 @@ export function VerifyMagicLinkPage() {
     const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
     const [isVerifying, setIsVerifying] = useState(true);
     const [verificationComplete, setVerificationComplete] = useState(false);
+    const [hasVerified, setHasVerified] = useState(false);
 
     useEffect(() => {
         /**
@@ -22,6 +23,21 @@ export function VerifyMagicLinkPage() {
          * @internal
          */
         const handleVerification = async () => {
+            // Prevent multiple verifications of the same token
+            if (hasVerified || verificationComplete) {
+                return;
+            }
+
+            // If already authenticated, skip verification and redirect
+            if (isAuthenticated) {
+                console.log(
+                    `[${new Date().toISOString()}] VERIFY_MAGIC_LINK | Already authenticated, redirecting to trackings`
+                );
+                setVerificationComplete(true);
+                setIsVerifying(false);
+                return;
+            }
+
             const token = searchParams.get('token');
 
             if (!token) {
@@ -36,6 +52,9 @@ export function VerifyMagicLinkPage() {
                 }, 3000);
                 return;
             }
+
+            // Mark as verifying to prevent duplicate calls
+            setHasVerified(true);
 
             try {
                 // React Router's useSearchParams already decodes URL parameters,
@@ -78,7 +97,7 @@ export function VerifyMagicLinkPage() {
         };
 
         handleVerification();
-    }, [searchParams, verifyMagicLink, navigate]);
+    }, [searchParams, verifyMagicLink, navigate, hasVerified, verificationComplete, isAuthenticated]);
 
     /**
      * Navigate to trackings once authentication state is confirmed.
@@ -90,10 +109,10 @@ export function VerifyMagicLinkPage() {
             console.log(
                 `[${new Date().toISOString()}] VERIFY_MAGIC_LINK | Auth state confirmed, redirecting to trackings`
             );
-            // Small delay to ensure UI shows success message
+            // Small delay to ensure UI shows success message and auth state is fully propagated
             const timer = setTimeout(() => {
                 navigate('/trackings', { replace: true });
-            }, 500);
+            }, 1000);
             return () => clearTimeout(timer);
         }
     }, [verificationComplete, isAuthenticated, navigate]);
