@@ -190,6 +190,16 @@
   flex: 0 0 auto;
 }
 
+.icon-input-autofit {
+  width: fit-content !important;
+  min-width: 11ch;
+  max-width: 30ch;
+}
+
+.date-input-autofit {
+  width: fit-content !important;
+}
+
 .icon-suggest-button {
   padding-inline: 10px;
   min-width: auto;

@@ -410,33 +410,26 @@ export function TrackingForm({
                 </div>
             </div>
 
-            <div className="form-group">
-                <div className="form-label-row">
-                    <label htmlFor="tracking-frequency">
-                        Frequency{" "}
-                        <button
-                            type="button"
-                            className="field-help"
-                            aria-label="Frequency help"
-                            title="Choose how often this tracking should repeat: Daily, Weekly, Monthly, or One-time"
-                        >
-                            ?
-                        </button>
-                    </label>
+            {frequency !== "One-time" && (
+                <div className="form-group">
+                    <DaysPatternInput
+                        value={days}
+                        onChange={setDays}
+                        disabled={isSubmitting}
+                        error={daysError}
+                        onErrorChange={setDaysError}
+                        hideFrequencySelector={false}
+                        frequency={frequency === "Daily" ? "daily" : frequency === "Weekly" ? "weekly" : frequency === "Monthly" ? "monthly" : "daily"}
+                        onFrequencyChange={(freq) => {
+                            if (freq === "One-time") {
+                                setFrequency("One-time");
+                            } else {
+                                setFrequency(freq === "daily" ? "Daily" : freq === "weekly" ? "Weekly" : freq === "monthly" ? "Monthly" : "Daily");
+                            }
+                        }}
+                    />
                 </div>
-                <select
-                    id="tracking-frequency"
-                    name="frequency"
-                    value={frequency}
-                    onChange={(e) => setFrequency(e.target.value as "Daily" | "Weekly" | "Monthly" | "One-time")}
-                    disabled={isSubmitting}
-                >
-                    <option value="Daily">Daily</option>
-                    <option value="Weekly">Weekly</option>
-                    <option value="Monthly">Monthly</option>
-                    <option value="One-time">One-time</option>
-                </select>
-            </div>
+            )}
 
             {frequency !== "One-time" && (
                 <div className="form-group">
@@ -511,18 +504,35 @@ export function TrackingForm({
                 </div>
             )}
 
-            {frequency !== "One-time" ? (
-                <div className="form-group">
-                    <DaysPatternInput
-                        value={days}
-                        onChange={setDays}
-                        disabled={isSubmitting}
-                        error={daysError}
-                        onErrorChange={setDaysError}
-                    />
-                </div>
-            ) : (
+            {frequency === "One-time" && (
                 <>
+                    <div className="form-group">
+                        <div className="form-label-row">
+                            <label htmlFor="tracking-frequency">
+                                Frequency{" "}
+                                <button
+                                    type="button"
+                                    className="field-help"
+                                    aria-label="Frequency help"
+                                    title="Choose how often this tracking should repeat: Daily, Weekly, Monthly, or One-time"
+                                >
+                                    ?
+                                </button>
+                            </label>
+                        </div>
+                        <select
+                            id="tracking-frequency"
+                            name="frequency"
+                            value={frequency}
+                            onChange={(e) => setFrequency(e.target.value as "Daily" | "Weekly" | "Monthly" | "One-time")}
+                            disabled={isSubmitting}
+                        >
+                            <option value="Daily">Daily</option>
+                            <option value="Weekly">Weekly</option>
+                            <option value="Monthly">Monthly</option>
+                            <option value="One-time">One-time</option>
+                        </select>
+                    </div>
                     <div className="form-group">
                         <div className="form-label-row">
                             <label htmlFor="one-time-date">
@@ -546,6 +556,7 @@ export function TrackingForm({
                             disabled={isSubmitting}
                             required={frequency === "One-time"}
                             min={new Date().toISOString().slice(0, 10)}
+                            className="date-input-autofit"
                         />
                     </div>
                     <div className="form-group">
@@ -671,6 +682,7 @@ export function TrackingForm({
                         onChange={(e) => setIcon(e.target.value)}
                         disabled={isSubmitting}
                         maxLength={30}
+                        className="icon-input-autofit"
                     />
                     <button
                         type="button"

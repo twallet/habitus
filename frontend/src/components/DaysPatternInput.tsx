@@ -3,12 +3,17 @@ import { DaysPattern, DaysPatternType } from "../models/Tracking";
 import { DaysPatternBuilder, FrequencyPreset } from "../models/DaysPatternBuilder";
 import "./DaysPatternInput.css";
 
+type FrequencyWithOneTime = FrequencyPreset | "One-time";
+
 interface DaysPatternInputProps {
     value?: DaysPattern;
     onChange: (pattern: DaysPattern) => void;
     disabled?: boolean;
     error?: string | null;
     onErrorChange?: (error: string | null) => void;
+    hideFrequencySelector?: boolean;
+    frequency?: FrequencyWithOneTime;
+    onFrequencyChange?: (frequency: FrequencyWithOneTime) => void;
 }
 
 /**
@@ -28,11 +33,23 @@ export function DaysPatternInput({
     disabled = false,
     error,
     onErrorChange,
+    hideFrequencySelector = false,
+    frequency,
+    onFrequencyChange,
 }: DaysPatternInputProps) {
     const builderRef = useRef<DaysPatternBuilder>(new DaysPatternBuilder(value));
+    // Use controlled frequency if provided, otherwise use internal state
+    const internalPreset = builderRef.current.getPreset();
     const [preset, setPreset] = useState<FrequencyPreset>(
-        builderRef.current.getPreset()
+        frequency && frequency !== "One-time" ? frequency : internalPreset
     );
+
+    // Sync with controlled frequency prop
+    useEffect(() => {
+        if (frequency && frequency !== "One-time") {
+            setPreset(frequency);
+        }
+    }, [frequency]);
     const [selectedDays, setSelectedDays] = useState<number[]>(
         builderRef.current.getSelectedDays()
     );
@@ -153,9 +170,18 @@ export function DaysPatternInput({
      * Handle preset change.
      * @internal
      */
-    const handlePresetChange = (newPreset: FrequencyPreset) => {
+    const handlePresetChange = (newPreset: FrequencyWithOneTime) => {
+        if (newPreset === "One-time") {
+            // Notify parent of One-time selection
+            if (onFrequencyChange) {
+                onFrequencyChange("One-time");
+            }
+            return;
+        }
+
         setPreset(newPreset);
         builderRef.current.setPreset(newPreset);
+
         // Update selectedDays if switching to weekly and it's empty
         if (newPreset === "weekly" && selectedDays.length === 0) {
             const newDays = [1]; // Default to Monday
@@ -164,6 +190,11 @@ export function DaysPatternInput({
         }
         if (onErrorChange) {
             onErrorChange(null);
+        }
+
+        // Notify parent of frequency change
+        if (onFrequencyChange) {
+            onFrequencyChange(newPreset);
         }
     };
 
@@ -229,34 +260,39 @@ export function DaysPatternInput({
 
     return (
         <div className="days-pattern-input">
-            <div className="form-label-row">
-                <label htmlFor="frequency-preset">
-                    Frequency <span className="required-asterisk">*</span>{" "}
-                    <button
-                        type="button"
-                        className="field-help"
-                        aria-label="Frequency help"
-                        title="Define how often reminders should be sent"
-                    >
-                        ?
-                    </button>
-                </label>
-            </div>
+            {!hideFrequencySelector && (
+                <div className="form-label-row">
+                    <label htmlFor="frequency-preset">
+                        Frequency <span className="required-asterisk">*</span>{" "}
+                        <button
+                            type="button"
+                            className="field-help"
+                            aria-label="Frequency help"
+                            title="Define how often reminders should be sent"
+                        >
+                            ?
+                        </button>
+                    </label>
+                </div>
+            )}
 
             <div className="frequency-field-row">
-                <select
-                    id="frequency-preset"
-                    value={preset}
-                    onChange={(e) => handlePresetChange(e.target.value as FrequencyPreset)}
-                    disabled={disabled}
-                    className="frequency-preset-select"
-                    required
-                >
-                    <option value="daily">Daily</option>
-                    <option value="weekly">Weekly</option>
-                    <option value="monthly">Monthly</option>
-                    <option value="yearly">Yearly</option>
-                </select>
+                {!hideFrequencySelector && (
+                    <select
+                        id="frequency-preset"
+                        value={frequency && frequency !== "One-time" ? frequency : preset}
+                        onChange={(e) => handlePresetChange(e.target.value as FrequencyWithOneTime)}
+                        disabled={disabled}
+                        className="frequency-preset-select"
+                        required
+                    >
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="yearly">Yearly</option>
+                        <option value="One-time">One-time</option>
+                    </select>
+                )}
 
                 {preset === "weekly" && (
                     <div className="weekday-buttons">
