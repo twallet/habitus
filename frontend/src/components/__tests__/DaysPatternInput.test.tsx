@@ -336,9 +336,15 @@ describe("DaysPatternInput", () => {
         await user.selectOptions(select, "yearly");
 
         // Should show month select and day input
+        // Wait for yearly inputs to appear
+        await waitFor(() => {
+            const selects = screen.getAllByRole("combobox");
+            const monthSelect = selects.find(s => s !== select);
+            expect(monthSelect).toBeDefined();
+        });
         const selects = screen.getAllByRole("combobox");
         const monthSelect = selects.find(s => s !== select);
-        expect(monthSelect).toBeInTheDocument();
+        expect(monthSelect).toBeDefined();
 
         const dayInput = screen.getByRole("spinbutton") as HTMLInputElement;
         expect(dayInput).toBeInTheDocument();

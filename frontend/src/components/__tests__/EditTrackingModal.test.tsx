@@ -366,8 +366,10 @@ describe('EditTrackingModal', () => {
     );
 
     // Should show date input for one-time tracking
-    const dateInput = screen.getByLabelText(/one-time-date/i) || screen.getByDisplayValue(/^\d{4}-\d{2}-\d{2}$/);
+    // The date input doesn't have a label, so we'll find it by id or type
+    const dateInput = document.getElementById('one-time-date') as HTMLInputElement;
     expect(dateInput).toBeInTheDocument();
+    expect(dateInput.type).toBe('date');
 
     const saveButton = screen.getByRole('button', { name: /^save$/i });
     await user.click(saveButton);
