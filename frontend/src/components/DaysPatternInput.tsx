@@ -413,7 +413,7 @@ export function DaysPatternInput({
                     />
                 )}
 
-                {preset === "weekly" && (
+                {!isOneTime && preset === "weekly" && (
                     <div className="weekday-buttons">
                         {weekdays.map((wd) => (
                             <button
@@ -430,7 +430,7 @@ export function DaysPatternInput({
                     </div>
                 )}
 
-                {preset === "monthly" && (
+                {!isOneTime && preset === "monthly" && (
                     <>
                         <select
                             value={monthlyType}
@@ -503,7 +503,7 @@ export function DaysPatternInput({
                     </>
                 )}
 
-                {preset === "yearly" && (() => {
+                {!isOneTime && preset === "yearly" && (() => {
                     const maxDays = getMaxDaysInMonth(yearlyMonth);
                     return (
                         <>
