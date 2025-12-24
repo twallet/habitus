@@ -1118,12 +1118,17 @@ describe("TrackingService", () => {
       );
       // Should have a new recurring reminder
       expect(reminders.length).toBeGreaterThan(0);
-      // The new reminder should be in the future and not on the old one-time date
+      // The new reminder should be in the future
       const newReminder = reminders[0];
-      const newReminderDate = new Date(newReminder.scheduled_time)
-        .toISOString()
-        .split("T")[0];
-      expect(newReminderDate).not.toBe(oneTimeDate);
+      const newReminderTime = new Date(newReminder.scheduled_time);
+      const now = new Date();
+      expect(newReminderTime.getTime()).toBeGreaterThan(now.getTime());
+      // Verify it's an Upcoming reminder
+      const reminderStatus = await testDb.get<{ status: string }>(
+        "SELECT status FROM reminders WHERE id = ?",
+        [newReminder.id]
+      );
+      expect(reminderStatus?.status).toBe(ReminderStatus.UPCOMING);
     });
   });
 

@@ -64,8 +64,8 @@ export function DaysPatternInput({
     // Determine if we're in one-time mode
     // If frequency is explicitly "One-time", we're in one-time mode
     // If preset is "One-time", we're in one-time mode
-    // If value is undefined and frequency is not set, we might be in one-time mode (for existing one-time trackings)
-    const isOneTime = frequency === "One-time" || preset === "One-time" || (value === undefined && frequency === undefined);
+    // Note: We don't check value === undefined because that's also true for new components
+    const isOneTime = frequency === "One-time" || preset === "One-time";
     const [oneTimeDate, setOneTimeDate] = useState<string>(
         controlledOneTimeDate || getTomorrowDate()
     );
