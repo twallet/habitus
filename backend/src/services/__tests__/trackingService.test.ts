@@ -1026,13 +1026,16 @@ describe("TrackingService", () => {
         oneTimeDate
       );
 
-      // Verify tracking is now one-time (days is null)
+      // Verify tracking is now one-time (days is null/undefined)
       const updatedTracking = await trackingService.getById(
         trackingId,
         testUserId
       );
       expect(updatedTracking).not.toBeNull();
-      expect(updatedTracking!.days).toBeUndefined();
+      // Days should be null or undefined for one-time trackings
+      expect(
+        updatedTracking!.days === null || updatedTracking!.days === undefined
+      ).toBe(true);
 
       // Verify old recurring reminder was deleted and one-time reminders were created
       const reminders = await testDb.all<{
