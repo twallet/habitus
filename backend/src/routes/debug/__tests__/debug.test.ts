@@ -12,6 +12,7 @@ import * as servicesModule from "../../../services/index.js";
 // Mock authenticateToken before importing the router
 vi.mock("../../../middleware/authMiddleware.js", () => ({
   authenticateToken: vi.fn(),
+  authenticateTokenOptional: vi.fn(),
   AuthRequest: {},
 }));
 
@@ -150,6 +151,14 @@ describe("Debug Routes", () => {
 
     // Mock authenticateToken to set userId
     (authMiddlewareModule.authenticateToken as any).mockImplementation(
+      (req: any, res: any, next: any) => {
+        req.userId = testUserId;
+        next();
+      }
+    );
+
+    // Mock authenticateTokenOptional to set userId
+    (authMiddlewareModule.authenticateTokenOptional as any).mockImplementation(
       (req: any, res: any, next: any) => {
         req.userId = testUserId;
         next();
