@@ -221,20 +221,8 @@ export function EditTrackingModal({
             return;
         }
 
-        // Check if schedules changed
-        const originalSchedules = tracking.schedules?.map((s) => ({
-            hour: s.hour,
-            minutes: s.minutes,
-        })) || [];
+        // Always send schedules to ensure they're preserved when other fields (like frequency) change
         const sortedNewSchedules = sortSchedules(schedules);
-        const sortedOriginalSchedules = sortSchedules(originalSchedules);
-        const schedulesChanged =
-            sortedNewSchedules.length !== sortedOriginalSchedules.length ||
-            sortedNewSchedules.some(
-                (s, i) =>
-                    s.hour !== sortedOriginalSchedules[i]?.hour ||
-                    s.minutes !== sortedOriginalSchedules[i]?.minutes
-            );
 
         try {
             // Check if icon has changed - need to handle empty string to clear icon
@@ -250,7 +238,7 @@ export function EditTrackingModal({
                 question.trim() !== tracking.question ? question.trim() : undefined,
                 notes.trim() !== (tracking.notes || "") ? notes.trim() || undefined : undefined,
                 iconValue,
-                schedulesChanged ? sortedNewSchedules : undefined
+                sortedNewSchedules // Always send schedules to preserve them when frequency changes
             );
             if (!hasSaveErrorRef.current) {
                 onClose();
