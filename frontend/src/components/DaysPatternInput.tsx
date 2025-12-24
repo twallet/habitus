@@ -44,6 +44,8 @@ export function DaysPatternInput({
     const builderRef = useRef<DaysPatternBuilder>(new DaysPatternBuilder(value));
     // Track the last pattern we sent to parent to avoid re-initializing from our own updates
     const lastSentPatternRef = useRef<DaysPattern | null>(null);
+    // Track if we're in the middle of a preset change to prevent effect from running
+    const isPresetChangingRef = useRef<boolean>(false);
     // Use controlled frequency if provided, otherwise use internal state
     const internalPreset = builderRef.current.getPreset();
     const [preset, setPreset] = useState<FrequencyPreset>(
@@ -63,9 +65,8 @@ export function DaysPatternInput({
 
     // Determine if we're in one-time mode
     // If frequency is explicitly "One-time", we're in one-time mode
-    // If preset is "One-time", we're in one-time mode
     // Note: We don't check value === undefined because that's also true for new components
-    const isOneTime = frequency === "One-time" || preset === "One-time";
+    const isOneTime = frequency === "One-time";
     const [oneTimeDate, setOneTimeDate] = useState<string>(
         controlledOneTimeDate || getTomorrowDate()
     );
@@ -215,18 +216,62 @@ export function DaysPatternInput({
             return;
         }
 
-        setPreset(newPreset);
+        // Set flag to prevent effect from running during preset change
+        isPresetChangingRef.current = true;
+
+        // Update builder first
         builderRef.current.setPreset(newPreset);
 
         // Update selectedDays if switching to weekly and it's empty
+        let updatedSelectedDays = selectedDays;
         if (newPreset === "weekly" && selectedDays.length === 0) {
-            const newDays = [1]; // Default to Monday
-            setSelectedDays(newDays);
-            builderRef.current.setSelectedDays(newDays);
+            updatedSelectedDays = [1]; // Default to Monday
+            builderRef.current.setSelectedDays(updatedSelectedDays);
         }
-        if (onErrorChange) {
-            onErrorChange(null);
+
+        // Update state
+        setPreset(newPreset);
+        if (updatedSelectedDays !== selectedDays) {
+            setSelectedDays(updatedSelectedDays);
         }
+
+        // Build pattern immediately using builder (not state) to prevent blinking
+        const builder = builderRef.current;
+        builder.setPreset(newPreset);
+        builder.setSelectedDays(updatedSelectedDays);
+        builder.setMonthlyDay(monthlyDay);
+        builder.setMonthlyType(monthlyType);
+        builder.setWeekday(weekday);
+        builder.setOrdinal(ordinal);
+        builder.setYearlyMonth(yearlyMonth);
+        builder.setYearlyDay(yearlyDay);
+
+        try {
+            const validationError = builder.validate();
+            if (validationError) {
+                if (onErrorChange) {
+                    onErrorChange(validationError);
+                }
+            } else {
+                if (onErrorChange) {
+                    onErrorChange(null);
+                }
+                const pattern = builder.buildPattern();
+                lastSentPatternRef.current = pattern;
+                onChange(pattern);
+            }
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Invalid pattern";
+            if (onErrorChange) {
+                onErrorChange(errorMessage);
+            }
+        }
+
+        // Clear flag after state updates are queued
+        // Use setTimeout to ensure this happens after React processes the state updates
+        setTimeout(() => {
+            isPresetChangingRef.current = false;
+        }, 0);
 
         // Notify parent of frequency change
         if (onFrequencyChange) {
@@ -264,6 +309,11 @@ export function DaysPatternInput({
     useEffect(() => {
         // Don't call onChange if we're in one-time mode
         if (isOneTime) {
+            return;
+        }
+
+        // Skip if we're in the middle of a preset change (handled in handlePresetChange)
+        if (isPresetChangingRef.current) {
             return;
         }
 
