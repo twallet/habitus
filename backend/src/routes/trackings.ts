@@ -194,7 +194,8 @@ router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
  * @body {string} notes - Updated notes (optional)
  * @body {string} icon - Updated icon (optional)
  * @body {Array<{hour: number, minutes: number}>} schedules - Updated schedules array (optional, 1-5 schedules if provided)
- * @body {DaysPattern} days - Updated days pattern (optional)
+ * @body {DaysPattern} days - Updated days pattern (optional, undefined for one-time trackings)
+ * @body {string} oneTimeDate - Updated one-time date (optional, YYYY-MM-DD format for one-time trackings)
  * @returns {TrackingData} Updated tracking data
  */
 router.put(
@@ -204,7 +205,7 @@ router.put(
     try {
       const trackingId = parseInt(req.params.id, 10);
       const userId = req.userId!;
-      const { question, notes, icon, schedules, days } = req.body;
+      const { question, notes, icon, schedules, days, oneTimeDate } = req.body;
 
       if (isNaN(trackingId)) {
         return res.status(400).json({ error: "Invalid tracking ID" });
@@ -226,7 +227,8 @@ router.put(
         notes,
         icon,
         schedules,
-        days
+        days,
+        oneTimeDate
       );
 
       res.json(tracking);

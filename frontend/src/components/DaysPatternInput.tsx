@@ -7,13 +7,15 @@ type FrequencyWithOneTime = FrequencyPreset | "One-time";
 
 interface DaysPatternInputProps {
     value?: DaysPattern;
-    onChange: (pattern: DaysPattern) => void;
+    onChange: (pattern: DaysPattern | undefined) => void;
     disabled?: boolean;
     error?: string | null;
     onErrorChange?: (error: string | null) => void;
     hideFrequencySelector?: boolean;
     frequency?: FrequencyWithOneTime;
     onFrequencyChange?: (frequency: FrequencyWithOneTime) => void;
+    oneTimeDate?: string;
+    onOneTimeDateChange?: (date: string) => void;
 }
 
 /**
@@ -36,6 +38,8 @@ export function DaysPatternInput({
     hideFrequencySelector = false,
     frequency,
     onFrequencyChange,
+    oneTimeDate: controlledOneTimeDate,
+    onOneTimeDateChange,
 }: DaysPatternInputProps) {
     const builderRef = useRef<DaysPatternBuilder>(new DaysPatternBuilder(value));
     // Track the last pattern we sent to parent to avoid re-initializing from our own updates
@@ -44,6 +48,25 @@ export function DaysPatternInput({
     const internalPreset = builderRef.current.getPreset();
     const [preset, setPreset] = useState<FrequencyPreset>(
         frequency && frequency !== "One-time" ? frequency : internalPreset
+    );
+
+    /**
+     * Get tomorrow's date as ISO string (YYYY-MM-DD).
+     * @returns Tomorrow's date in YYYY-MM-DD format
+     * @internal
+     */
+    const getTomorrowDate = (): string => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return tomorrow.toISOString().slice(0, 10);
+    };
+
+    // Determine if we're in one-time mode
+    // If frequency is explicitly "One-time", we're in one-time mode
+    // If value is undefined and frequency is not set, we might be in one-time mode (for existing one-time trackings)
+    const isOneTime = frequency === "One-time" || (value === undefined && frequency === undefined);
+    const [oneTimeDate, setOneTimeDate] = useState<string>(
+        controlledOneTimeDate || getTomorrowDate()
     );
 
     // Sync with controlled frequency prop
@@ -174,9 +197,19 @@ export function DaysPatternInput({
      */
     const handlePresetChange = (newPreset: FrequencyWithOneTime) => {
         if (newPreset === "One-time") {
-            // Notify parent of One-time selection
+            // When switching to one-time, call onChange with undefined and notify parent
+            onChange(undefined);
+            lastSentPatternRef.current = null;
             if (onFrequencyChange) {
                 onFrequencyChange("One-time");
+            }
+            // Initialize one-time date if not already set
+            if (!oneTimeDate) {
+                const tomorrow = getTomorrowDate();
+                setOneTimeDate(tomorrow);
+                if (onOneTimeDateChange) {
+                    onOneTimeDateChange(tomorrow);
+                }
             }
             return;
         }
@@ -201,6 +234,18 @@ export function DaysPatternInput({
     };
 
     /**
+     * Handle one-time date change.
+     * @param date - New date value (YYYY-MM-DD format)
+     * @internal
+     */
+    const handleOneTimeDateChange = (date: string) => {
+        setOneTimeDate(date);
+        if (onOneTimeDateChange) {
+            onOneTimeDateChange(date);
+        }
+    };
+
+    /**
      * Handle day of week toggle.
      * @param dayValue - Day value (0-6, where 0=Sunday)
      * @internal
@@ -212,14 +257,19 @@ export function DaysPatternInput({
 
     /**
      * Update pattern when state changes.
-     * Always provides a valid pattern (mandatory field).
+     * Only provides a pattern for recurring frequencies, undefined for one-time.
      * @internal
      */
     useEffect(() => {
+        // Don't call onChange if we're in one-time mode
+        if (isOneTime) {
+            return;
+        }
+
         const pattern = buildPattern();
         // Track the pattern we're sending to avoid re-initializing from it
         lastSentPatternRef.current = pattern;
-        // Always call onChange with a valid pattern (field is mandatory)
+        // Call onChange with the pattern for recurring frequencies
         onChange(pattern);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
@@ -231,6 +281,7 @@ export function DaysPatternInput({
         ordinal,
         yearlyMonth,
         yearlyDay,
+        isOneTime,
     ]);
 
     /**
@@ -240,17 +291,25 @@ export function DaysPatternInput({
      * @internal
      */
     useEffect(() => {
+        // If value is undefined and we're not explicitly in one-time mode, 
+        // treat it as one-time tracking
         if (!value) {
-            // Initialize with default daily pattern (mandatory field)
-            builderRef.current = new DaysPatternBuilder();
-            if (!frequency || frequency === "One-time") {
-                setPreset("daily");
+            // If frequency is explicitly set to "One-time", we're in one-time mode
+            if (frequency === "One-time") {
+                // Don't call onChange, we're already in one-time mode
+                return;
             }
-            setSelectedDays([1]);
-            // Immediately provide default pattern
-            const defaultPattern = builderRef.current.buildPattern();
-            lastSentPatternRef.current = defaultPattern;
-            onChange(defaultPattern);
+            // If no frequency is set and no value, default to daily pattern
+            // (for new trackings that haven't selected frequency yet)
+            if (!frequency) {
+                builderRef.current = new DaysPatternBuilder();
+                setPreset("daily");
+                setSelectedDays([1]);
+                // Immediately provide default pattern
+                const defaultPattern = builderRef.current.buildPattern();
+                lastSentPatternRef.current = defaultPattern;
+                onChange(defaultPattern);
+            }
             return;
         }
 
@@ -280,7 +339,17 @@ export function DaysPatternInput({
         setYearlyMonth(builderRef.current.getYearlyMonth());
         setYearlyDay(builderRef.current.getYearlyDay());
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [value]);
+    }, [value, frequency]);
+
+    /**
+     * Sync one-time date with controlled prop.
+     * @internal
+     */
+    useEffect(() => {
+        if (controlledOneTimeDate !== undefined && controlledOneTimeDate !== oneTimeDate) {
+            setOneTimeDate(controlledOneTimeDate);
+        }
+    }, [controlledOneTimeDate]);
 
     return (
         <div className="days-pattern-input">
@@ -301,21 +370,47 @@ export function DaysPatternInput({
             )}
 
             <div className="frequency-field-row">
-                {!hideFrequencySelector && (
-                    <select
-                        id="frequency-preset"
-                        value={frequency && frequency !== "One-time" ? frequency : preset}
-                        onChange={(e) => handlePresetChange(e.target.value as FrequencyWithOneTime)}
+                {!hideFrequencySelector && (() => {
+                    // Determine the select value
+                    let selectValue: FrequencyWithOneTime;
+                    if (isOneTime) {
+                        selectValue = "One-time";
+                    } else if (frequency && (frequency as FrequencyWithOneTime) !== "One-time") {
+                        selectValue = frequency as FrequencyWithOneTime;
+                    } else {
+                        selectValue = preset as FrequencyWithOneTime;
+                    }
+
+                    return (
+                        <select
+                            id="frequency-preset"
+                            value={selectValue}
+                            onChange={(e) => handlePresetChange(e.target.value as FrequencyWithOneTime)}
+                            disabled={disabled}
+                            className="frequency-preset-select"
+                            required
+                        >
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                            <option value="yearly">Yearly</option>
+                            <option value="One-time">One-time</option>
+                        </select>
+                    );
+                })()}
+
+                {isOneTime && (
+                    <input
+                        type="date"
+                        id="one-time-date"
+                        name="one-time-date"
+                        value={oneTimeDate}
+                        onChange={(e) => handleOneTimeDateChange(e.target.value)}
                         disabled={disabled}
-                        className="frequency-preset-select"
-                        required
-                    >
-                        <option value="daily">Daily</option>
-                        <option value="weekly">Weekly</option>
-                        <option value="monthly">Monthly</option>
-                        <option value="yearly">Yearly</option>
-                        <option value="One-time">One-time</option>
-                    </select>
+                        required={isOneTime}
+                        min={new Date().toISOString().slice(0, 10)}
+                        className="date-input-autofit"
+                    />
                 )}
 
                 {preset === "weekly" && (

@@ -717,7 +717,12 @@ describe("TrackingService", () => {
       const updated = await trackingService.updateTracking(
         trackingId,
         testUserId,
-        "New Question"
+        "New Question",
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined // oneTimeDate
       );
 
       expect(updated.question).toBe("New Question");
@@ -734,7 +739,11 @@ describe("TrackingService", () => {
         trackingId,
         testUserId,
         undefined,
-        "Updated notes"
+        "Updated notes",
+        undefined,
+        undefined,
+        undefined,
+        undefined // oneTimeDate
       );
 
       expect(updated.notes).toBe("Updated notes");
@@ -742,7 +751,16 @@ describe("TrackingService", () => {
 
     it("should throw error when tracking not found", async () => {
       await expect(
-        trackingService.updateTracking(999, testUserId, "New Question")
+        trackingService.updateTracking(
+          999,
+          testUserId,
+          "New Question",
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined
+        )
       ).rejects.toThrow("Tracking not found");
     });
 
@@ -760,7 +778,16 @@ describe("TrackingService", () => {
       const trackingId = result.lastID;
 
       await expect(
-        trackingService.updateTracking(trackingId, testUserId, "New Question")
+        trackingService.updateTracking(
+          trackingId,
+          testUserId,
+          "New Question",
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined
+        )
       ).rejects.toThrow("Tracking not found");
     });
 
@@ -772,7 +799,16 @@ describe("TrackingService", () => {
       const trackingId = result.lastID;
 
       await expect(
-        trackingService.updateTracking(trackingId, testUserId)
+        trackingService.updateTracking(
+          trackingId,
+          testUserId,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined
+        )
       ).rejects.toThrow("No fields to update");
     });
 
@@ -869,7 +905,9 @@ describe("TrackingService", () => {
         undefined,
         undefined,
         undefined,
-        [{ hour: 10, minutes: 30 }] // New schedule time
+        [{ hour: 10, minutes: 30 }], // New schedule time
+        undefined, // days
+        undefined // oneTimeDate
       );
 
       // Verify Upcoming reminder was created
@@ -926,7 +964,8 @@ describe("TrackingService", () => {
         {
           pattern_type: DaysPatternType.DAY_OF_WEEK,
           days: [0, 6], // Weekends instead
-        }
+        },
+        undefined // oneTimeDate
       );
 
       // Verify the Upcoming reminder was updated or replaced

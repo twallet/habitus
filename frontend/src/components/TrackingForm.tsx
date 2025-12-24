@@ -36,13 +36,25 @@ export function TrackingForm({
     const [schedules, setSchedules] = useState<
         Array<{ hour: number; minutes: number }>
     >([]);
-    const [scheduleTime, setScheduleTime] = useState<string>("09:00");
+    const [scheduleTime, setScheduleTime] = useState<string>(() => {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() + 5);
+        const hours = String(now.getHours()).padStart(2, "0");
+        const minutes = String(now.getMinutes()).padStart(2, "0");
+        return `${hours}:${minutes}`;
+    });
     const [frequency, setFrequency] = useState<"Daily" | "Weekly" | "Monthly" | "Yearly" | "One-time">("Daily");
     const [oneTimeDate, setOneTimeDate] = useState<string>("");
     const [oneTimeSchedules, setOneTimeSchedules] = useState<
         Array<{ hour: number; minutes: number }>
     >([]);
-    const [oneTimeScheduleTime, setOneTimeScheduleTime] = useState<string>("09:00");
+    const [oneTimeScheduleTime, setOneTimeScheduleTime] = useState<string>(() => {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() + 5);
+        const hours = String(now.getHours()).padStart(2, "0");
+        const minutes = String(now.getMinutes()).padStart(2, "0");
+        return `${hours}:${minutes}`;
+    });
     const [days, setDays] = useState<DaysPattern>({
         pattern_type: DaysPatternType.INTERVAL,
         interval_value: 1,
@@ -62,6 +74,19 @@ export function TrackingForm({
 
     // Track previous frequency to detect changes
     const prevFrequencyRef = useRef<"Daily" | "Weekly" | "Monthly" | "Yearly" | "One-time">(frequency);
+
+    /**
+     * Get current time plus 5 minutes in HH:MM format.
+     * @returns Time string in HH:MM format
+     * @internal
+     */
+    const getTimeInFiveMinutes = (): string => {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() + 5);
+        const hours = String(now.getHours()).padStart(2, "0");
+        const minutes = String(now.getMinutes()).padStart(2, "0");
+        return `${hours}:${minutes}`;
+    };
 
     /**
      * Get tomorrow's date as ISO string (YYYY-MM-DD).
@@ -236,7 +261,7 @@ export function TrackingForm({
             minutes < 0 ||
             minutes > 59
         ) {
-            setError("Invalid time format. Please use HH:MM format (e.g., 09:00)");
+            setError("Invalid time format. Please use HH:MM format (e.g., 00:05)");
             return;
         }
 
@@ -264,7 +289,7 @@ export function TrackingForm({
         setSchedules([...schedules, newSchedule]);
 
         // Reset input
-        setScheduleTime("09:00");
+        setScheduleTime(getTimeInFiveMinutes());
     };
 
     /**
@@ -299,7 +324,7 @@ export function TrackingForm({
             minutes < 0 ||
             minutes > 59
         ) {
-            setError("Invalid time format. Please use HH:MM format (e.g., 09:00)");
+            setError("Invalid time format. Please use HH:MM format (e.g., 00:05)");
             return;
         }
 
@@ -327,7 +352,7 @@ export function TrackingForm({
         setOneTimeSchedules([...oneTimeSchedules, newSchedule]);
 
         // Reset input
-        setOneTimeScheduleTime("09:00");
+        setOneTimeScheduleTime(getTimeInFiveMinutes());
     };
 
     /**
@@ -455,11 +480,11 @@ export function TrackingForm({
             setNotes("");
             setIcon("");
             setSchedules([]);
-            setScheduleTime("09:00");
+            setScheduleTime(getTimeInFiveMinutes());
             setFrequency("Daily");
             setOneTimeDate("");
             setOneTimeSchedules([]);
-            setOneTimeScheduleTime("09:00");
+            setOneTimeScheduleTime(getTimeInFiveMinutes());
             setDays({
                 pattern_type: DaysPatternType.INTERVAL,
                 interval_value: 1,

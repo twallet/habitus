@@ -131,10 +131,11 @@ export function MainLayout() {
         question?: string,
         notes?: string,
         icon?: string,
-        schedules?: Array<{ hour: number; minutes: number }>
+        schedules?: Array<{ hour: number; minutes: number }>,
+        oneTimeDate?: string
     ) => {
         try {
-            const result = await updateTracking(trackingId, days, question, notes, icon, schedules);
+            const result = await updateTracking(trackingId, days, question, notes, icon, schedules, oneTimeDate);
             setEditingTracking(null);
             await refreshReminders();
             setMessage({ text: 'Tracking updated successfully', type: 'success' });

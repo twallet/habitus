@@ -162,6 +162,7 @@ describe('EditTrackingModal', () => {
         undefined,
         undefined,
         [{ hour: 9, minutes: 0 }], // Schedules are always sent to preserve them
+        undefined, // oneTimeDate
       );
     });
     expect(mockOnClose).toHaveBeenCalledTimes(1);
@@ -279,6 +280,7 @@ describe('EditTrackingModal', () => {
         undefined,
         '', // Empty string to clear the icon
         [{ hour: 9, minutes: 0 }], // Schedules are always sent to preserve them
+        undefined, // oneTimeDate
       );
     });
   });
@@ -313,6 +315,7 @@ describe('EditTrackingModal', () => {
         undefined,
         '🏋️',
         [{ hour: 9, minutes: 0 }], // Schedules are always sent to preserve them
+        undefined, // oneTimeDate
       );
     });
   });
@@ -345,5 +348,40 @@ describe('EditTrackingModal', () => {
       ).toBeInTheDocument();
     });
     expect(mockOnSave).not.toHaveBeenCalled();
+  });
+
+  it('should handle one-time tracking editing', async () => {
+    const user = userEvent.setup();
+    const oneTimeTracking: TrackingData = {
+      ...mockTracking,
+      days: undefined, // One-time tracking has no days pattern
+    };
+
+    render(
+      <EditTrackingModal
+        tracking={oneTimeTracking}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+      />
+    );
+
+    // Should show date input for one-time tracking
+    const dateInput = screen.getByLabelText(/one-time-date/i) || screen.getByDisplayValue(/^\d{4}-\d{2}-\d{2}$/);
+    expect(dateInput).toBeInTheDocument();
+
+    const saveButton = screen.getByRole('button', { name: /^save$/i });
+    await user.click(saveButton);
+
+    await waitFor(() => {
+      expect(mockOnSave).toHaveBeenCalledWith(
+        1,
+        undefined, // days is undefined for one-time
+        undefined,
+        undefined,
+        undefined,
+        [{ hour: 9, minutes: 0 }],
+        expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), // oneTimeDate should be a date string
+      );
+    });
   });
 });

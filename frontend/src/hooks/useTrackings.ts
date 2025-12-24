@@ -157,6 +157,7 @@ export function useTrackings() {
    * @param notes - Updated notes (optional)
    * @param icon - Updated icon (optional)
    * @param schedules - Updated schedules array (optional, 1-5 schedules if provided)
+   * @param oneTimeDate - Updated one-time date (optional, YYYY-MM-DD format for one-time trackings)
    * @returns The updated tracking data
    * @throws Error if API request fails
    * @public
@@ -167,7 +168,8 @@ export function useTrackings() {
     question?: string,
     notes?: string,
     icon?: string,
-    schedules?: Array<{ hour: number; minutes: number }>
+    schedules?: Array<{ hour: number; minutes: number }>,
+    oneTimeDate?: string
   ): Promise<TrackingData> => {
     const token = tokenManager.getToken();
     if (!token) {
@@ -188,7 +190,8 @@ export function useTrackings() {
         question,
         notes,
         icon,
-        schedules
+        schedules,
+        oneTimeDate
       );
       console.log(
         `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Tracking updated successfully: ID ${

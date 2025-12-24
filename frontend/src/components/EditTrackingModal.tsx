@@ -14,7 +14,8 @@ interface EditTrackingModalProps {
         question?: string,
         notes?: string,
         icon?: string,
-        schedules?: Array<{ hour: number; minutes: number }>
+        schedules?: Array<{ hour: number; minutes: number }>,
+        oneTimeDate?: string
     ) => Promise<void>;
 }
 
@@ -44,14 +45,34 @@ export function EditTrackingModal({
     );
     const [scheduleTime, setScheduleTime] = useState<string>("09:00");
     const isOneTime = !tracking.days;
-    const [days, setDays] = useState<DaysPattern>(
-        tracking.days || {
-            pattern_type: DaysPatternType.INTERVAL,
-            interval_value: 1,
-            interval_unit: "days",
+
+    /**
+     * Get tomorrow's date as ISO string (YYYY-MM-DD).
+     * @returns Tomorrow's date in YYYY-MM-DD format
+     * @internal
+     */
+    const getTomorrowDate = (): string => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return tomorrow.toISOString().slice(0, 10);
+    };
+
+    // For one-time trackings, try to extract date from first reminder if available
+    // Otherwise default to tomorrow
+    const [oneTimeDate, setOneTimeDate] = useState<string>(() => {
+        if (isOneTime) {
+            // TODO: Could extract from tracking.reminders if available in future
+            // For now, default to tomorrow
+            return getTomorrowDate();
         }
-    );
+        return getTomorrowDate();
+    });
+
+    const [days, setDays] = useState<DaysPattern | undefined>(tracking.days);
     const [daysError, setDaysError] = useState<string | null>(null);
+    const [currentFrequency, setCurrentFrequency] = useState<"daily" | "weekly" | "monthly" | "yearly" | "One-time">(
+        isOneTime ? "One-time" : "daily"
+    );
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isSuggestingEmoji, setIsSuggestingEmoji] = useState(false);
@@ -214,8 +235,39 @@ export function EditTrackingModal({
             return;
         }
 
-        // For one-time trackings, don't validate days pattern
-        if (!isOneTime && daysError) {
+        // For one-time trackings, validate oneTimeDate instead of days pattern
+        if (currentFrequency === "One-time") {
+            if (!oneTimeDate) {
+                setError("Date is required for one-time tracking");
+                setIsSubmitting(false);
+                return;
+            }
+            // Validate date format and that it's today or in the future
+            const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+            if (!datePattern.test(oneTimeDate)) {
+                setError("Invalid date format. Expected YYYY-MM-DD");
+                setIsSubmitting(false);
+                return;
+            }
+            const oneTimeDateObj = new Date(oneTimeDate + "T00:00:00");
+            if (isNaN(oneTimeDateObj.getTime())) {
+                setError("Invalid date");
+                setIsSubmitting(false);
+                return;
+            }
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const selectedDateOnly = new Date(
+                oneTimeDateObj.getFullYear(),
+                oneTimeDateObj.getMonth(),
+                oneTimeDateObj.getDate()
+            );
+            if (selectedDateOnly < today) {
+                setError("Date must be today or in the future");
+                setIsSubmitting(false);
+                return;
+            }
+        } else if (daysError) {
             setError(daysError);
             setIsSubmitting(false);
             return;
@@ -234,11 +286,12 @@ export function EditTrackingModal({
 
             await onSave(
                 tracking.id,
-                isOneTime ? undefined : days, // Pass undefined for one-time trackings
+                currentFrequency === "One-time" ? undefined : days, // Pass undefined for one-time trackings
                 question.trim() !== tracking.question ? question.trim() : undefined,
                 notes.trim() !== (tracking.notes || "") ? notes.trim() || undefined : undefined,
                 iconValue,
-                sortedNewSchedules // Always send schedules to preserve them when frequency changes
+                sortedNewSchedules, // Always send schedules to preserve them when frequency changes
+                currentFrequency === "One-time" ? oneTimeDate : undefined // Pass oneTimeDate for one-time trackings
             );
             if (!hasSaveErrorRef.current) {
                 onClose();
@@ -434,39 +487,24 @@ export function EditTrackingModal({
                         </div>
                     </div>
 
-                    {isOneTime ? (
-                        <div className="form-group">
-                            <div className="form-label-row">
-                                <label>
-                                    Type{" "}
-                                    <button
-                                        type="button"
-                                        className="field-help"
-                                        aria-label="Type help"
-                                        title="This is a one-time tracking. The reminder date cannot be changed here."
-                                    >
-                                        ?
-                                    </button>
-                                </label>
-                            </div>
-                            <div className="one-time-info">
-                                <span>One-time tracking</span>
-                                <p className="field-hint">
-                                    This tracking will only send one reminder. To change the reminder date, delete and recreate the tracking.
-                                </p>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="form-group">
-                            <DaysPatternInput
-                                value={days}
-                                onChange={setDays}
-                                disabled={isSubmitting}
-                                error={daysError}
-                                onErrorChange={setDaysError}
-                            />
-                        </div>
-                    )}
+                    <div className="form-group">
+                        <DaysPatternInput
+                            value={days}
+                            onChange={(pattern) => setDays(pattern)}
+                            disabled={isSubmitting}
+                            error={daysError}
+                            onErrorChange={setDaysError}
+                            frequency={currentFrequency}
+                            onFrequencyChange={(freq) => {
+                                setCurrentFrequency(freq);
+                                if (freq === "One-time") {
+                                    setDays(undefined);
+                                }
+                            }}
+                            oneTimeDate={currentFrequency === "One-time" ? oneTimeDate : undefined}
+                            onOneTimeDateChange={(date) => setOneTimeDate(date)}
+                        />
+                    </div>
 
                     <div className="form-group">
                         <div className="form-label-row">

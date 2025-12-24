@@ -209,7 +209,8 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
    * @param notes - Updated notes (optional)
    * @param icon - Updated icon (optional)
    * @param schedules - Updated schedules array (optional, 1-5 schedules if provided)
-   * @param days - Updated days pattern (optional)
+   * @param days - Updated days pattern (optional, undefined for one-time trackings)
+   * @param oneTimeDate - Updated one-time date (optional, YYYY-MM-DD format for one-time trackings)
    * @returns Promise resolving to updated tracking data
    * @throws Error if tracking not found or validation fails
    * @public
@@ -221,7 +222,8 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
     notes?: string,
     icon?: string,
     schedules?: Array<{ hour: number; minutes: number }>,
-    days?: DaysPattern
+    days?: DaysPattern,
+    oneTimeDate?: string
   ): Promise<TrackingData> {
     console.log(
       `[${new Date().toISOString()}] TRACKING | Updating tracking ID: ${trackingId} for userId: ${userId}`
@@ -258,10 +260,40 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
       values.push(validatedIcon || null);
     }
 
+    // Handle days pattern update
+    // If days is explicitly set to undefined (converting to one-time), set days to null
+    // If days is provided (converting to recurring), set days pattern
     if (days !== undefined) {
       const validatedDays = Tracking.validateDays(days);
       updates.push("days = ?");
       values.push(validatedDays ? JSON.stringify(validatedDays) : null);
+    }
+
+    // Validate oneTimeDate if provided
+    if (oneTimeDate !== undefined) {
+      // Validate date format (YYYY-MM-DD)
+      const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+      if (!datePattern.test(oneTimeDate)) {
+        throw new TypeError("Invalid oneTimeDate format. Expected YYYY-MM-DD");
+      }
+
+      const oneTimeDateObj = new Date(oneTimeDate + "T00:00:00");
+      if (isNaN(oneTimeDateObj.getTime())) {
+        throw new TypeError("Invalid oneTimeDate format");
+      }
+
+      // Validate that the date is today or in the future
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const selectedDateOnly = new Date(
+        oneTimeDateObj.getFullYear(),
+        oneTimeDateObj.getMonth(),
+        oneTimeDateObj.getDate()
+      );
+
+      if (selectedDateOnly < today) {
+        throw new TypeError("oneTimeDate must be today or in the future");
+      }
     }
 
     // Update schedules if provided
@@ -289,7 +321,11 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
       }
     }
 
-    if (updates.length === 0 && schedules === undefined) {
+    if (
+      updates.length === 0 &&
+      schedules === undefined &&
+      oneTimeDate === undefined
+    ) {
       console.warn(
         `[${new Date().toISOString()}] TRACKING | Update failed: no fields to update for tracking ID: ${trackingId}`
       );
@@ -323,10 +359,83 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
       throw new Error("Failed to retrieve updated tracking");
     }
 
-    // If schedules or days pattern changed, update Upcoming reminder if needed
+    // Handle reminder updates based on type conversion or oneTimeDate change
     const schedulesChanged = schedules !== undefined;
     const daysChanged = days !== undefined;
-    if ((schedulesChanged || daysChanged) && tracking.state === "Running") {
+    const oneTimeDateChanged = oneTimeDate !== undefined;
+    const wasOneTime = !existingTracking.days;
+    // Determine if tracking is one-time after update (check the actual updated tracking)
+    const isNowOneTime = !tracking.days;
+
+    // If converting between one-time and recurring, or updating one-time date
+    if (
+      oneTimeDateChanged ||
+      (wasOneTime !== isNowOneTime && tracking.state === "Running")
+    ) {
+      try {
+        const { Reminder } = await import("../models/Reminder.js");
+
+        // Delete all existing reminders for this tracking
+        await this.db.run(
+          "DELETE FROM reminders WHERE tracking_id = ? AND user_id = ?",
+          [trackingId, userId]
+        );
+
+        // If converting to one-time, create one-time reminders
+        if (isNowOneTime) {
+          // Use oneTimeDate from parameter, or keep existing if just converting type
+          const dateToUse =
+            oneTimeDate || (wasOneTime ? oneTimeDate : undefined);
+          if (!dateToUse) {
+            console.warn(
+              `[${new Date().toISOString()}] TRACKING | Cannot convert to one-time without oneTimeDate for tracking ${trackingId}`
+            );
+          } else {
+            const finalSchedules =
+              schedules !== undefined
+                ? TrackingSchedule.validateSchedules(schedules, trackingId)
+                : tracking.schedules || [];
+
+            for (const schedule of finalSchedules) {
+              const dateTimeString = `${dateToUse}T${String(
+                schedule.hour
+              ).padStart(2, "0")}:${String(schedule.minutes).padStart(
+                2,
+                "0"
+              )}:00`;
+              const dateTime = new Date(dateTimeString);
+              const isoDateTimeString = dateTime.toISOString();
+
+              await this.reminderService.createReminder(
+                trackingId,
+                userId,
+                isoDateTimeString
+              );
+            }
+            console.log(
+              `[${new Date().toISOString()}] TRACKING | Created one-time reminders for tracking ${trackingId}`
+            );
+          }
+        } else if (!isNowOneTime && tracking.state === "Running") {
+          // If converting to recurring, create initial reminder
+          await this.lifecycleManager.onCreate(tracking);
+          console.log(
+            `[${new Date().toISOString()}] TRACKING | Created recurring reminder for tracking ${trackingId}`
+          );
+        }
+      } catch (error) {
+        console.error(
+          `[${new Date().toISOString()}] TRACKING | Failed to update reminders for tracking ${trackingId}:`,
+          error
+        );
+        // Don't fail the update if reminder update fails
+      }
+    } else if (
+      (schedulesChanged || daysChanged) &&
+      tracking.state === "Running" &&
+      !isNowOneTime
+    ) {
+      // If schedules or days pattern changed for recurring tracking, update Upcoming reminder
       try {
         const { Reminder, ReminderStatus } = await import(
           "../models/Reminder.js"

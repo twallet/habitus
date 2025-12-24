@@ -611,13 +611,27 @@ export class ApiClient {
    * @throws Error if request fails
    * @public
    */
+  /**
+   * Update a tracking.
+   * @param trackingId - The tracking ID
+   * @param days - Updated days pattern (optional, undefined for one-time trackings)
+   * @param question - Updated question (optional)
+   * @param notes - Updated notes (optional)
+   * @param icon - Updated icon (optional)
+   * @param schedules - Updated schedules array (optional)
+   * @param oneTimeDate - Updated one-time date (optional, YYYY-MM-DD format)
+   * @returns Promise resolving to updated tracking data
+   * @throws Error if request fails
+   * @public
+   */
   async updateTracking(
     trackingId: number,
     days: DaysPattern | undefined,
     question?: string,
     notes?: string,
     icon?: string,
-    schedules?: Array<{ hour: number; minutes: number }>
+    schedules?: Array<{ hour: number; minutes: number }>,
+    oneTimeDate?: string
   ): Promise<TrackingData> {
     return this.put<TrackingData>(`${API_ENDPOINTS.trackings}/${trackingId}`, {
       question,
@@ -625,6 +639,7 @@ export class ApiClient {
       icon,
       schedules,
       days,
+      oneTimeDate,
     });
   }
 
