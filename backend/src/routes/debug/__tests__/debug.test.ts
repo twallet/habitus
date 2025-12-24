@@ -406,6 +406,40 @@ describe("Debug Routes", () => {
       expect(response.body.log).toContain("Email=another@example.com");
     });
 
+    it("should display notification settings for users", async () => {
+      // Update test user with notification settings
+      await testDb.run(
+        "UPDATE users SET notification_channels = ?, telegram_chat_id = ? WHERE id = ?",
+        [JSON.stringify(["Email", "Telegram"]), "123456789", testUserId]
+      );
+
+      const response = await request(app)
+        .get("/api/debug")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain(
+        "NotificationChannels=[Email, Telegram]"
+      );
+      expect(response.body.log).toContain("TelegramChatID=123456789");
+    });
+
+    it("should display None for notification channels when not set", async () => {
+      // Ensure notification_channels is null
+      await testDb.run(
+        "UPDATE users SET notification_channels = NULL, telegram_chat_id = NULL WHERE id = ?",
+        [testUserId]
+      );
+
+      const response = await request(app)
+        .get("/api/debug")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("NotificationChannels=[None]");
+      expect(response.body.log).toContain("TelegramChatID=null");
+    });
+
     it("should return 500 when service throws error", async () => {
       // Mock services to throw error
       vi.spyOn(servicesModule.ServiceManager, "getUserService").mockReturnValue(

@@ -34,10 +34,12 @@ export class UserService {
       name: string;
       email: string;
       profile_picture_url: string | null;
+      telegram_chat_id: string | null;
+      notification_channels: string | null;
       last_access: string | null;
       created_at: string;
     }>(
-      "SELECT id, name, email, profile_picture_url, last_access, created_at FROM users ORDER BY id"
+      "SELECT id, name, email, profile_picture_url, telegram_chat_id, notification_channels, last_access, created_at FROM users ORDER BY id"
     );
 
     console.log(
@@ -51,6 +53,10 @@ export class UserService {
       name: row.name,
       email: row.email,
       profile_picture_url: row.profile_picture_url || undefined,
+      telegram_chat_id: row.telegram_chat_id || undefined,
+      notification_channels: row.notification_channels
+        ? JSON.parse(row.notification_channels)
+        : undefined,
       last_access: row.last_access || undefined,
       created_at: row.created_at,
     }));

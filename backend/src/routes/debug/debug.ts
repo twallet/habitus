@@ -252,11 +252,21 @@ router.get(
             lines.push("");
           }
 
+          // Format notification channels
+          const notificationChannelsStr = user.notification_channels
+            ? user.notification_channels.join(", ")
+            : "None";
+
+          // Format telegram chat ID
+          const telegramChatIdStr = user.telegram_chat_id || "null";
+
           const userAttrs = [
             `ID=${user.id}`,
             `Name=${user.name}`,
             `Email=${user.email}`,
             `ProfilePicture=${user.profile_picture_url || "null"}`,
+            `NotificationChannels=[${notificationChannelsStr}]`,
+            `TelegramChatID=${telegramChatIdStr}`,
             `LastAccess=${formatDateGMT3(user.last_access)}`,
             `Created=${formatDateGMT3(user.created_at)}`,
           ];
