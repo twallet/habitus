@@ -4,8 +4,6 @@ import {
   authenticateTokenOptional,
   AuthRequest,
 } from "../../middleware/authMiddleware.js";
-import { Tracking } from "../../models/Tracking.js";
-import { Reminder } from "../../models/Reminder.js";
 import {
   TrackingSchedule,
   type TrackingScheduleData,
