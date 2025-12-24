@@ -10,6 +10,76 @@ export interface AuthRequest extends Request {
 }
 
 /**
+ * Optional authentication middleware that allows requests without auth in development mode.
+ * In production, requires authentication. In development, authentication is optional.
+ * Adds userId to the request object if token is valid, otherwise leaves it undefined.
+ * @param req - Express request object
+ * @param res - Express response object
+ * @param next - Express next function
+ * @public
+ */
+export async function authenticateTokenOptional(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  const isDevelopment = process.env.NODE_ENV !== "production";
+
+  // In production, require authentication
+  if (!isDevelopment) {
+    return authenticateToken(req, res, next);
+  }
+
+  // In development, authentication is optional
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      // No token provided - allow request to proceed without userId
+      console.log(
+        `[${new Date().toISOString()}] AUTH_MIDDLEWARE | Optional auth: no token provided for ${
+          req.path
+        } (dev mode)`
+      );
+      req.userId = undefined;
+      next();
+      return;
+    }
+
+    const token = authHeader.substring(7);
+    const authService = ServiceManager.getAuthService();
+    const userId = await authService.verifyToken(token);
+    req.userId = userId;
+
+    console.log(
+      `[${new Date().toISOString()}] AUTH_MIDDLEWARE | Optional auth: authenticated userId ${userId} on ${
+        req.path
+      } (dev mode)`
+    );
+
+    // Update last access timestamp (fire and forget, don't wait for it)
+    const userService = ServiceManager.getUserService();
+    userService.updateLastAccess(userId).catch((err) => {
+      console.error(
+        `[${new Date().toISOString()}] AUTH_MIDDLEWARE | Error updating last access for userId ${userId}:`,
+        err
+      );
+    });
+
+    next();
+  } catch (error) {
+    // In dev mode, if token is invalid, allow request to proceed without userId
+    console.log(
+      `[${new Date().toISOString()}] AUTH_MIDDLEWARE | Optional auth: invalid token for ${
+        req.path
+      }, proceeding without auth (dev mode)`
+    );
+    req.userId = undefined;
+    next();
+  }
+}
+
+/**
  * Middleware to authenticate requests using JWT tokens.
  * Adds userId to the request object if token is valid.
  * Updates last_access timestamp on each authenticated request.

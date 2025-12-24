@@ -1,9 +1,16 @@
 import { Router, Response } from "express";
 import { ServiceManager } from "../../services/index.js";
 import {
-  authenticateToken,
+  authenticateTokenOptional,
   AuthRequest,
 } from "../../middleware/authMiddleware.js";
+import { Tracking } from "../../models/Tracking.js";
+import { Reminder } from "../../models/Reminder.js";
+import {
+  TrackingSchedule,
+  type TrackingScheduleData,
+} from "../../models/TrackingSchedule.js";
+import { Database } from "../../db/database.js";
 
 const router = Router();
 
@@ -76,189 +83,312 @@ function formatDateGMT3(dateString: string | null | undefined): string {
 }
 
 /**
+ * Get all trackings from database (for dev mode without auth).
+ * @param db - Database instance
+ * @returns Promise resolving to array of tracking data
+ * @internal
+ */
+async function getAllTrackings(db: Database): Promise<any[]> {
+  const rows = await db.all<{
+    id: number;
+    user_id: number;
+    question: string;
+    notes: string | null;
+    icon: string | null;
+    days: string | null;
+    state: string;
+    created_at: string;
+    updated_at: string;
+  }>(
+    "SELECT id, user_id, question, notes, icon, days, state, created_at, updated_at FROM trackings WHERE state != 'Deleted' ORDER BY created_at DESC"
+  );
+
+  const trackings = await Promise.all(
+    rows.map(async (row) => {
+      let daysPattern: any;
+      if (row.days) {
+        try {
+          daysPattern = JSON.parse(row.days);
+        } catch (err) {
+          console.error(
+            `[${new Date().toISOString()}] DEBUG_ROUTE | Failed to parse days JSON for tracking ${
+              row.id
+            }:`,
+            err
+          );
+        }
+      }
+
+      const tracking = {
+        id: row.id,
+        user_id: row.user_id,
+        question: row.question,
+        notes: row.notes || undefined,
+        icon: row.icon || undefined,
+        days: daysPattern,
+        state: row.state,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+      };
+
+      // Load schedules for each tracking
+      const schedules = await TrackingSchedule.loadByTrackingId(row.id, db);
+      (tracking as any).schedules = schedules.map((s) => s.toData());
+
+      return tracking;
+    })
+  );
+
+  return trackings;
+}
+
+/**
+ * Get all reminders from database (for dev mode without auth).
+ * @param db - Database instance
+ * @returns Promise resolving to array of reminder data
+ * @internal
+ */
+async function getAllReminders(db: Database): Promise<any[]> {
+  const rows = await db.all<{
+    id: number;
+    tracking_id: number;
+    user_id: number;
+    scheduled_time: string;
+    notes: string | null;
+    status: string;
+    value: string;
+    created_at: string;
+    updated_at: string;
+  }>(
+    "SELECT id, tracking_id, user_id, scheduled_time, notes, status, value, created_at, updated_at FROM reminders ORDER BY scheduled_time ASC"
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    tracking_id: row.tracking_id,
+    user_id: row.user_id,
+    scheduled_time: row.scheduled_time,
+    notes: row.notes || undefined,
+    status: row.status,
+    value: row.value,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  }));
+}
+
+/**
  * GET /api/debug
  * Get formatted debug log output showing all users, trackings and their reminders.
  * All dates are displayed in GMT-3 (Buenos Aires timezone).
+ * In development mode, authentication is optional. If not authenticated, shows all data.
+ * In production mode, authentication is required and shows only user's data.
  * @route GET /api/debug
- * @header {string} Authorization - Bearer token
+ * @header {string} Authorization - Bearer token (optional in dev mode)
  * @returns {Object} Object with formatted log text
  */
-router.get("/", authenticateToken, async (req: AuthRequest, res: Response) => {
-  try {
-    const userId = req.userId!;
-    const userService = ServiceManager.getUserService();
-    const trackingService = ServiceManager.getTrackingService();
-    const reminderService = ServiceManager.getReminderService();
+router.get(
+  "/",
+  authenticateTokenOptional,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId;
+      const isDevelopment = process.env.NODE_ENV !== "production";
+      const userService = ServiceManager.getUserService();
+      const trackingService = ServiceManager.getTrackingService();
+      const reminderService = ServiceManager.getReminderService();
 
-    const users = await userService.getAllUsers();
-    const trackings = await trackingService.getAllByUserId(userId);
-    const reminders = await reminderService.getAllByUserId(userId);
+      const users = await userService.getAllUsers();
 
-    // Group reminders by tracking_id
-    const remindersByTracking = new Map<number, typeof reminders>();
-    reminders.forEach((reminder) => {
-      const trackingReminders =
-        remindersByTracking.get(reminder.tracking_id) || [];
-      trackingReminders.push(reminder);
-      remindersByTracking.set(reminder.tracking_id, trackingReminders);
-    });
+      // Get trackings and reminders - all data in dev mode without auth, user-specific if authenticated
+      let trackings: any[];
+      let reminders: any[];
 
-    // ANSI color codes matching PowerShell colors
-    const ANSI_RESET = "\x1b[0m";
-    const ANSI_GREEN = "\x1b[32m";
-    const ANSI_YELLOW = "\x1b[33m";
-    const ANSI_BLUE = "\x1b[34m";
-    const ANSI_MAGENTA = "\x1b[35m";
-    const ANSI_CYAN = "\x1b[36m";
-    const ANSI_WHITE = "\x1b[37m";
-    const ANSI_GRAY = "\x1b[90m";
-    const ANSI_BRIGHT_YELLOW = "\x1b[93m";
+      if (userId === undefined && isDevelopment) {
+        // Dev mode without auth - get all data
+        // Access database through tracking service (it extends BaseEntityService which has db)
+        const db = (trackingService as any).db as Database;
+        trackings = await getAllTrackings(db);
+        reminders = await getAllReminders(db);
+      } else if (userId !== undefined) {
+        // Authenticated - get user-specific data
+        trackings = await trackingService.getAllByUserId(userId);
+        reminders = await reminderService.getAllByUserId(userId);
+      } else {
+        // Production mode without auth - should not happen (middleware should block)
+        res.status(401).json({ error: "Authorization token required" });
+        return;
+      }
 
-    // Format output similar to PowerShell script with ANSI color codes
-    const lines: string[] = [];
-
-    // Add users section
-    if (users.length === 0) {
-      lines.push(`${ANSI_YELLOW}No users found in the database.${ANSI_RESET}`);
-    } else {
-      lines.push(`${ANSI_CYAN}=== USERS ===${ANSI_RESET}`);
-      users.forEach((user, index) => {
-        if (index > 0) {
-          lines.push("");
-        }
-
-        const userAttrs = [
-          `ID=${user.id}`,
-          `Name=${user.name}`,
-          `Email=${user.email}`,
-          `ProfilePicture=${user.profile_picture_url || "null"}`,
-          `LastAccess=${formatDateGMT3(user.last_access)}`,
-          `Created=${formatDateGMT3(user.created_at)}`,
-        ];
-
-        lines.push(
-          `${ANSI_CYAN}USER #${index + 1} : ${userAttrs.join(
-            " | "
-          )}${ANSI_RESET}`
-        );
+      // Group reminders by tracking_id
+      const remindersByTracking = new Map<number, typeof reminders>();
+      reminders.forEach((reminder) => {
+        const trackingReminders =
+          remindersByTracking.get(reminder.tracking_id) || [];
+        trackingReminders.push(reminder);
+        remindersByTracking.set(reminder.tracking_id, trackingReminders);
       });
-    }
 
-    // Add separator between users and trackings
-    if (users.length > 0) {
+      // ANSI color codes matching PowerShell colors
+      const ANSI_RESET = "\x1b[0m";
+      const ANSI_GREEN = "\x1b[32m";
+      const ANSI_YELLOW = "\x1b[33m";
+      const ANSI_BLUE = "\x1b[34m";
+      const ANSI_MAGENTA = "\x1b[35m";
+      const ANSI_CYAN = "\x1b[36m";
+      const ANSI_WHITE = "\x1b[37m";
+      const ANSI_GRAY = "\x1b[90m";
+      const ANSI_BRIGHT_YELLOW = "\x1b[93m";
+
+      // Format output similar to PowerShell script with ANSI color codes
+      const lines: string[] = [];
+
+      // Add users section
+      if (users.length === 0) {
+        lines.push(
+          `${ANSI_YELLOW}No users found in the database.${ANSI_RESET}`
+        );
+      } else {
+        lines.push(`${ANSI_CYAN}=== USERS ===${ANSI_RESET}`);
+        users.forEach((user, index) => {
+          if (index > 0) {
+            lines.push("");
+          }
+
+          const userAttrs = [
+            `ID=${user.id}`,
+            `Name=${user.name}`,
+            `Email=${user.email}`,
+            `ProfilePicture=${user.profile_picture_url || "null"}`,
+            `LastAccess=${formatDateGMT3(user.last_access)}`,
+            `Created=${formatDateGMT3(user.created_at)}`,
+          ];
+
+          lines.push(
+            `${ANSI_CYAN}USER #${index + 1} : ${userAttrs.join(
+              " | "
+            )}${ANSI_RESET}`
+          );
+        });
+      }
+
+      // Add separator between users and trackings
+      if (users.length > 0) {
+        lines.push("");
+      }
+      lines.push(`${ANSI_GRAY}=== TRACKINGS ===${ANSI_RESET}`);
       lines.push("");
-    }
-    lines.push(`${ANSI_GRAY}=== TRACKINGS ===${ANSI_RESET}`);
-    lines.push("");
 
-    if (trackings.length === 0) {
-      lines.push(
-        `${ANSI_YELLOW}No trackings found in the database.${ANSI_RESET}`
-      );
-    } else {
-      trackings.forEach((tracking, index) => {
-        if (index > 0) {
-          lines.push("");
-        }
-
-        // Format schedules
-        const schedulesStr =
-          tracking.schedules && tracking.schedules.length > 0
-            ? tracking.schedules
-                .map(
-                  (s) =>
-                    `${String(s.hour).padStart(2, "0")}:${String(
-                      s.minutes
-                    ).padStart(2, "0")}`
-                )
-                .join(", ")
-            : "None";
-
-        // Build tracking attributes
-        const trackingAttrs = [
-          `ID=${tracking.id}`,
-          `UserID=${tracking.user_id}`,
-          `Question=${tracking.question}`,
-          `State=${tracking.state}`,
-          `Icon=${tracking.icon || "null"}`,
-          `Days=${tracking.days || "null"}`,
-          `Schedules=[${schedulesStr}]`,
-          `Notes=${tracking.notes || "null"}`,
-          `Created=${formatDateGMT3(tracking.created_at)}`,
-          `Updated=${formatDateGMT3(tracking.updated_at)}`,
-        ];
-
-        // Determine color based on tracking state
-        // Use different colors from reminder statuses to avoid conflicts
-        const stateColor =
-          tracking.state === "Running"
-            ? ANSI_BLUE
-            : tracking.state === "Paused"
-            ? ANSI_BRIGHT_YELLOW
-            : ANSI_WHITE;
-
+      if (trackings.length === 0) {
         lines.push(
-          `${stateColor}TRACKING #${index + 1} : ${trackingAttrs.join(
-            " | "
-          )}${ANSI_RESET}`
+          `${ANSI_YELLOW}No trackings found in the database.${ANSI_RESET}`
         );
+      } else {
+        trackings.forEach((tracking, index) => {
+          if (index > 0) {
+            lines.push("");
+          }
 
-        // Display reminders
-        const trackingReminders = remindersByTracking.get(tracking.id) || [];
-        if (trackingReminders.length > 0) {
-          trackingReminders.forEach((reminder) => {
-            // Format scheduled time in GMT-3
-            const scheduledTime = formatDateGMT3(reminder.scheduled_time);
+          // Format schedules
+          const schedulesStr =
+            tracking.schedules && tracking.schedules.length > 0
+              ? tracking.schedules
+                  .map(
+                    (s: TrackingScheduleData) =>
+                      `${String(s.hour).padStart(2, "0")}:${String(
+                        s.minutes
+                      ).padStart(2, "0")}`
+                  )
+                  .join(", ")
+              : "None";
 
-            // Format notes
-            const notesStr = reminder.notes || "null";
+          // Build tracking attributes
+          const trackingAttrs = [
+            `ID=${tracking.id}`,
+            `UserID=${tracking.user_id}`,
+            `Question=${tracking.question}`,
+            `State=${tracking.state}`,
+            `Icon=${tracking.icon || "null"}`,
+            `Days=${tracking.days || "null"}`,
+            `Schedules=[${schedulesStr}]`,
+            `Notes=${tracking.notes || "null"}`,
+            `Created=${formatDateGMT3(tracking.created_at)}`,
+            `Updated=${formatDateGMT3(tracking.updated_at)}`,
+          ];
 
-            // Format value (Answer) - null for Pending status, otherwise show the value
-            const answerStr =
-              reminder.status === "Pending" ? "null" : reminder.value || "null";
+          // Determine color based on tracking state
+          // Use different colors from reminder statuses to avoid conflicts
+          const stateColor =
+            tracking.state === "Running"
+              ? ANSI_BLUE
+              : tracking.state === "Paused"
+              ? ANSI_BRIGHT_YELLOW
+              : ANSI_WHITE;
 
-            const reminderAttrs = [
-              `ID=${reminder.id}`,
-              `TrackingID=${reminder.tracking_id}`,
-              `UserID=${reminder.user_id}`,
-              `ScheduledTime=${scheduledTime}`,
-              `Status=${reminder.status}`,
-              `Answer=${answerStr}`,
-              `Notes=${notesStr}`,
-              `Created=${formatDateGMT3(reminder.created_at)}`,
-              `Updated=${formatDateGMT3(reminder.updated_at)}`,
-            ];
+          lines.push(
+            `${stateColor}TRACKING #${index + 1} : ${trackingAttrs.join(
+              " | "
+            )}${ANSI_RESET}`
+          );
 
-            // Determine color based on reminder status
-            const statusColor =
-              reminder.status === "Pending"
-                ? ANSI_YELLOW
-                : reminder.status === "Answered"
-                ? ANSI_GREEN
-                : reminder.status === "Upcoming"
-                ? ANSI_MAGENTA
-                : ANSI_GRAY;
+          // Display reminders
+          const trackingReminders = remindersByTracking.get(tracking.id) || [];
+          if (trackingReminders.length > 0) {
+            trackingReminders.forEach((reminder) => {
+              // Format scheduled time in GMT-3
+              const scheduledTime = formatDateGMT3(reminder.scheduled_time);
 
-            lines.push(
-              `${statusColor}  -> REMINDER : ${reminderAttrs.join(
-                " | "
-              )}${ANSI_RESET}`
-            );
-          });
-        } else {
-          lines.push(`${ANSI_GRAY}  -> REMINDERS: None${ANSI_RESET}`);
-        }
-      });
+              // Format notes
+              const notesStr = reminder.notes || "null";
+
+              // Format value (Answer) - null for Pending status, otherwise show the value
+              const answerStr =
+                reminder.status === "Pending"
+                  ? "null"
+                  : reminder.value || "null";
+
+              const reminderAttrs = [
+                `ID=${reminder.id}`,
+                `TrackingID=${reminder.tracking_id}`,
+                `UserID=${reminder.user_id}`,
+                `ScheduledTime=${scheduledTime}`,
+                `Status=${reminder.status}`,
+                `Answer=${answerStr}`,
+                `Notes=${notesStr}`,
+                `Created=${formatDateGMT3(reminder.created_at)}`,
+                `Updated=${formatDateGMT3(reminder.updated_at)}`,
+              ];
+
+              // Determine color based on reminder status
+              const statusColor =
+                reminder.status === "Pending"
+                  ? ANSI_YELLOW
+                  : reminder.status === "Answered"
+                  ? ANSI_GREEN
+                  : reminder.status === "Upcoming"
+                  ? ANSI_MAGENTA
+                  : ANSI_GRAY;
+
+              lines.push(
+                `${statusColor}  -> REMINDER : ${reminderAttrs.join(
+                  " | "
+                )}${ANSI_RESET}`
+              );
+            });
+          } else {
+            lines.push(`${ANSI_GRAY}  -> REMINDERS: None${ANSI_RESET}`);
+          }
+        });
+      }
+
+      res.json({ log: lines.join("\n") });
+    } catch (error) {
+      console.error(
+        `[${new Date().toISOString()}] DEBUG_ROUTE | Error generating debug log:`,
+        error
+      );
+      res.status(500).json({ error: "Error generating debug log" });
     }
-
-    res.json({ log: lines.join("\n") });
-  } catch (error) {
-    console.error(
-      `[${new Date().toISOString()}] DEBUG_ROUTE | Error generating debug log:`,
-      error
-    );
-    res.status(500).json({ error: "Error generating debug log" });
   }
-});
+);
 
 export default router;

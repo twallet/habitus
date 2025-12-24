@@ -1,6 +1,5 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { ProtectedRoute } from './components/ProtectedRoute';
 
 // Lazy load layout components
 const AuthLayout = lazy(() => import('./components/layouts/AuthLayout').then(m => ({ default: m.AuthLayout })));
@@ -12,7 +11,7 @@ const VerifyMagicLinkPage = lazy(() => import('./pages/VerifyMagicLinkPage').the
 const TrackingsPage = lazy(() => import('./pages/TrackingsPage').then(m => ({ default: m.TrackingsPage })));
 const RemindersPage = lazy(() => import('./pages/RemindersPage').then(m => ({ default: m.RemindersPage })));
 const ProfilePage = lazy(() => import('./pages/ProfilePage').then(m => ({ default: m.ProfilePage })));
-const DebugPage = lazy(() => import('./pages/debug/DebugPage').then(m => ({ default: m.DebugPage })));
+const DevOnlyDebugPage = lazy(() => import('./pages/debug/DevOnlyDebugPage').then(m => ({ default: m.DevOnlyDebugPage })));
 
 /**
  * Defines the application route structure with lazy-loaded components.
@@ -39,8 +38,8 @@ export function AppRoutes() {
                     <Route path="/profile" element={<ProfilePage />} />
                 </Route>
 
-                {/* Standalone Protected Route - Debug Page (no layout) */}
-                <Route path="/debug" element={<ProtectedRoute><DebugPage /></ProtectedRoute>} />
+                {/* Standalone Route - Debug Page (dev only, no auth required) */}
+                <Route path="/debug" element={<DevOnlyDebugPage />} />
 
                 {/* Catch all - redirect to trackings */}
                 <Route path="*" element={<Navigate to="/trackings" replace />} />
