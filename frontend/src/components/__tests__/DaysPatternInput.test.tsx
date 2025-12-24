@@ -673,10 +673,12 @@ describe("DaysPatternInput", () => {
         await user.click(mondayButton);
         await user.click(mondayButton); // Toggle off and on
 
-        // Should call onChange only a reasonable number of times (not infinite)
+        // Should call onChange when toggling days
+        // Note: If Monday was already selected, clicking it removes it, clicking again adds it
+        // So onChange should be called at least once
         await waitFor(() => {
-            expect(mockOnChange).toHaveBeenCalled();
-        });
+            expect(mockOnChange.mock.calls.length).toBeGreaterThan(0);
+        }, { timeout: 1000 });
 
         // Wait a bit to ensure no more calls are made
         await new Promise(resolve => setTimeout(resolve, 100));

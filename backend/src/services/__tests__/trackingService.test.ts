@@ -976,6 +976,155 @@ describe("TrackingService", () => {
       );
       expect(updatedUpcoming).not.toBeNull();
     });
+
+    it("should convert recurring tracking to one-time with oneTimeDate", async () => {
+      // Create a recurring tracking
+      const trackingResult = await testDb.run(
+        "INSERT INTO trackings (user_id, question, state, days) VALUES (?, ?, ?, ?)",
+        [
+          testUserId,
+          "Test Question",
+          "Running",
+          JSON.stringify({
+            pattern_type: "day_of_week",
+            days: [1, 2, 3, 4, 5],
+          }),
+        ]
+      );
+      const trackingId = trackingResult.lastID;
+
+      // Create schedule
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 9, 0]
+      );
+
+      // Create an existing Upcoming reminder
+      const existingUpcoming = new Reminder({
+        id: 0,
+        tracking_id: trackingId,
+        user_id: testUserId,
+        scheduled_time: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        status: ReminderStatus.UPCOMING,
+        value: ReminderValue.DISMISSED,
+      });
+      await existingUpcoming.save(testDb);
+
+      // Convert to one-time with a future date
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 1);
+      const oneTimeDate = futureDate.toISOString().split("T")[0]; // YYYY-MM-DD format
+
+      await trackingService.updateTracking(
+        trackingId,
+        testUserId,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined, // days = undefined means one-time
+        oneTimeDate
+      );
+
+      // Verify tracking is now one-time (days is null)
+      const updatedTracking = await trackingService.getById(
+        trackingId,
+        testUserId
+      );
+      expect(updatedTracking).not.toBeNull();
+      expect(updatedTracking!.days).toBeUndefined();
+
+      // Verify old recurring reminder was deleted and one-time reminders were created
+      const reminders = await testDb.all<{
+        id: number;
+        scheduled_time: string;
+      }>(
+        "SELECT id, scheduled_time FROM reminders WHERE tracking_id = ? AND user_id = ? ORDER BY scheduled_time",
+        [trackingId, testUserId]
+      );
+      expect(reminders.length).toBeGreaterThan(0);
+      // Verify all reminders are on the one-time date
+      reminders.forEach((reminder) => {
+        const reminderDate = new Date(reminder.scheduled_time)
+          .toISOString()
+          .split("T")[0];
+        expect(reminderDate).toBe(oneTimeDate);
+      });
+    });
+
+    it("should convert one-time tracking to recurring", async () => {
+      // Create a one-time tracking
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 1);
+      const oneTimeDate = futureDate.toISOString().split("T")[0];
+
+      const trackingResult = await testDb.run(
+        "INSERT INTO trackings (user_id, question, state, days) VALUES (?, ?, ?, ?)",
+        [testUserId, "Test Question", "Running", null]
+      );
+      const trackingId = trackingResult.lastID;
+
+      // Create schedule
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 9, 0]
+      );
+
+      // Create one-time reminders
+      const reminder1 = new Reminder({
+        id: 0,
+        tracking_id: trackingId,
+        user_id: testUserId,
+        scheduled_time: `${oneTimeDate}T09:00:00.000Z`,
+        status: ReminderStatus.UPCOMING,
+        value: ReminderValue.DISMISSED,
+      });
+      await reminder1.save(testDb);
+
+      // Convert to recurring
+      await trackingService.updateTracking(
+        trackingId,
+        testUserId,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          pattern_type: DaysPatternType.INTERVAL,
+          interval_value: 1,
+          interval_unit: "days",
+        },
+        undefined // oneTimeDate = undefined means recurring
+      );
+
+      // Verify tracking is now recurring (days is set)
+      const updatedTracking = await trackingService.getById(
+        trackingId,
+        testUserId
+      );
+      expect(updatedTracking).not.toBeNull();
+      expect(updatedTracking!.days).toBeDefined();
+      expect(updatedTracking!.days!.pattern_type).toBe(
+        DaysPatternType.INTERVAL
+      );
+
+      // Verify old one-time reminders were deleted and recurring reminder was created
+      const reminders = await testDb.all<{
+        id: number;
+        scheduled_time: string;
+      }>(
+        "SELECT id, scheduled_time FROM reminders WHERE tracking_id = ? AND user_id = ? ORDER BY scheduled_time",
+        [trackingId, testUserId]
+      );
+      // Should have a new recurring reminder
+      expect(reminders.length).toBeGreaterThan(0);
+      // The new reminder should be in the future and not on the old one-time date
+      const newReminder = reminders[0];
+      const newReminderDate = new Date(newReminder.scheduled_time)
+        .toISOString()
+        .split("T")[0];
+      expect(newReminderDate).not.toBe(oneTimeDate);
+    });
   });
 
   describe("deleteTracking", () => {
