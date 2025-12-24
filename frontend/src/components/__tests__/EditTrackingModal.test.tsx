@@ -161,7 +161,7 @@ describe('EditTrackingModal', () => {
         'New question?',
         undefined,
         undefined,
-        undefined,
+        [{ hour: 9, minutes: 0 }], // Schedules are always sent to preserve them
       );
     });
     expect(mockOnClose).toHaveBeenCalledTimes(1);
@@ -278,7 +278,7 @@ describe('EditTrackingModal', () => {
         undefined,
         undefined,
         '', // Empty string to clear the icon
-        undefined,
+        [{ hour: 9, minutes: 0 }], // Schedules are always sent to preserve them
       );
     });
   });
@@ -312,7 +312,7 @@ describe('EditTrackingModal', () => {
         undefined,
         undefined,
         '🏋️',
-        undefined,
+        [{ hour: 9, minutes: 0 }], // Schedules are always sent to preserve them
       );
     });
   });
