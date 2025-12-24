@@ -121,16 +121,25 @@ export function TrackingForm({
             return;
         }
 
-        // Reset oneTimeDate and schedules when switching away from One-time
+        // Reset oneTimeDate and preserve schedules when switching away from One-time
         if (prevFrequency === "One-time" && currentFrequency !== "One-time") {
             setOneTimeDate("");
+            // Preserve oneTimeSchedules by copying them to schedules if schedules is empty
+            if (oneTimeSchedules.length > 0 && schedules.length === 0) {
+                setSchedules([...oneTimeSchedules]);
+            }
             setOneTimeSchedules([]);
         }
 
         // Set oneTimeDate to tomorrow when switching to One-time
         if (currentFrequency === "One-time" && prevFrequency !== "One-time") {
             setOneTimeDate(getTomorrowDate());
-            setOneTimeSchedules([]);
+            // Preserve schedules by copying them to oneTimeSchedules
+            // This ensures times are not lost when switching to one-time
+            if (schedules.length > 0) {
+                setOneTimeSchedules([...schedules]);
+            }
+            // Don't clear oneTimeSchedules if they already have values
         }
 
         // Reset and set default days pattern based on frequency
