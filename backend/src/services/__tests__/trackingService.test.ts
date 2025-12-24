@@ -550,7 +550,11 @@ describe("TrackingService", () => {
           { hour: 14, minutes: 0 },
           { hour: 20, minutes: 0 },
         ];
-        const oneTimeDate = "2024-12-25T00:00:00.000Z"; // ISO datetime string
+        // oneTimeDate should be in YYYY-MM-DD format (date only, not full ISO datetime)
+        // Use a future date to pass validation
+        const futureDate = new Date();
+        futureDate.setDate(futureDate.getDate() + 1); // Tomorrow
+        const oneTimeDate = futureDate.toISOString().split("T")[0]; // Extract YYYY-MM-DD
 
         const tracking = await trackingService.createTracking(
           testUserId,
@@ -608,9 +612,11 @@ describe("TrackingService", () => {
         expect(reminders.length).toBe(3); // One reminder per schedule
         reminders.forEach((reminder) => {
           expect(reminder.tracking_id).toBe(tracking.id);
-          expect(new Date(reminder.scheduled_time).toISOString()).toContain(
-            "2024-12-25"
-          );
+          // Verify the reminder date matches the oneTimeDate
+          const reminderDate = new Date(reminder.scheduled_time)
+            .toISOString()
+            .split("T")[0];
+          expect(reminderDate).toBe(oneTimeDate);
         });
       });
 
