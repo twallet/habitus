@@ -267,17 +267,12 @@ export function DaysPatternInput({
             }
         }
 
-        // Clear flag after state updates are queued
-        // Use setTimeout to ensure this happens after React processes the state updates
-        setTimeout(() => {
-            isPresetChangingRef.current = false;
-        }, 0);
-
         // Notify parent of frequency change
         if (onFrequencyChange) {
             onFrequencyChange(newPreset);
         }
     };
+
 
     /**
      * Handle one-time date change.
@@ -314,6 +309,8 @@ export function DaysPatternInput({
 
         // Skip if we're in the middle of a preset change (handled in handlePresetChange)
         if (isPresetChangingRef.current) {
+            // Clear the flag after skipping, so subsequent changes work normally
+            isPresetChangingRef.current = false;
             return;
         }
 
