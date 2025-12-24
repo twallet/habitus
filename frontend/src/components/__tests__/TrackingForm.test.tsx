@@ -531,5 +531,178 @@ describe("TrackingForm", () => {
         });
         expect(mockOnSubmit).not.toHaveBeenCalled();
     });
+
+    it("should reset oneTimeDate when switching away from One-time", async () => {
+        const user = userEvent.setup();
+        render(<TrackingForm onSubmit={mockOnSubmit} />);
+
+        const questionInput = screen.getByRole("textbox", { name: /^question \*/i });
+        await user.type(questionInput, "Test question");
+
+        // Switch to One-time
+        await setFrequency(user, "One-time");
+
+        // Verify oneTimeDate is set to tomorrow
+        const dateInput = document.getElementById("one-time-date") as HTMLInputElement;
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const expectedDate = tomorrow.toISOString().slice(0, 10);
+        await waitFor(() => {
+            expect(dateInput).toBeInTheDocument();
+            expect(dateInput.value).toBe(expectedDate);
+        });
+
+        // Switch away from One-time to Weekly
+        await setFrequency(user, "Weekly");
+
+        // Verify date input is no longer visible (conditionally rendered)
+        await waitFor(() => {
+            const dateInputAfter = document.getElementById("one-time-date");
+            expect(dateInputAfter).not.toBeInTheDocument();
+        });
+    });
+
+    it("should set oneTimeDate to tomorrow when switching to One-time", async () => {
+        const user = userEvent.setup();
+        render(<TrackingForm onSubmit={mockOnSubmit} />);
+
+        const questionInput = screen.getByRole("textbox", { name: /^question \*/i });
+        await user.type(questionInput, "Test question");
+
+        // Start with Weekly
+        await setFrequency(user, "Weekly");
+
+        // Switch to One-time
+        await setFrequency(user, "One-time");
+
+        // Verify oneTimeDate is set to tomorrow
+        const dateInput = document.getElementById("one-time-date") as HTMLInputElement;
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const expectedDate = tomorrow.toISOString().slice(0, 10);
+        await waitFor(() => {
+            expect(dateInput.value).toBe(expectedDate);
+        });
+    });
+
+    it("should set default weekly pattern to tomorrow's weekday", async () => {
+        const user = userEvent.setup();
+        render(<TrackingForm onSubmit={mockOnSubmit} />);
+
+        const questionInput = screen.getByRole("textbox", { name: /^question \*/i });
+        await user.type(questionInput, "Test question");
+
+        // Switch to Weekly
+        await setFrequency(user, "Weekly");
+        await addSchedule(user);
+
+        const submitButton = screen.getByRole("button", { name: /^create$/i });
+        await user.click(submitButton);
+
+        await waitFor(() => {
+            expect(mockOnSubmit).toHaveBeenCalled();
+            const callArgs = mockOnSubmit.mock.calls[0];
+            const daysPattern = callArgs[4] as { pattern_type: DaysPatternType; days: number[] };
+
+            expect(daysPattern.pattern_type).toBe(DaysPatternType.DAY_OF_WEEK);
+            expect(daysPattern.days).toHaveLength(1);
+
+            // Verify it's tomorrow's weekday
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowWeekday = tomorrow.getDay();
+            expect(daysPattern.days[0]).toBe(tomorrowWeekday);
+        });
+    });
+
+    it("should set default monthly pattern to tomorrow's day number", async () => {
+        const user = userEvent.setup();
+        render(<TrackingForm onSubmit={mockOnSubmit} />);
+
+        const questionInput = screen.getByRole("textbox", { name: /^question \*/i });
+        await user.type(questionInput, "Test question");
+
+        // Switch to Monthly
+        await setFrequency(user, "Monthly");
+        await addSchedule(user);
+
+        const submitButton = screen.getByRole("button", { name: /^create$/i });
+        await user.click(submitButton);
+
+        await waitFor(() => {
+            expect(mockOnSubmit).toHaveBeenCalled();
+            const callArgs = mockOnSubmit.mock.calls[0];
+            const daysPattern = callArgs[4] as { pattern_type: DaysPatternType; day_numbers: number[] };
+
+            expect(daysPattern.pattern_type).toBe(DaysPatternType.DAY_OF_MONTH);
+            expect(daysPattern.day_numbers).toHaveLength(1);
+
+            // Verify it's tomorrow's day number
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowDay = tomorrow.getDate();
+            expect(daysPattern.day_numbers[0]).toBe(tomorrowDay);
+        });
+    });
+
+    it("should set default yearly pattern to tomorrow's month and day", async () => {
+        const user = userEvent.setup();
+        render(<TrackingForm onSubmit={mockOnSubmit} />);
+
+        const questionInput = screen.getByRole("textbox", { name: /^question \*/i });
+        await user.type(questionInput, "Test question");
+
+        // Switch to Yearly
+        await setFrequency(user, "Yearly");
+        await addSchedule(user);
+
+        const submitButton = screen.getByRole("button", { name: /^create$/i });
+        await user.click(submitButton);
+
+        await waitFor(() => {
+            expect(mockOnSubmit).toHaveBeenCalled();
+            const callArgs = mockOnSubmit.mock.calls[0];
+            const daysPattern = callArgs[4] as { pattern_type: DaysPatternType; month: number; day: number };
+
+            expect(daysPattern.pattern_type).toBe(DaysPatternType.DAY_OF_YEAR);
+
+            // Verify it's tomorrow's month and day
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowMonth = tomorrow.getMonth() + 1; // getMonth() returns 0-11
+            const tomorrowDay = tomorrow.getDate();
+            expect(daysPattern.month).toBe(tomorrowMonth);
+            expect(daysPattern.day).toBe(tomorrowDay);
+        });
+    });
+
+    it("should reset fields when changing frequency between different types", async () => {
+        const user = userEvent.setup();
+        render(<TrackingForm onSubmit={mockOnSubmit} />);
+
+        const questionInput = screen.getByRole("textbox", { name: /^question \*/i });
+        await user.type(questionInput, "Test question");
+
+        // Start with Weekly
+        await setFrequency(user, "Weekly");
+        await addSchedule(user);
+
+        // Switch to Monthly - should reset the days pattern
+        await setFrequency(user, "Monthly");
+        await addSchedule(user);
+
+        const submitButton = screen.getByRole("button", { name: /^create$/i });
+        await user.click(submitButton);
+
+        await waitFor(() => {
+            expect(mockOnSubmit).toHaveBeenCalled();
+            const callArgs = mockOnSubmit.mock.calls[0];
+            const daysPattern = callArgs[4] as { pattern_type: DaysPatternType; day_numbers: number[] };
+
+            // Should be monthly pattern, not weekly
+            expect(daysPattern.pattern_type).toBe(DaysPatternType.DAY_OF_MONTH);
+            expect(daysPattern.day_numbers).toBeDefined();
+        });
+    });
 });
 

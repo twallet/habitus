@@ -1,4 +1,4 @@
-import { useState, FormEvent, useEffect } from "react";
+import { useState, FormEvent, useEffect, useRef } from "react";
 import { DaysPattern, DaysPatternType } from "../models/Tracking";
 import { ApiClient } from "../config/api";
 import { DaysPatternInput } from "./DaysPatternInput";
@@ -60,13 +60,82 @@ export function TrackingForm({
         return client;
     });
 
+    // Track previous frequency to detect changes
+    const prevFrequencyRef = useRef<"Daily" | "Weekly" | "Monthly" | "Yearly" | "One-time">(frequency);
+
+    /**
+     * Get tomorrow's date as ISO string (YYYY-MM-DD).
+     * @returns Tomorrow's date in YYYY-MM-DD format
+     * @internal
+     */
+    const getTomorrowDate = (): string => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return tomorrow.toISOString().slice(0, 10);
+    };
+
+    /**
+     * Get tomorrow's weekday (0-6, where 0=Sunday, 1=Monday, etc.).
+     * @returns Tomorrow's weekday number
+     * @internal
+     */
+    const getTomorrowWeekday = (): number => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return tomorrow.getDay();
+    };
+
+    /**
+     * Get tomorrow's day of month (1-31).
+     * @returns Tomorrow's day number
+     * @internal
+     */
+    const getTomorrowDayNumber = (): number => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return tomorrow.getDate();
+    };
+
+    /**
+     * Get tomorrow's month (1-12).
+     * @returns Tomorrow's month number
+     * @internal
+     */
+    const getTomorrowMonth = (): number => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return tomorrow.getMonth() + 1; // getMonth() returns 0-11, so add 1
+    };
+
     /**
      * Update days pattern when frequency changes.
+     * Resets additional fields and sets defaults based on frequency type.
      * @internal
      */
     useEffect(() => {
-        if (frequency !== "One-time") {
-            switch (frequency) {
+        const prevFrequency = prevFrequencyRef.current;
+        const currentFrequency = frequency;
+
+        // Only process if frequency actually changed
+        if (prevFrequency === currentFrequency) {
+            return;
+        }
+
+        // Reset oneTimeDate and schedules when switching away from One-time
+        if (prevFrequency === "One-time" && currentFrequency !== "One-time") {
+            setOneTimeDate("");
+            setOneTimeSchedules([]);
+        }
+
+        // Set oneTimeDate to tomorrow when switching to One-time
+        if (currentFrequency === "One-time" && prevFrequency !== "One-time") {
+            setOneTimeDate(getTomorrowDate());
+            setOneTimeSchedules([]);
+        }
+
+        // Reset and set default days pattern based on frequency
+        if (currentFrequency !== "One-time") {
+            switch (currentFrequency) {
                 case "Daily": {
                     setDays({
                         pattern_type: DaysPatternType.INTERVAL,
@@ -76,35 +145,42 @@ export function TrackingForm({
                     break;
                 }
                 case "Weekly": {
-                    // Weekly uses DAY_OF_WEEK pattern, default to Monday
+                    // Weekly uses DAY_OF_WEEK pattern, default to tomorrow's weekday
+                    const tomorrowWeekday = getTomorrowWeekday();
                     setDays({
                         pattern_type: DaysPatternType.DAY_OF_WEEK,
-                        days: [1], // Monday by default
+                        days: [tomorrowWeekday],
                     });
                     break;
                 }
                 case "Monthly": {
-                    // Monthly uses DAY_OF_MONTH pattern, default to day 1
+                    // Monthly uses DAY_OF_MONTH pattern, default to tomorrow's day number
+                    const tomorrowDay = getTomorrowDayNumber();
                     setDays({
                         pattern_type: DaysPatternType.DAY_OF_MONTH,
                         type: "day_number",
-                        day_numbers: [1],
+                        day_numbers: [tomorrowDay],
                     });
                     break;
                 }
                 case "Yearly": {
-                    // Yearly uses a day-of-year pattern
+                    // Yearly uses a day-of-year pattern, default to tomorrow's month and day
+                    const tomorrowMonth = getTomorrowMonth();
+                    const tomorrowDay = getTomorrowDayNumber();
                     setDays({
                         pattern_type: DaysPatternType.DAY_OF_YEAR,
                         type: "date",
-                        month: 1,
-                        day: 1,
+                        month: tomorrowMonth,
+                        day: tomorrowDay,
                     });
                     break;
                 }
             }
             setDaysError(null);
         }
+
+        // Update ref for next comparison
+        prevFrequencyRef.current = currentFrequency;
     }, [frequency]);
 
     /**
