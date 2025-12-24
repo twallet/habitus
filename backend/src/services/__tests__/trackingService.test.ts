@@ -318,6 +318,386 @@ describe("TrackingService", () => {
       );
       expect(reminder).toBeNull();
     });
+
+    describe("should store all frequency types correctly in database", () => {
+      it("should store Daily frequency (interval pattern) with schedules", async () => {
+        const schedules = [
+          { hour: 9, minutes: 0 },
+          { hour: 14, minutes: 30 },
+          { hour: 20, minutes: 0 },
+        ];
+        const daysPattern = {
+          pattern_type: DaysPatternType.INTERVAL,
+          interval_value: 1,
+          interval_unit: "days" as const,
+        };
+
+        const tracking = await trackingService.createTracking(
+          testUserId,
+          "Daily tracking question",
+          "Daily notes",
+          "💪",
+          schedules,
+          daysPattern
+        );
+
+        expect(tracking).not.toBeNull();
+        expect(tracking.question).toBe("Daily tracking question");
+        expect(tracking.notes).toBe("Daily notes");
+        expect(tracking.icon).toBe("💪");
+        expect(tracking.days).toEqual(daysPattern);
+        expect(tracking.schedules).toBeDefined();
+        expect(tracking.schedules?.length).toBe(3);
+        expect(
+          tracking.schedules?.map((s) => ({ hour: s.hour, minutes: s.minutes }))
+        ).toEqual(schedules);
+
+        // Verify in database
+        const dbRow = await testDb.get<{
+          id: number;
+          user_id: number;
+          question: string;
+          notes: string | null;
+          icon: string | null;
+          days: string | null;
+        }>(
+          "SELECT id, user_id, question, notes, icon, days FROM trackings WHERE id = ?",
+          [tracking.id]
+        );
+
+        expect(dbRow).not.toBeNull();
+        expect(dbRow!.question).toBe("Daily tracking question");
+        expect(dbRow!.notes).toBe("Daily notes");
+        expect(dbRow!.icon).toBe("💪");
+        expect(JSON.parse(dbRow!.days!)).toEqual(daysPattern);
+
+        // Verify schedules in database
+        const scheduleRows = await testDb.all<{
+          id: number;
+          tracking_id: number;
+          hour: number;
+          minutes: number;
+        }>(
+          "SELECT id, tracking_id, hour, minutes FROM tracking_schedules WHERE tracking_id = ? ORDER BY hour, minutes",
+          [tracking.id]
+        );
+
+        expect(scheduleRows.length).toBe(3);
+        expect(
+          scheduleRows.map((r) => ({ hour: r.hour, minutes: r.minutes }))
+        ).toEqual(
+          schedules.sort((a, b) => {
+            if (a.hour !== b.hour) return a.hour - b.hour;
+            return a.minutes - b.minutes;
+          })
+        );
+      });
+
+      it("should store Weekly frequency (day_of_week pattern) with schedules", async () => {
+        const schedules = [{ hour: 10, minutes: 15 }];
+        const daysPattern = {
+          pattern_type: DaysPatternType.DAY_OF_WEEK,
+          days: [1, 3, 5], // Monday, Wednesday, Friday
+        };
+
+        const tracking = await trackingService.createTracking(
+          testUserId,
+          "Weekly tracking question",
+          undefined,
+          undefined,
+          schedules,
+          daysPattern
+        );
+
+        expect(tracking).not.toBeNull();
+        expect(tracking.days).toEqual(daysPattern);
+        expect(tracking.schedules?.length).toBe(1);
+        expect(tracking.schedules?.[0].hour).toBe(10);
+        expect(tracking.schedules?.[0].minutes).toBe(15);
+
+        // Verify in database
+        const dbRow = await testDb.get<{ days: string | null }>(
+          "SELECT days FROM trackings WHERE id = ?",
+          [tracking.id]
+        );
+        expect(JSON.parse(dbRow!.days!)).toEqual(daysPattern);
+      });
+
+      it("should store Monthly frequency (day_of_month pattern with day_number) with schedules", async () => {
+        const schedules = [
+          { hour: 8, minutes: 0 },
+          { hour: 18, minutes: 45 },
+        ];
+        const daysPattern = {
+          pattern_type: DaysPatternType.DAY_OF_MONTH,
+          type: "day_number" as const,
+          day_numbers: [1, 15], // 1st and 15th of each month
+        };
+
+        const tracking = await trackingService.createTracking(
+          testUserId,
+          "Monthly tracking question",
+          undefined,
+          undefined,
+          schedules,
+          daysPattern
+        );
+
+        expect(tracking).not.toBeNull();
+        expect(tracking.days).toEqual(daysPattern);
+        expect(tracking.schedules?.length).toBe(2);
+
+        // Verify in database
+        const dbRow = await testDb.get<{ days: string | null }>(
+          "SELECT days FROM trackings WHERE id = ?",
+          [tracking.id]
+        );
+        expect(JSON.parse(dbRow!.days!)).toEqual(daysPattern);
+      });
+
+      it("should store Monthly frequency (day_of_month pattern with last_day) with schedules", async () => {
+        const schedules = [{ hour: 12, minutes: 0 }];
+        const daysPattern = {
+          pattern_type: DaysPatternType.DAY_OF_MONTH,
+          type: "last_day" as const,
+        };
+
+        const tracking = await trackingService.createTracking(
+          testUserId,
+          "Monthly last day tracking",
+          undefined,
+          undefined,
+          schedules,
+          daysPattern
+        );
+
+        expect(tracking).not.toBeNull();
+        expect(tracking.days).toEqual(daysPattern);
+
+        // Verify in database
+        const dbRow = await testDb.get<{ days: string | null }>(
+          "SELECT days FROM trackings WHERE id = ?",
+          [tracking.id]
+        );
+        expect(JSON.parse(dbRow!.days!)).toEqual(daysPattern);
+      });
+
+      it("should store Monthly frequency (day_of_month pattern with weekday_ordinal) with schedules", async () => {
+        const schedules = [{ hour: 9, minutes: 30 }];
+        const daysPattern = {
+          pattern_type: DaysPatternType.DAY_OF_MONTH,
+          type: "weekday_ordinal" as const,
+          weekday: 1, // Monday
+          ordinal: 1, // First
+        };
+
+        const tracking = await trackingService.createTracking(
+          testUserId,
+          "Monthly first Monday tracking",
+          undefined,
+          undefined,
+          schedules,
+          daysPattern
+        );
+
+        expect(tracking).not.toBeNull();
+        expect(tracking.days).toEqual(daysPattern);
+
+        // Verify in database
+        const dbRow = await testDb.get<{ days: string | null }>(
+          "SELECT days FROM trackings WHERE id = ?",
+          [tracking.id]
+        );
+        expect(JSON.parse(dbRow!.days!)).toEqual(daysPattern);
+      });
+
+      it("should store Yearly frequency (day_of_year pattern) with schedules", async () => {
+        const schedules = [
+          { hour: 0, minutes: 0 },
+          { hour: 12, minutes: 0 },
+        ];
+        const daysPattern = {
+          pattern_type: DaysPatternType.DAY_OF_YEAR,
+          type: "date" as const,
+          month: 1, // January
+          day: 1, // 1st
+        };
+
+        const tracking = await trackingService.createTracking(
+          testUserId,
+          "Yearly tracking question",
+          undefined,
+          undefined,
+          schedules,
+          daysPattern
+        );
+
+        expect(tracking).not.toBeNull();
+        expect(tracking.days).toEqual(daysPattern);
+        expect(tracking.schedules?.length).toBe(2);
+
+        // Verify in database
+        const dbRow = await testDb.get<{ days: string | null }>(
+          "SELECT days FROM trackings WHERE id = ?",
+          [tracking.id]
+        );
+        expect(JSON.parse(dbRow!.days!)).toEqual(daysPattern);
+      });
+
+      it("should store One-time tracking with schedules and oneTimeDate", async () => {
+        const schedules = [
+          { hour: 9, minutes: 0 },
+          { hour: 14, minutes: 0 },
+          { hour: 20, minutes: 0 },
+        ];
+        const oneTimeDate = "2024-12-25T00:00:00.000Z"; // ISO datetime string
+
+        const tracking = await trackingService.createTracking(
+          testUserId,
+          "One-time tracking question",
+          "One-time notes",
+          "🎄",
+          schedules,
+          undefined, // No days pattern for one-time
+          oneTimeDate
+        );
+
+        expect(tracking).not.toBeNull();
+        expect(tracking.question).toBe("One-time tracking question");
+        expect(tracking.notes).toBe("One-time notes");
+        expect(tracking.icon).toBe("🎄");
+        expect(tracking.days).toBeUndefined();
+        expect(tracking.schedules).toBeDefined();
+        expect(tracking.schedules?.length).toBe(3);
+
+        // Verify in database - days should be null for one-time
+        const dbRow = await testDb.get<{ days: string | null }>(
+          "SELECT days FROM trackings WHERE id = ?",
+          [tracking.id]
+        );
+        expect(dbRow!.days).toBeNull();
+
+        // Verify schedules are stored
+        const scheduleRows = await testDb.all<{
+          hour: number;
+          minutes: number;
+        }>(
+          "SELECT hour, minutes FROM tracking_schedules WHERE tracking_id = ? ORDER BY hour, minutes",
+          [tracking.id]
+        );
+        expect(scheduleRows.length).toBe(3);
+        expect(
+          scheduleRows.map((r) => ({ hour: r.hour, minutes: r.minutes }))
+        ).toEqual(
+          schedules.sort((a, b) => {
+            if (a.hour !== b.hour) return a.hour - b.hour;
+            return a.minutes - b.minutes;
+          })
+        );
+
+        // Verify reminders were created for one-time tracking
+        const reminders = await testDb.all<{
+          id: number;
+          tracking_id: number;
+          scheduled_time: string;
+          status: string;
+        }>(
+          "SELECT id, tracking_id, scheduled_time, status FROM reminders WHERE tracking_id = ? ORDER BY scheduled_time",
+          [tracking.id]
+        );
+        expect(reminders.length).toBe(3); // One reminder per schedule
+        reminders.forEach((reminder) => {
+          expect(reminder.tracking_id).toBe(tracking.id);
+          expect(new Date(reminder.scheduled_time).toISOString()).toContain(
+            "2024-12-25"
+          );
+        });
+      });
+
+      it("should store interval pattern with different units (weeks, months, years)", async () => {
+        const testCases = [
+          {
+            interval_value: 2,
+            interval_unit: "weeks" as const,
+            description: "every 2 weeks",
+          },
+          {
+            interval_value: 3,
+            interval_unit: "months" as const,
+            description: "every 3 months",
+          },
+          {
+            interval_value: 1,
+            interval_unit: "years" as const,
+            description: "every year",
+          },
+        ];
+
+        for (const testCase of testCases) {
+          const daysPattern = {
+            pattern_type: DaysPatternType.INTERVAL,
+            interval_value: testCase.interval_value,
+            interval_unit: testCase.interval_unit,
+          };
+
+          const tracking = await trackingService.createTracking(
+            testUserId,
+            `Tracking ${testCase.description}`,
+            undefined,
+            undefined,
+            [{ hour: 10, minutes: 0 }],
+            daysPattern
+          );
+
+          expect(tracking).not.toBeNull();
+          expect(tracking.days).toEqual(daysPattern);
+
+          // Verify in database
+          const dbRow = await testDb.get<{ days: string | null }>(
+            "SELECT days FROM trackings WHERE id = ?",
+            [tracking.id]
+          );
+          expect(JSON.parse(dbRow!.days!)).toEqual(daysPattern);
+        }
+      });
+
+      it("should store tracking with maximum 5 schedules for any frequency type", async () => {
+        const schedules = [
+          { hour: 6, minutes: 0 },
+          { hour: 9, minutes: 0 },
+          { hour: 12, minutes: 0 },
+          { hour: 15, minutes: 0 },
+          { hour: 18, minutes: 0 },
+        ];
+        const daysPattern = {
+          pattern_type: DaysPatternType.INTERVAL,
+          interval_value: 1,
+          interval_unit: "days" as const,
+        };
+
+        const tracking = await trackingService.createTracking(
+          testUserId,
+          "Tracking with 5 schedules",
+          undefined,
+          undefined,
+          schedules,
+          daysPattern
+        );
+
+        expect(tracking).not.toBeNull();
+        expect(tracking.schedules?.length).toBe(5);
+
+        // Verify all schedules in database
+        const scheduleRows = await testDb.all<{
+          hour: number;
+          minutes: number;
+        }>(
+          "SELECT hour, minutes FROM tracking_schedules WHERE tracking_id = ? ORDER BY hour, minutes",
+          [tracking.id]
+        );
+        expect(scheduleRows.length).toBe(5);
+      });
+    });
   });
 
   describe("updateTracking", () => {
