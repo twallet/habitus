@@ -261,12 +261,17 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
     }
 
     // Handle days pattern update
-    // If days is explicitly set to undefined (converting to one-time), set days to null
+    // If days is explicitly set to undefined AND oneTimeDate is provided, set days to null (converting to one-time)
     // If days is provided (converting to recurring), set days pattern
+    // If oneTimeDate is provided without days, we're converting to one-time, so set days to null
     if (days !== undefined) {
       const validatedDays = Tracking.validateDays(days);
       updates.push("days = ?");
       values.push(validatedDays ? JSON.stringify(validatedDays) : null);
+    } else if (oneTimeDate !== undefined) {
+      // Converting to one-time: explicitly set days to null
+      updates.push("days = ?");
+      values.push(null);
     }
 
     // Validate oneTimeDate if provided
