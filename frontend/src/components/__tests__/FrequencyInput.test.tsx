@@ -476,7 +476,7 @@ describe("FrequencyInput", () => {
         await user.selectOptions(select, "One-time");
 
         await waitFor(() => {
-            expect(mockOnFrequencyChange).toHaveBeenCalledWith("One-time");
+            expect(mockOnFrequencyChange).toHaveBeenCalledWith("one-time");
         });
     });
 
