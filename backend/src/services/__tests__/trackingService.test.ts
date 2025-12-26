@@ -1,7 +1,7 @@
 import { vi } from "vitest";
 import sqlite3 from "sqlite3";
 import { TrackingService } from "../trackingService.js";
-import { TrackingState, DaysPatternType } from "../../models/Tracking.js";
+import { TrackingState, Frequency } from "../../models/Tracking.js";
 import { Database } from "../../db/database.js";
 import {
   Reminder,
@@ -52,7 +52,7 @@ async function createTestDatabase(): Promise<Database> {
               question TEXT NOT NULL CHECK(length(question) <= 100),
               notes TEXT,
               icon TEXT,
-              days TEXT,
+              frequency TEXT NOT NULL,
               state TEXT NOT NULL DEFAULT 'Running' CHECK(state IN ('Running', 'Paused', 'Archived')),
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -266,7 +266,7 @@ describe("TrackingService", () => {
       ).rejects.toThrow("At least one schedule is required");
     });
 
-    it("should create initial Upcoming reminder when tracking is created with times and days pattern", async () => {
+    it("should create initial Upcoming reminder when tracking is created with times and frequency", async () => {
       const tracking = await trackingService.createTracking(
         testUserId,
         "Did I exercise today?",
@@ -274,7 +274,7 @@ describe("TrackingService", () => {
         undefined,
         [{ hour: 9, minutes: 0 }],
         {
-          pattern_type: DaysPatternType.DAY_OF_WEEK,
+          type: "weekly",
           days: [1, 2, 3, 4, 5],
         }
       );
@@ -298,15 +298,17 @@ describe("TrackingService", () => {
       expect(scheduledTime.getTime()).toBeGreaterThan(now.getTime());
     });
 
-    it("should not create reminder when tracking is created without days pattern", async () => {
-      const tracking = await trackingService.createTracking(
-        testUserId,
-        "Did I exercise today?",
-        undefined,
-        undefined,
-        [{ hour: 9, minutes: 0 }]
-        // No days pattern
-      );
+    it("should throw error when tracking is created without frequency (frequency is required)", async () => {
+      await expect(
+        trackingService.createTracking(
+          testUserId,
+          "Did I exercise today?",
+          undefined,
+          undefined,
+          [{ hour: 9, minutes: 0 }]
+          // No frequency
+        )
+      ).rejects.toThrow("Frequency is required");
 
       expect(tracking).not.toBeNull();
 
@@ -320,17 +322,13 @@ describe("TrackingService", () => {
     });
 
     describe("should store all frequency types correctly in database", () => {
-      it("should store Daily frequency (interval pattern) with schedules", async () => {
+      it("should store Daily frequency with schedules", async () => {
         const schedules = [
           { hour: 9, minutes: 0 },
           { hour: 14, minutes: 30 },
           { hour: 20, minutes: 0 },
         ];
-        const daysPattern = {
-          pattern_type: DaysPatternType.INTERVAL,
-          interval_value: 1,
-          interval_unit: "days" as const,
-        };
+        const frequency: Frequency = { type: "daily" };
 
         const tracking = await trackingService.createTracking(
           testUserId,
@@ -338,14 +336,14 @@ describe("TrackingService", () => {
           "Daily notes",
           "💪",
           schedules,
-          daysPattern
+          frequency
         );
 
         expect(tracking).not.toBeNull();
         expect(tracking.question).toBe("Daily tracking question");
         expect(tracking.notes).toBe("Daily notes");
         expect(tracking.icon).toBe("💪");
-        expect(tracking.days).toEqual(daysPattern);
+        expect(tracking.frequency).toEqual(frequency);
         expect(tracking.schedules).toBeDefined();
         expect(tracking.schedules?.length).toBe(3);
         expect(
@@ -359,9 +357,9 @@ describe("TrackingService", () => {
           question: string;
           notes: string | null;
           icon: string | null;
-          days: string | null;
+          frequency: string;
         }>(
-          "SELECT id, user_id, question, notes, icon, days FROM trackings WHERE id = ?",
+          "SELECT id, user_id, question, notes, icon, frequency FROM trackings WHERE id = ?",
           [tracking.id]
         );
 
@@ -369,7 +367,7 @@ describe("TrackingService", () => {
         expect(dbRow!.question).toBe("Daily tracking question");
         expect(dbRow!.notes).toBe("Daily notes");
         expect(dbRow!.icon).toBe("💪");
-        expect(JSON.parse(dbRow!.days!)).toEqual(daysPattern);
+        expect(JSON.parse(dbRow!.frequency)).toEqual(frequency);
 
         // Verify schedules in database
         const scheduleRows = await testDb.all<{
@@ -393,10 +391,10 @@ describe("TrackingService", () => {
         );
       });
 
-      it("should store Weekly frequency (day_of_week pattern) with schedules", async () => {
+      it("should store Weekly frequency with schedules", async () => {
         const schedules = [{ hour: 10, minutes: 15 }];
-        const daysPattern = {
-          pattern_type: DaysPatternType.DAY_OF_WEEK,
+        const frequency: Frequency = {
+          type: "weekly",
           days: [1, 3, 5], // Monday, Wednesday, Friday
         };
 
@@ -406,31 +404,31 @@ describe("TrackingService", () => {
           undefined,
           undefined,
           schedules,
-          daysPattern
+          frequency
         );
 
         expect(tracking).not.toBeNull();
-        expect(tracking.days).toEqual(daysPattern);
+        expect(tracking.frequency).toEqual(frequency);
         expect(tracking.schedules?.length).toBe(1);
         expect(tracking.schedules?.[0].hour).toBe(10);
         expect(tracking.schedules?.[0].minutes).toBe(15);
 
         // Verify in database
-        const dbRow = await testDb.get<{ days: string | null }>(
-          "SELECT days FROM trackings WHERE id = ?",
+        const dbRow = await testDb.get<{ frequency: string }>(
+          "SELECT frequency FROM trackings WHERE id = ?",
           [tracking.id]
         );
-        expect(JSON.parse(dbRow!.days!)).toEqual(daysPattern);
+        expect(JSON.parse(dbRow!.frequency)).toEqual(frequency);
       });
 
-      it("should store Monthly frequency (day_of_month pattern with day_number) with schedules", async () => {
+      it("should store Monthly frequency (day_number kind) with schedules", async () => {
         const schedules = [
           { hour: 8, minutes: 0 },
           { hour: 18, minutes: 45 },
         ];
-        const daysPattern = {
-          pattern_type: DaysPatternType.DAY_OF_MONTH,
-          type: "day_number" as const,
+        const frequency: Frequency = {
+          type: "monthly",
+          kind: "day_number",
           day_numbers: [1, 15], // 1st and 15th of each month
         };
 
@@ -440,26 +438,26 @@ describe("TrackingService", () => {
           undefined,
           undefined,
           schedules,
-          daysPattern
+          frequency
         );
 
         expect(tracking).not.toBeNull();
-        expect(tracking.days).toEqual(daysPattern);
+        expect(tracking.frequency).toEqual(frequency);
         expect(tracking.schedules?.length).toBe(2);
 
         // Verify in database
-        const dbRow = await testDb.get<{ days: string | null }>(
-          "SELECT days FROM trackings WHERE id = ?",
+        const dbRow = await testDb.get<{ frequency: string }>(
+          "SELECT frequency FROM trackings WHERE id = ?",
           [tracking.id]
         );
-        expect(JSON.parse(dbRow!.days!)).toEqual(daysPattern);
+        expect(JSON.parse(dbRow!.frequency)).toEqual(frequency);
       });
 
-      it("should store Monthly frequency (day_of_month pattern with last_day) with schedules", async () => {
+      it("should store Monthly frequency (last_day kind) with schedules", async () => {
         const schedules = [{ hour: 12, minutes: 0 }];
-        const daysPattern = {
-          pattern_type: DaysPatternType.DAY_OF_MONTH,
-          type: "last_day" as const,
+        const frequency: Frequency = {
+          type: "monthly",
+          kind: "last_day",
         };
 
         const tracking = await trackingService.createTracking(
@@ -468,25 +466,25 @@ describe("TrackingService", () => {
           undefined,
           undefined,
           schedules,
-          daysPattern
+          frequency
         );
 
         expect(tracking).not.toBeNull();
-        expect(tracking.days).toEqual(daysPattern);
+        expect(tracking.frequency).toEqual(frequency);
 
         // Verify in database
-        const dbRow = await testDb.get<{ days: string | null }>(
-          "SELECT days FROM trackings WHERE id = ?",
+        const dbRow = await testDb.get<{ frequency: string }>(
+          "SELECT frequency FROM trackings WHERE id = ?",
           [tracking.id]
         );
-        expect(JSON.parse(dbRow!.days!)).toEqual(daysPattern);
+        expect(JSON.parse(dbRow!.frequency)).toEqual(frequency);
       });
 
-      it("should store Monthly frequency (day_of_month pattern with weekday_ordinal) with schedules", async () => {
+      it("should store Monthly frequency (weekday_ordinal kind) with schedules", async () => {
         const schedules = [{ hour: 9, minutes: 30 }];
-        const daysPattern = {
-          pattern_type: DaysPatternType.DAY_OF_MONTH,
-          type: "weekday_ordinal" as const,
+        const frequency: Frequency = {
+          type: "monthly",
+          kind: "weekday_ordinal",
           weekday: 1, // Monday
           ordinal: 1, // First
         };
@@ -497,28 +495,28 @@ describe("TrackingService", () => {
           undefined,
           undefined,
           schedules,
-          daysPattern
+          frequency
         );
 
         expect(tracking).not.toBeNull();
-        expect(tracking.days).toEqual(daysPattern);
+        expect(tracking.frequency).toEqual(frequency);
 
         // Verify in database
-        const dbRow = await testDb.get<{ days: string | null }>(
-          "SELECT days FROM trackings WHERE id = ?",
+        const dbRow = await testDb.get<{ frequency: string }>(
+          "SELECT frequency FROM trackings WHERE id = ?",
           [tracking.id]
         );
-        expect(JSON.parse(dbRow!.days!)).toEqual(daysPattern);
+        expect(JSON.parse(dbRow!.frequency)).toEqual(frequency);
       });
 
-      it("should store Yearly frequency (day_of_year pattern) with schedules", async () => {
+      it("should store Yearly frequency (date kind) with schedules", async () => {
         const schedules = [
           { hour: 0, minutes: 0 },
           { hour: 12, minutes: 0 },
         ];
-        const daysPattern = {
-          pattern_type: DaysPatternType.DAY_OF_YEAR,
-          type: "date" as const,
+        const frequency: Frequency = {
+          type: "yearly",
+          kind: "date",
           month: 1, // January
           day: 1, // 1st
         };
@@ -529,32 +527,36 @@ describe("TrackingService", () => {
           undefined,
           undefined,
           schedules,
-          daysPattern
+          frequency
         );
 
         expect(tracking).not.toBeNull();
-        expect(tracking.days).toEqual(daysPattern);
+        expect(tracking.frequency).toEqual(frequency);
         expect(tracking.schedules?.length).toBe(2);
 
         // Verify in database
-        const dbRow = await testDb.get<{ days: string | null }>(
-          "SELECT days FROM trackings WHERE id = ?",
+        const dbRow = await testDb.get<{ frequency: string }>(
+          "SELECT frequency FROM trackings WHERE id = ?",
           [tracking.id]
         );
-        expect(JSON.parse(dbRow!.days!)).toEqual(daysPattern);
+        expect(JSON.parse(dbRow!.frequency)).toEqual(frequency);
       });
 
-      it("should store One-time tracking with schedules and oneTimeDate", async () => {
+      it("should store One-time tracking with schedules and create single reminder", async () => {
         const schedules = [
           { hour: 9, minutes: 0 },
           { hour: 14, minutes: 0 },
           { hour: 20, minutes: 0 },
         ];
-        // oneTimeDate should be in YYYY-MM-DD format (date only, not full ISO datetime)
+        // date should be in YYYY-MM-DD format (date only, not full ISO datetime)
         // Use a future date to pass validation
         const futureDate = new Date();
         futureDate.setDate(futureDate.getDate() + 1); // Tomorrow
-        const oneTimeDate = futureDate.toISOString().split("T")[0]; // Extract YYYY-MM-DD
+        const dateStr = futureDate.toISOString().split("T")[0]; // Extract YYYY-MM-DD
+        const frequency: Frequency = {
+          type: "one-time",
+          date: dateStr,
+        };
 
         const tracking = await trackingService.createTracking(
           testUserId,
@@ -562,24 +564,23 @@ describe("TrackingService", () => {
           "One-time notes",
           "🎄",
           schedules,
-          undefined, // No days pattern for one-time
-          oneTimeDate
+          frequency
         );
 
         expect(tracking).not.toBeNull();
         expect(tracking.question).toBe("One-time tracking question");
         expect(tracking.notes).toBe("One-time notes");
         expect(tracking.icon).toBe("🎄");
-        expect(tracking.days).toBeUndefined();
+        expect(tracking.frequency).toEqual(frequency);
         expect(tracking.schedules).toBeDefined();
         expect(tracking.schedules?.length).toBe(3);
 
-        // Verify in database - days should be null for one-time
-        const dbRow = await testDb.get<{ days: string | null }>(
-          "SELECT days FROM trackings WHERE id = ?",
+        // Verify in database - frequency should contain one-time date
+        const dbRow = await testDb.get<{ frequency: string }>(
+          "SELECT frequency FROM trackings WHERE id = ?",
           [tracking.id]
         );
-        expect(dbRow!.days).toBeNull();
+        expect(JSON.parse(dbRow!.frequency)).toEqual(frequency);
 
         // Verify schedules are stored
         const scheduleRows = await testDb.all<{
@@ -599,7 +600,7 @@ describe("TrackingService", () => {
           })
         );
 
-        // Verify reminders were created for one-time tracking
+        // Verify a single reminder was created for one-time tracking (using first schedule)
         const reminders = await testDb.all<{
           id: number;
           tracking_id: number;
@@ -609,62 +610,14 @@ describe("TrackingService", () => {
           "SELECT id, tracking_id, scheduled_time, status FROM reminders WHERE tracking_id = ? ORDER BY scheduled_time",
           [tracking.id]
         );
-        expect(reminders.length).toBe(3); // One reminder per schedule
-        reminders.forEach((reminder) => {
-          expect(reminder.tracking_id).toBe(tracking.id);
-          // Verify the reminder date matches the oneTimeDate
-          const reminderDate = new Date(reminder.scheduled_time)
-            .toISOString()
-            .split("T")[0];
-          expect(reminderDate).toBe(oneTimeDate);
-        });
-      });
-
-      it("should store interval pattern with different units (weeks, months, years)", async () => {
-        const testCases = [
-          {
-            interval_value: 2,
-            interval_unit: "weeks" as const,
-            description: "every 2 weeks",
-          },
-          {
-            interval_value: 3,
-            interval_unit: "months" as const,
-            description: "every 3 months",
-          },
-          {
-            interval_value: 1,
-            interval_unit: "years" as const,
-            description: "every year",
-          },
-        ];
-
-        for (const testCase of testCases) {
-          const daysPattern = {
-            pattern_type: DaysPatternType.INTERVAL,
-            interval_value: testCase.interval_value,
-            interval_unit: testCase.interval_unit,
-          };
-
-          const tracking = await trackingService.createTracking(
-            testUserId,
-            `Tracking ${testCase.description}`,
-            undefined,
-            undefined,
-            [{ hour: 10, minutes: 0 }],
-            daysPattern
-          );
-
-          expect(tracking).not.toBeNull();
-          expect(tracking.days).toEqual(daysPattern);
-
-          // Verify in database
-          const dbRow = await testDb.get<{ days: string | null }>(
-            "SELECT days FROM trackings WHERE id = ?",
-            [tracking.id]
-          );
-          expect(JSON.parse(dbRow!.days!)).toEqual(daysPattern);
-        }
+        expect(reminders.length).toBe(1); // Single reminder for one-time
+        const reminder = reminders[0];
+        expect(reminder.tracking_id).toBe(tracking.id);
+        // Verify the reminder date matches the frequency date
+        const reminderDate = new Date(reminder.scheduled_time)
+          .toISOString()
+          .split("T")[0];
+        expect(reminderDate).toBe(dateStr);
       });
 
       it("should store tracking with maximum 5 schedules for any frequency type", async () => {
@@ -675,11 +628,7 @@ describe("TrackingService", () => {
           { hour: 15, minutes: 0 },
           { hour: 18, minutes: 0 },
         ];
-        const daysPattern = {
-          pattern_type: DaysPatternType.INTERVAL,
-          interval_value: 1,
-          interval_unit: "days" as const,
-        };
+        const frequency: Frequency = { type: "daily" };
 
         const tracking = await trackingService.createTracking(
           testUserId,
@@ -687,7 +636,7 @@ describe("TrackingService", () => {
           undefined,
           undefined,
           schedules,
-          daysPattern
+          frequency
         );
 
         expect(tracking).not.toBeNull();

@@ -102,6 +102,7 @@ describe("Tracking Model", () => {
         id: 1,
         user_id: userId,
         question: "Did I exercise?",
+        frequency: { type: "daily" },
         notes: "Some notes",
         created_at: "2024-01-01T00:00:00Z",
         updated_at: "2024-01-01T00:00:00Z",
@@ -113,6 +114,7 @@ describe("Tracking Model", () => {
       expect(tracking.user_id).toBe(userId);
       expect(tracking.question).toBe("Did I exercise?");
       expect(tracking.notes).toBe("Some notes");
+      expect(tracking.frequency).toEqual({ type: "daily" });
     });
 
     it("should create Tracking instance with minimal data", () => {
@@ -120,6 +122,7 @@ describe("Tracking Model", () => {
         id: 1,
         user_id: userId,
         question: "Did I exercise?",
+        frequency: { type: "daily" },
       };
 
       const tracking = new Tracking(trackingData);
@@ -127,6 +130,7 @@ describe("Tracking Model", () => {
       expect(tracking.id).toBe(1);
       expect(tracking.question).toBe("Did I exercise?");
       expect(tracking.notes).toBeUndefined();
+      expect(tracking.frequency).toEqual({ type: "daily" });
     });
   });
 
@@ -136,6 +140,7 @@ describe("Tracking Model", () => {
         id: 1,
         user_id: userId,
         question: "  Did I exercise?  ",
+        frequency: { type: "daily" },
         notes: "  Some notes  ",
       });
 
@@ -150,6 +155,7 @@ describe("Tracking Model", () => {
         id: 1,
         user_id: userId,
         question: "",
+        frequency: { type: "daily" },
       });
 
       expect(() => tracking.validate()).toThrow(TypeError);
@@ -162,18 +168,20 @@ describe("Tracking Model", () => {
         id: 0,
         user_id: userId,
         question: "Did I exercise?",
+        frequency: { type: "daily" },
       });
 
       const saved = await tracking.save(db);
 
       expect(saved.id).toBeGreaterThan(0);
       expect(saved.question).toBe("Did I exercise?");
+      expect(saved.frequency).toEqual({ type: "daily" });
     });
 
     it("should update existing tracking when id is set", async () => {
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [userId, "Original question"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [userId, "Original question", JSON.stringify({ type: "daily" })]
       );
       const trackingId = result.lastID;
 
@@ -181,12 +189,14 @@ describe("Tracking Model", () => {
         id: trackingId,
         user_id: userId,
         question: "Updated question",
+        frequency: { type: "weekly", days: [0, 1] },
       });
 
       const saved = await tracking.save(db);
 
       expect(saved.id).toBe(trackingId);
       expect(saved.question).toBe("Updated question");
+      expect(saved.frequency).toEqual({ type: "weekly", days: [0, 1] });
     });
 
     it("should throw error if creation fails", async () => {
@@ -194,6 +204,7 @@ describe("Tracking Model", () => {
         id: 0,
         user_id: userId,
         question: "Did I exercise?",
+        frequency: { type: "daily" },
       });
 
       // Close database to cause failure
@@ -206,8 +217,8 @@ describe("Tracking Model", () => {
   describe("update", () => {
     it("should update tracking fields", async () => {
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [userId, "Original question"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [userId, "Original question", JSON.stringify({ type: "daily" })]
       );
       const trackingId = result.lastID;
 
@@ -215,6 +226,7 @@ describe("Tracking Model", () => {
         id: trackingId,
         user_id: userId,
         question: "Original question",
+        frequency: { type: "daily" },
       });
 
       const updated = await tracking.update(
@@ -234,6 +246,7 @@ describe("Tracking Model", () => {
         id: 0,
         user_id: userId,
         question: "Did I exercise?",
+        frequency: { type: "daily" },
       });
 
       await expect(
@@ -245,8 +258,8 @@ describe("Tracking Model", () => {
   describe("delete", () => {
     it("should delete tracking from database", async () => {
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [userId, "Did I exercise?"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [userId, "Did I exercise?", JSON.stringify({ type: "daily" })]
       );
       const trackingId = result.lastID;
 
@@ -254,6 +267,7 @@ describe("Tracking Model", () => {
         id: trackingId,
         user_id: userId,
         question: "Did I exercise?",
+        frequency: { type: "daily" },
       });
 
       await tracking.delete(db);
@@ -269,6 +283,7 @@ describe("Tracking Model", () => {
         id: 0,
         user_id: userId,
         question: "Did I exercise?",
+        frequency: { type: "daily" },
       });
 
       await expect(tracking.delete(db)).rejects.toThrow(
@@ -281,6 +296,7 @@ describe("Tracking Model", () => {
         id: 999,
         user_id: userId,
         question: "Did I exercise?",
+        frequency: { type: "daily" },
       });
 
       await expect(tracking.delete(db)).rejects.toThrow("Tracking not found");
@@ -293,6 +309,7 @@ describe("Tracking Model", () => {
         id: 1,
         user_id: userId,
         question: "Did I exercise?",
+        frequency: { type: "daily" },
         notes: "Some notes",
         created_at: "2024-01-01T00:00:00Z",
         updated_at: "2024-01-01T00:00:00Z",
@@ -304,6 +321,7 @@ describe("Tracking Model", () => {
         id: 1,
         user_id: userId,
         question: "Did I exercise?",
+        frequency: { type: "daily" },
         notes: "Some notes",
         state: TrackingState.RUNNING,
         created_at: "2024-01-01T00:00:00Z",
@@ -315,8 +333,8 @@ describe("Tracking Model", () => {
   describe("loadById", () => {
     it("should load tracking by id", async () => {
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [userId, "Did I exercise?"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [userId, "Did I exercise?", JSON.stringify({ type: "daily" })]
       );
       const trackingId = result.lastID;
 
@@ -325,6 +343,7 @@ describe("Tracking Model", () => {
       expect(tracking).not.toBeNull();
       expect(tracking?.id).toBe(trackingId);
       expect(tracking?.question).toBe("Did I exercise?");
+      expect(tracking?.frequency).toEqual({ type: "daily" });
     });
 
     it("should return null for non-existent tracking", async () => {
@@ -340,8 +359,8 @@ describe("Tracking Model", () => {
       const otherUserId = otherUserResult.lastID;
 
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [otherUserId, "Did I exercise?"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [otherUserId, "Did I exercise?", JSON.stringify({ type: "daily" })]
       );
       const trackingId = result.lastID;
 
@@ -353,13 +372,13 @@ describe("Tracking Model", () => {
   describe("loadByUserId", () => {
     it("should load all trackings for a user", async () => {
       const result1 = await db.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [userId, "Question 1"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [userId, "Question 1", JSON.stringify({ type: "daily" })]
       );
       const id1 = result1.lastID;
       const result2 = await db.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [userId, "Question 2"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [userId, "Question 2", JSON.stringify({ type: "weekly", days: [0] })]
       );
       const id2 = result2.lastID;
 
@@ -516,398 +535,393 @@ describe("Tracking Model", () => {
       expect(Tracking.validateFrequency(frequency)).toEqual(frequency);
     });
 
-    it("should accept valid DAY_OF_MONTH pattern with day_number", () => {
-      const days = {
-        pattern_type: DaysPatternType.DAY_OF_MONTH,
-        type: "day_number" as const,
+    it("should accept valid monthly frequency with day_number kind", () => {
+      const frequency: Frequency = {
+        type: "monthly",
+        kind: "day_number",
         day_numbers: [1, 15, 30],
       };
-      expect(Tracking.validateDays(days)).toEqual(days);
+      expect(Tracking.validateFrequency(frequency)).toEqual(frequency);
     });
 
-    it("should accept valid DAY_OF_MONTH pattern with last_day", () => {
-      const days = {
-        pattern_type: DaysPatternType.DAY_OF_MONTH,
-        type: "last_day" as const,
+    it("should accept valid monthly frequency with last_day kind", () => {
+      const frequency: Frequency = {
+        type: "monthly",
+        kind: "last_day",
       };
-      expect(Tracking.validateDays(days)).toEqual(days);
+      expect(Tracking.validateFrequency(frequency)).toEqual(frequency);
     });
 
-    it("should accept valid DAY_OF_MONTH pattern with weekday_ordinal", () => {
-      const days = {
-        pattern_type: DaysPatternType.DAY_OF_MONTH,
-        type: "weekday_ordinal" as const,
+    it("should accept valid monthly frequency with weekday_ordinal kind", () => {
+      const frequency: Frequency = {
+        type: "monthly",
+        kind: "weekday_ordinal",
         weekday: 1,
         ordinal: 2,
       };
-      expect(Tracking.validateDays(days)).toEqual(days);
+      expect(Tracking.validateFrequency(frequency)).toEqual(frequency);
     });
 
-    it("should accept valid DAY_OF_YEAR pattern with date", () => {
-      const days = {
-        pattern_type: DaysPatternType.DAY_OF_YEAR,
-        type: "date" as const,
+    it("should accept valid yearly frequency with date kind", () => {
+      const frequency: Frequency = {
+        type: "yearly",
+        kind: "date",
         month: 12,
         day: 25,
-      } as any;
-      expect(Tracking.validateDays(days)).toEqual(days);
+      };
+      expect(Tracking.validateFrequency(frequency)).toEqual(frequency);
     });
 
-    it("should accept valid DAY_OF_YEAR pattern with weekday_ordinal", () => {
-      const days = {
-        pattern_type: DaysPatternType.DAY_OF_YEAR,
-        type: "weekday_ordinal" as const,
+    it("should accept valid yearly frequency with weekday_ordinal kind", () => {
+      const frequency: Frequency = {
+        type: "yearly",
+        kind: "weekday_ordinal",
         weekday: 0,
         ordinal: 4,
-      } as any;
-      expect(Tracking.validateDays(days)).toEqual(days);
+      };
+      expect(Tracking.validateFrequency(frequency)).toEqual(frequency);
     });
 
-    it("should return undefined for null/undefined days", () => {
-      expect(Tracking.validateDays(null)).toBeUndefined();
-      expect(Tracking.validateDays(undefined)).toBeUndefined();
+    it("should accept valid one-time frequency", () => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const dateStr = tomorrow.toISOString().split("T")[0];
+      const frequency: Frequency = {
+        type: "one-time",
+        date: dateStr,
+      };
+      expect(Tracking.validateFrequency(frequency)).toEqual(frequency);
     });
 
-    it("should throw TypeError for non-object days", () => {
-      expect(() => Tracking.validateDays("invalid" as any)).toThrow(TypeError);
-      expect(() => Tracking.validateDays(123 as any)).toThrow(TypeError);
-      expect(() => Tracking.validateDays([] as any)).toThrow(TypeError);
+    it("should throw TypeError for null/undefined frequency", () => {
+      expect(() => Tracking.validateFrequency(null as any)).toThrow(TypeError);
+      expect(() => Tracking.validateFrequency(undefined as any)).toThrow(
+        TypeError
+      );
     });
 
-    it("should throw TypeError for missing pattern_type", () => {
-      expect(() => Tracking.validateDays({} as any)).toThrow(TypeError);
+    it("should throw TypeError for non-object frequency", () => {
+      expect(() => Tracking.validateFrequency("invalid" as any)).toThrow(
+        TypeError
+      );
+      expect(() => Tracking.validateFrequency(123 as any)).toThrow(TypeError);
+      expect(() => Tracking.validateFrequency([] as any)).toThrow(TypeError);
     });
 
-    it("should throw TypeError for invalid pattern_type", () => {
+    it("should throw TypeError for missing frequency type", () => {
+      expect(() => Tracking.validateFrequency({} as any)).toThrow(TypeError);
+    });
+
+    it("should throw TypeError for invalid frequency type", () => {
       expect(() =>
-        Tracking.validateDays({ pattern_type: "invalid" } as any)
+        Tracking.validateFrequency({ type: "invalid" } as any)
       ).toThrow(TypeError);
     });
 
-    it("should throw TypeError for INTERVAL pattern missing interval_value", () => {
+    it("should throw TypeError for weekly frequency missing days array", () => {
       expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.INTERVAL,
-          interval_unit: "days",
-        } as any)
+        Tracking.validateFrequency({ type: "weekly" } as any)
       ).toThrow(TypeError);
     });
 
-    it("should throw TypeError for INTERVAL pattern with invalid interval_value", () => {
+    it("should throw TypeError for weekly frequency with empty days array", () => {
       expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.INTERVAL,
-          interval_value: -1,
-          interval_unit: "days",
-        } as any)
-      ).toThrow(TypeError);
-      expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.INTERVAL,
-          interval_value: 0,
-          interval_unit: "days",
-        } as any)
-      ).toThrow(TypeError);
-      expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.INTERVAL,
-          interval_value: 1.5,
-          interval_unit: "days",
-        } as any)
+        Tracking.validateFrequency({ type: "weekly", days: [] } as any)
       ).toThrow(TypeError);
     });
 
-    it("should throw TypeError for INTERVAL pattern missing interval_unit", () => {
+    it("should throw TypeError for weekly frequency with invalid day values", () => {
       expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.INTERVAL,
-          interval_value: 2,
-        } as any)
+        Tracking.validateFrequency({ type: "weekly", days: [-1] } as any)
+      ).toThrow(TypeError);
+      expect(() =>
+        Tracking.validateFrequency({ type: "weekly", days: [7] } as any)
+      ).toThrow(TypeError);
+      expect(() =>
+        Tracking.validateFrequency({ type: "weekly", days: [1.5] } as any)
       ).toThrow(TypeError);
     });
 
-    it("should throw TypeError for INTERVAL pattern with invalid interval_unit", () => {
+    it("should throw TypeError for weekly frequency with duplicate days", () => {
       expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.INTERVAL,
-          interval_value: 2,
-          interval_unit: "invalid",
-        } as any)
-      ).toThrow(TypeError);
-    });
-
-    it("should throw TypeError for DAY_OF_WEEK pattern missing days array", () => {
-      expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.DAY_OF_WEEK,
-        } as any)
-      ).toThrow(TypeError);
-    });
-
-    it("should throw TypeError for DAY_OF_WEEK pattern with empty days array", () => {
-      expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.DAY_OF_WEEK,
-          days: [],
-        } as any)
-      ).toThrow(TypeError);
-    });
-
-    it("should throw TypeError for DAY_OF_WEEK pattern with invalid day values", () => {
-      expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.DAY_OF_WEEK,
-          days: [-1],
-        } as any)
-      ).toThrow(TypeError);
-      expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.DAY_OF_WEEK,
-          days: [7],
-        } as any)
-      ).toThrow(TypeError);
-      expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.DAY_OF_WEEK,
-          days: [1.5],
-        } as any)
-      ).toThrow(TypeError);
-    });
-
-    it("should throw TypeError for DAY_OF_WEEK pattern with duplicate days", () => {
-      expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.DAY_OF_WEEK,
+        Tracking.validateFrequency({
+          type: "weekly",
           days: [0, 1, 0],
         } as any)
       ).toThrow(TypeError);
     });
 
-    it("should throw TypeError for DAY_OF_MONTH pattern missing type", () => {
+    it("should throw TypeError for monthly frequency missing kind", () => {
       expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.DAY_OF_MONTH,
+        Tracking.validateFrequency({ type: "monthly" } as any)
+      ).toThrow(TypeError);
+    });
+
+    it("should throw TypeError for monthly frequency with invalid kind", () => {
+      expect(() =>
+        Tracking.validateFrequency({
+          type: "monthly",
+          kind: "invalid",
         } as any)
       ).toThrow(TypeError);
     });
 
-    it("should throw TypeError for DAY_OF_MONTH pattern with invalid type", () => {
+    it("should throw TypeError for monthly frequency day_number missing day_numbers", () => {
       expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.DAY_OF_MONTH,
-          type: "invalid",
+        Tracking.validateFrequency({
+          type: "monthly",
+          kind: "day_number",
         } as any)
       ).toThrow(TypeError);
     });
 
-    it("should throw TypeError for DAY_OF_MONTH pattern day_number missing day_numbers", () => {
+    it("should throw TypeError for monthly frequency day_number with invalid day_numbers", () => {
       expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.DAY_OF_MONTH,
-          type: "day_number",
-        } as any)
-      ).toThrow(TypeError);
-    });
-
-    it("should throw TypeError for DAY_OF_MONTH pattern day_number with invalid day_numbers", () => {
-      expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.DAY_OF_MONTH,
-          type: "day_number",
+        Tracking.validateFrequency({
+          type: "monthly",
+          kind: "day_number",
           day_numbers: [0],
         } as any)
       ).toThrow(TypeError);
       expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.DAY_OF_MONTH,
-          type: "day_number",
+        Tracking.validateFrequency({
+          type: "monthly",
+          kind: "day_number",
           day_numbers: [32],
         } as any)
       ).toThrow(TypeError);
     });
 
-    it("should throw TypeError for DAY_OF_MONTH pattern weekday_ordinal missing weekday", () => {
+    it("should throw TypeError for monthly frequency weekday_ordinal missing weekday", () => {
       expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.DAY_OF_MONTH,
-          type: "weekday_ordinal",
+        Tracking.validateFrequency({
+          type: "monthly",
+          kind: "weekday_ordinal",
           ordinal: 1,
         } as any)
       ).toThrow(TypeError);
     });
 
-    it("should throw TypeError for DAY_OF_MONTH pattern weekday_ordinal with invalid weekday", () => {
+    it("should throw TypeError for monthly frequency weekday_ordinal with invalid weekday", () => {
       expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.DAY_OF_MONTH,
-          type: "weekday_ordinal",
+        Tracking.validateFrequency({
+          type: "monthly",
+          kind: "weekday_ordinal",
           weekday: -1,
           ordinal: 1,
         } as any)
       ).toThrow(TypeError);
       expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.DAY_OF_MONTH,
-          type: "weekday_ordinal",
+        Tracking.validateFrequency({
+          type: "monthly",
+          kind: "weekday_ordinal",
           weekday: 7,
           ordinal: 1,
         } as any)
       ).toThrow(TypeError);
     });
 
-    it("should throw TypeError for DAY_OF_MONTH pattern weekday_ordinal missing ordinal", () => {
+    it("should throw TypeError for monthly frequency weekday_ordinal missing ordinal", () => {
       expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.DAY_OF_MONTH,
-          type: "weekday_ordinal",
+        Tracking.validateFrequency({
+          type: "monthly",
+          kind: "weekday_ordinal",
           weekday: 1,
         } as any)
       ).toThrow(TypeError);
     });
 
-    it("should throw TypeError for DAY_OF_MONTH pattern weekday_ordinal with invalid ordinal", () => {
+    it("should throw TypeError for monthly frequency weekday_ordinal with invalid ordinal", () => {
       expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.DAY_OF_MONTH,
-          type: "weekday_ordinal",
+        Tracking.validateFrequency({
+          type: "monthly",
+          kind: "weekday_ordinal",
           weekday: 1,
           ordinal: 0,
         } as any)
       ).toThrow(TypeError);
       expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.DAY_OF_MONTH,
-          type: "weekday_ordinal",
+        Tracking.validateFrequency({
+          type: "monthly",
+          kind: "weekday_ordinal",
           weekday: 1,
           ordinal: 6,
         } as any)
       ).toThrow(TypeError);
     });
 
-    it("should throw TypeError for DAY_OF_YEAR pattern missing type", () => {
+    it("should throw TypeError for yearly frequency missing kind", () => {
       expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.DAY_OF_YEAR,
+        Tracking.validateFrequency({ type: "yearly" } as any)
+      ).toThrow(TypeError);
+    });
+
+    it("should throw TypeError for yearly frequency with invalid kind", () => {
+      expect(() =>
+        Tracking.validateFrequency({
+          type: "yearly",
+          kind: "invalid",
         } as any)
       ).toThrow(TypeError);
     });
 
-    it("should throw TypeError for DAY_OF_YEAR pattern with invalid type", () => {
+    it("should throw TypeError for yearly frequency date kind missing month", () => {
       expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.DAY_OF_YEAR,
-          type: "invalid",
-        } as any)
-      ).toThrow(TypeError);
-    });
-
-    it("should throw TypeError for DAY_OF_YEAR pattern date missing month", () => {
-      expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.DAY_OF_YEAR,
-          type: "date",
+        Tracking.validateFrequency({
+          type: "yearly",
+          kind: "date",
           day: 25,
         } as any)
       ).toThrow(TypeError);
     });
 
-    it("should throw TypeError for DAY_OF_YEAR pattern date with invalid month", () => {
+    it("should throw TypeError for yearly frequency date kind with invalid month", () => {
       expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.DAY_OF_YEAR,
-          type: "date",
+        Tracking.validateFrequency({
+          type: "yearly",
+          kind: "date",
           month: 0,
           day: 25,
         } as any)
       ).toThrow(TypeError);
       expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.DAY_OF_YEAR,
-          type: "date",
+        Tracking.validateFrequency({
+          type: "yearly",
+          kind: "date",
           month: 13,
           day: 25,
         } as any)
       ).toThrow(TypeError);
     });
 
-    it("should throw TypeError for DAY_OF_YEAR pattern date missing day", () => {
+    it("should throw TypeError for yearly frequency date kind missing day", () => {
       expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.DAY_OF_YEAR,
-          type: "date",
+        Tracking.validateFrequency({
+          type: "yearly",
+          kind: "date",
           month: 12,
         } as any)
       ).toThrow(TypeError);
     });
 
-    it("should throw TypeError for DAY_OF_YEAR pattern date with invalid day", () => {
+    it("should throw TypeError for yearly frequency date kind with invalid day", () => {
       expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.DAY_OF_YEAR,
-          type: "date",
+        Tracking.validateFrequency({
+          type: "yearly",
+          kind: "date",
           month: 12,
           day: 0,
         } as any)
       ).toThrow(TypeError);
       expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.DAY_OF_YEAR,
-          type: "date",
+        Tracking.validateFrequency({
+          type: "yearly",
+          kind: "date",
           month: 12,
           day: 32,
         } as any)
       ).toThrow(TypeError);
     });
 
-    it("should throw TypeError for DAY_OF_YEAR pattern weekday_ordinal missing weekday", () => {
+    it("should throw TypeError for yearly frequency weekday_ordinal kind missing weekday", () => {
       expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.DAY_OF_YEAR,
-          type: "weekday_ordinal",
+        Tracking.validateFrequency({
+          type: "yearly",
+          kind: "weekday_ordinal",
           ordinal: 1,
         } as any)
       ).toThrow(TypeError);
     });
 
-    it("should throw TypeError for DAY_OF_YEAR pattern weekday_ordinal with invalid weekday", () => {
+    it("should throw TypeError for yearly frequency weekday_ordinal kind with invalid weekday", () => {
       expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.DAY_OF_YEAR,
-          type: "weekday_ordinal",
+        Tracking.validateFrequency({
+          type: "yearly",
+          kind: "weekday_ordinal",
           weekday: -1,
           ordinal: 1,
         } as any)
       ).toThrow(TypeError);
+      expect(() =>
+        Tracking.validateFrequency({
+          type: "yearly",
+          kind: "weekday_ordinal",
+          weekday: 7,
+          ordinal: 1,
+        } as any)
+      ).toThrow(TypeError);
     });
 
-    it("should throw TypeError for DAY_OF_YEAR pattern weekday_ordinal missing ordinal", () => {
+    it("should throw TypeError for yearly frequency weekday_ordinal kind missing ordinal", () => {
       expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.DAY_OF_YEAR,
-          type: "weekday_ordinal",
+        Tracking.validateFrequency({
+          type: "yearly",
+          kind: "weekday_ordinal",
           weekday: 1,
         } as any)
       ).toThrow(TypeError);
     });
 
-    it("should throw TypeError for DAY_OF_YEAR pattern weekday_ordinal with invalid ordinal", () => {
+    it("should throw TypeError for yearly frequency weekday_ordinal kind with invalid ordinal", () => {
       expect(() =>
-        Tracking.validateDays({
-          pattern_type: DaysPatternType.DAY_OF_YEAR,
-          type: "weekday_ordinal",
+        Tracking.validateFrequency({
+          type: "yearly",
+          kind: "weekday_ordinal",
           weekday: 1,
           ordinal: 0,
+        } as any)
+      ).toThrow(TypeError);
+      expect(() =>
+        Tracking.validateFrequency({
+          type: "yearly",
+          kind: "weekday_ordinal",
+          weekday: 1,
+          ordinal: 6,
+        } as any)
+      ).toThrow(TypeError);
+    });
+
+    it("should throw TypeError for one-time frequency missing date", () => {
+      expect(() =>
+        Tracking.validateFrequency({ type: "one-time" } as any)
+      ).toThrow(TypeError);
+    });
+
+    it("should throw TypeError for one-time frequency with invalid date format", () => {
+      expect(() =>
+        Tracking.validateFrequency({
+          type: "one-time",
+          date: "invalid",
+        } as any)
+      ).toThrow(TypeError);
+      expect(() =>
+        Tracking.validateFrequency({
+          type: "one-time",
+          date: "2024-1-1",
+        } as any)
+      ).toThrow(TypeError);
+    });
+
+    it("should throw TypeError for one-time frequency with past date", () => {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const dateStr = yesterday.toISOString().split("T")[0];
+      expect(() =>
+        Tracking.validateFrequency({
+          type: "one-time",
+          date: dateStr,
         } as any)
       ).toThrow(TypeError);
     });
   });
 
-  describe("validate with icon and days", () => {
+  describe("validate with icon and frequency", () => {
     it("should validate icon when present", () => {
       const tracking = new Tracking({
         id: 1,
         user_id: userId,
         question: "Did I exercise?",
+        frequency: { type: "daily" },
         icon: "  😊  ",
       });
 
@@ -915,23 +929,18 @@ describe("Tracking Model", () => {
       expect(validated.icon).toBe("😊");
     });
 
-    it("should validate days pattern when present", () => {
+    it("should validate frequency pattern when present", () => {
       const tracking = new Tracking({
         id: 1,
         user_id: userId,
         question: "Did I exercise?",
-        days: {
-          pattern_type: DaysPatternType.INTERVAL,
-          interval_value: 2,
-          interval_unit: "days",
-        },
+        frequency: { type: "weekly", days: [0, 1, 2] },
       });
 
       const validated = tracking.validate();
-      expect(validated.days).toEqual({
-        pattern_type: "interval",
-        interval_value: 2,
-        interval_unit: "days",
+      expect(validated.frequency).toEqual({
+        type: "weekly",
+        days: [0, 1, 2],
       });
     });
 
@@ -940,20 +949,19 @@ describe("Tracking Model", () => {
         id: 1,
         user_id: userId,
         question: "Did I exercise?",
+        frequency: { type: "daily" },
         icon: "a".repeat(21),
       });
 
       expect(() => tracking.validate()).toThrow(TypeError);
     });
 
-    it("should throw error for invalid days pattern", () => {
+    it("should throw error for invalid frequency pattern", () => {
       const tracking = new Tracking({
         id: 1,
         user_id: userId,
         question: "Did I exercise?",
-        days: {
-          pattern_type: DaysPatternType.INTERVAL,
-        } as any,
+        frequency: { type: "weekly" } as any,
       });
 
       expect(() => tracking.validate()).toThrow(TypeError);
@@ -961,18 +969,14 @@ describe("Tracking Model", () => {
   });
 
   describe("save with optional fields", () => {
-    it("should create tracking with notes, icon, and days", async () => {
+    it("should create tracking with notes, icon, and frequency", async () => {
       const tracking = new Tracking({
         id: 0,
         user_id: userId,
         question: "Did I exercise?",
+        frequency: { type: "weekly", days: [0, 1] },
         notes: "Some notes",
         icon: "🏃",
-        days: {
-          pattern_type: DaysPatternType.INTERVAL,
-          interval_value: 2,
-          interval_unit: "days",
-        },
       });
 
       const saved = await tracking.save(db);
@@ -980,17 +984,16 @@ describe("Tracking Model", () => {
       expect(saved.id).toBeGreaterThan(0);
       expect(saved.notes).toBe("Some notes");
       expect(saved.icon).toBe("🏃");
-      expect(saved.days).toEqual({
-        pattern_type: "interval",
-        interval_value: 2,
-        interval_unit: "days",
+      expect(saved.frequency).toEqual({
+        type: "weekly",
+        days: [0, 1],
       });
     });
 
-    it("should update tracking with notes, icon, and days", async () => {
+    it("should update tracking with notes, icon, and frequency", async () => {
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [userId, "Original question"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [userId, "Original question", JSON.stringify({ type: "daily" })]
       );
       const trackingId = result.lastID;
 
@@ -998,12 +1001,9 @@ describe("Tracking Model", () => {
         id: trackingId,
         user_id: userId,
         question: "Updated question",
+        frequency: { type: "weekly", days: [0, 1, 2] },
         notes: "Updated notes",
         icon: "✅",
-        days: {
-          pattern_type: DaysPatternType.DAY_OF_WEEK,
-          days: [0, 1, 2],
-        },
       });
 
       const saved = await tracking.save(db);
@@ -1011,25 +1011,21 @@ describe("Tracking Model", () => {
       expect(saved.id).toBe(trackingId);
       expect(saved.notes).toBe("Updated notes");
       expect(saved.icon).toBe("✅");
-      expect(saved.days).toEqual({
-        pattern_type: "day_of_week",
+      expect(saved.frequency).toEqual({
+        type: "weekly",
         days: [0, 1, 2],
       });
     });
 
-    it("should update tracking with null notes, icon, and days", async () => {
+    it("should update tracking with null notes and icon (frequency is required)", async () => {
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question, notes, icon, days) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO trackings (user_id, question, notes, icon, frequency) VALUES (?, ?, ?, ?, ?)",
         [
           userId,
           "Original question",
           "Original notes",
           "🏃",
-          JSON.stringify({
-            pattern_type: DaysPatternType.INTERVAL,
-            interval_value: 1,
-            interval_unit: "days",
-          }),
+          JSON.stringify({ type: "daily" }),
         ]
       );
       const trackingId = result.lastID;
@@ -1038,9 +1034,9 @@ describe("Tracking Model", () => {
         id: trackingId,
         user_id: userId,
         question: "Updated question",
+        frequency: { type: "daily" },
         notes: undefined,
         icon: undefined,
-        days: undefined,
       });
 
       const saved = await tracking.save(db);
@@ -1048,15 +1044,15 @@ describe("Tracking Model", () => {
       expect(saved.id).toBe(trackingId);
       expect(saved.notes).toBeUndefined();
       expect(saved.icon).toBeUndefined();
-      expect(saved.days).toBeUndefined();
+      expect(saved.frequency).toEqual({ type: "daily" });
     });
   });
 
   describe("update with all fields", () => {
     it("should update tracking with icon", async () => {
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [userId, "Original question"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [userId, "Original question", JSON.stringify({ type: "daily" })]
       );
       const trackingId = result.lastID;
 
@@ -1064,6 +1060,7 @@ describe("Tracking Model", () => {
         id: trackingId,
         user_id: userId,
         question: "Original question",
+        frequency: { type: "daily" },
       });
 
       const updated = await tracking.update({ icon: "🏃" }, db);
@@ -1071,10 +1068,10 @@ describe("Tracking Model", () => {
       expect(updated.icon).toBe("🏃");
     });
 
-    it("should update tracking with days pattern", async () => {
+    it("should update tracking with frequency pattern", async () => {
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [userId, "Original question"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [userId, "Original question", JSON.stringify({ type: "daily" })]
       );
       const trackingId = result.lastID;
 
@@ -1082,22 +1079,20 @@ describe("Tracking Model", () => {
         id: trackingId,
         user_id: userId,
         question: "Original question",
+        frequency: { type: "daily" },
       });
 
-      const daysPattern = {
-        pattern_type: DaysPatternType.DAY_OF_WEEK,
-        days: [0, 6],
-      };
+      const frequency: Frequency = { type: "weekly", days: [0, 6] };
 
-      const updated = await tracking.update({ days: daysPattern }, db);
+      const updated = await tracking.update({ frequency }, db);
 
-      expect(updated.days).toEqual(daysPattern);
+      expect(updated.frequency).toEqual(frequency);
     });
 
-    it("should update tracking with type", async () => {
+    it("should update tracking with notes", async () => {
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [userId, "Original question"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [userId, "Original question", JSON.stringify({ type: "daily" })]
       );
       const trackingId = result.lastID;
 
@@ -1105,6 +1100,7 @@ describe("Tracking Model", () => {
         id: trackingId,
         user_id: userId,
         question: "Original question",
+        frequency: { type: "daily" },
       });
 
       const updated = await tracking.update({ notes: "Updated notes" }, db);
@@ -1114,8 +1110,8 @@ describe("Tracking Model", () => {
 
     it("should update tracking with multiple fields", async () => {
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [userId, "Original question"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [userId, "Original question", JSON.stringify({ type: "daily" })]
       );
       const trackingId = result.lastID;
 
@@ -1123,12 +1119,13 @@ describe("Tracking Model", () => {
         id: trackingId,
         user_id: userId,
         question: "Original question",
+        frequency: { type: "daily" },
       });
 
-      const daysPattern = {
-        pattern_type: DaysPatternType.INTERVAL,
-        interval_value: 3,
-        interval_unit: "weeks" as const,
+      const frequency: Frequency = {
+        type: "monthly",
+        kind: "day_number",
+        day_numbers: [1, 15],
       };
 
       const updated = await tracking.update(
@@ -1136,41 +1133,36 @@ describe("Tracking Model", () => {
           question: "Updated question",
           notes: "Updated notes",
           icon: "✅",
-          days: daysPattern,
+          frequency,
         },
         db
       );
 
       expect(updated.question).toBe("Updated question");
       expect(updated.notes).toBe("Updated notes");
-      expect(updated.notes).toBe("Updated notes");
       expect(updated.icon).toBe("✅");
-      expect(updated.days).toEqual(daysPattern);
+      expect(updated.frequency).toEqual(frequency);
     });
   });
 
-  describe("loadById with days parsing", () => {
-    it("should load tracking with valid days JSON", async () => {
-      const daysPattern = {
-        pattern_type: "interval",
-        interval_value: 2,
-        interval_unit: "days",
-      };
+  describe("loadById with frequency parsing", () => {
+    it("should load tracking with valid frequency JSON", async () => {
+      const frequency: Frequency = { type: "weekly", days: [0, 1, 2] };
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question, days) VALUES (?, ?, ?)",
-        [userId, "Did I exercise?", JSON.stringify(daysPattern)]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [userId, "Did I exercise?", JSON.stringify(frequency)]
       );
       const trackingId = result.lastID;
 
       const tracking = await Tracking.loadById(trackingId, userId, db);
 
       expect(tracking).not.toBeNull();
-      expect(tracking?.days).toEqual(daysPattern);
+      expect(tracking?.frequency).toEqual(frequency);
     });
 
-    it("should handle invalid days JSON gracefully", async () => {
+    it("should handle invalid frequency JSON gracefully", async () => {
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question, days) VALUES (?, ?, ?)",
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
         [userId, "Did I exercise?", "invalid json"]
       );
       const trackingId = result.lastID;
@@ -1179,79 +1171,31 @@ describe("Tracking Model", () => {
         .spyOn(console, "error")
         .mockImplementation(() => {});
 
-      const tracking = await Tracking.loadById(trackingId, userId, db);
-
-      expect(tracking).not.toBeNull();
-      expect(tracking?.days).toBeUndefined();
-      expect(consoleErrorSpy).toHaveBeenCalled();
+      await expect(Tracking.loadById(trackingId, userId, db)).rejects.toThrow();
 
       consoleErrorSpy.mockRestore();
-    });
-
-    it("should load tracking without days", async () => {
-      const result = await db.run(
-        "INSERT INTO trackings (user_id, question, days) VALUES (?, ?, ?)",
-        [userId, "Did I exercise?", null]
-      );
-      const trackingId = result.lastID;
-
-      const tracking = await Tracking.loadById(trackingId, userId, db);
-
-      expect(tracking).not.toBeNull();
-      expect(tracking?.days).toBeUndefined();
     });
   });
 
-  describe("loadByUserId with days parsing", () => {
-    it("should load trackings with valid days JSON", async () => {
-      const daysPattern1 = {
-        pattern_type: "interval",
-        interval_value: 1,
-        interval_unit: "days",
-      };
-      const daysPattern2 = {
-        pattern_type: "day_of_week",
-        days: [0, 6],
-      };
+  describe("loadByUserId with frequency parsing", () => {
+    it("should load trackings with valid frequency JSON", async () => {
+      const frequency1: Frequency = { type: "daily" };
+      const frequency2: Frequency = { type: "weekly", days: [0, 6] };
       await db.run(
-        "INSERT INTO trackings (user_id, question, days) VALUES (?, ?, ?)",
-        [userId, "Question 1", JSON.stringify(daysPattern1)]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [userId, "Question 1", JSON.stringify(frequency1)]
       );
       await db.run(
-        "INSERT INTO trackings (user_id, question, days) VALUES (?, ?, ?)",
-        [userId, "Question 2", JSON.stringify(daysPattern2)]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [userId, "Question 2", JSON.stringify(frequency2)]
       );
 
       const trackings = await Tracking.loadByUserId(userId, db);
 
       expect(trackings).toHaveLength(2);
-      const daysPatterns = trackings.map((t) => t.days);
-      expect(daysPatterns).toContainEqual(daysPattern1);
-      expect(daysPatterns).toContainEqual(daysPattern2);
-    });
-
-    it("should handle invalid days JSON gracefully", async () => {
-      await db.run(
-        "INSERT INTO trackings (user_id, question, days) VALUES (?, ?, ?)",
-        [userId, "Question 1", "invalid json"]
-      );
-      await db.run(
-        "INSERT INTO trackings (user_id, question, days) VALUES (?, ?, ?)",
-        [userId, "Question 2", null]
-      );
-
-      const consoleErrorSpy = vi
-        .spyOn(console, "error")
-        .mockImplementation(() => {});
-
-      const trackings = await Tracking.loadByUserId(userId, db);
-
-      expect(trackings).toHaveLength(2);
-      expect(trackings[0].days).toBeUndefined();
-      expect(trackings[1].days).toBeUndefined();
-      expect(consoleErrorSpy).toHaveBeenCalled();
-
-      consoleErrorSpy.mockRestore();
+      const frequencies = trackings.map((t) => t.frequency);
+      expect(frequencies).toContainEqual(frequency1);
+      expect(frequencies).toContainEqual(frequency2);
     });
   });
 
