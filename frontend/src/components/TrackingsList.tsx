@@ -72,10 +72,13 @@ class TrackingFormatter {
 
     /**
      * Format frequency to readable string.
-     * @param frequency - Frequency object
+     * @param frequency - Frequency object (optional, defaults to daily)
      * @returns Formatted frequency string
      */
-    static formatFrequency(frequency: Frequency): string {
+    static formatFrequency(frequency?: Frequency): string {
+        if (!frequency || !frequency.type) {
+            return "Daily";
+        }
         switch (frequency.type) {
             case "daily":
                 return "Daily";
@@ -135,11 +138,15 @@ class TrackingFormatter {
 
     /**
      * Format full frequency details for tooltip.
-     * @param frequency - Frequency object
+     * @param frequency - Frequency object (optional, defaults to daily)
      * @returns Detailed frequency string
      */
-    static formatFullFrequency(frequency: Frequency): string {
+    static formatFullFrequency(frequency?: Frequency): string {
         let details = "Frequency: ";
+
+        if (!frequency || !frequency.type) {
+            return details + "Daily (every day)";
+        }
 
         switch (frequency.type) {
             case "daily":
