@@ -1,67 +1,65 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { DaysPatternBuilder } from "../DaysPatternBuilder";
-import { DaysPattern, DaysPatternType } from "../Tracking";
+import { FrequencyBuilder } from "../FrequencyBuilder";
+import { Frequency } from "../Tracking";
 
-describe("DaysPatternBuilder", () => {
-  let builder: DaysPatternBuilder;
+describe("FrequencyBuilder", () => {
+  let builder: FrequencyBuilder;
 
   beforeEach(() => {
-    builder = new DaysPatternBuilder();
+    builder = new FrequencyBuilder();
   });
 
   describe("constructor", () => {
-    it("should initialize with default values when no pattern provided", () => {
-      const newBuilder = new DaysPatternBuilder();
+    it("should initialize with default values when no frequency provided", () => {
+      const newBuilder = new FrequencyBuilder();
       expect(newBuilder.getPreset()).toBe("daily");
       expect(newBuilder.getSelectedDays()).toEqual([1]); // Default to Monday for weekly
     });
 
-    it("should initialize from existing daily pattern", () => {
-      const pattern: DaysPattern = {
-        pattern_type: DaysPatternType.INTERVAL,
-        interval_value: 1,
-        interval_unit: "days",
+    it("should initialize from existing daily frequency", () => {
+      const frequency: Frequency = {
+        type: "daily",
       };
-      const newBuilder = new DaysPatternBuilder(pattern);
+      const newBuilder = new FrequencyBuilder(frequency);
       expect(newBuilder.getPreset()).toBe("daily");
     });
 
-    it("should detect weekly preset from day-of-week pattern", () => {
-      const pattern: DaysPattern = {
-        pattern_type: DaysPatternType.DAY_OF_WEEK,
+    it("should detect weekly preset from weekly frequency", () => {
+      const frequency: Frequency = {
+        type: "weekly",
         days: [1, 2, 3, 4, 5], // Monday to Friday
       };
-      const newBuilder = new DaysPatternBuilder(pattern);
+      const newBuilder = new FrequencyBuilder(frequency);
       expect(newBuilder.getPreset()).toBe("weekly");
     });
 
-    it("should detect weekly preset from pattern", () => {
-      const pattern: DaysPattern = {
-        pattern_type: DaysPatternType.DAY_OF_WEEK,
+    it("should detect weekly preset from weekly frequency pattern", () => {
+      const frequency: Frequency = {
+        type: "weekly",
         days: [1, 3, 5], // Monday, Wednesday, Friday
       };
-      const newBuilder = new DaysPatternBuilder(pattern);
+      const newBuilder = new FrequencyBuilder(frequency);
       expect(newBuilder.getPreset()).toBe("weekly");
     });
 
-    it("should detect monthly preset from pattern", () => {
-      const pattern: DaysPattern = {
-        pattern_type: DaysPatternType.DAY_OF_MONTH,
-        type: "day_number",
+    it("should detect monthly preset from monthly frequency", () => {
+      const frequency: Frequency = {
+        type: "monthly",
+        kind: "day_number",
         day_numbers: [15],
       };
-      const newBuilder = new DaysPatternBuilder(pattern);
+      const newBuilder = new FrequencyBuilder(frequency);
       expect(newBuilder.getPreset()).toBe("monthly");
     });
 
-    it("should detect yearly preset from pattern", () => {
-      const pattern: DaysPattern = {
-        pattern_type: DaysPatternType.DAY_OF_YEAR,
-        type: "date",
+    it("should detect yearly preset from yearly frequency", () => {
+      const frequency: Frequency = {
+        type: "yearly",
+        kind: "date",
         month: 3,
         day: 15,
       };
-      const newBuilder = new DaysPatternBuilder(pattern);
+      const newBuilder = new FrequencyBuilder(frequency);
       expect(newBuilder.getPreset()).toBe("yearly");
     });
   });
@@ -87,12 +85,12 @@ describe("DaysPatternBuilder", () => {
       expect(builder.getSelectedDays()).toEqual([3, 5]);
     });
 
-    it("should build weekly pattern", () => {
+    it("should build weekly frequency", () => {
       builder.setPreset("weekly");
       builder.setSelectedDays([1, 3, 5]);
-      const pattern = builder.buildPattern();
-      expect(pattern).toEqual({
-        pattern_type: DaysPatternType.DAY_OF_WEEK,
+      const frequency = builder.buildFrequency();
+      expect(frequency).toEqual({
+        type: "weekly",
         days: [1, 3, 5],
       });
     });
@@ -100,7 +98,7 @@ describe("DaysPatternBuilder", () => {
     it("should throw error when no days selected", () => {
       builder.setPreset("weekly");
       builder.setSelectedDays([]);
-      expect(() => builder.buildPattern()).toThrow(
+      expect(() => builder.buildFrequency()).toThrow(
         "Please select at least one day of the week"
       );
     });
@@ -117,37 +115,37 @@ describe("DaysPatternBuilder", () => {
       expect(builder.getMonthlyType()).toBe("last");
     });
 
-    it("should build monthly pattern with day number", () => {
+    it("should build monthly frequency with day number", () => {
       builder.setPreset("monthly");
       builder.setMonthlyType("day");
       builder.setMonthlyDay(15);
-      const pattern = builder.buildPattern();
-      expect(pattern).toEqual({
-        pattern_type: DaysPatternType.DAY_OF_MONTH,
-        type: "day_number",
+      const frequency = builder.buildFrequency();
+      expect(frequency).toEqual({
+        type: "monthly",
+        kind: "day_number",
         day_numbers: [15],
       });
     });
 
-    it("should build monthly pattern with last day", () => {
+    it("should build monthly frequency with last day", () => {
       builder.setPreset("monthly");
       builder.setMonthlyType("last");
-      const pattern = builder.buildPattern();
-      expect(pattern).toEqual({
-        pattern_type: DaysPatternType.DAY_OF_MONTH,
-        type: "last_day",
+      const frequency = builder.buildFrequency();
+      expect(frequency).toEqual({
+        type: "monthly",
+        kind: "last_day",
       });
     });
 
-    it("should build monthly pattern with weekday ordinal", () => {
+    it("should build monthly frequency with weekday ordinal", () => {
       builder.setPreset("monthly");
       builder.setMonthlyType("weekday");
       builder.setWeekday(1); // Monday
       builder.setOrdinal(1); // First
-      const pattern = builder.buildPattern();
-      expect(pattern).toEqual({
-        pattern_type: DaysPatternType.DAY_OF_MONTH,
-        type: "weekday_ordinal",
+      const frequency = builder.buildFrequency();
+      expect(frequency).toEqual({
+        type: "monthly",
+        kind: "weekday_ordinal",
         weekday: 1,
         ordinal: 1,
       });
@@ -165,39 +163,37 @@ describe("DaysPatternBuilder", () => {
       expect(builder.getYearlyDay()).toBe(15);
     });
 
-    it("should build yearly pattern", () => {
+    it("should build yearly frequency", () => {
       builder.setPreset("yearly");
       builder.setYearlyMonth(3);
       builder.setYearlyDay(15);
-      const pattern = builder.buildPattern();
-      expect(pattern).toEqual({
-        pattern_type: DaysPatternType.DAY_OF_YEAR,
-        type: "date",
+      const frequency = builder.buildFrequency();
+      expect(frequency).toEqual({
+        type: "yearly",
+        kind: "date",
         month: 3,
         day: 15,
       });
     });
   });
 
-  describe("daily pattern", () => {
-    it("should return daily interval pattern for daily preset", () => {
+  describe("daily frequency", () => {
+    it("should return daily frequency for daily preset", () => {
       builder.setPreset("daily");
-      const pattern = builder.buildPattern();
-      expect(pattern).toEqual({
-        pattern_type: DaysPatternType.INTERVAL,
-        interval_value: 1,
-        interval_unit: "days",
+      const frequency = builder.buildFrequency();
+      expect(frequency).toEqual({
+        type: "daily",
       });
     });
   });
 
   describe("validation", () => {
-    it("should return null for valid pattern", () => {
+    it("should return null for valid frequency", () => {
       builder.setPreset("daily");
       expect(builder.validate()).toBeNull();
     });
 
-    it("should return error message for invalid pattern", () => {
+    it("should return error message for invalid frequency", () => {
       builder.setPreset("weekly");
       builder.setSelectedDays([]);
       expect(builder.validate()).toBe(
@@ -205,7 +201,7 @@ describe("DaysPatternBuilder", () => {
       );
     });
 
-    it("should return error message for weekly pattern without days", () => {
+    it("should return error message for weekly frequency without days", () => {
       builder.setPreset("weekly");
       builder.setSelectedDays([]);
       expect(builder.validate()).toBe(
@@ -214,54 +210,41 @@ describe("DaysPatternBuilder", () => {
     });
   });
 
-  describe("detectPresetFromPattern", () => {
-    it("should detect daily from interval pattern with 1 day", () => {
-      const pattern: DaysPattern = {
-        pattern_type: DaysPatternType.INTERVAL,
-        interval_value: 1,
-        interval_unit: "days",
+  describe("detectPresetFromFrequency (via constructor)", () => {
+    it("should detect daily from daily frequency", () => {
+      const frequency: Frequency = {
+        type: "daily",
       };
-      const detected = builder.detectPresetFromPattern(pattern);
-      expect(detected).toBe("daily");
+      const newBuilder = new FrequencyBuilder(frequency);
+      expect(newBuilder.getPreset()).toBe("daily");
     });
 
-    it("should detect daily from any interval pattern (simplified UI)", () => {
-      const pattern: DaysPattern = {
-        pattern_type: DaysPatternType.INTERVAL,
-        interval_value: 3,
-        interval_unit: "weeks",
-      };
-      const detected = builder.detectPresetFromPattern(pattern);
-      // Simplified UI maps all intervals to daily
-      expect(detected).toBe("daily");
-    });
-
-    it("should detect weekly from day-of-week pattern", () => {
-      const pattern: DaysPattern = {
-        pattern_type: DaysPatternType.DAY_OF_WEEK,
+    it("should detect weekly from weekly frequency", () => {
+      const frequency: Frequency = {
+        type: "weekly",
         days: [1, 2, 3, 4, 5],
       };
-      const detected = builder.detectPresetFromPattern(pattern);
-      expect(detected).toBe("weekly");
+      const newBuilder = new FrequencyBuilder(frequency);
+      expect(newBuilder.getPreset()).toBe("weekly");
     });
 
-    it("should detect weekly from other day-of-week patterns", () => {
-      const pattern: DaysPattern = {
-        pattern_type: DaysPatternType.DAY_OF_WEEK,
+    it("should detect weekly from other weekly frequencies", () => {
+      const frequency: Frequency = {
+        type: "weekly",
         days: [0, 6], // Sunday and Saturday
       };
-      const detected = builder.detectPresetFromPattern(pattern);
-      expect(detected).toBe("weekly");
+      const newBuilder = new FrequencyBuilder(frequency);
+      expect(newBuilder.getPreset()).toBe("weekly");
     });
 
-    it("should detect monthly from day-of-month pattern", () => {
-      const pattern: DaysPattern = {
-        pattern_type: DaysPatternType.DAY_OF_MONTH,
-        type: "day_number",
+    it("should detect monthly from monthly frequency", () => {
+      const frequency: Frequency = {
+        type: "monthly",
+        kind: "day_number",
         day_numbers: [1, 15, 30], // Multiple days
       };
-      const detected = builder.detectPresetFromPattern(pattern);
-      expect(detected).toBe("monthly");
+      const newBuilder = new FrequencyBuilder(frequency);
+      expect(newBuilder.getPreset()).toBe("monthly");
     });
   });
 
@@ -294,32 +277,32 @@ describe("DaysPatternBuilder", () => {
   });
 
   describe("validate error handling", () => {
-    it("should return error message for weekly pattern without days", () => {
+    it("should return error message for weekly frequency without days", () => {
       builder.setPreset("weekly");
       builder.setSelectedDays([]);
       const error = builder.validate();
       expect(error).toBe("Please select at least one day of the week");
     });
 
-    it("should return null for valid daily pattern", () => {
+    it("should return null for valid daily frequency", () => {
       builder.setPreset("daily");
       expect(builder.validate()).toBeNull();
     });
 
-    it("should return null for valid weekly pattern", () => {
+    it("should return null for valid weekly frequency", () => {
       builder.setPreset("weekly");
       builder.setSelectedDays([1, 3, 5]);
       expect(builder.validate()).toBeNull();
     });
 
-    it("should return null for valid monthly pattern", () => {
+    it("should return null for valid monthly frequency", () => {
       builder.setPreset("monthly");
       builder.setMonthlyType("day");
       builder.setMonthlyDay(15);
       expect(builder.validate()).toBeNull();
     });
 
-    it("should return null for valid yearly pattern", () => {
+    it("should return null for valid yearly frequency", () => {
       builder.setPreset("yearly");
       builder.setYearlyMonth(3);
       builder.setYearlyDay(15);
