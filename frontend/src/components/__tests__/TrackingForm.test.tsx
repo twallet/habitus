@@ -485,6 +485,12 @@ describe("TrackingForm", () => {
         await user.type(questionInput, "Did I exercise?");
         await setFrequency(user, "One-time");
 
+        // Clear the one-time date to trigger validation error
+        const dateInput = document.getElementById("one-time-date") as HTMLInputElement;
+        if (dateInput) {
+            await user.clear(dateInput);
+        }
+
         // Submit button should be disabled when no one-time date
         const submitBtn = screen.getByRole("button", { name: /^create$/i }) as HTMLButtonElement;
         expect(submitBtn.disabled).toBe(true);
@@ -494,8 +500,8 @@ describe("TrackingForm", () => {
         fireEvent.submit(form);
 
         await waitFor(() => {
-            const errorText = screen.queryByText(/date is required for one-time tracking/i) ||
-                screen.queryByText(/at least one time is required for one-time tracking/i);
+            const errorText = screen.queryByText(/one-time date is required/i) ||
+                screen.queryByText(/at least one time is required/i);
             expect(errorText).toBeInTheDocument();
         });
         expect(mockOnSubmit).not.toHaveBeenCalled();

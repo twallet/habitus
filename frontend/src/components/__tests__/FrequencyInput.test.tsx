@@ -638,7 +638,7 @@ describe("FrequencyInput", () => {
         const select = screen.getByRole("combobox", { name: /frequency/i }) as HTMLSelectElement;
         const options = Array.from(select.options).map(opt => opt.value);
 
-        expect(options).toContain("One-time");
+        expect(options).toContain("one-time");
     });
 
     it("should hide frequency selector when hideFrequencySelector is true", () => {
