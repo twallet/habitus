@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { FrequencyInput } from "../FrequencyInput";
-import { DaysPattern, DaysPatternType } from "../../models/Tracking";
+import { Frequency } from "../../models/Tracking";
 
 describe("FrequencyInput", () => {
     const mockOnChange = vi.fn();
@@ -16,6 +16,7 @@ describe("FrequencyInput", () => {
     it("should render frequency selector", () => {
         render(
             <FrequencyInput
+                value={{ type: "daily" }}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -29,6 +30,7 @@ describe("FrequencyInput", () => {
     it("should have daily as default preset", () => {
         render(
             <FrequencyInput
+                value={{ type: "daily" }}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -38,9 +40,10 @@ describe("FrequencyInput", () => {
         expect(select).toHaveValue("daily");
     });
 
-    it("should call onChange with daily pattern for daily preset", async () => {
+    it("should call onChange with daily frequency for daily preset", async () => {
         render(
             <FrequencyInput
+                value={{ type: "daily" }}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -49,9 +52,7 @@ describe("FrequencyInput", () => {
         await waitFor(() => {
             expect(mockOnChange).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    pattern_type: DaysPatternType.INTERVAL,
-                    interval_value: 1,
-                    interval_unit: "days",
+                    type: "daily",
                 })
             );
         });
@@ -61,6 +62,7 @@ describe("FrequencyInput", () => {
         const user = userEvent.setup();
         render(
             <FrequencyInput
+                value={{ type: "daily" }}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -78,6 +80,7 @@ describe("FrequencyInput", () => {
         const user = userEvent.setup();
         render(
             <FrequencyInput
+                value={{ type: "daily" }}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -94,6 +97,7 @@ describe("FrequencyInput", () => {
         const user = userEvent.setup();
         render(
             <FrequencyInput
+                value={{ type: "daily" }}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -116,7 +120,7 @@ describe("FrequencyInput", () => {
             expect(tuesdayButton).toHaveClass("selected");
             expect(mockOnChange).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    pattern_type: DaysPatternType.DAY_OF_WEEK,
+                    type: "weekly",
                     days: expect.arrayContaining([1, 2]), // Monday and Tuesday
                 })
             );
@@ -127,6 +131,7 @@ describe("FrequencyInput", () => {
         const user = userEvent.setup();
         render(
             <FrequencyInput
+                value={{ type: "daily" }}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -142,6 +147,7 @@ describe("FrequencyInput", () => {
         const user = userEvent.setup();
         render(
             <FrequencyInput
+                value={{ type: "daily" }}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -158,15 +164,11 @@ describe("FrequencyInput", () => {
     });
 
     it("should initialize from value prop", () => {
-        const pattern: DaysPattern = {
-            pattern_type: DaysPatternType.INTERVAL,
-            interval_value: 1,
-            interval_unit: "days",
-        };
+        const frequency: Frequency = { type: "daily" };
 
         render(
             <FrequencyInput
-                value={pattern}
+                value={frequency}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -179,6 +181,7 @@ describe("FrequencyInput", () => {
     it("should display error message when provided", () => {
         render(
             <FrequencyInput
+                value={{ type: "daily" }}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
                 error="Test error message"
@@ -205,6 +208,7 @@ describe("FrequencyInput", () => {
         const user = userEvent.setup();
         render(
             <FrequencyInput
+                value={{ type: "daily" }}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -217,10 +221,10 @@ describe("FrequencyInput", () => {
         // But if we manually clear all days, it should fail
         // Since the component defaults to Monday, validation should pass
         await waitFor(() => {
-            // Component should call onChange with a valid pattern (defaults to Monday)
+            // Component should call onChange with a valid frequency (defaults to Monday)
             expect(mockOnChange).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    pattern_type: DaysPatternType.DAY_OF_WEEK,
+                    type: "weekly",
                     days: expect.arrayContaining([1]),
                 })
             );
@@ -231,6 +235,7 @@ describe("FrequencyInput", () => {
         const user = userEvent.setup();
         render(
             <FrequencyInput
+                value={{ type: "daily" }}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -250,10 +255,10 @@ describe("FrequencyInput", () => {
         await waitFor(() => {
             const calls = mockOnChange.mock.calls;
             const matchingCall = calls.find(call => {
-                const pattern = call[0];
-                return pattern.pattern_type === DaysPatternType.DAY_OF_MONTH &&
-                    pattern.type === "day_number" &&
-                    pattern.day_numbers?.[0] === 15;
+                const frequency = call[0] as Frequency;
+                return frequency.type === "monthly" &&
+                    frequency.kind === "day_number" &&
+                    frequency.day_numbers?.[0] === 15;
             });
             expect(matchingCall).toBeDefined();
         }, { timeout: 2000 });
@@ -263,6 +268,7 @@ describe("FrequencyInput", () => {
         const user = userEvent.setup();
         render(
             <FrequencyInput
+                value={{ type: "daily" }}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -281,8 +287,8 @@ describe("FrequencyInput", () => {
         await waitFor(() => {
             expect(mockOnChange).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    pattern_type: DaysPatternType.DAY_OF_MONTH,
-                    type: "last_day",
+                    type: "monthly",
+                    kind: "last_day",
                 })
             );
         });
@@ -292,6 +298,7 @@ describe("FrequencyInput", () => {
         const user = userEvent.setup();
         render(
             <FrequencyInput
+                value={{ type: "daily" }}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -316,8 +323,8 @@ describe("FrequencyInput", () => {
         await waitFor(() => {
             expect(mockOnChange).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    pattern_type: DaysPatternType.DAY_OF_MONTH,
-                    type: "weekday_ordinal",
+                    type: "monthly",
+                    kind: "weekday_ordinal",
                 })
             );
         });
@@ -327,6 +334,7 @@ describe("FrequencyInput", () => {
         const user = userEvent.setup();
         render(
             <FrequencyInput
+                value={{ type: "daily" }}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -363,11 +371,11 @@ describe("FrequencyInput", () => {
         await waitFor(() => {
             const calls = mockOnChange.mock.calls;
             const matchingCall = calls.find(call => {
-                const pattern = call[0];
-                return pattern.pattern_type === DaysPatternType.DAY_OF_YEAR &&
-                    pattern.type === "date" &&
-                    pattern.month === 3 &&
-                    pattern.day === 15;
+                const frequency = call[0] as Frequency;
+                return frequency.type === "yearly" &&
+                    frequency.kind === "date" &&
+                    frequency.month === 3 &&
+                    frequency.day === 15;
             });
             expect(matchingCall).toBeDefined();
         }, { timeout: 2000 });
@@ -377,11 +385,7 @@ describe("FrequencyInput", () => {
         const user = userEvent.setup();
         render(
             <FrequencyInput
-                value={{
-                    pattern_type: DaysPatternType.INTERVAL,
-                    interval_value: 1,
-                    interval_unit: "days",
-                }}
+                value={{ type: "daily" }}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -503,14 +507,14 @@ describe("FrequencyInput", () => {
     });
 
     it("should not re-initialize from value when value matches last sent pattern", async () => {
-        const initialPattern: DaysPattern = {
-            pattern_type: DaysPatternType.DAY_OF_WEEK,
+        const initialFrequency: Frequency = {
+            type: "weekly",
             days: [1],
         };
 
         const { rerender } = render(
             <FrequencyInput
-                value={initialPattern}
+                value={initialFrequency}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -524,11 +528,11 @@ describe("FrequencyInput", () => {
         const select = screen.getByRole("combobox", { name: /frequency/i });
         expect(select).toHaveValue("weekly");
 
-        // Get the last pattern that was sent
+        // Get the last frequency that was sent
         const lastCall = mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1][0];
         mockOnChange.mockClear();
 
-        // Simulate parent updating value with the same pattern we sent
+        // Simulate parent updating value with the same frequency we sent
         rerender(
             <FrequencyInput
                 value={lastCall}
@@ -546,19 +550,19 @@ describe("FrequencyInput", () => {
     });
 
     it("should re-initialize when value prop changes to a different pattern", async () => {
-        const initialPattern: DaysPattern = {
-            pattern_type: DaysPatternType.DAY_OF_WEEK,
+        const initialFrequency: Frequency = {
+            type: "weekly",
             days: [1],
         };
 
-        const newPattern: DaysPattern = {
-            pattern_type: DaysPatternType.DAY_OF_WEEK,
+        const newFrequency: Frequency = {
+            type: "weekly",
             days: [1, 3, 5],
         };
 
         const { rerender } = render(
             <FrequencyInput
-                value={initialPattern}
+                value={initialFrequency}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -580,10 +584,10 @@ describe("FrequencyInput", () => {
 
         mockOnChange.mockClear();
 
-        // Change to a different pattern
+        // Change to a different frequency
         rerender(
             <FrequencyInput
-                value={newPattern}
+                value={newFrequency}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -610,6 +614,7 @@ describe("FrequencyInput", () => {
     it("should show Yearly option in frequency selector", () => {
         render(
             <FrequencyInput
+                value={{ type: "daily" }}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -624,6 +629,7 @@ describe("FrequencyInput", () => {
     it("should show One-time option in frequency selector", () => {
         render(
             <FrequencyInput
+                value={{ type: "daily" }}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -652,6 +658,7 @@ describe("FrequencyInput", () => {
         const user = userEvent.setup();
         render(
             <FrequencyInput
+                value={{ type: "daily" }}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />

@@ -3,7 +3,7 @@ import { vi } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { TrackingForm } from "../TrackingForm";
-import { DaysPatternType } from "../../models/Tracking";
+import { Frequency } from "../../models/Tracking";
 
 describe("TrackingForm", () => {
     const mockOnSubmit = vi.fn().mockResolvedValue(undefined);
@@ -184,10 +184,9 @@ describe("TrackingForm", () => {
                 undefined,
                 [{ hour: 9, minutes: 0 }],
                 expect.objectContaining({
-                    pattern_type: DaysPatternType.DAY_OF_WEEK,
+                    type: "weekly",
                     days: expect.any(Array),
-                }),
-                undefined
+                })
             );
         });
     });
@@ -212,9 +211,8 @@ describe("TrackingForm", () => {
                 undefined,
                 [{ hour: 9, minutes: 0 }],
                 expect.objectContaining({
-                    pattern_type: DaysPatternType.DAY_OF_MONTH,
-                }),
-                undefined
+                    type: "monthly",
+                })
             );
         });
     });
@@ -239,12 +237,11 @@ describe("TrackingForm", () => {
                 undefined,
                 [{ hour: 9, minutes: 0 }],
                 expect.objectContaining({
-                    pattern_type: DaysPatternType.DAY_OF_YEAR,
-                    type: "date",
+                    type: "yearly",
+                    kind: "date",
                     month: expect.any(Number),
                     day: expect.any(Number),
-                }),
-                undefined
+                })
             );
         });
     });
@@ -255,13 +252,13 @@ describe("TrackingForm", () => {
 
         await setFrequency(user, "One-time");
 
-        const frequencySelect = document.getElementById("tracking-frequency") as HTMLSelectElement;
+        const frequencySelect = document.getElementById("frequency-preset") as HTMLSelectElement;
         const dateInput = document.getElementById("one-time-date") as HTMLInputElement;
 
         expect(frequencySelect).toBeInTheDocument();
         expect(dateInput).toBeInTheDocument();
 
-        // Both should be in the same frequency-field-row
+        // Both should be in the same frequency-field-row (within FrequencyInput)
         const frequencyFieldRow = frequencySelect.closest(".frequency-field-row");
         const dateFieldRow = dateInput.closest(".frequency-field-row");
         expect(frequencyFieldRow).toBe(dateFieldRow);
@@ -307,11 +304,8 @@ describe("TrackingForm", () => {
                 undefined,
                 [{ hour: 9, minutes: 0 }],
                 expect.objectContaining({
-                    pattern_type: DaysPatternType.INTERVAL,
-                    interval_value: 1,
-                    interval_unit: "days",
-                }),
-                undefined
+                    type: "daily",
+                })
             );
         });
     });
@@ -341,8 +335,10 @@ describe("TrackingForm", () => {
             expect(callArgs[2]).toBeUndefined();
             expect(callArgs[3]).toHaveLength(1);
             expect(callArgs[3][0]).toEqual({ hour: 9, minutes: 0 });
-            expect(callArgs[4]).toBeUndefined();
-            expect(callArgs[5]).toBe(dateString);
+            expect(callArgs[4]).toEqual(expect.objectContaining({
+                type: "one-time",
+                date: dateString,
+            }));
         });
     });
 
@@ -370,11 +366,8 @@ describe("TrackingForm", () => {
                 undefined,
                 [{ hour: 9, minutes: 0 }],
                 expect.objectContaining({
-                    pattern_type: DaysPatternType.INTERVAL,
-                    interval_value: 1,
-                    interval_unit: "days",
-                }),
-                undefined
+                    type: "daily",
+                })
             );
         });
     });
@@ -602,18 +595,17 @@ describe("TrackingForm", () => {
         await waitFor(() => {
             expect(mockOnSubmit).toHaveBeenCalled();
             const callArgs = mockOnSubmit.mock.calls[0];
-            const daysPattern = callArgs[4] as { pattern_type: DaysPatternType; days: number[] };
+            const frequency = callArgs[4] as Frequency;
 
-            expect(daysPattern.pattern_type).toBe(DaysPatternType.DAY_OF_WEEK);
-            expect(daysPattern.days).toHaveLength(1);
+            expect(frequency.type).toBe("weekly");
+            expect(frequency.days).toBeDefined();
+            expect(Array.isArray(frequency.days)).toBe(true);
+            expect(frequency.days!.length).toBeGreaterThan(0);
 
             // Verify it's a valid weekday (0-6)
             // Note: The exact weekday depends on when the test runs, so we just verify it's valid
-            expect(daysPattern.days).toBeDefined();
-            expect(Array.isArray(daysPattern.days)).toBe(true);
-            expect(daysPattern.days.length).toBeGreaterThan(0);
-            expect(daysPattern.days[0]).toBeGreaterThanOrEqual(0);
-            expect(daysPattern.days[0]).toBeLessThanOrEqual(6);
+            expect(frequency.days![0]).toBeGreaterThanOrEqual(0);
+            expect(frequency.days![0]).toBeLessThanOrEqual(6);
         });
     });
 
@@ -634,18 +626,18 @@ describe("TrackingForm", () => {
         await waitFor(() => {
             expect(mockOnSubmit).toHaveBeenCalled();
             const callArgs = mockOnSubmit.mock.calls[0];
-            const daysPattern = callArgs[4] as { pattern_type: DaysPatternType; day_numbers: number[] };
+            const frequency = callArgs[4] as Frequency;
 
-            expect(daysPattern.pattern_type).toBe(DaysPatternType.DAY_OF_MONTH);
-            expect(daysPattern.day_numbers).toHaveLength(1);
+            expect(frequency.type).toBe("monthly");
+            expect(frequency.kind).toBe("day_number");
+            expect(frequency.day_numbers).toBeDefined();
+            expect(Array.isArray(frequency.day_numbers)).toBe(true);
+            expect(frequency.day_numbers!.length).toBeGreaterThan(0);
 
             // Verify it's a valid day number (1-31)
             // Note: The exact day depends on when the test runs, so we just verify it's valid
-            expect(daysPattern.day_numbers).toBeDefined();
-            expect(Array.isArray(daysPattern.day_numbers)).toBe(true);
-            expect(daysPattern.day_numbers.length).toBeGreaterThan(0);
-            expect(daysPattern.day_numbers[0]).toBeGreaterThanOrEqual(1);
-            expect(daysPattern.day_numbers[0]).toBeLessThanOrEqual(31);
+            expect(frequency.day_numbers![0]).toBeGreaterThanOrEqual(1);
+            expect(frequency.day_numbers![0]).toBeLessThanOrEqual(31);
         });
     });
 
@@ -666,18 +658,18 @@ describe("TrackingForm", () => {
         await waitFor(() => {
             expect(mockOnSubmit).toHaveBeenCalled();
             const callArgs = mockOnSubmit.mock.calls[0];
-            const daysPattern = callArgs[4] as { pattern_type: DaysPatternType; month: number; day: number };
+            const frequency = callArgs[4] as Frequency;
 
-            expect(daysPattern.pattern_type).toBe(DaysPatternType.DAY_OF_YEAR);
+            expect(frequency.type).toBe("yearly");
+            expect(frequency.kind).toBe("date");
 
             // Verify it's tomorrow's month and day
             // Note: The pattern is set when frequency changes, so we need to check
             // the actual pattern that was submitted, not recalculate tomorrow
-            expect(daysPattern.pattern_type).toBe(DaysPatternType.DAY_OF_YEAR);
-            expect(daysPattern.month).toBeGreaterThanOrEqual(1);
-            expect(daysPattern.month).toBeLessThanOrEqual(12);
-            expect(daysPattern.day).toBeGreaterThanOrEqual(1);
-            expect(daysPattern.day).toBeLessThanOrEqual(31);
+            expect(frequency.month).toBeGreaterThanOrEqual(1);
+            expect(frequency.month).toBeLessThanOrEqual(12);
+            expect(frequency.day).toBeGreaterThanOrEqual(1);
+            expect(frequency.day).toBeLessThanOrEqual(31);
         });
     });
 
@@ -702,11 +694,12 @@ describe("TrackingForm", () => {
         await waitFor(() => {
             expect(mockOnSubmit).toHaveBeenCalled();
             const callArgs = mockOnSubmit.mock.calls[0];
-            const daysPattern = callArgs[4] as { pattern_type: DaysPatternType; day_numbers: number[] };
+            const frequency = callArgs[4] as Frequency;
 
             // Should be monthly pattern, not weekly
-            expect(daysPattern.pattern_type).toBe(DaysPatternType.DAY_OF_MONTH);
-            expect(daysPattern.day_numbers).toBeDefined();
+            expect(frequency.type).toBe("monthly");
+            expect(frequency.kind).toBe("day_number");
+            expect(frequency.day_numbers).toBeDefined();
         });
     });
 });
