@@ -69,12 +69,14 @@ async function createTestDatabase(): Promise<Database> {
               question TEXT NOT NULL CHECK(length(question) <= 100),
               notes TEXT,
               icon TEXT,
-              days TEXT,
+              frequency TEXT NOT NULL,
               state TEXT NOT NULL DEFAULT 'Running' CHECK(state IN ('Running', 'Paused', 'Archived')),
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             );
+            CREATE INDEX IF NOT EXISTS idx_trackings_user_id ON trackings(user_id);
+            CREATE INDEX IF NOT EXISTS idx_trackings_created_at ON trackings(created_at);
             CREATE TABLE IF NOT EXISTS tracking_schedules (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               tracking_id INTEGER NOT NULL,
@@ -138,10 +140,16 @@ describe("Reminders Routes", () => {
     testUserId = userResult.lastID;
 
     const trackingResult = await testDb.run(
-      "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-      [testUserId, "Did I exercise?"]
+      "INSERT INTO trackings (user_id, question, frequency, state) VALUES (?, ?, ?, ?)",
+      [testUserId, "Did I exercise?", JSON.stringify({ type: "daily" }), "Running"]
     );
     testTrackingId = trackingResult.lastID;
+
+    // Create a schedule for the tracking
+    await testDb.run(
+      "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+      [testTrackingId, 9, 0]
+    );
 
     vi.restoreAllMocks();
 
