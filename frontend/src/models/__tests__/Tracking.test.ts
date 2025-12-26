@@ -8,6 +8,7 @@ describe("Tracking", () => {
         user_id: 10,
         question: "Did you exercise today?",
         notes: "Some notes",
+        frequency: { type: "daily" },
         created_at: "2024-01-01T00:00:00Z",
         updated_at: "2024-01-02T00:00:00Z",
       };
@@ -27,6 +28,7 @@ describe("Tracking", () => {
         id: 1,
         user_id: 10,
         question: "Did you exercise today?",
+        frequency: { type: "daily" },
       };
 
       const tracking = new Tracking(data);
@@ -46,6 +48,7 @@ describe("Tracking", () => {
         id: 1,
         user_id: 10,
         question: "  Did you exercise?  ",
+        frequency: { type: "daily" },
       });
 
       const validated = tracking.validate();
@@ -60,6 +63,7 @@ describe("Tracking", () => {
         user_id: 10,
         question: "Did you exercise?",
         notes: "  Some notes  ",
+        frequency: { type: "daily" },
       });
 
       const validated = tracking.validate();
@@ -72,6 +76,7 @@ describe("Tracking", () => {
         id: 1,
         user_id: 10,
         question: "Did you exercise?",
+        frequency: { type: "daily" },
       });
 
       const validated = tracking.validate();
@@ -87,6 +92,7 @@ describe("Tracking", () => {
         user_id: 10,
         question: "Did you exercise?",
         notes: "Some notes",
+        frequency: { type: "daily" },
         created_at: "2024-01-01T00:00:00Z",
         updated_at: "2024-01-02T00:00:00Z",
       });
@@ -99,7 +105,7 @@ describe("Tracking", () => {
         question: "Did you exercise?",
         notes: "Some notes",
         icon: undefined,
-        days: undefined,
+        frequency: { type: "daily" },
         state: "Running",
         created_at: "2024-01-01T00:00:00Z",
         updated_at: "2024-01-02T00:00:00Z",
@@ -111,6 +117,7 @@ describe("Tracking", () => {
         id: 1,
         user_id: 10,
         question: "Did you exercise?",
+        frequency: { type: "daily" },
       });
 
       const json = tracking.toJSON();
@@ -121,7 +128,7 @@ describe("Tracking", () => {
         question: "Did you exercise?",
         notes: undefined,
         icon: undefined,
-        days: undefined,
+        frequency: { type: "daily" },
         state: "Running",
         created_at: undefined,
         updated_at: undefined,
