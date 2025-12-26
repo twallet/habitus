@@ -261,8 +261,16 @@ describe("TrackingService", () => {
     });
 
     it("should throw error when no schedules provided", async () => {
+      const frequency: Frequency = { type: "daily" };
       await expect(
-        trackingService.createTracking(testUserId, "Valid question")
+        trackingService.createTracking(
+          testUserId,
+          "Valid question",
+          undefined,
+          undefined,
+          undefined, // no schedules provided
+          frequency
+        )
       ).rejects.toThrow("At least one schedule is required");
     });
 
