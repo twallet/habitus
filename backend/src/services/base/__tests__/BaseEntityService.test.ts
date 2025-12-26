@@ -73,7 +73,7 @@ async function createTestDatabase(): Promise<Database> {
               question TEXT NOT NULL CHECK(length(question) <= 100),
               notes TEXT,
               icon TEXT,
-              days TEXT,
+              frequency TEXT NOT NULL,
               state TEXT NOT NULL DEFAULT 'Running' CHECK(state IN ('Running', 'Paused', 'Archived')),
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -136,8 +136,8 @@ describe("BaseEntityService", () => {
 
     it("should return entity when it exists", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [testUserId, "Test question"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [testUserId, "Test question", JSON.stringify({ type: "daily" })]
       );
       const trackingId = result.lastID!;
 
@@ -156,12 +156,12 @@ describe("BaseEntityService", () => {
 
     it("should return all entities for a user", async () => {
       await testDb.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [testUserId, "Question 1"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [testUserId, "Question 1", JSON.stringify({ type: "daily" })]
       );
       await testDb.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [testUserId, "Question 2"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [testUserId, "Question 2", JSON.stringify({ type: "daily" })]
       );
 
       const entities = await testService.getAllByUserId(testUserId);
