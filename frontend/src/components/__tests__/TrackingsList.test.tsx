@@ -3,7 +3,7 @@ import { vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { TrackingsList } from "../TrackingsList";
-import { TrackingData, DaysPatternType, TrackingState } from "../../models/Tracking";
+import { TrackingData, Frequency, TrackingState } from "../../models/Tracking";
 import { ReminderData, ReminderStatus, ReminderValue } from "../../models/Reminder";
 import * as useTrackingsModule from "../../hooks/useTrackings";
 import * as useRemindersModule from "../../hooks/useReminders";
@@ -317,11 +317,7 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                days: {
-                    pattern_type: DaysPatternType.INTERVAL,
-                    interval_value: 1,
-                    interval_unit: "days",
-                },
+                frequency: { type: "daily" },
             },
         ];
 
@@ -342,8 +338,8 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                days: {
-                    pattern_type: DaysPatternType.DAY_OF_WEEK,
+                frequency: {
+                    type: "weekly",
                     days: [1, 3, 5], // Monday, Wednesday, Friday
                 },
             },
@@ -366,9 +362,9 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                days: {
-                    pattern_type: DaysPatternType.DAY_OF_MONTH,
-                    type: "day_number",
+                frequency: {
+                    type: "monthly",
+                    kind: "day_number",
                     day_numbers: [1, 15],
                 },
             },
@@ -391,9 +387,9 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                days: {
-                    pattern_type: DaysPatternType.DAY_OF_YEAR,
-                    type: "date",
+                frequency: {
+                    type: "yearly",
+                    kind: "date",
                     month: 1,
                     day: 1,
                 },
@@ -437,8 +433,8 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                days: {
-                    pattern_type: DaysPatternType.DAY_OF_WEEK,
+                frequency: {
+                    type: "weekly",
                     days: [1, 3, 5],
                 },
             },
@@ -536,8 +532,8 @@ describe("TrackingsList", () => {
                     { id: 1, tracking_id: 1, hour: 9, minutes: 0 },
                     { id: 2, tracking_id: 1, hour: 18, minutes: 30 },
                 ],
-                days: {
-                    pattern_type: DaysPatternType.DAY_OF_WEEK,
+                frequency: {
+                    type: "weekly",
                     days: [1, 3, 5],
                 },
             },
@@ -659,11 +655,7 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                days: {
-                    pattern_type: DaysPatternType.INTERVAL,
-                    interval_value: 2,
-                    interval_unit: "weeks",
-                },
+                frequency: { type: "daily" }, // INTERVAL patterns are no longer supported, use daily
             },
         ];
 
@@ -674,8 +666,8 @@ describe("TrackingsList", () => {
             />
         );
 
-        const every2WeeksElements = screen.getAllByText("Every 2 weeks");
-        expect(every2WeeksElements.length).toBeGreaterThan(0);
+        const dailyElements = screen.getAllByText("Daily");
+        expect(dailyElements.length).toBeGreaterThan(0);
     });
 
     it("should format last day of month pattern", () => {
@@ -684,9 +676,9 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                days: {
-                    pattern_type: DaysPatternType.DAY_OF_MONTH,
-                    type: "last_day",
+                frequency: {
+                    type: "monthly",
+                    kind: "last_day",
                 },
             },
         ];
@@ -708,9 +700,9 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                days: {
-                    pattern_type: DaysPatternType.DAY_OF_MONTH,
-                    type: "weekday_ordinal",
+                frequency: {
+                    type: "monthly",
+                    kind: "weekday_ordinal",
                     weekday: 1, // Monday
                     ordinal: 2, // Second
                 },
@@ -734,8 +726,8 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
-                days: {
-                    pattern_type: DaysPatternType.DAY_OF_WEEK,
+                frequency: {
+                    type: "weekly",
                     days: [0, 1, 2, 3, 4, 5, 6], // All days
                 },
             },
@@ -1062,7 +1054,7 @@ describe("TrackingsList", () => {
                 question: "Did I exercise today?",
                 state: TrackingState.RUNNING,
                 schedules: [{ id: 1, tracking_id: 1, hour: 8, minutes: 0 }],
-                days: { pattern_type: DaysPatternType.INTERVAL, interval_value: 1, interval_unit: "days" },
+                frequency: { type: "daily" },
             },
             {
                 id: 2,
@@ -1070,7 +1062,7 @@ describe("TrackingsList", () => {
                 question: "Did I meditate?",
                 state: TrackingState.PAUSED,
                 schedules: [{ id: 2, tracking_id: 2, hour: 9, minutes: 30 }],
-                days: { pattern_type: DaysPatternType.DAY_OF_WEEK, days: [1, 3, 5] },
+                frequency: { type: "weekly", days: [1, 3, 5] },
             },
             {
                 id: 3,
@@ -1078,7 +1070,7 @@ describe("TrackingsList", () => {
                 question: "Did I read a book?",
                 state: TrackingState.ARCHIVED,
                 schedules: [{ id: 3, tracking_id: 3, hour: 20, minutes: 0 }],
-                days: { pattern_type: DaysPatternType.INTERVAL, interval_value: 1, interval_unit: "days" },
+                frequency: { type: "daily" },
             },
         ];
 
@@ -1759,8 +1751,8 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         question: "Did I exercise?",
                         state: TrackingState.RUNNING,
-                        days: {
-                            pattern_type: DaysPatternType.DAY_OF_WEEK,
+                        frequency: {
+                            type: "weekly",
                             days: [1, 3, 5],
                         },
                     },
@@ -1785,8 +1777,8 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         question: "Did I exercise?",
                         state: TrackingState.RUNNING,
-                        days: {
-                            pattern_type: DaysPatternType.DAY_OF_WEEK,
+                        frequency: {
+                            type: "weekly",
                             days: [2, 4, 6],
                         },
                         updated_at: new Date().toISOString(),
@@ -1800,7 +1792,7 @@ describe("TrackingsList", () => {
                     />
                 );
 
-                // refreshReminders should be called when days pattern changes
+                // refreshReminders should be called when frequency changes
                 expect(mockRefreshReminders).toHaveBeenCalled();
             });
 

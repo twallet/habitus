@@ -3,13 +3,11 @@ import { vi } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { EditTrackingModal } from '../EditTrackingModal';
-import { TrackingData, DaysPatternType } from '../../models/Tracking';
+import { TrackingData, Frequency } from '../../models/Tracking';
 
 describe('EditTrackingModal', () => {
-  const defaultDaysPattern = {
-    pattern_type: DaysPatternType.INTERVAL,
-    interval_value: 1,
-    interval_unit: "days" as const,
+  const defaultFrequency: Frequency = {
+    type: "daily",
   };
 
   const mockTracking: TrackingData = {
@@ -18,7 +16,7 @@ describe('EditTrackingModal', () => {
     notes: 'Some notes',
     user_id: 1,
     schedules: [{ id: 1, tracking_id: 1, hour: 9, minutes: 0 }],
-    days: defaultDaysPattern,
+    frequency: defaultFrequency,
   };
 
   const mockOnClose = vi.fn();
@@ -157,12 +155,11 @@ describe('EditTrackingModal', () => {
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith(
         1,
-        defaultDaysPattern,
-        'New question?',
-        undefined,
-        undefined,
-        [{ hour: 9, minutes: 0 }], // Schedules are always sent to preserve them
-        undefined, // oneTimeDate
+        defaultFrequency, // frequency
+        'New question?', // question
+        undefined, // notes
+        undefined, // icon
+        [{ hour: 9, minutes: 0 }], // schedules
       );
     });
     expect(mockOnClose).toHaveBeenCalledTimes(1);
@@ -275,12 +272,11 @@ describe('EditTrackingModal', () => {
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith(
         1,
-        defaultDaysPattern,
-        undefined,
-        undefined,
-        '', // Empty string to clear the icon
-        [{ hour: 9, minutes: 0 }], // Schedules are always sent to preserve them
-        undefined, // oneTimeDate
+        defaultFrequency, // frequency
+        undefined, // question
+        undefined, // notes
+        '', // icon (empty string to clear)
+        [{ hour: 9, minutes: 0 }], // schedules
       );
     });
   });
@@ -310,12 +306,11 @@ describe('EditTrackingModal', () => {
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith(
         1,
-        defaultDaysPattern,
-        undefined,
-        undefined,
-        '🏋️',
-        [{ hour: 9, minutes: 0 }], // Schedules are always sent to preserve them
-        undefined, // oneTimeDate
+        defaultFrequency, // frequency
+        undefined, // question
+        undefined, // notes
+        '🏋️', // icon
+        [{ hour: 9, minutes: 0 }], // schedules
       );
     });
   });
@@ -354,7 +349,7 @@ describe('EditTrackingModal', () => {
     const user = userEvent.setup();
     const oneTimeTracking: TrackingData = {
       ...mockTracking,
-      days: undefined, // One-time tracking has no days pattern
+      frequency: { type: "one-time", date: "2024-12-31" }, // One-time tracking
     };
 
     render(
@@ -377,12 +372,14 @@ describe('EditTrackingModal', () => {
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith(
         1,
-        undefined, // days is undefined for one-time
-        undefined,
-        undefined,
-        undefined,
-        [{ hour: 9, minutes: 0 }],
-        expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), // oneTimeDate should be a date string
+        expect.objectContaining({
+          type: "one-time",
+          date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), // date should be a date string
+        }), // frequency
+        undefined, // question
+        undefined, // notes
+        undefined, // icon
+        [{ hour: 9, minutes: 0 }], // schedules
       );
     });
   });
