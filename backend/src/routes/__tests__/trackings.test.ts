@@ -75,7 +75,7 @@ async function createTestDatabase(): Promise<Database> {
               question TEXT NOT NULL CHECK(length(question) <= 100),
               notes TEXT,
               icon TEXT,
-              days TEXT,
+              frequency TEXT NOT NULL,
               state TEXT NOT NULL DEFAULT 'Running' CHECK(state IN ('Running', 'Paused', 'Archived')),
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -202,12 +202,12 @@ describe("Trackings Routes", () => {
     it("should return all trackings for authenticated user", async () => {
       // Insert test trackings
       await testDb.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [testUserId, "Question 1"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [testUserId, "Question 1", JSON.stringify({ type: "daily" })]
       );
       await testDb.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [testUserId, "Question 2"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [testUserId, "Question 2", JSON.stringify({ type: "daily" })]
       );
 
       const response = await request(app)
@@ -252,8 +252,8 @@ describe("Trackings Routes", () => {
 
     it("should return tracking for existing id", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [testUserId, "Test Question"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", JSON.stringify({ type: "daily" })]
       );
       const trackingId = result.lastID;
 
@@ -301,11 +301,7 @@ describe("Trackings Routes", () => {
         .send({
           question: "Did I exercise today?",
           schedules: [{ hour: 9, minutes: 0 }],
-          days: {
-            pattern_type: "interval",
-            interval_value: 1,
-            interval_unit: "days",
-          },
+          frequency: { type: "daily" },
         });
 
       expect(response.status).toBe(201);
@@ -323,11 +319,7 @@ describe("Trackings Routes", () => {
           question: "Did I meditate?",
           notes: "Meditation notes",
           schedules: [{ hour: 10, minutes: 30 }],
-          days: {
-            pattern_type: "interval",
-            interval_value: 1,
-            interval_unit: "days",
-          },
+          frequency: { type: "daily" },
         });
 
       expect(response.status).toBe(201);
@@ -400,11 +392,7 @@ describe("Trackings Routes", () => {
         .send({
           question: "Test question",
           schedules: [{ hour: 9, minutes: 0 }],
-          days: {
-            pattern_type: "interval",
-            interval_value: 1,
-            interval_unit: "days",
-          },
+          frequency: { type: "daily" },
         });
 
       expect(response.status).toBe(400);
@@ -426,11 +414,7 @@ describe("Trackings Routes", () => {
         .send({
           question: "Test question",
           schedules: [{ hour: 9, minutes: 0 }],
-          days: {
-            pattern_type: "interval",
-            interval_value: 1,
-            interval_unit: "days",
-          },
+          frequency: { type: "daily" },
         });
 
       expect(response.status).toBe(500);
@@ -441,8 +425,8 @@ describe("Trackings Routes", () => {
   describe("PUT /api/trackings/:id", () => {
     it("should update tracking", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [testUserId, "Old Question"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [testUserId, "Old Question", JSON.stringify({ type: "daily" })]
       );
       const trackingId = result.lastID;
 
@@ -471,8 +455,8 @@ describe("Trackings Routes", () => {
 
     it("should return 400 when no fields to update", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [testUserId, "Test Question"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", JSON.stringify({ type: "daily" })]
       );
       const trackingId = result.lastID;
 
@@ -499,8 +483,8 @@ describe("Trackings Routes", () => {
 
     it("should return 400 when schedules is empty array", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [testUserId, "Test Question"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", JSON.stringify({ type: "daily" })]
       );
       const trackingId = result.lastID;
 
@@ -527,8 +511,8 @@ describe("Trackings Routes", () => {
       } as any);
 
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [testUserId, "Test Question"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", JSON.stringify({ type: "daily" })]
       );
       const trackingId = result.lastID;
 
@@ -553,8 +537,8 @@ describe("Trackings Routes", () => {
       } as any);
 
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [testUserId, "Test Question"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", JSON.stringify({ type: "daily" })]
       );
       const trackingId = result.lastID;
 
@@ -573,8 +557,8 @@ describe("Trackings Routes", () => {
   describe("DELETE /api/trackings/:id", () => {
     it("should delete tracking", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [testUserId, "Test Question"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", JSON.stringify({ type: "daily" })]
       );
       const trackingId = result.lastID;
 
@@ -632,8 +616,8 @@ describe("Trackings Routes", () => {
   describe("PATCH /api/trackings/:id/state", () => {
     it("should update tracking state from Running to Paused", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, state) VALUES (?, ?, ?)",
-        [testUserId, "Test Question", "Running"]
+        "INSERT INTO trackings (user_id, question, state, frequency) VALUES (?, ?, ?, ?)",
+        [testUserId, "Test Question", "Running", JSON.stringify({ type: "daily" })]
       );
       const trackingId = result.lastID;
 
@@ -681,8 +665,8 @@ describe("Trackings Routes", () => {
 
     it("should return 400 for same state transition", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, state) VALUES (?, ?, ?)",
-        [testUserId, "Test Question", "Running"]
+        "INSERT INTO trackings (user_id, question, state, frequency) VALUES (?, ?, ?, ?)",
+        [testUserId, "Test Question", "Running", JSON.stringify({ type: "daily" })]
       );
       const trackingId = result.lastID;
 
@@ -697,8 +681,8 @@ describe("Trackings Routes", () => {
 
     it("should return 400 when state is missing", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, state) VALUES (?, ?, ?)",
-        [testUserId, "Test Question", "Running"]
+        "INSERT INTO trackings (user_id, question, state, frequency) VALUES (?, ?, ?, ?)",
+        [testUserId, "Test Question", "Running", JSON.stringify({ type: "daily" })]
       );
       const trackingId = result.lastID;
 
@@ -713,8 +697,8 @@ describe("Trackings Routes", () => {
 
     it("should return 400 for invalid state value", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, state) VALUES (?, ?, ?)",
-        [testUserId, "Test Question", "Running"]
+        "INSERT INTO trackings (user_id, question, state, frequency) VALUES (?, ?, ?, ?)",
+        [testUserId, "Test Question", "Running", JSON.stringify({ type: "daily" })]
       );
       const trackingId = result.lastID;
 

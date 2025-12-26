@@ -6,7 +6,7 @@ import {
   ReminderStatus,
   ReminderValue,
 } from "../../models/Reminder.js";
-import { DaysPatternType } from "../../models/Tracking.js";
+import { Frequency } from "../../models/Tracking.js";
 import { Database } from "../../db/database.js";
 import { TrackingSchedule } from "../../models/TrackingSchedule.js";
 
@@ -49,7 +49,7 @@ async function createTestDatabase(): Promise<Database> {
               question TEXT NOT NULL CHECK(length(question) <= 100),
               notes TEXT,
               icon TEXT,
-              days TEXT,
+              frequency TEXT NOT NULL,
               state TEXT NOT NULL DEFAULT 'Running' CHECK(state IN ('Running', 'Paused', 'Archived')),
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -116,15 +116,11 @@ describe("ReminderService", () => {
     testUserId = userResult.lastID;
 
     const trackingResult = await testDb.run(
-      "INSERT INTO trackings (user_id, question, days, state) VALUES (?, ?, ?, ?)",
+      "INSERT INTO trackings (user_id, question, frequency, state) VALUES (?, ?, ?, ?)",
       [
         testUserId,
         "Did I exercise?",
-        JSON.stringify({
-          pattern_type: DaysPatternType.INTERVAL,
-          interval_value: 1,
-          interval_unit: "days",
-        }),
+        JSON.stringify({ type: "daily" }),
         "Running",
       ]
     );
@@ -165,15 +161,11 @@ describe("ReminderService", () => {
     it("should delete orphaned reminders (reminders whose tracking no longer exists)", async () => {
       // Create a tracking
       const trackingResult = await testDb.run(
-        "INSERT INTO trackings (user_id, question, days, state) VALUES (?, ?, ?, ?)",
+        "INSERT INTO trackings (user_id, question, frequency, state) VALUES (?, ?, ?, ?)",
         [
           testUserId,
           "Test Question",
-          JSON.stringify({
-            pattern_type: DaysPatternType.INTERVAL,
-            interval_value: 1,
-            interval_unit: "days",
-          }),
+          JSON.stringify({ type: "daily" }),
           "Running",
         ]
       );
@@ -730,15 +722,11 @@ describe("ReminderService", () => {
     it("should return null if no valid time found", async () => {
       // Create tracking without schedules
       const trackingResult = await testDb.run(
-        "INSERT INTO trackings (user_id, question, days, state) VALUES (?, ?, ?, ?)",
+        "INSERT INTO trackings (user_id, question, frequency, state) VALUES (?, ?, ?, ?)",
         [
           testUserId,
           "Test tracking",
-          JSON.stringify({
-            pattern_type: DaysPatternType.INTERVAL,
-            interval_value: 1,
-            interval_unit: "days",
-          }),
+          JSON.stringify({ type: "daily" }),
           "Running",
         ]
       );
@@ -864,11 +852,7 @@ describe("ReminderService", () => {
         id: testTrackingId,
         user_id: testUserId,
         question: "Did I exercise?",
-        days: {
-          pattern_type: DaysPatternType.INTERVAL,
-          interval_value: 1,
-          interval_unit: "days" as const,
-        },
+        frequency: { type: "daily" } as Frequency,
         schedules: schedules.map((s: any) => ({
           id: s.id,
           tracking_id: s.tracking_id,
@@ -893,11 +877,7 @@ describe("ReminderService", () => {
         id: testTrackingId,
         user_id: testUserId,
         question: "Did I exercise?",
-        days: {
-          pattern_type: DaysPatternType.INTERVAL,
-          interval_value: 1,
-          interval_unit: "days" as const,
-        },
+        frequency: { type: "daily" } as Frequency,
         schedules: [],
         state: "Running" as const,
       };
@@ -909,7 +889,7 @@ describe("ReminderService", () => {
       expect(nextTime).toBeNull();
     });
 
-    it("should return null if tracking has no days pattern", async () => {
+    it("should return null if tracking has no frequency", async () => {
       const schedules = await testDb.all(
         "SELECT * FROM tracking_schedules WHERE tracking_id = ?",
         [testTrackingId]
@@ -949,11 +929,7 @@ describe("ReminderService", () => {
         id: testTrackingId,
         user_id: testUserId,
         question: "Did I exercise?",
-        days: {
-          pattern_type: DaysPatternType.INTERVAL,
-          interval_value: 1,
-          interval_unit: "days" as const,
-        },
+        frequency: { type: "daily" } as Frequency,
         schedules: schedules.map((s: any) => ({
           id: s.id,
           tracking_id: s.tracking_id,
@@ -983,10 +959,10 @@ describe("ReminderService", () => {
         id: testTrackingId,
         user_id: testUserId,
         question: "Did I exercise?",
-        days: {
-          pattern_type: DaysPatternType.DAY_OF_WEEK,
+        frequency: {
+          type: "weekly",
           days: [1, 3, 5], // Monday, Wednesday, Friday
-        },
+        } as Frequency,
         schedules: schedules.map((s: any) => ({
           id: s.id,
           tracking_id: s.tracking_id,
@@ -1020,11 +996,11 @@ describe("ReminderService", () => {
         id: testTrackingId,
         user_id: testUserId,
         question: "Did I exercise?",
-        days: {
-          pattern_type: DaysPatternType.DAY_OF_MONTH,
-          type: "day_number" as const,
+        frequency: {
+          type: "monthly",
+          kind: "day_number",
           day_numbers: [nextDay],
-        },
+        } as Frequency,
         schedules: schedules.map((s: any) => ({
           id: s.id,
           tracking_id: s.tracking_id,
@@ -1053,10 +1029,10 @@ describe("ReminderService", () => {
         id: testTrackingId,
         user_id: testUserId,
         question: "Did I exercise?",
-        days: {
-          pattern_type: DaysPatternType.DAY_OF_MONTH,
-          type: "last_day" as const,
-        },
+        frequency: {
+          type: "monthly",
+          kind: "last_day",
+        } as Frequency,
         schedules: schedules.map((s: any) => ({
           id: s.id,
           tracking_id: s.tracking_id,
@@ -1090,12 +1066,12 @@ describe("ReminderService", () => {
         id: testTrackingId,
         user_id: testUserId,
         question: "Did I exercise?",
-        days: {
-          pattern_type: DaysPatternType.DAY_OF_YEAR,
-          type: "date" as const,
+        frequency: {
+          type: "yearly",
+          kind: "date",
           month: 12,
           day: 25, // December 25
-        },
+        } as Frequency,
         schedules: schedules.map((s: any) => ({
           id: s.id,
           tracking_id: s.tracking_id,
@@ -1115,74 +1091,5 @@ describe("ReminderService", () => {
       expect(nextDate.getDate()).toBe(25);
     });
 
-    it("should handle interval patterns with different units", async () => {
-      const schedules = await testDb.all(
-        "SELECT * FROM tracking_schedules WHERE tracking_id = ?",
-        [testTrackingId]
-      );
-
-      const testCases = [
-        { unit: "weeks" as const, value: 1 },
-        { unit: "months" as const, value: 1 },
-        { unit: "years" as const, value: 1 },
-      ];
-
-      for (const testCase of testCases) {
-        const trackingData = {
-          id: testTrackingId,
-          user_id: testUserId,
-          question: "Did I exercise?",
-          days: {
-            pattern_type: DaysPatternType.INTERVAL,
-            interval_value: testCase.value,
-            interval_unit: testCase.unit,
-          },
-          schedules: schedules.map((s: any) => ({
-            id: s.id,
-            tracking_id: s.tracking_id,
-            hour: s.hour,
-            minutes: s.minutes,
-          })),
-          state: "Running" as const,
-        };
-
-        const nextTime = await reminderService.calculateNextReminderTime(
-          trackingData as any
-        );
-
-        expect(nextTime).not.toBeNull();
-      }
-    });
-
-    it("should return null for invalid interval unit", async () => {
-      const schedules = await testDb.all(
-        "SELECT * FROM tracking_schedules WHERE tracking_id = ?",
-        [testTrackingId]
-      );
-
-      const trackingData = {
-        id: testTrackingId,
-        user_id: testUserId,
-        question: "Did I exercise?",
-        days: {
-          pattern_type: DaysPatternType.INTERVAL,
-          interval_value: 1,
-          interval_unit: "invalid" as any,
-        },
-        schedules: schedules.map((s: any) => ({
-          id: s.id,
-          tracking_id: s.tracking_id,
-          hour: s.hour,
-          minutes: s.minutes,
-        })),
-        state: "Running" as const,
-      };
-
-      const nextTime = await reminderService.calculateNextReminderTime(
-        trackingData as any
-      );
-
-      expect(nextTime).toBeNull();
-    });
   });
 });
