@@ -434,16 +434,17 @@ describe("Database", () => {
 
       // Create tracking with valid user_id
       const trackingResult = await db.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [userResult.lastID, "Test question?"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [userResult.lastID, "Test question?", JSON.stringify({ type: "daily" })]
       );
       expect(trackingResult.lastID).toBeGreaterThan(0);
 
       // Try to create tracking with invalid user_id (should fail)
       await expect(
-        db.run("INSERT INTO trackings (user_id, question) VALUES (?, ?)", [
+        db.run("INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)", [
           99999,
           "Invalid question?",
+          JSON.stringify({ type: "daily" }),
         ])
       ).rejects.toThrow();
 
