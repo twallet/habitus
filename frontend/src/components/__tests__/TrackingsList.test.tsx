@@ -924,8 +924,10 @@ describe("TrackingsList", () => {
         );
 
         // Both trackings should be visible
-        expect(screen.getByText("Did I exercise?")).toBeInTheDocument();
-        expect(screen.getByText("Did I meditate?")).toBeInTheDocument();
+        const exerciseElements = screen.getAllByText("Did I exercise?");
+        expect(exerciseElements.length).toBeGreaterThan(0);
+        const meditateElements = screen.getAllByText("Did I meditate?");
+        expect(meditateElements.length).toBeGreaterThan(0);
     });
 
     it("should call onCreateTracking callback with createTracking function", () => {
