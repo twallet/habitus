@@ -437,13 +437,8 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
         }
 
         // Check if tracking has frequency (required field, but check for safety)
-        // Type assertion: frequency is required in TrackingData but TypeScript may not recognize it
-        // due to type resolution issues with the shared package dist
         const trackingData = tracking.toData();
-        const frequency = (
-          trackingData as TrackingData & { frequency: Frequency }
-        ).frequency;
-        if (!frequency) {
+        if (!trackingData.frequency) {
           console.warn(
             `[${new Date().toISOString()}] REMINDER | Tracking ${trackingId} has no frequency, cannot update upcoming reminder`
           );
@@ -451,7 +446,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
         }
 
         // One-time frequencies don't generate recurring reminders
-        if (frequency.type === "one-time") {
+        if (trackingData.frequency.type === "one-time") {
           console.log(
             `[${new Date().toISOString()}] REMINDER | Tracking ${trackingId} is one-time, skipping upcoming reminder update`
           );
@@ -693,11 +688,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       return null;
     }
 
-    // Type assertion: frequency is required in TrackingData but TypeScript may not recognize it
-    // due to type resolution issues with the shared package dist
-    const frequency = (tracking as TrackingData & { frequency: Frequency })
-      .frequency;
-    if (!frequency) {
+    if (!tracking.frequency) {
       console.warn(
         `[${new Date().toISOString()}] REMINDER | Tracking ${
           tracking.id
@@ -707,7 +698,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
     }
 
     // One-time frequencies don't generate recurring reminders
-    if (frequency.type === "one-time") {
+    if (tracking.frequency.type === "one-time") {
       return null;
     }
 
@@ -724,7 +715,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
     // Calculate next occurrence for each schedule based on frequency
     for (const schedule of schedules) {
       const nextTime = this.calculateNextOccurrence(
-        frequency,
+        tracking.frequency,
         schedule.hour,
         schedule.minutes,
         now,
