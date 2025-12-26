@@ -351,7 +351,7 @@ describe('EditTrackingModal', () => {
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + 1);
     const futureDateStr = futureDate.toISOString().split('T')[0];
-    
+
     const oneTimeTracking: TrackingData = {
       ...mockTracking,
       frequency: { type: "one-time", date: futureDateStr }, // One-time tracking

@@ -220,12 +220,14 @@ describe("TrackingService", () => {
 
   describe("createTracking", () => {
     it("should create a new tracking", async () => {
+      const frequency: Frequency = { type: "daily" };
       const tracking = await trackingService.createTracking(
         testUserId,
         "Did I exercise today?",
         undefined,
         undefined,
-        [{ hour: 9, minutes: 0 }]
+        [{ hour: 9, minutes: 0 }],
+        frequency
       );
 
       expect(tracking).not.toBeNull();
@@ -239,12 +241,14 @@ describe("TrackingService", () => {
     });
 
     it("should create tracking with notes", async () => {
+      const frequency: Frequency = { type: "daily" };
       const tracking = await trackingService.createTracking(
         testUserId,
         "Did I meditate?",
         "Meditation notes",
         undefined,
-        [{ hour: 10, minutes: 30 }]
+        [{ hour: 10, minutes: 30 }],
+        frequency
       );
 
       expect(tracking.notes).toBe("Meditation notes");
@@ -253,10 +257,16 @@ describe("TrackingService", () => {
     });
 
     it("should throw error for invalid question", async () => {
+      const frequency: Frequency = { type: "daily" };
       await expect(
-        trackingService.createTracking(testUserId, "", undefined, undefined, [
-          { hour: 9, minutes: 0 },
-        ])
+        trackingService.createTracking(
+          testUserId,
+          "",
+          undefined,
+          undefined,
+          [{ hour: 9, minutes: 0 }],
+          frequency
+        )
       ).rejects.toThrow();
     });
 
