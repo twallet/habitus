@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { TrackingData, TrackingState, DaysPattern } from "../models/Tracking";
+import { TrackingData, TrackingState, Frequency } from "../models/Tracking";
 import { ApiClient } from "../config/api";
 import { tokenManager } from "./base/TokenManager.js";
 
@@ -98,8 +98,7 @@ export function useTrackings() {
    * @param notes - Optional notes (rich text)
    * @param icon - Optional icon (emoji)
    * @param schedules - Required schedules array (1-5 schedules)
-   * @param days - Optional days pattern for reminder frequency (required for recurring trackings)
-   * @param oneTimeDate - Optional date/time for one-time tracking (ISO datetime string)
+   * @param frequency - Required frequency for reminder schedule
    * @returns The created tracking data
    * @throws Error if API request fails
    * @public
@@ -109,8 +108,7 @@ export function useTrackings() {
     notes: string | undefined,
     icon: string | undefined,
     schedules: Array<{ hour: number; minutes: number }>,
-    days: DaysPattern | undefined,
-    oneTimeDate?: string
+    frequency: Frequency
   ): Promise<TrackingData> => {
     const token = tokenManager.getToken();
     if (!token) {
@@ -130,8 +128,7 @@ export function useTrackings() {
         notes,
         icon,
         schedules,
-        days,
-        oneTimeDate
+        frequency
       );
       console.log(
         `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Tracking created successfully: ID ${
@@ -152,24 +149,22 @@ export function useTrackings() {
   /**
    * Update a tracking via API.
    * @param trackingId - The tracking ID
-   * @param days - Updated days pattern (optional, undefined for one-time trackings)
+   * @param frequency - Required frequency for reminder schedule
    * @param question - Updated question (optional)
    * @param notes - Updated notes (optional)
    * @param icon - Updated icon (optional)
    * @param schedules - Updated schedules array (optional, 1-5 schedules if provided)
-   * @param oneTimeDate - Updated one-time date (optional, YYYY-MM-DD format for one-time trackings)
    * @returns The updated tracking data
    * @throws Error if API request fails
    * @public
    */
   const updateTracking = async (
     trackingId: number,
-    days: DaysPattern | undefined,
+    frequency: Frequency,
     question?: string,
     notes?: string,
     icon?: string,
-    schedules?: Array<{ hour: number; minutes: number }>,
-    oneTimeDate?: string
+    schedules?: Array<{ hour: number; minutes: number }>
   ): Promise<TrackingData> => {
     const token = tokenManager.getToken();
     if (!token) {
@@ -186,12 +181,11 @@ export function useTrackings() {
     try {
       const trackingData = await apiClient.updateTracking(
         trackingId,
-        days,
+        frequency,
         question,
         notes,
         icon,
-        schedules,
-        oneTimeDate
+        schedules
       );
       console.log(
         `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Tracking updated successfully: ID ${

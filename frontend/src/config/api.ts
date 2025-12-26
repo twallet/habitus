@@ -1,9 +1,5 @@
 import { UserData } from "../models/User.js";
-import {
-  TrackingData,
-  TrackingState,
-  DaysPattern,
-} from "../models/Tracking.js";
+import { TrackingData, TrackingState, Frequency } from "../models/Tracking.js";
 import { ReminderData } from "../models/Reminder.js";
 
 /**
@@ -575,8 +571,7 @@ export class ApiClient {
    * @param notes - Optional notes (rich text)
    * @param icon - Optional icon (emoji)
    * @param schedules - Required schedules array (1-5 schedules)
-   * @param days - Optional days pattern for reminder frequency (required for recurring trackings)
-   * @param oneTimeDate - Optional date/time for one-time tracking (ISO datetime string)
+   * @param frequency - Required frequency for reminder schedule
    * @returns Promise resolving to created tracking data
    * @throws Error if request fails
    * @public
@@ -586,23 +581,21 @@ export class ApiClient {
     notes: string | undefined,
     icon: string | undefined,
     schedules: Array<{ hour: number; minutes: number }>,
-    days: DaysPattern | undefined,
-    oneTimeDate?: string
+    frequency: Frequency
   ): Promise<TrackingData> {
     return this.post<TrackingData>(API_ENDPOINTS.trackings, {
       question,
       notes,
       icon,
       schedules,
-      days,
-      oneTimeDate,
+      frequency,
     });
   }
 
   /**
    * Update a tracking.
    * @param trackingId - The tracking ID
-   * @param days - Updated days pattern (optional, undefined for one-time trackings)
+   * @param frequency - Required frequency for reminder schedule
    * @param question - Updated question (optional)
    * @param notes - Updated notes (optional)
    * @param icon - Updated icon (optional)
@@ -611,35 +604,20 @@ export class ApiClient {
    * @throws Error if request fails
    * @public
    */
-  /**
-   * Update a tracking.
-   * @param trackingId - The tracking ID
-   * @param days - Updated days pattern (optional, undefined for one-time trackings)
-   * @param question - Updated question (optional)
-   * @param notes - Updated notes (optional)
-   * @param icon - Updated icon (optional)
-   * @param schedules - Updated schedules array (optional)
-   * @param oneTimeDate - Updated one-time date (optional, YYYY-MM-DD format)
-   * @returns Promise resolving to updated tracking data
-   * @throws Error if request fails
-   * @public
-   */
   async updateTracking(
     trackingId: number,
-    days: DaysPattern | undefined,
+    frequency: Frequency,
     question?: string,
     notes?: string,
     icon?: string,
-    schedules?: Array<{ hour: number; minutes: number }>,
-    oneTimeDate?: string
+    schedules?: Array<{ hour: number; minutes: number }>
   ): Promise<TrackingData> {
     return this.put<TrackingData>(`${API_ENDPOINTS.trackings}/${trackingId}`, {
       question,
       notes,
       icon,
       schedules,
-      days,
-      oneTimeDate,
+      frequency,
     });
   }
 

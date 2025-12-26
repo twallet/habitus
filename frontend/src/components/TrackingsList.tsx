@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { TrackingData, TrackingState, DaysPattern, DaysPatternType } from "../models/Tracking";
+import { TrackingData, TrackingState, Frequency } from "../models/Tracking";
 import { useTrackings } from "../hooks/useTrackings";
 import { useReminders } from "../hooks/useReminders";
 import { ReminderStatus } from "../models/Reminder";
@@ -10,7 +10,7 @@ interface TrackingsListProps {
     trackings?: TrackingData[];
     onEdit: (tracking: TrackingData) => void;
     onCreate?: () => void;
-    onCreateTracking?: (createFn: (question: string, notes: string | undefined, icon: string | undefined, schedules: Array<{ hour: number; minutes: number }>, days: DaysPattern) => Promise<TrackingData>) => void;
+    onCreateTracking?: (createFn: (question: string, notes: string | undefined, icon: string | undefined, schedules: Array<{ hour: number; minutes: number }>, frequency: Frequency) => Promise<TrackingData>) => void;
     isLoading?: boolean;
     onStateChange?: (trackingId: number, newState: TrackingState) => Promise<TrackingData | void>;
     onStateChangeSuccess?: (message: string) => void;
@@ -71,59 +71,62 @@ class TrackingFormatter {
 
 
     /**
-     * Format frequency pattern to readable string.
-     * @param days - Days pattern
+     * Format frequency to readable string.
+     * @param frequency - Frequency object
      * @returns Formatted frequency string
      */
-    static formatFrequency(days?: DaysPattern): string {
-        if (!days) {
-            return "Daily";
-        }
+    static formatFrequency(frequency: Frequency): string {
+        switch (frequency.type) {
+            case "daily":
+                return "Daily";
 
-        switch (days.pattern_type) {
-            case DaysPatternType.INTERVAL:
-                if (days.interval_value === 1 && days.interval_unit === "days") {
-                    return "Daily";
-                }
-                return `Every ${days.interval_value} ${days.interval_unit || "days"}`;
-
-            case DaysPatternType.DAY_OF_WEEK:
-                if (!days.days || days.days.length === 0) {
+            case "weekly":
+                if (!frequency.days || frequency.days.length === 0) {
                     return "Weekly";
                 }
                 const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-                const sortedDays = [...days.days].sort((a, b) => a - b);
+                const sortedDays = [...frequency.days].sort((a, b) => a - b);
                 if (sortedDays.length === 7) {
                     return "Daily";
                 }
                 return sortedDays.map((d) => dayNames[d]).join(", ");
 
-            case DaysPatternType.DAY_OF_MONTH:
-                if (days.type === "last_day") {
+            case "monthly":
+                if (frequency.kind === "last_day") {
                     return "Last day of month";
                 }
-                if (days.type === "weekday_ordinal") {
+                if (frequency.kind === "weekday_ordinal") {
                     const ordinalLabels = ["", "First", "Second", "Third", "Fourth", "Fifth"];
                     const weekdayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-                    const ordinal = days.ordinal || 1;
-                    const weekday = days.weekday !== undefined ? weekdayNames[days.weekday] : "Monday";
+                    const ordinal = frequency.ordinal || 1;
+                    const weekday = frequency.weekday !== undefined ? weekdayNames[frequency.weekday] : "Monday";
                     return `${ordinalLabels[ordinal]} ${weekday} of month`;
                 }
-                if (days.day_numbers && days.day_numbers.length > 0) {
-                    if (days.day_numbers.length === 1) {
-                        return `Day ${days.day_numbers[0]} of month`;
+                if (frequency.kind === "day_number" && frequency.day_numbers && frequency.day_numbers.length > 0) {
+                    if (frequency.day_numbers.length === 1) {
+                        return `Day ${frequency.day_numbers[0]} of month`;
                     }
-                    return `Days ${days.day_numbers.join(", ")} of month`;
+                    return `Days ${frequency.day_numbers.join(", ")} of month`;
                 }
                 return "Monthly";
 
-            case DaysPatternType.DAY_OF_YEAR:
-                const monthNames = ["", "January", "February", "March", "April", "May", "June",
-                    "July", "August", "September", "October", "November", "December"];
-                if (days.month && days.day) {
-                    return `${monthNames[days.month]} ${days.day}`;
+            case "yearly":
+                if (frequency.kind === "date" && frequency.month && frequency.day) {
+                    const monthNames = ["", "January", "February", "March", "April", "May", "June",
+                        "July", "August", "September", "October", "November", "December"];
+                    return `${monthNames[frequency.month]} ${frequency.day}`;
                 }
                 return "Yearly";
+
+            case "one-time":
+                // Format date as MM/DD/YYYY or just show "One-time"
+                if (frequency.date) {
+                    const date = new Date(frequency.date);
+                    if (!isNaN(date.getTime())) {
+                        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    }
+                }
+                return "One-time";
 
             default:
                 return "Unknown";
@@ -132,31 +135,23 @@ class TrackingFormatter {
 
     /**
      * Format full frequency details for tooltip.
-     * @param days - Days pattern
+     * @param frequency - Frequency object
      * @returns Detailed frequency string
      */
-    static formatFullFrequency(days?: DaysPattern): string {
-        if (!days) {
-            return "Frequency: Daily (every day)";
-        }
-
+    static formatFullFrequency(frequency: Frequency): string {
         let details = "Frequency: ";
 
-        switch (days.pattern_type) {
-            case DaysPatternType.INTERVAL:
-                if (days.interval_value === 1 && days.interval_unit === "days") {
-                    details += "Daily (every day)";
-                } else {
-                    details += `Every ${days.interval_value} ${days.interval_unit || "days"}`;
-                }
+        switch (frequency.type) {
+            case "daily":
+                details += "Daily (every day)";
                 break;
 
-            case DaysPatternType.DAY_OF_WEEK:
-                if (!days.days || days.days.length === 0) {
+            case "weekly":
+                if (!frequency.days || frequency.days.length === 0) {
                     details += "Weekly (no specific days)";
                 } else {
                     const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-                    const sortedDays = [...days.days].sort((a, b) => a - b);
+                    const sortedDays = [...frequency.days].sort((a, b) => a - b);
                     const dayLabels = sortedDays.map((d) => dayNames[d]);
                     if (sortedDays.length === 7) {
                         details += "Daily (all days of the week)";
@@ -166,29 +161,42 @@ class TrackingFormatter {
                 }
                 break;
 
-            case DaysPatternType.DAY_OF_MONTH:
-                if (days.type === "last_day") {
+            case "monthly":
+                if (frequency.kind === "last_day") {
                     details += "Monthly (last day of month)";
-                } else if (days.type === "weekday_ordinal") {
+                } else if (frequency.kind === "weekday_ordinal") {
                     const ordinalLabels = ["", "First", "Second", "Third", "Fourth", "Fifth"];
                     const weekdayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-                    const ordinal = days.ordinal || 1;
-                    const weekday = days.weekday !== undefined ? weekdayNames[days.weekday] : "Monday";
+                    const ordinal = frequency.ordinal || 1;
+                    const weekday = frequency.weekday !== undefined ? weekdayNames[frequency.weekday] : "Monday";
                     details += `Monthly (${ordinalLabels[ordinal]} ${weekday} of month)`;
-                } else if (days.day_numbers && days.day_numbers.length > 0) {
-                    details += `Monthly (day${days.day_numbers.length > 1 ? "s" : ""} ${days.day_numbers.join(", ")})`;
+                } else if (frequency.kind === "day_number" && frequency.day_numbers && frequency.day_numbers.length > 0) {
+                    details += `Monthly (day${frequency.day_numbers.length > 1 ? "s" : ""} ${frequency.day_numbers.join(", ")})`;
                 } else {
                     details += "Monthly";
                 }
                 break;
 
-            case DaysPatternType.DAY_OF_YEAR:
-                const monthNames = ["", "January", "February", "March", "April", "May", "June",
-                    "July", "August", "September", "October", "November", "December"];
-                if (days.month && days.day) {
-                    details += `Yearly (${monthNames[days.month]} ${days.day})`;
+            case "yearly":
+                if (frequency.kind === "date" && frequency.month && frequency.day) {
+                    const monthNames = ["", "January", "February", "March", "April", "May", "June",
+                        "July", "August", "September", "October", "November", "December"];
+                    details += `Yearly (${monthNames[frequency.month]} ${frequency.day})`;
                 } else {
                     details += "Yearly";
+                }
+                break;
+
+            case "one-time":
+                if (frequency.date) {
+                    const date = new Date(frequency.date);
+                    if (!isNaN(date.getTime())) {
+                        details += `One-time (${date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })})`;
+                    } else {
+                        details += "One-time";
+                    }
+                } else {
+                    details += "One-time";
                 }
                 break;
 
@@ -283,7 +291,7 @@ class TrackingFilter {
         if (!filterValue.trim()) {
             return true;
         }
-        const frequencyDisplay = TrackingFormatter.formatFrequency(tracking.days);
+        const frequencyDisplay = TrackingFormatter.formatFrequency(tracking.frequency);
         return frequencyDisplay.toLowerCase().includes(filterValue.toLowerCase());
     }
 
@@ -363,8 +371,8 @@ class TrackingSorter {
      * @returns Comparison result (-1, 0, or 1)
      */
     static compareFrequency(a: TrackingData, b: TrackingData): number {
-        const freqA = TrackingFormatter.formatFrequency(a.days);
-        const freqB = TrackingFormatter.formatFrequency(b.days);
+        const freqA = TrackingFormatter.formatFrequency(a.frequency);
+        const freqB = TrackingFormatter.formatFrequency(b.frequency);
         return freqA.localeCompare(freqB);
     }
 
@@ -632,13 +640,13 @@ export function TrackingsList({
 
     // Refresh reminders when trackings change (e.g., after creating or editing a tracking)
     // Use a ref to track previous tracking data to detect changes
-    const previousTrackingsRef = useRef<Map<number, { schedules?: Array<{ hour: number; minutes: number }>; days?: DaysPattern; state?: TrackingState; updated_at?: string }>>(new Map());
+    const previousTrackingsRef = useRef<Map<number, { schedules?: Array<{ hour: number; minutes: number }>; frequency?: Frequency; state?: TrackingState; updated_at?: string }>>(new Map());
 
     useEffect(() => {
         const currentTrackingsMap = new Map(
             trackings.map(t => [t.id, {
                 schedules: t.schedules,
-                days: t.days,
+                frequency: t.frequency,
                 state: t.state || TrackingState.RUNNING,
                 updated_at: t.updated_at,
             }])
@@ -648,7 +656,7 @@ export function TrackingsList({
         // Check if there are new trackings or if existing trackings were updated
         const hasNewTrackings = trackings.some(t => !previousTrackings.has(t.id));
 
-        // Check if any existing tracking was updated (schedules, days pattern, or state changed)
+        // Check if any existing tracking was updated (schedules, frequency, or state changed)
         const hasUpdatedTrackings = trackings.some(t => {
             const prev = previousTrackings.get(t.id);
             if (!prev) return false;
@@ -656,8 +664,8 @@ export function TrackingsList({
             // Check if schedules changed
             const schedulesChanged = JSON.stringify(t.schedules || []) !== JSON.stringify(prev.schedules || []);
 
-            // Check if days pattern changed
-            const daysChanged = JSON.stringify(t.days || {}) !== JSON.stringify(prev.days || {});
+            // Check if frequency changed
+            const frequencyChanged = JSON.stringify(t.frequency || {}) !== JSON.stringify(prev.frequency || {});
 
             // Check if state changed
             const currentState = t.state || TrackingState.RUNNING;
@@ -666,7 +674,7 @@ export function TrackingsList({
             // Check if updated_at timestamp changed (indicates tracking was edited)
             const wasEdited = t.updated_at !== prev.updated_at;
 
-            return schedulesChanged || daysChanged || stateChanged || wasEdited;
+            return schedulesChanged || frequencyChanged || stateChanged || wasEdited;
         });
 
         if (hasNewTrackings || hasUpdatedTrackings) {
@@ -1199,7 +1207,7 @@ export function TrackingsList({
                                         className="cell-frequency"
                                         title={getNextReminderTime(tracking.id) ? undefined : "No upcoming reminder"}
                                     >
-                                        {TrackingFormatter.formatFrequency(tracking.days)}
+                                        {TrackingFormatter.formatFrequency(tracking.frequency)}
                                     </td>
                                     <td className="cell-next-reminder">
                                         {TrackingFormatter.formatNextReminderTimeDisplay(getNextReminderTime(tracking.id))}
@@ -1264,7 +1272,7 @@ export function TrackingsList({
                                     <div className="tracking-card-row">
                                         <span className="tracking-card-label">Frequency</span>
                                         <span className="tracking-card-value">
-                                            {TrackingFormatter.formatFrequency(tracking.days)}
+                                            {TrackingFormatter.formatFrequency(tracking.frequency)}
                                         </span>
                                     </div>
                                     {nextReminderTime && (
