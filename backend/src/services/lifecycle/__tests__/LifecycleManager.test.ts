@@ -44,7 +44,7 @@ async function createTestDatabase(): Promise<Database> {
               notes TEXT,
               icon TEXT,
               days TEXT,
-              state TEXT NOT NULL DEFAULT 'Running' CHECK(state IN ('Running', 'Paused', 'Archived', 'Deleted')),
+              state TEXT NOT NULL DEFAULT 'Running' CHECK(state IN ('Running', 'Paused', 'Archived')),
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -116,20 +116,6 @@ describe("LifecycleManager", () => {
       await expect(
         lifecycleManager.transition(tracking, TrackingState.PAUSED)
       ).resolves.not.toThrow();
-    });
-
-    it("should throw error for invalid transition", async () => {
-      const tracking: TrackingData = {
-        id: 1,
-        user_id: testUserId,
-        question: "Test",
-        state: TrackingState.DELETED,
-      };
-
-      // Transition from DELETED should fail
-      await expect(
-        lifecycleManager.transition(tracking, TrackingState.RUNNING)
-      ).rejects.toThrow();
     });
 
     it("should throw error for same state transition", async () => {

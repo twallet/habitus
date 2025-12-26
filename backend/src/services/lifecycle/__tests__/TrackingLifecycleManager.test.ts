@@ -45,7 +45,7 @@ async function createTestDatabase(): Promise<Database> {
               notes TEXT,
               icon TEXT,
               days TEXT,
-              state TEXT NOT NULL DEFAULT 'Running' CHECK(state IN ('Running', 'Paused', 'Archived', 'Deleted')),
+              state TEXT NOT NULL DEFAULT 'Running' CHECK(state IN ('Running', 'Paused', 'Archived')),
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -134,24 +134,6 @@ describe("TrackingLifecycleManager", () => {
       await expect(
         lifecycleManager.transition(tracking, TrackingState.PAUSED)
       ).resolves.not.toThrow();
-    });
-
-    it("should reject invalid transition from DELETED", async () => {
-      await testDb.run("UPDATE trackings SET state = ? WHERE id = ?", [
-        "Deleted",
-        testTrackingId,
-      ]);
-
-      const tracking: TrackingData = {
-        id: testTrackingId,
-        user_id: testUserId,
-        question: "Test",
-        state: TrackingState.DELETED,
-      };
-
-      await expect(
-        lifecycleManager.transition(tracking, TrackingState.RUNNING)
-      ).rejects.toThrow();
     });
 
     it("should handle paused state transition and delete upcoming reminders", async () => {

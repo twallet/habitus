@@ -205,11 +205,10 @@ export class Tracking {
     if (
       normalizedState !== TrackingState.RUNNING &&
       normalizedState !== TrackingState.PAUSED &&
-      normalizedState !== TrackingState.ARCHIVED &&
-      normalizedState !== TrackingState.DELETED
+      normalizedState !== TrackingState.ARCHIVED
     ) {
       throw new TypeError(
-        `State must be one of: "${TrackingState.RUNNING}", "${TrackingState.PAUSED}", "${TrackingState.ARCHIVED}", "${TrackingState.DELETED}"`
+        `State must be one of: "${TrackingState.RUNNING}", "${TrackingState.PAUSED}", "${TrackingState.ARCHIVED}"`
       );
     }
 
@@ -220,7 +219,6 @@ export class Tracking {
    * Validates a state transition is allowed.
    * Allows any transition from any state to any other state, except:
    * - Cannot transition to the same state
-   * - Cannot transition from DELETED state
    * @param currentState - The current state
    * @param newState - The new state to transition to
    * @throws {@link TypeError} If the transition is not allowed
@@ -233,12 +231,6 @@ export class Tracking {
     if (currentState === newState) {
       throw new TypeError(
         "Cannot transition to the same state. The tracking is already in this state."
-      );
-    }
-
-    if (currentState === TrackingState.DELETED) {
-      throw new TypeError(
-        "Cannot transition from Deleted state. Deleted trackings cannot be changed."
       );
     }
   }

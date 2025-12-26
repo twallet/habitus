@@ -47,14 +47,14 @@ When a tracking is created:
 
    - `user_id`: The owner of the tracking
    - `question`: The tracking question (max 100 characters)
-   - `type`: Either `"true_false"` or `"register"`
    - `times`: Array of 1-5 times (hour, minutes)
 
 2. **Optional Fields:**
 
    - `notes`: Rich text notes
    - `icon`: Emoji icon (max 20 characters)
-   - `days`: Days pattern for reminder frequency
+   - `days`: Days pattern for reminder frequency (for recurring trackings)
+   - `oneTimeDate`: Date for one-time tracking (YYYY-MM-DD format, must be today or in the future)
 
 3. **Default State:**
 
@@ -62,7 +62,8 @@ When a tracking is created:
 
 4. **Automatic Actions:**
    - Tracking times are created (1-5 times per tracking)
-   - An initial reminder is automatically created with status `"Upcoming"` (the time is always in the future)
+   - **For recurring trackings:** An initial reminder is automatically created with status `"Upcoming"` (the time is always in the future)
+   - **For one-time trackings:** One reminder is created for each schedule time on the specified `oneTimeDate` (all reminders are created with status `"Upcoming"`)
 
 ### Tracking Updates
 
@@ -75,10 +76,13 @@ When a tracking is updated:
    - `notes`
    - `icon`
    - `times` (replaces all existing times)
-   - `days` (days pattern)
+   - `days` (days pattern for recurring trackings)
+   - `oneTimeDate` (date for one-time trackings, YYYY-MM-DD format)
 
 2. **Automatic Actions on Update:**
-   - If `times` or `days` pattern changes AND tracking state is `"Running"`, existing `Upcoming` reminder is updated with the recalculated next time, or created if not existing.
+   - **For recurring trackings:** If `times` or `days` pattern changes AND tracking state is `"Running"`, existing `Upcoming` reminder is updated with the recalculated next time, or created if not existing.
+   - **For one-time trackings:** If `oneTimeDate` or `times` change AND tracking state is `"Running"`, all existing reminders are deleted and new reminders are created for each schedule time on the updated date.
+   - **When converting between one-time and recurring:** All existing reminders are deleted. If converting to one-time, new reminders are created for each schedule on the specified date. If converting to recurring, a new `Upcoming` reminder is created based on the days pattern.
 
 ### Tracking State Changes
 
@@ -103,7 +107,8 @@ When a tracking transitions to `Archived`:
 
 When a tracking transitions to `Running` (from `Paused` or `Archived`):
 
-- A new `Upcoming` reminder is automatically created, and its time is calculated based on current times and days pattern
+- **For recurring trackings:** A new `Upcoming` reminder is automatically created, and its time is calculated based on current times and days pattern
+- **For one-time trackings:** If the `oneTimeDate` is in the future, reminders are created for each schedule time on that date. If the date has passed, no reminders are created.
 
 #### Deletion
 
@@ -150,9 +155,12 @@ Pending → Upcoming
 
 **Important Rules:**
 
-- Only one `Upcoming` reminder exists per tracking at any time
+- Only one `Upcoming` reminder exists per tracking at any time (for recurring trackings)
+- For one-time trackings, multiple `Upcoming` reminders can exist (one per schedule time on the specified date)
 - `Upcoming` → `Pending` transition happens automatically when `scheduled_time` passes
-- When a reminder is completed or dismissed, a new `Upcoming` reminder is automatically created
+- When a reminder is completed or dismissed:
+  - **For recurring trackings:** A new `Upcoming` reminder is automatically created
+  - **For one-time trackings:** No new reminder is created (one-time reminders don't recur)
 - Only `Pending` reminders can be snoozed (not `Answered` reminders)
 - The value field defaults to `"Dismissed"` when reminders are created
 
@@ -160,8 +168,8 @@ Pending → Upcoming
 
 **Pending Reminders:**
 
-- Complete the reminder (changes status to `Answered`, sets value to `Completed`, creates new upcoming reminder)
-- Dismiss the reminder (changes status to `Answered`, sets value to `Dismissed`, creates new upcoming reminder)
+- Complete the reminder (changes status to `Answered`, sets value to `Completed`, creates new upcoming reminder for recurring trackings only)
+- Dismiss the reminder (changes status to `Answered`, sets value to `Dismissed`, creates new upcoming reminder for recurring trackings only)
 - Snooze the reminder (changes status to `Upcoming` with new time)
 
 **Upcoming Reminders:**
@@ -180,10 +188,15 @@ Reminders can be created in two ways:
 
 Reminders are automatically created:
 
-- **When a tracking is created** (if tracking has times and days pattern)
-- **When a tracking transitions to Running** (from Paused or Archived)
-- **When a reminder is answered** (creates next reminder)
-- **When tracking times or days pattern are updated** (if tracking is Running)
+- **When a tracking is created:**
+  - **Recurring trackings:** If tracking has times and days pattern, an initial `Upcoming` reminder is created
+  - **One-time trackings:** If tracking has times and `oneTimeDate`, one reminder is created for each schedule time on the specified date
+- **When a tracking transitions to Running** (from Paused or Archived):
+  - **Recurring trackings:** A new `Upcoming` reminder is created based on times and days pattern
+  - **One-time trackings:** If `oneTimeDate` is in the future, reminders are created for each schedule time
+- **When a reminder is answered** (creates next reminder for recurring trackings only)
+- **When tracking times or days pattern are updated** (if tracking is Running and recurring)
+- **When one-time date or times are updated** (if tracking is Running and one-time, all reminders are recreated)
 
 ### Reminder Updates
 
@@ -196,11 +209,13 @@ When a reminder is updated, the following fields can be changed:
 
 **When a reminder is completed** (status changes to `"Answered"`, value set to `"Completed"`):
 
-- A new `Upcoming` reminder is automatically created for the tracking
+- **For recurring trackings:** A new `Upcoming` reminder is automatically created for the tracking
+- **For one-time trackings:** No new reminder is created (one-time reminders don't recur)
 
 **When a reminder is dismissed** (status changes to `"Answered"`, value set to `"Dismissed"`):
 
-- A new `Upcoming` reminder is automatically created for the tracking
+- **For recurring trackings:** A new `Upcoming` reminder is automatically created for the tracking
+- **For one-time trackings:** No new reminder is created (one-time reminders don't recur)
 
 ### Reminder Snoozing
 
@@ -211,8 +226,9 @@ When a `Pending` reminder is snoozed, the existing `Upcoming` reminder time is u
 When a reminder is dismissed by the user:
 
 1. The reminder's status changes to `"Answered"` and value is set to `"Dismissed"`
-2. A new `Upcoming` reminder is automatically created for the tracking
-3. The `Upcoming` reminder time is calculated, with the dismissed reminder's `scheduled_time` excluded from next reminder calculation
+2. **For recurring trackings:** A new `Upcoming` reminder is automatically created for the tracking
+3. **For recurring trackings:** The `Upcoming` reminder time is calculated, with the dismissed reminder's `scheduled_time` excluded from next reminder calculation
+4. **For one-time trackings:** No new reminder is created
 
 ### Reminder Deletion
 
@@ -248,7 +264,10 @@ Reminders are only generated for trackings that:
 
 1. Have state `"Running"`
 2. Have at least one time defined
-3. Have a days pattern defined
+
+**For recurring trackings:** 3. Have a days pattern defined (not null)
+
+**For one-time trackings:** 3. Have a `oneTimeDate` defined (YYYY-MM-DD format, must be today or in the future) 4. Have `days` set to `null` (no days pattern)
 
 ---
 
@@ -261,9 +280,16 @@ Reminders are only generated for trackings that:
 - Times must be unique (no duplicate times)
 - Times are stored in the `tracking_schedules` table
 
-### Days Patterns
+### Frequency Types
 
-Days patterns define when reminders should occur. Four pattern types are supported:
+Trackings can be either **recurring** or **one-time**:
+
+- **Recurring trackings:** Use a days pattern to define when reminders should occur repeatedly
+- **One-time trackings:** Use a specific date (`oneTimeDate`) to create reminders that occur only once
+
+### Days Patterns (Recurring Trackings)
+
+Days patterns define when reminders should occur for recurring trackings. Four pattern types are supported:
 
 #### 1. Interval Pattern
 
@@ -336,7 +362,30 @@ Examples:
 - January 1st (New Year's Day)
 - First Monday of the year
 
+### One-Time Frequency
+
+One-time trackings create reminders that occur only once on a specific date:
+
+- **`oneTimeDate`:** Required date in YYYY-MM-DD format (must be today or in the future)
+- **`days`:** Must be `null` (no days pattern)
+- **Reminder creation:** One reminder is created for each schedule time on the specified date
+- **No recurrence:** When a one-time reminder is answered, no new reminder is created
+
+**Example:**
+
+- Date: `2024-12-25`
+- Times: `09:00`, `18:00`
+- Result: Two reminders created, one at 09:00 and one at 18:00 on December 25, 2024
+
+**Conversion:**
+
+- One-time trackings can be converted to recurring by providing a days pattern
+- Recurring trackings can be converted to one-time by providing a `oneTimeDate` and setting `days` to `null`
+- When converting, all existing reminders are deleted and new ones are created based on the new type
+
 ### Next Reminder Calculation
+
+**For recurring trackings only:**
 
 When calculating the next reminder time:
 
@@ -353,11 +402,16 @@ When calculating the next reminder time:
 
 Reminders are automatically created when:
 
-- A tracking is created (if it has times and days pattern)
-- A tracking transitions to `Running` (from `Paused` or `Archived`)
-- A reminder is answered
-- A reminder is skipped
-- Tracking times or days pattern are updated (if tracking is `Running`)
+- **A tracking is created:**
+  - Recurring: If it has times and days pattern
+  - One-time: If it has times and `oneTimeDate`
+- **A tracking transitions to `Running`** (from `Paused` or `Archived`):
+  - Recurring: Creates `Upcoming` reminder based on times and days pattern
+  - One-time: Creates reminders for each schedule time if `oneTimeDate` is in the future
+- **A reminder is answered** (recurring trackings only - creates next reminder)
+- **A reminder is skipped** (recurring trackings only)
+- **Tracking times or days pattern are updated** (if tracking is `Running` and recurring)
+- **One-time date or times are updated** (if tracking is `Running` and one-time - all reminders are recreated)
 
 ### Automatic Reminder Cleanup
 
@@ -388,6 +442,8 @@ Any state → [Deletion] (permanent removal from database)
 
 ### Reminder Lifecycle Summary
 
+**Recurring Trackings:**
+
 ```
 Creation → Upcoming (always in the future, value: Dismissed)
     ↓
@@ -400,11 +456,26 @@ Answered → [New Upcoming created automatically]
 Pending → Upcoming (snoozed, time updated)
 ```
 
+**One-Time Trackings:**
+
+```
+Creation → Upcoming (on specified date, value: Dismissed)
+    ↓
+Upcoming → Pending (automatic when time passes)
+    ↓
+Pending → Answered (Complete: value=Completed, or Dismiss: value=Dismissed)
+    ↓
+[No new reminder created - one-time reminders don't recur]
+```
+
 ### Key Principles
 
 1. Trackings must be `Running` to generate reminders
-2. New reminders are automatically created when needed
-3. `Answered` reminders are preserved even when tracking is archived
-4. Only one `Upcoming` reminder per tracking at any time
-5. Orphaned and expired reminders are automatically handled
-6. Deleted trackings are permanently removed from the database
+2. New reminders are automatically created when needed (for recurring trackings)
+3. One-time reminders don't create new reminders when answered
+4. `Answered` reminders are preserved even when tracking is archived
+5. Only one `Upcoming` reminder per tracking at any time (for recurring trackings)
+6. One-time trackings can have multiple `Upcoming` reminders (one per schedule time on the date)
+7. Orphaned and expired reminders are automatically handled
+8. Deleted trackings are permanently removed from the database
+9. Trackings can be converted between recurring and one-time types

@@ -646,7 +646,7 @@ export class ApiClient {
   /**
    * Update tracking state.
    * @param trackingId - The tracking ID
-   * @param state - The new state (Running, Paused, Archived, Deleted)
+   * @param state - The new state (Running, Paused, Archived)
    * @returns Promise resolving to updated tracking data
    * @throws Error if request fails
    * @public

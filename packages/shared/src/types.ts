@@ -27,7 +27,6 @@ export enum TrackingState {
   RUNNING = "Running",
   PAUSED = "Paused",
   ARCHIVED = "Archived",
-  DELETED = "Deleted",
 }
 
 export interface DaysPattern {

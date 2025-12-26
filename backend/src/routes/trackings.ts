@@ -257,7 +257,7 @@ router.put(
  * @route PATCH /api/trackings/:id/state
  * @header {string} Authorization - Bearer token
  * @param {number} id - The tracking ID
- * @body {string} state - The new state (Running, Paused, Archived, Deleted)
+ * @body {string} state - The new state (Running, Paused, Archived)
  * @returns {TrackingData} Updated tracking data
  */
 router.patch(

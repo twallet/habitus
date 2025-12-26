@@ -53,7 +53,7 @@ async function createTestDatabase(): Promise<Database> {
               notes TEXT,
               icon TEXT,
               days TEXT,
-              state TEXT NOT NULL DEFAULT 'Running' CHECK(state IN ('Running', 'Paused', 'Archived', 'Deleted')),
+              state TEXT NOT NULL DEFAULT 'Running' CHECK(state IN ('Running', 'Paused', 'Archived')),
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -1222,22 +1222,6 @@ describe("TrackingService", () => {
       );
 
       expect(updated.state).toBe(TrackingState.ARCHIVED);
-    });
-
-    it("should update tracking state from Archived to Deleted", async () => {
-      const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, state) VALUES (?, ?, ?)",
-        [testUserId, "Test Question", "Archived"]
-      );
-      const trackingId = result.lastID;
-
-      const updated = await trackingService.updateTrackingState(
-        trackingId,
-        testUserId,
-        "Deleted"
-      );
-
-      expect(updated.state).toBe(TrackingState.DELETED);
     });
 
     it("should throw error for same state transition", async () => {

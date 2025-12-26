@@ -466,26 +466,6 @@ class TrackingSorter {
  */
 class StateTransitionHelper {
     /**
-     * Get valid state transitions for a given current state.
-     * All states can be reached from any state (except from DELETED).
-     * @param currentState - The current tracking state
-     * @returns Array of valid target states
-     */
-    static getValidTransitions(currentState: TrackingState): TrackingState[] {
-        // Cannot transition from DELETED state
-        if (currentState === TrackingState.DELETED) {
-            return [];
-        }
-        // All other states can transition to any state (except DELETED requires confirmation)
-        return [
-            TrackingState.RUNNING,
-            TrackingState.PAUSED,
-            TrackingState.ARCHIVED,
-            TrackingState.DELETED,
-        ];
-    }
-
-    /**
      * Get icon for a state transition.
      * @param targetState - The target state for the transition
      * @returns Icon emoji string
@@ -498,8 +478,6 @@ class StateTransitionHelper {
                 return "▶️";
             case TrackingState.ARCHIVED:
                 return "📦";
-            case TrackingState.DELETED:
-                return "🗑️";
             default:
                 return "";
         }
@@ -527,8 +505,6 @@ class StateTransitionHelper {
                 return "Resume";
             case TrackingState.ARCHIVED:
                 return "Archive";
-            case TrackingState.DELETED:
-                return "Delete";
             default:
                 return targetState;
         }
@@ -547,8 +523,6 @@ class StateTransitionHelper {
                 return 'Tracking resumed successfully';
             case TrackingState.ARCHIVED:
                 return 'Tracking archived successfully';
-            case TrackingState.DELETED:
-                return 'Tracking deleted successfully';
             default:
                 return 'Tracking state updated successfully';
         }
@@ -567,8 +541,6 @@ class StateTransitionHelper {
                 return 'state-badge-paused';
             case TrackingState.ARCHIVED:
                 return 'state-badge-archived';
-            case TrackingState.DELETED:
-                return 'state-badge-deleted';
             default:
                 return 'state-badge-default';
         }
@@ -706,10 +678,8 @@ export function TrackingsList({
         previousTrackingsRef.current = currentTrackingsMap;
     }, [trackings, refreshReminders]);
 
-    // Filter out Deleted trackings
-    const visibleTrackings = trackings.filter(
-        (tracking) => tracking.state !== TrackingState.DELETED
-    );
+    // All trackings are visible (no filtering needed)
+    const visibleTrackings = trackings;
 
     // Apply filters and sorting
     const filteredTrackings = TrackingFilter.applyFilters(visibleTrackings, filterState);
@@ -810,9 +780,7 @@ export function TrackingsList({
                 await hookDeleteTracking(trackingId);
             }
             // Show success message
-            if (onStateChangeSuccess) {
-                onStateChangeSuccess(StateTransitionHelper.getStateChangeMessage(TrackingState.DELETED));
-            }
+            // Success message is handled by the deleteTracking function
         } catch (error) {
             // Error handling is done in the hook or parent
             throw error;
@@ -821,26 +789,12 @@ export function TrackingsList({
 
     /**
      * Handle action button click.
-     * Shows confirmation modal for deletion.
      * @param trackingId - The tracking ID
      * @param newState - The new state to transition to
      * @internal
      */
     const handleActionClick = (trackingId: number, newState: TrackingState) => {
-        // Find the tracking to get its current state
-        const tracking = trackings.find((t) => t.id === trackingId);
-        if (!tracking) {
-            console.error("Tracking not found for state change");
-            return;
-        }
-
-        // Show confirmation modal for deletion
-        if (newState === TrackingState.DELETED) {
-            setTrackingToDelete(tracking);
-            return;
-        }
-
-        // For non-deletion state changes, proceed immediately
+        // All state changes proceed immediately
         handleStateChangeImmediate(trackingId, newState);
     };
 
@@ -1146,12 +1100,6 @@ export function TrackingsList({
                                                 label: "Archive",
                                                 tooltip: "Archive: Moves tracking to archived state and stops all reminder generation. All pending and upcoming reminders will be deleted."
                                             },
-                                            {
-                                                state: TrackingState.DELETED,
-                                                icon: "🗑️",
-                                                label: "Delete",
-                                                tooltip: "Delete: Permanently removes this tracking and all its reminders. This action cannot be undone."
-                                            },
                                         ];
                                     case TrackingState.PAUSED:
                                         return [
@@ -1167,12 +1115,6 @@ export function TrackingsList({
                                                 label: "Archive",
                                                 tooltip: "Archive: Moves tracking to archived state and stops all reminder generation. All pending and upcoming reminders will be deleted."
                                             },
-                                            {
-                                                state: TrackingState.DELETED,
-                                                icon: "🗑️",
-                                                label: "Delete",
-                                                tooltip: "Delete: Permanently removes this tracking and all its reminders. This action cannot be undone."
-                                            },
                                         ];
                                     case TrackingState.ARCHIVED:
                                         return [
@@ -1181,12 +1123,6 @@ export function TrackingsList({
                                                 icon: "▶️",
                                                 label: "Resume",
                                                 tooltip: "Resume: Restarts reminder generation according to the tracking schedule."
-                                            },
-                                            {
-                                                state: TrackingState.DELETED,
-                                                icon: "🗑️",
-                                                label: "Delete",
-                                                tooltip: "Delete: Permanently removes this tracking and all its reminders. This action cannot be undone."
                                             },
                                         ];
                                     default:

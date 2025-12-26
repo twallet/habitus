@@ -900,7 +900,7 @@ describe("TrackingsList", () => {
         });
     });
 
-    it("should filter out deleted trackings from display", () => {
+    it("should display all trackings", () => {
         const trackings: TrackingData[] = [
             {
                 id: 1,
@@ -912,7 +912,7 @@ describe("TrackingsList", () => {
                 id: 2,
                 user_id: 1,
                 question: "Did I meditate?",
-                state: TrackingState.DELETED,
+                state: TrackingState.PAUSED,
             },
         ];
 
@@ -923,10 +923,9 @@ describe("TrackingsList", () => {
             />
         );
 
-        // Only the running tracking should be visible
-        const trackingElements = screen.getAllByText("Did I exercise?");
-        expect(trackingElements.length).toBeGreaterThan(0);
-        expect(screen.queryByText("Did I meditate?")).not.toBeInTheDocument();
+        // Both trackings should be visible
+        expect(screen.getByText("Did I exercise?")).toBeInTheDocument();
+        expect(screen.getByText("Did I meditate?")).toBeInTheDocument();
     });
 
     it("should call onCreateTracking callback with createTracking function", () => {

@@ -98,7 +98,7 @@ async function getAllTrackings(db: Database): Promise<any[]> {
     created_at: string;
     updated_at: string;
   }>(
-    "SELECT id, user_id, question, notes, icon, days, state, created_at, updated_at FROM trackings WHERE state != 'Deleted' ORDER BY created_at DESC"
+    "SELECT id, user_id, question, notes, icon, days, state, created_at, updated_at FROM trackings ORDER BY created_at DESC"
   );
 
   const trackings = await Promise.all(

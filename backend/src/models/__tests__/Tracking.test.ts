@@ -46,7 +46,7 @@ async function createTestDatabase(): Promise<Database> {
               notes TEXT,
               icon TEXT,
               days TEXT,
-              state TEXT NOT NULL DEFAULT 'Running' CHECK(state IN ('Running', 'Paused', 'Archived', 'Deleted')),
+              state TEXT NOT NULL DEFAULT 'Running' CHECK(state IN ('Running', 'Paused', 'Archived')),
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -1111,10 +1111,7 @@ describe("Tracking Model", () => {
         question: "Original question",
       });
 
-      const updated = await tracking.update(
-        { notes: "Updated notes" },
-        db
-      );
+      const updated = await tracking.update({ notes: "Updated notes" }, db);
 
       expect(updated.notes).toBe("Updated notes");
     });
@@ -1165,11 +1162,7 @@ describe("Tracking Model", () => {
       };
       const result = await db.run(
         "INSERT INTO trackings (user_id, question, days) VALUES (?, ?, ?)",
-        [
-          userId,
-          "Did I exercise?",
-          JSON.stringify(daysPattern),
-        ]
+        [userId, "Did I exercise?", JSON.stringify(daysPattern)]
       );
       const trackingId = result.lastID;
 
@@ -1226,19 +1219,11 @@ describe("Tracking Model", () => {
       };
       await db.run(
         "INSERT INTO trackings (user_id, question, days) VALUES (?, ?, ?)",
-        [
-          userId,
-          "Question 1",
-          JSON.stringify(daysPattern1),
-        ]
+        [userId, "Question 1", JSON.stringify(daysPattern1)]
       );
       await db.run(
         "INSERT INTO trackings (user_id, question, days) VALUES (?, ?, ?)",
-        [
-          userId,
-          "Question 2",
-          JSON.stringify(daysPattern2),
-        ]
+        [userId, "Question 2", JSON.stringify(daysPattern2)]
       );
 
       const trackings = await Tracking.loadByUserId(userId, db);
@@ -1279,7 +1264,6 @@ describe("Tracking Model", () => {
       expect(Tracking.validateState("Running")).toBe(TrackingState.RUNNING);
       expect(Tracking.validateState("Paused")).toBe(TrackingState.PAUSED);
       expect(Tracking.validateState("Archived")).toBe(TrackingState.ARCHIVED);
-      expect(Tracking.validateState("Deleted")).toBe(TrackingState.DELETED);
     });
 
     it("should throw TypeError for invalid state", () => {
@@ -1314,15 +1298,6 @@ describe("Tracking Model", () => {
       ).not.toThrow();
     });
 
-    it("should allow transition from Running to Deleted", () => {
-      expect(() =>
-        Tracking.validateStateTransition(
-          TrackingState.RUNNING,
-          TrackingState.DELETED
-        )
-      ).not.toThrow();
-    });
-
     it("should allow transition from Paused to Running", () => {
       expect(() =>
         Tracking.validateStateTransition(
@@ -1341,15 +1316,6 @@ describe("Tracking Model", () => {
       ).not.toThrow();
     });
 
-    it("should allow transition from Paused to Deleted", () => {
-      expect(() =>
-        Tracking.validateStateTransition(
-          TrackingState.PAUSED,
-          TrackingState.DELETED
-        )
-      ).not.toThrow();
-    });
-
     it("should allow transition from Archived to Running", () => {
       expect(() =>
         Tracking.validateStateTransition(
@@ -1364,15 +1330,6 @@ describe("Tracking Model", () => {
         Tracking.validateStateTransition(
           TrackingState.ARCHIVED,
           TrackingState.PAUSED
-        )
-      ).not.toThrow();
-    });
-
-    it("should allow transition from Archived to Deleted", () => {
-      expect(() =>
-        Tracking.validateStateTransition(
-          TrackingState.ARCHIVED,
-          TrackingState.DELETED
         )
       ).not.toThrow();
     });
@@ -1398,27 +1355,6 @@ describe("Tracking Model", () => {
       ).toThrow(TypeError);
     });
 
-    it("should throw TypeError for any transition from Deleted", () => {
-      expect(() =>
-        Tracking.validateStateTransition(
-          TrackingState.DELETED,
-          TrackingState.RUNNING
-        )
-      ).toThrow(TypeError);
-      expect(() =>
-        Tracking.validateStateTransition(
-          TrackingState.DELETED,
-          TrackingState.PAUSED
-        )
-      ).toThrow(TypeError);
-      expect(() =>
-        Tracking.validateStateTransition(
-          TrackingState.DELETED,
-          TrackingState.ARCHIVED
-        )
-      ).toThrow(TypeError);
-    });
-
     it("should include error message in TypeError for same state transition", () => {
       try {
         Tracking.validateStateTransition(
@@ -1429,48 +1365,6 @@ describe("Tracking Model", () => {
         expect(error).toBeInstanceOf(TypeError);
         expect((error as Error).message).toContain("same state");
       }
-    });
-
-    it("should include error message in TypeError for transition from Deleted", () => {
-      try {
-        Tracking.validateStateTransition(
-          TrackingState.DELETED,
-          TrackingState.RUNNING
-        );
-      } catch (error) {
-        expect(error).toBeInstanceOf(TypeError);
-        expect((error as Error).message).toContain("Deleted state");
-      }
-    });
-  });
-
-  describe("loadByUserId filtering", () => {
-    it("should filter out Deleted trackings", async () => {
-      await db.run(
-        "INSERT INTO trackings (user_id, question, state) VALUES (?, ?, ?)",
-        [userId, "Running tracking", "Running"]
-      );
-      await db.run(
-        "INSERT INTO trackings (user_id, question, state) VALUES (?, ?, ?)",
-        [userId, "Paused tracking", "Paused"]
-      );
-      await db.run(
-        "INSERT INTO trackings (user_id, question, state) VALUES (?, ?, ?)",
-        [userId, "Deleted tracking", "Deleted"]
-      );
-
-      const trackings = await Tracking.loadByUserId(userId, db);
-
-      expect(trackings).toHaveLength(2);
-      expect(trackings.some((t) => t.question === "Deleted tracking")).toBe(
-        false
-      );
-      expect(trackings.some((t) => t.question === "Running tracking")).toBe(
-        true
-      );
-      expect(trackings.some((t) => t.question === "Paused tracking")).toBe(
-        true
-      );
     });
   });
 });

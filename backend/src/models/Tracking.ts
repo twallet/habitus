@@ -242,7 +242,7 @@ export class Tracking extends BaseTracking {
       created_at: string;
       updated_at: string;
     }>(
-      "SELECT id, user_id, question, notes, icon, days, state, created_at, updated_at FROM trackings WHERE user_id = ? AND state != 'Deleted' ORDER BY created_at DESC",
+      "SELECT id, user_id, question, notes, icon, days, state, created_at, updated_at FROM trackings WHERE user_id = ? ORDER BY created_at DESC",
       [userId]
     );
 

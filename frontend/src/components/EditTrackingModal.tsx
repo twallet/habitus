@@ -1,5 +1,5 @@
 import { useState, FormEvent, useEffect, useRef } from "react";
-import { TrackingData, DaysPattern, DaysPatternType } from "../models/Tracking";
+import { TrackingData, DaysPattern } from "../models/Tracking";
 import { ApiClient } from "../config/api";
 import { DaysPatternInput } from "./DaysPatternInput";
 import "./EditTrackingModal.css";
@@ -229,52 +229,65 @@ export function EditTrackingModal({
             return;
         }
 
-        if (schedules.length === 0) {
-            setError("At least one time is required");
-            setIsSubmitting(false);
-            return;
-        }
+        let finalSchedules: Array<{ hour: number; minutes: number }>;
+        const isOneTime = currentFrequency === "One-time";
 
-        // For one-time trackings, validate oneTimeDate instead of days pattern
-        if (currentFrequency === "One-time") {
+        if (!isOneTime) {
+            if (schedules.length === 0) {
+                setError("At least one time is required");
+                setIsSubmitting(false);
+                return;
+            }
+
+            if (daysError) {
+                setError(daysError);
+                setIsSubmitting(false);
+                return;
+            }
+
+            finalSchedules = sortSchedules(schedules);
+        } else {
             if (!oneTimeDate) {
                 setError("Date is required for one-time tracking");
                 setIsSubmitting(false);
                 return;
             }
-            // Validate date format and that it's today or in the future
-            const datePattern = /^\d{4}-\d{2}-\d{2}$/;
-            if (!datePattern.test(oneTimeDate)) {
-                setError("Invalid date format. Expected YYYY-MM-DD");
+
+            if (schedules.length === 0) {
+                setError("At least one time is required for one-time tracking");
                 setIsSubmitting(false);
                 return;
             }
-            const oneTimeDateObj = new Date(oneTimeDate + "T00:00:00");
-            if (isNaN(oneTimeDateObj.getTime())) {
-                setError("Invalid date");
-                setIsSubmitting(false);
-                return;
-            }
+
+            // Validate that the date is today or in the future
+            const selectedDate = new Date(oneTimeDate + "T00:00:00");
             const now = new Date();
             const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const selectedDateOnly = new Date(
-                oneTimeDateObj.getFullYear(),
-                oneTimeDateObj.getMonth(),
-                oneTimeDateObj.getDate()
-            );
+            const selectedDateOnly = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+
             if (selectedDateOnly < today) {
                 setError("Date must be today or in the future");
                 setIsSubmitting(false);
                 return;
             }
-        } else if (daysError) {
-            setError(daysError);
-            setIsSubmitting(false);
-            return;
-        }
 
-        // Always send schedules to ensure they're preserved when other fields (like frequency) change
-        const sortedNewSchedules = sortSchedules(schedules);
+            // If it's today, validate that all times are in the future
+            if (selectedDateOnly.getTime() === today.getTime()) {
+                const currentHour = now.getHours();
+                const currentMinutes = now.getMinutes();
+
+                for (const schedule of schedules) {
+                    if (schedule.hour < currentHour ||
+                        (schedule.hour === currentHour && schedule.minutes <= currentMinutes)) {
+                        setError("If the date is today, all times must be after the current time");
+                        setIsSubmitting(false);
+                        return;
+                    }
+                }
+            }
+
+            finalSchedules = sortSchedules(schedules);
+        }
 
         try {
             // Check if icon has changed - need to handle empty string to clear icon
@@ -286,12 +299,12 @@ export function EditTrackingModal({
 
             await onSave(
                 tracking.id,
-                currentFrequency === "One-time" ? undefined : days, // Pass undefined for one-time trackings
+                isOneTime ? undefined : days, // Pass undefined for one-time trackings
                 question.trim() !== tracking.question ? question.trim() : undefined,
                 notes.trim() !== (tracking.notes || "") ? notes.trim() || undefined : undefined,
                 iconValue,
-                sortedNewSchedules, // Always send schedules to preserve them when frequency changes
-                currentFrequency === "One-time" ? oneTimeDate : undefined // Pass oneTimeDate for one-time trackings
+                finalSchedules, // Always send schedules to preserve them when frequency changes
+                isOneTime ? oneTimeDate : undefined // Pass oneTimeDate for one-time trackings
             );
             if (!hasSaveErrorRef.current) {
                 onClose();
@@ -328,7 +341,7 @@ export function EditTrackingModal({
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="edit-tracking-form">
+                <form onSubmit={handleSubmit} className="tracking-form">
                     {error && (
                         <div className="message error show">
                             <span className="message-text">{error}</span>
@@ -373,138 +386,196 @@ export function EditTrackingModal({
                                 rows={1}
                             />
                         </div>
+                    </div>
 
-                        <div className="icon-type-row">
-                            <div className="icon-field-wrapper">
+                    {currentFrequency !== "One-time" && (
+                        <div className="form-group">
+                            <DaysPatternInput
+                                value={days}
+                                onChange={(pattern) => setDays(pattern)}
+                                disabled={isSubmitting}
+                                error={daysError}
+                                onErrorChange={setDaysError}
+                                hideFrequencySelector={false}
+                                frequency={currentFrequency === "daily" ? "daily" : currentFrequency === "weekly" ? "weekly" : currentFrequency === "monthly" ? "monthly" : currentFrequency === "yearly" ? "yearly" : "daily"}
+                                onFrequencyChange={(freq) => {
+                                    if (freq === "One-time") {
+                                        setCurrentFrequency("One-time");
+                                    } else {
+                                        setCurrentFrequency(freq === "daily" ? "daily" : freq === "weekly" ? "weekly" : freq === "monthly" ? "monthly" : freq === "yearly" ? "yearly" : "daily");
+                                    }
+                                }}
+                            />
+                        </div>
+                    )}
+
+                    {currentFrequency !== "One-time" && (
+                        <div className="form-group">
+                            <div className="form-label-row">
+                                <label htmlFor="edit-tracking-schedules">
+                                    Time(s) <span className="required-asterisk">*</span>{" "}
+                                    <button
+                                        type="button"
+                                        className="field-help"
+                                        aria-label="Times help"
+                                        title="Define up to 5 times (hour and minutes) when reminders will be sent for this tracking. At least one time is required."
+                                    >
+                                        ?
+                                    </button>
+                                </label>
+                            </div>
+                            <div className="schedule-input-row">
+                                <div className="schedule-time-inputs">
+                                    <input
+                                        type="time"
+                                        id="edit-schedule-time"
+                                        name="edit-schedule-time"
+                                        value={scheduleTime}
+                                        onChange={(e) => setScheduleTime(e.target.value)}
+                                        disabled={isSubmitting || schedules.length >= 5}
+                                    />
+                                </div>
+                                <button
+                                    type="button"
+                                    className="btn-primary schedule-add-button"
+                                    onClick={handleAddOrUpdateSchedule}
+                                    disabled={
+                                        isSubmitting || schedules.length >= 5
+                                    }
+                                >
+                                    Add
+                                </button>
+                                {schedules.length > 0 && (
+                                    <div className="schedules-list">
+                                        {sortSchedules(schedules).map((schedule) => {
+                                            const originalIndex = schedules.findIndex(
+                                                (s) =>
+                                                    s.hour === schedule.hour &&
+                                                    s.minutes === schedule.minutes
+                                            );
+                                            return (
+                                                <div
+                                                    key={`${schedule.hour}-${schedule.minutes}-${originalIndex}`}
+                                                    className="schedule-item"
+                                                >
+                                                    <span className="schedule-time">
+                                                        {String(schedule.hour).padStart(2, "0")}:
+                                                        {String(schedule.minutes).padStart(2, "0")}
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        className="btn-icon"
+                                                        onClick={() =>
+                                                            handleDeleteSchedule(originalIndex)
+                                                        }
+                                                        disabled={isSubmitting}
+                                                        aria-label="Delete schedule"
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {currentFrequency === "One-time" && (
+                        <>
+                            <div className="form-group">
+                                <DaysPatternInput
+                                    value={days}
+                                    onChange={(pattern) => setDays(pattern)}
+                                    disabled={isSubmitting}
+                                    error={daysError}
+                                    onErrorChange={setDaysError}
+                                    hideFrequencySelector={false}
+                                    frequency="One-time"
+                                    onFrequencyChange={(freq) => {
+                                        if (freq === "One-time") {
+                                            setCurrentFrequency("One-time");
+                                        } else {
+                                            setCurrentFrequency(freq === "daily" ? "daily" : freq === "weekly" ? "weekly" : freq === "monthly" ? "monthly" : freq === "yearly" ? "yearly" : "daily");
+                                        }
+                                    }}
+                                    oneTimeDate={oneTimeDate}
+                                    onOneTimeDateChange={(date) => setOneTimeDate(date)}
+                                />
+                            </div>
+                            <div className="form-group">
                                 <div className="form-label-row">
-                                    <label htmlFor="edit-tracking-icon">
-                                        Icon{" "}
+                                    <label htmlFor="edit-one-time-schedules">
+                                        Time(s) <span className="required-asterisk">*</span>{" "}
                                         <button
                                             type="button"
                                             className="field-help"
-                                            aria-label="Icon help"
-                                            title="Optional emoji or icon to visually identify this tracking."
+                                            aria-label="Times help"
+                                            title="Define up to 5 times (hour and minutes) when reminders will be sent for this one-time tracking. If the date is today, all times must be after the current time."
                                         >
                                             ?
                                         </button>
                                     </label>
                                 </div>
-                                <div className="icon-input-row">
-                                    <input
-                                        type="text"
-                                        id="edit-tracking-icon"
-                                        name="icon"
-                                        placeholder="e.g., 💪🏼"
-                                        value={icon}
-                                        onChange={(e) => setIcon(e.target.value)}
-                                        disabled={isSubmitting}
-                                        maxLength={30}
-                                    />
+                                <div className="schedule-input-row">
+                                    <div className="schedule-time-inputs">
+                                        <input
+                                            type="time"
+                                            id="edit-one-time-schedule-time"
+                                            name="edit-one-time-schedule-time"
+                                            value={scheduleTime}
+                                            onChange={(e) => setScheduleTime(e.target.value)}
+                                            disabled={isSubmitting || schedules.length >= 5}
+                                        />
+                                    </div>
                                     <button
                                         type="button"
-                                        className="icon-suggest-button"
-                                        onClick={handleSuggestEmoji}
-                                        disabled={isSubmitting || isSuggestingEmoji || !question.trim()}
-                                        aria-label="Suggest emoji based on question"
-                                        title="Suggest an emoji based on the question text"
+                                        className="btn-primary schedule-add-button"
+                                        onClick={handleAddOrUpdateSchedule}
+                                        disabled={
+                                            isSubmitting || schedules.length >= 5
+                                        }
                                     >
-                                        <span className="icon-suggest-text">{isSuggestingEmoji ? "..." : "✨"}</span>
-                                        <span className="sr-only">Suggest emoji</span>
+                                        Add
                                     </button>
+                                    {schedules.length > 0 && (
+                                        <div className="schedules-list">
+                                            {sortSchedules(schedules).map((schedule) => {
+                                                const originalIndex = schedules.findIndex(
+                                                    (s) =>
+                                                        s.hour === schedule.hour &&
+                                                        s.minutes === schedule.minutes
+                                                );
+                                                return (
+                                                    <div
+                                                        key={`${schedule.hour}-${schedule.minutes}-${originalIndex}`}
+                                                        className="schedule-item"
+                                                    >
+                                                        <span className="schedule-time">
+                                                            {String(schedule.hour).padStart(2, "0")}:
+                                                            {String(schedule.minutes).padStart(2, "0")}
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            className="btn-icon"
+                                                            onClick={() =>
+                                                                handleDeleteSchedule(originalIndex)
+                                                            }
+                                                            disabled={isSubmitting}
+                                                            aria-label="Delete schedule"
+                                                        >
+                                                            ×
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
-                        </div>
-                    </div>
-
-                    <div className="form-group">
-                        <div className="form-label-row">
-                            <label htmlFor="edit-tracking-schedules">
-                                Times <span className="required-asterisk">*</span>{" "}
-                                <button
-                                    type="button"
-                                    className="field-help"
-                                    aria-label="Times help"
-                                    title="Define up to 5 times (hour and minutes) when reminders will be sent for this tracking. At least one time is required."
-                                >
-                                    ?
-                                </button>
-                            </label>
-                        </div>
-                        <div className="schedule-input-row">
-                            <div className="schedule-time-inputs">
-                                <input
-                                    type="time"
-                                    id="edit-schedule-time"
-                                    name="edit-schedule-time"
-                                    value={scheduleTime}
-                                    onChange={(e) => setScheduleTime(e.target.value)}
-                                    disabled={isSubmitting || schedules.length >= 5}
-                                />
-                            </div>
-                            <button
-                                type="button"
-                                className="btn-primary schedule-add-button"
-                                onClick={handleAddOrUpdateSchedule}
-                                disabled={
-                                    isSubmitting || schedules.length >= 5
-                                }
-                            >
-                                Add
-                            </button>
-                            {schedules.length > 0 && (
-                                <div className="schedules-list">
-                                    {sortSchedules(schedules).map((schedule) => {
-                                        const originalIndex = schedules.findIndex(
-                                            (s) =>
-                                                s.hour === schedule.hour &&
-                                                s.minutes === schedule.minutes
-                                        );
-                                        return (
-                                            <div
-                                                key={`${schedule.hour}-${schedule.minutes}-${originalIndex}`}
-                                                className="schedule-item"
-                                            >
-                                                <span className="schedule-time">
-                                                    {String(schedule.hour).padStart(2, "0")}:
-                                                    {String(schedule.minutes).padStart(2, "0")}
-                                                </span>
-                                                <button
-                                                    type="button"
-                                                    className="btn-icon"
-                                                    onClick={() =>
-                                                        handleDeleteSchedule(originalIndex)
-                                                    }
-                                                    disabled={isSubmitting}
-                                                    aria-label="Delete schedule"
-                                                >
-                                                    ×
-                                                </button>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="form-group">
-                        <DaysPatternInput
-                            value={days}
-                            onChange={(pattern) => setDays(pattern)}
-                            disabled={isSubmitting}
-                            error={daysError}
-                            onErrorChange={setDaysError}
-                            frequency={currentFrequency}
-                            onFrequencyChange={(freq) => {
-                                setCurrentFrequency(freq);
-                                if (freq === "One-time") {
-                                    setDays(undefined);
-                                }
-                            }}
-                            oneTimeDate={currentFrequency === "One-time" ? oneTimeDate : undefined}
-                            onOneTimeDateChange={(date) => setOneTimeDate(date)}
-                        />
-                    </div>
+                        </>
+                    )}
 
                     <div className="form-group">
                         <div className="form-label-row">
@@ -532,6 +603,46 @@ export function EditTrackingModal({
                         />
                     </div>
 
+                    <div className="form-group">
+                        <div className="form-label-row">
+                            <label htmlFor="edit-tracking-icon">
+                                Icon{" "}
+                                <button
+                                    type="button"
+                                    className="field-help"
+                                    aria-label="Icon help"
+                                    title="Optional emoji or icon to visually identify this tracking."
+                                >
+                                    ?
+                                </button>
+                            </label>
+                        </div>
+                        <div className="icon-input-row">
+                            <input
+                                type="text"
+                                id="edit-tracking-icon"
+                                name="icon"
+                                placeholder="e.g., 💪🏼"
+                                value={icon}
+                                onChange={(e) => setIcon(e.target.value)}
+                                disabled={isSubmitting}
+                                maxLength={30}
+                                className="icon-input-autofit"
+                            />
+                            <button
+                                type="button"
+                                className="icon-suggest-button"
+                                onClick={handleSuggestEmoji}
+                                disabled={isSubmitting || isSuggestingEmoji || !question.trim()}
+                                aria-label="Suggest emoji based on question"
+                                title="Suggest an emoji based on the question text"
+                            >
+                                <span className="icon-suggest-text">{isSuggestingEmoji ? "..." : "✨"}</span>
+                                <span className="sr-only">Suggest emoji</span>
+                            </button>
+                        </div>
+                    </div>
+
                     <div className="form-actions">
                         <button
                             type="button"
@@ -552,7 +663,8 @@ export function EditTrackingModal({
                             disabled={
                                 isSubmitting ||
                                 !question.trim() ||
-                                schedules.length === 0
+                                (currentFrequency !== "One-time" && schedules.length === 0) ||
+                                (currentFrequency === "One-time" && (!oneTimeDate || schedules.length === 0))
                             }
                         >
                             {isSubmitting ? "Saving..." : "Save"}

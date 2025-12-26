@@ -76,7 +76,7 @@ async function createTestDatabase(): Promise<Database> {
               notes TEXT,
               icon TEXT,
               days TEXT,
-              state TEXT NOT NULL DEFAULT 'Running' CHECK(state IN ('Running', 'Paused', 'Archived', 'Deleted')),
+              state TEXT NOT NULL DEFAULT 'Running' CHECK(state IN ('Running', 'Paused', 'Archived')),
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -677,22 +677,6 @@ describe("Trackings Routes", () => {
 
       expect(response.status).toBe(200);
       expect(response.body.state).toBe("Archived");
-    });
-
-    it("should update tracking state from Archived to Deleted", async () => {
-      const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, state) VALUES (?, ?, ?)",
-        [testUserId, "Test Question", "Archived"]
-      );
-      const trackingId = result.lastID;
-
-      const response = await request(app)
-        .patch(`/api/trackings/${trackingId}/state`)
-        .set("Authorization", "Bearer test-token")
-        .send({ state: "Deleted" });
-
-      expect(response.status).toBe(200);
-      expect(response.body.state).toBe("Deleted");
     });
 
     it("should return 400 for same state transition", async () => {
