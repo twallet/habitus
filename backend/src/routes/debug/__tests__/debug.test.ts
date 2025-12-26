@@ -71,7 +71,7 @@ async function createTestDatabase(): Promise<Database> {
             question TEXT NOT NULL CHECK(length(question) <= 100),
             notes TEXT,
             icon TEXT,
-            days TEXT,
+            frequency TEXT NOT NULL,
             state TEXT NOT NULL DEFAULT 'Running' CHECK(state IN ('Running', 'Paused', 'Archived')),
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -197,8 +197,14 @@ describe("Debug Routes", () => {
 
     it("should return debug log with trackings and no reminders", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question, icon, days, notes) VALUES (?, ?, ?, ?, ?)",
-        [testUserId, "Test Question", "🏃", "1111111", "Test notes"]
+        "INSERT INTO trackings (user_id, question, icon, frequency, notes) VALUES (?, ?, ?, ?, ?)",
+        [
+          testUserId,
+          "Test Question",
+          "🏃",
+          JSON.stringify({ type: "daily" }),
+          "Test notes",
+        ]
       );
       const trackingId = result.lastID;
 
@@ -217,7 +223,7 @@ describe("Debug Routes", () => {
       expect(response.body.log).toContain(`ID=${trackingId}`);
       expect(response.body.log).toContain("Question=Test Question");
       expect(response.body.log).toContain("Icon=🏃");
-      expect(response.body.log).toContain("Days=1111111");
+      expect(response.body.log).toContain('Frequency={"type":"daily"}');
       expect(response.body.log).toContain("Notes=Test notes");
       expect(response.body.log).toContain("Schedules=[09:00]");
       expect(response.body.log).toContain("REMINDERS: None");
@@ -225,8 +231,8 @@ describe("Debug Routes", () => {
 
     it("should return debug log with trackings and reminders", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [testUserId, "Test Question"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", JSON.stringify({ type: "daily" })]
       );
       const trackingId = result.lastID;
 
@@ -270,8 +276,8 @@ describe("Debug Routes", () => {
     it("should return debug log with multiple trackings and reminders", async () => {
       // Insert first tracking
       const result1 = await testDb.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [testUserId, "Question 1"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [testUserId, "Question 1", JSON.stringify({ type: "daily" })]
       );
       const trackingId1 = result1.lastID;
 
@@ -282,8 +288,8 @@ describe("Debug Routes", () => {
 
       // Insert second tracking
       const result2 = await testDb.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [testUserId, "Question 2"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [testUserId, "Question 2", JSON.stringify({ type: "daily" })]
       );
       const trackingId2 = result2.lastID;
 
@@ -309,10 +315,10 @@ describe("Debug Routes", () => {
       expect(response.body.log).toContain("Question 2");
     });
 
-    it("should handle trackings with null icon, days, and notes", async () => {
+    it("should handle trackings with null icon, frequency, and notes", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [testUserId, "Test Question"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", JSON.stringify({ type: "daily" })]
       );
       const trackingId = result.lastID;
 
@@ -327,14 +333,14 @@ describe("Debug Routes", () => {
 
       expect(response.status).toBe(200);
       expect(response.body.log).toContain("Icon=null");
-      expect(response.body.log).toContain("Days=null");
+      expect(response.body.log).toContain('Frequency={"type":"daily"}');
       expect(response.body.log).toContain("Notes=null");
     });
 
     it("should handle trackings with multiple schedules", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [testUserId, "Test Question"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", JSON.stringify({ type: "daily" })]
       );
       const trackingId = result.lastID;
 
@@ -361,8 +367,8 @@ describe("Debug Routes", () => {
 
     it("should handle reminders with null notes", async () => {
       const result = await testDb.run(
-        "INSERT INTO trackings (user_id, question) VALUES (?, ?)",
-        [testUserId, "Test Question"]
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", JSON.stringify({ type: "daily" })]
       );
       const trackingId = result.lastID;
 
