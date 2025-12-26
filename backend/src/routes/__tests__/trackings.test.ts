@@ -639,7 +639,12 @@ describe("Trackings Routes", () => {
     it("should update tracking state from Paused to Running", async () => {
       const result = await testDb.run(
         "INSERT INTO trackings (user_id, question, state, frequency) VALUES (?, ?, ?, ?)",
-        [testUserId, "Test Question", "Paused", JSON.stringify({ type: "daily" })]
+        [
+          testUserId,
+          "Test Question",
+          "Paused",
+          JSON.stringify({ type: "daily" }),
+        ]
       );
       const trackingId = result.lastID;
 
@@ -655,7 +660,12 @@ describe("Trackings Routes", () => {
     it("should update tracking state from Paused to Archived", async () => {
       const result = await testDb.run(
         "INSERT INTO trackings (user_id, question, state, frequency) VALUES (?, ?, ?, ?)",
-        [testUserId, "Test Question", "Paused", JSON.stringify({ type: "daily" })]
+        [
+          testUserId,
+          "Test Question",
+          "Paused",
+          JSON.stringify({ type: "daily" }),
+        ]
       );
       const trackingId = result.lastID;
 
