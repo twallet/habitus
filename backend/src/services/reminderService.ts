@@ -436,11 +436,18 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
           return updatedReminder;
         }
 
-        // const { DaysPattern } = await import("../models/Tracking.js"); // Removed dynamic import of type
-        const daysPattern = tracking.days as DaysPattern | undefined;
-        if (!daysPattern) {
+        // Check if tracking has frequency (required field, but check for safety)
+        if (!tracking.frequency) {
           console.warn(
-            `[${new Date().toISOString()}] REMINDER | Tracking ${trackingId} has no days pattern, cannot update upcoming reminder`
+            `[${new Date().toISOString()}] REMINDER | Tracking ${trackingId} has no frequency, cannot update upcoming reminder`
+          );
+          return updatedReminder;
+        }
+
+        // One-time frequencies don't generate recurring reminders
+        if (tracking.frequency.type === "one-time") {
+          console.log(
+            `[${new Date().toISOString()}] REMINDER | Tracking ${trackingId} is one-time, skipping upcoming reminder update`
           );
           return updatedReminder;
         }

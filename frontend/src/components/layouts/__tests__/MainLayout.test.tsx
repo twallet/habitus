@@ -7,7 +7,7 @@ import { MainLayout } from '../MainLayout';
 import { useAuth } from '../../../hooks/useAuth';
 import { useTrackings } from '../../../hooks/useTrackings';
 import { useReminders } from '../../../hooks/useReminders';
-import { TrackingState, DaysPatternType } from '../../../models/Tracking';
+import { TrackingState, Frequency } from '../../../models/Tracking';
 import { ReminderStatus } from '../../../models/Reminder';
 
 // Mock hooks
@@ -46,7 +46,7 @@ describe('MainLayout', () => {
             user_id: 1,
             question: 'Did you exercise?',
             state: TrackingState.RUNNING,
-            days: { pattern_type: DaysPatternType.INTERVAL, interval_value: 1, interval_unit: 'days' as const },
+            frequency: { type: "daily" },
             created_at: '2024-01-01T00:00:00Z',
         },
     ];
@@ -224,7 +224,7 @@ describe('MainLayout', () => {
                 user_id: 1,
                 question: 'Question 1',
                 state: TrackingState.RUNNING,
-                days: { pattern_type: DaysPatternType.INTERVAL, interval_value: 1, interval_unit: 'days' as const },
+                frequency: { type: "daily" },
                 created_at: '2024-01-01T00:00:00Z',
             },
             {
@@ -232,7 +232,7 @@ describe('MainLayout', () => {
                 user_id: 1,
                 question: 'Question 2',
                 state: TrackingState.RUNNING,
-                days: { pattern_type: DaysPatternType.INTERVAL, interval_value: 1, interval_unit: 'days' as const },
+                frequency: { type: "daily" },
                 created_at: '2024-01-01T00:00:00Z',
             },
         ];
@@ -548,7 +548,7 @@ describe('MainLayout', () => {
             user_id: 1,
             question: 'New question',
             state: TrackingState.RUNNING,
-            days: { pattern_type: DaysPatternType.INTERVAL, interval_value: 1, interval_unit: 'days' as const },
+            frequency: { type: "daily" },
             created_at: '2024-01-01T00:00:00Z',
         }];
 

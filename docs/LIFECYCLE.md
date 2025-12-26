@@ -42,7 +42,7 @@ When a tracking is created:
 2. **Automatic Actions:**
    - Tracking times are created (1-5 times per tracking)
    - **For recurring trackings:** An initial reminder is automatically created with status `"Upcoming"` (the time is always in the future)
-   - **For one-time trackings:** One reminder is created for each schedule time on the specified `oneTimeDate` (all reminders are created with status `"Upcoming"`)
+   - **For one-time trackings:** One reminder is created for each schedule time on the specified date in `frequency.date` (all reminders are created with status `"Upcoming"`)
 
 ### Tracking Updates
 
@@ -55,13 +55,12 @@ When a tracking is updated:
    - `notes`
    - `icon`
    - `times` (replaces all existing times)
-   - `days` (days pattern for recurring trackings)
-   - `oneTimeDate` (date for one-time trackings, YYYY-MM-DD format)
+   - `frequency` (unified frequency pattern - required field for all trackings)
 
 2. **Automatic Actions on Update:**
-   - **For recurring trackings:** If `times` or `days` pattern changes AND tracking state is `"Running"`, existing `Upcoming` reminder is updated with the recalculated next time, or created if not existing.
-   - **For one-time trackings:** If `oneTimeDate` or `times` change AND tracking state is `"Running"`, all existing reminders are deleted and new reminders are created for each schedule time on the updated date.
-   - **When converting between one-time and recurring:** All existing reminders are deleted. If converting to one-time, new reminders are created for each schedule on the specified date. If converting to recurring, a new `Upcoming` reminder is created based on the days pattern.
+   - **For recurring trackings:** If `times` or `frequency` changes AND tracking state is `"Running"`, existing `Upcoming` reminder is updated with the recalculated next time, or created if not existing.
+   - **For one-time trackings:** If `frequency.date` or `times` change AND tracking state is `"Running"`, all existing reminders are deleted and new reminders are created for each schedule time on the updated date.
+   - **When converting between one-time and recurring:** All existing reminders are deleted. If converting to one-time (`frequency.type === "one-time"`), new reminders are created for each schedule on the specified date. If converting to recurring, a new `Upcoming` reminder is created based on the frequency pattern.
 
 ### Tracking State Changes
 
@@ -86,8 +85,8 @@ When a tracking transitions to `Archived`:
 
 When a tracking transitions to `Running` (from `Paused` or `Archived`):
 
-- **For recurring trackings:** A new `Upcoming` reminder is automatically created, and its time is calculated based on current times and days pattern
-- **For one-time trackings:** If the `oneTimeDate` is in the future, reminders are created for each schedule time on that date. If the date has passed, no reminders are created.
+- **For recurring trackings:** A new `Upcoming` reminder is automatically created, and its time is calculated based on current times and frequency pattern
+- **For one-time trackings:** If the `frequency.date` is in the future, reminders are created for each schedule time on that date. If the date has passed, no reminders are created.
 
 #### Deletion
 
@@ -168,14 +167,14 @@ Reminders can be created in two ways:
 Reminders are automatically created:
 
 - **When a tracking is created:**
-  - **Recurring trackings:** If tracking has times and days pattern, an initial `Upcoming` reminder is created
-  - **One-time trackings:** If tracking has times and `oneTimeDate`, one reminder is created for each schedule time on the specified date
+  - **Recurring trackings:** If tracking has times and a recurring frequency type (`daily`, `weekly`, `monthly`, or `yearly`), an initial `Upcoming` reminder is created
+  - **One-time trackings:** If tracking has times and `frequency.type === "one-time"` with a valid `date`, one reminder is created for each schedule time on the specified date
 - **When a tracking transitions to Running** (from Paused or Archived):
-  - **Recurring trackings:** A new `Upcoming` reminder is created based on times and days pattern
-  - **One-time trackings:** If `oneTimeDate` is in the future, reminders are created for each schedule time
+  - **Recurring trackings:** A new `Upcoming` reminder is created based on times and frequency pattern
+  - **One-time trackings:** If `frequency.date` is in the future, reminders are created for each schedule time
 - **When a reminder is answered** (creates next reminder for recurring trackings only)
-- **When tracking times or days pattern are updated** (if tracking is Running and recurring)
-- **When one-time date or times are updated** (if tracking is Running and one-time, all reminders are recreated)
+- **When tracking times or frequency are updated** (if tracking is Running and recurring)
+- **When one-time frequency date or times are updated** (if tracking is Running and one-time, all reminders are recreated)
 
 ### Reminder Updates
 
@@ -243,14 +242,15 @@ Reminders are only generated for trackings that:
 
 1. Have state `"Running"`
 2. Have at least one time defined
+3. Have a `frequency` defined (required field)
 
-**For recurring trackings:** 3. Have a days pattern defined (not null)
+**For recurring trackings:** The frequency type must be one of: `daily`, `weekly`, `monthly`, or `yearly`
 
-**For one-time trackings:** 3. Have a `oneTimeDate` defined (YYYY-MM-DD format, must be today or in the future) 4. Have `days` set to `null` (no days pattern)
+**For one-time trackings:** The frequency type must be `one-time` with a `date` field (YYYY-MM-DD format, must be today or in the future)
 
 ---
 
-## Times and Days Patterns
+## Times and Frequency
 
 ### Tracking Times
 
@@ -261,106 +261,114 @@ Reminders are only generated for trackings that:
 
 ### Frequency Types
 
-Trackings can be either **recurring** or **one-time**:
+Trackings use a unified `frequency` field (required) that defines when reminders should occur. The frequency can be either **recurring** or **one-time**:
 
-- **Recurring trackings:** Use a days pattern to define when reminders should occur repeatedly
-- **One-time trackings:** Use a specific date (`oneTimeDate`) to create reminders that occur only once
+- **Recurring trackings:** Use frequency types `daily`, `weekly`, `monthly`, or `yearly` to define when reminders should occur repeatedly
+- **One-time trackings:** Use frequency type `one-time` with a `date` field to create reminders that occur only once
 
-### Days Patterns (Recurring Trackings)
+### Frequency Patterns
 
-Days patterns define when reminders should occur for recurring trackings. Four pattern types are supported:
+The `frequency` field is a discriminated union type. The following frequency types are supported:
 
-#### 1. Interval Pattern
+#### 1. Daily Frequency
 
-Reminders occur at regular intervals:
+Reminders occur every day:
 
 ```typescript
 {
-  pattern_type: "interval",
-  interval_value: number,  // e.g., 2
-  interval_unit: "days" | "weeks" | "months" | "years"
+  type: "daily";
 }
 ```
 
-Example: Every 2 days, every 3 weeks
+Example: Reminders every day at the specified times
 
-#### 2. Day of Week Pattern
+#### 2. Weekly Frequency
 
 Reminders occur on specific days of the week:
 
 ```typescript
 {
-  pattern_type: "day_of_week",
+  type: "weekly",
   days: number[]  // 0-6, where 0=Sunday, 6=Saturday
 }
 ```
 
-Example: Monday, Wednesday, Friday (days: [1, 3, 5])
+Example: Monday, Wednesday, Friday (`{ type: "weekly", days: [1, 3, 5] }`)
 
-#### 3. Day of Month Pattern
+#### 3. Monthly Frequency
 
 Reminders occur on specific days of the month:
 
 ```typescript
 {
-  pattern_type: "day_of_month",
-  type: "day_number" | "last_day" | "weekday_ordinal",
+  type: "monthly",
+  kind: "day_number" | "last_day" | "weekday_ordinal",
   // For day_number:
   day_numbers?: number[],  // 1-31
+  // For last_day:
+  // (no additional fields)
   // For weekday_ordinal:
-  weekday?: number,  // 0-6
+  weekday?: number,  // 0-6, where 0=Sunday
   ordinal?: number   // 1-5 (first, second, third, fourth, fifth)
 }
 ```
 
 Examples:
 
-- 1st and 15th of each month
-- Last day of each month
-- First Monday of each month
+- 1st and 15th of each month: `{ type: "monthly", kind: "day_number", day_numbers: [1, 15] }`
+- Last day of each month: `{ type: "monthly", kind: "last_day" }`
+- First Monday of each month: `{ type: "monthly", kind: "weekday_ordinal", weekday: 1, ordinal: 1 }`
 
-#### 4. Day of Year Pattern
+#### 4. Yearly Frequency
 
 Reminders occur on specific days of the year:
 
 ```typescript
 {
-  pattern_type: "day_of_year",
-  type: "date" | "weekday_ordinal",
+  type: "yearly",
+  kind: "date" | "weekday_ordinal",
   // For date:
   month?: number,  // 1-12
   day?: number,    // 1-31
   // For weekday_ordinal:
-  weekday?: number,  // 0-6
-  ordinal?: number   // 1-5
+  weekday?: number,  // 0-6, where 0=Sunday
+  ordinal?: number   // 1-5 (first, second, third, fourth, fifth)
 }
 ```
 
 Examples:
 
-- January 1st (New Year's Day)
-- First Monday of the year
+- January 1st (New Year's Day): `{ type: "yearly", kind: "date", month: 1, day: 1 }`
+- First Monday of the year: `{ type: "yearly", kind: "weekday_ordinal", weekday: 1, ordinal: 1 }`
 
-### One-Time Frequency
+#### 5. One-Time Frequency
 
 One-time trackings create reminders that occur only once on a specific date:
 
-- **`oneTimeDate`:** Required date in YYYY-MM-DD format (must be today or in the future)
-- **`days`:** Must be `null` (no days pattern)
+```typescript
+{
+  type: "one-time",
+  date: string  // YYYY-MM-DD format (must be today or in the future)
+}
+```
+
+**Characteristics:**
+
+- **`date`:** Required date in YYYY-MM-DD format (must be today or in the future)
 - **Reminder creation:** One reminder is created for each schedule time on the specified date
 - **No recurrence:** When a one-time reminder is answered, no new reminder is created
 
 **Example:**
 
-- Date: `2024-12-25`
+- Frequency: `{ type: "one-time", date: "2024-12-25" }`
 - Times: `09:00`, `18:00`
 - Result: Two reminders created, one at 09:00 and one at 18:00 on December 25, 2024
 
 **Conversion:**
 
-- One-time trackings can be converted to recurring by providing a days pattern
-- Recurring trackings can be converted to one-time by providing a `oneTimeDate` and setting `days` to `null`
-- When converting, all existing reminders are deleted and new ones are created based on the new type
+- One-time trackings can be converted to recurring by changing `frequency.type` to `daily`, `weekly`, `monthly`, or `yearly` (with appropriate fields)
+- Recurring trackings can be converted to one-time by changing `frequency.type` to `one-time` with a `date` field
+- When converting, all existing reminders are deleted and new ones are created based on the new frequency type
 
 ### Next Reminder Calculation
 
@@ -368,7 +376,7 @@ One-time trackings create reminders that occur only once on a specific date:
 
 When calculating the next reminder time:
 
-1. For each time, the system finds the next occurrence that matches the days pattern
+1. For each time, the system finds the next occurrence that matches the frequency pattern
 2. The earliest of all candidate times is selected
 3. The selected time must be in the future
 4. If an `excludeTime` is provided (e.g., when skipping a reminder), that time is excluded from consideration
@@ -382,15 +390,15 @@ When calculating the next reminder time:
 Reminders are automatically created when:
 
 - **A tracking is created:**
-  - Recurring: If it has times and days pattern
-  - One-time: If it has times and `oneTimeDate`
+  - Recurring: If it has times and a recurring frequency type (`daily`, `weekly`, `monthly`, or `yearly`)
+  - One-time: If it has times and `frequency.type === "one-time"` with a valid `date`
 - **A tracking transitions to `Running`** (from `Paused` or `Archived`):
-  - Recurring: Creates `Upcoming` reminder based on times and days pattern
-  - One-time: Creates reminders for each schedule time if `oneTimeDate` is in the future
+  - Recurring: Creates `Upcoming` reminder based on times and frequency pattern
+  - One-time: Creates reminders for each schedule time if `frequency.date` is in the future
 - **A reminder is answered** (recurring trackings only - creates next reminder)
 - **A reminder is skipped** (recurring trackings only)
-- **Tracking times or days pattern are updated** (if tracking is `Running` and recurring)
-- **One-time date or times are updated** (if tracking is `Running` and one-time - all reminders are recreated)
+- **Tracking times or frequency are updated** (if tracking is `Running` and recurring)
+- **One-time frequency date or times are updated** (if tracking is `Running` and one-time - all reminders are recreated)
 
 ### Automatic Reminder Cleanup
 

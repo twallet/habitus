@@ -314,7 +314,9 @@ router.get(
             `Question=${tracking.question}`,
             `State=${tracking.state}`,
             `Icon=${tracking.icon || "null"}`,
-            `Days=${tracking.days || "null"}`,
+            `Frequency=${
+              tracking.frequency ? JSON.stringify(tracking.frequency) : "null"
+            }`,
             `Schedules=[${schedulesStr}]`,
             `Notes=${tracking.notes || "null"}`,
             `Created=${formatDateGMT3(tracking.created_at)}`,

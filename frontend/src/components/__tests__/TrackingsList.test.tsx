@@ -649,7 +649,7 @@ describe("TrackingsList", () => {
         expect(timesCell).toHaveAttribute("title", "No times");
     });
 
-    it("should format interval frequency correctly", () => {
+    it("should format daily frequency correctly", () => {
         const trackings: TrackingData[] = [
             {
                 id: 1,

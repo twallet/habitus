@@ -838,7 +838,7 @@ describe("ReminderService", () => {
   });
 
   describe("calculateNextReminderTime", () => {
-    it("should calculate next reminder time for interval pattern", async () => {
+    it("should calculate next reminder time for daily frequency", async () => {
       const tracking = await testDb.get(
         "SELECT * FROM trackings WHERE id = ?",
         [testTrackingId]
@@ -1090,6 +1090,5 @@ describe("ReminderService", () => {
       expect(nextDate.getMonth() + 1).toBe(12);
       expect(nextDate.getDate()).toBe(25);
     });
-
   });
 });
