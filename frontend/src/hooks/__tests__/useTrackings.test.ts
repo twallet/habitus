@@ -3,7 +3,7 @@ import { vi, type Mock } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { useTrackings } from "../useTrackings";
 import { API_ENDPOINTS } from "../../config/api";
-import { DaysPatternType } from "../../models/Tracking";
+import { Frequency } from "../../models/Tracking";
 
 // Mock fetch
 global.fetch = vi.fn();
@@ -108,17 +108,15 @@ describe("useTrackings", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    const defaultDays = {
-      pattern_type: DaysPatternType.INTERVAL,
-      interval_value: 1,
-      interval_unit: "days" as const,
+    const defaultFrequency: Frequency = {
+      type: "daily",
     };
     const newTracking = await result.current.createTracking(
       "Did I exercise?",
       undefined,
       undefined,
       [{ hour: 9, minutes: 0 }],
-      defaultDays
+      defaultFrequency
     );
 
     expect(newTracking!.question).toBe("Did I exercise?");
@@ -154,13 +152,11 @@ describe("useTrackings", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    const defaultDays = {
-      pattern_type: DaysPatternType.INTERVAL,
-      interval_value: 1,
-      interval_unit: "days" as const,
+    const defaultFrequency: Frequency = {
+      type: "daily",
     };
 
-    await result.current.updateTracking(1, defaultDays, "New Question");
+    await result.current.updateTracking(1, defaultFrequency, "New Question");
 
     await waitFor(() => {
       expect(result.current.trackings[0].question).toBe("New Question");
@@ -186,7 +182,7 @@ describe("useTrackings", () => {
     expect(updateCall![1]).toBeDefined();
     const body = JSON.parse(updateCall![1].body);
     expect(body.question).toBe("New Question");
-    expect(body.days).toEqual(defaultDays);
+    expect(body.frequency).toEqual(defaultFrequency);
   });
 
   it("should delete a tracking", async () => {
@@ -260,10 +256,8 @@ describe("useTrackings", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    const defaultDays = {
-      pattern_type: DaysPatternType.INTERVAL,
-      interval_value: 1,
-      interval_unit: "days" as const,
+    const defaultFrequency: Frequency = {
+      type: "daily",
     };
     await expect(
       result.current.createTracking(
@@ -271,7 +265,7 @@ describe("useTrackings", () => {
         undefined,
         undefined,
         [{ hour: 9, minutes: 0 }],
-        defaultDays
+        defaultFrequency
       )
     ).rejects.toThrow();
   });
@@ -290,10 +284,8 @@ describe("useTrackings", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    const defaultDays = {
-      pattern_type: DaysPatternType.INTERVAL,
-      interval_value: 1,
-      interval_unit: "days" as const,
+    const defaultFrequency: Frequency = {
+      type: "daily",
     };
     await expect(
       result.current.createTracking(
@@ -301,7 +293,7 @@ describe("useTrackings", () => {
         undefined,
         undefined,
         [{ hour: 9, minutes: 0 }],
-        defaultDays
+        defaultFrequency
       )
     ).rejects.toThrow("Not authenticated");
   });

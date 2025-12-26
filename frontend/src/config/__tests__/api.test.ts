@@ -1,7 +1,7 @@
 import { vi, type Mock } from "vitest";
 import { API_ENDPOINTS, API_BASE_URL, ApiClient } from "../api";
 import { UserData } from "../../models/User";
-import { TrackingData, DaysPatternType } from "../../models/Tracking";
+import { TrackingData, Frequency } from "../../models/Tracking";
 
 // Mock fetch
 global.fetch = vi.fn();
@@ -415,10 +415,8 @@ describe("api", () => {
 
     describe("createTracking", () => {
       it("should create tracking successfully", async () => {
-        const defaultDays = {
-          pattern_type: DaysPatternType.INTERVAL,
-          interval_value: 1,
-          interval_unit: "days" as const,
+        const defaultFrequency: Frequency = {
+          type: "daily",
         };
         const mockTracking: TrackingData = {
           id: 1,
@@ -437,7 +435,7 @@ describe("api", () => {
           undefined,
           undefined,
           [{ hour: 9, minutes: 0 }],
-          defaultDays
+          defaultFrequency
         );
         expect(result).toEqual(mockTracking);
         expect(global.fetch).toHaveBeenCalledWith(
@@ -457,7 +455,7 @@ describe("api", () => {
         const body = JSON.parse(createCall![1].body);
         expect(body.question).toBe("Did you exercise?");
         expect(body.schedules).toEqual([{ hour: 9, minutes: 0 }]);
-        expect(body.days).toEqual(defaultDays);
+        expect(body.frequency).toEqual(defaultFrequency);
         // notes and icon are undefined, so they won't be in the JSON
         expect(body.notes).toBeUndefined();
         expect(body.icon).toBeUndefined();
@@ -466,16 +464,15 @@ describe("api", () => {
 
     describe("updateTracking", () => {
       it("should update tracking successfully", async () => {
-        const defaultDays = {
-          pattern_type: DaysPatternType.INTERVAL,
-          interval_value: 1,
-          interval_unit: "days" as const,
+        const defaultFrequency: Frequency = {
+          type: "daily",
         };
         const mockTracking: TrackingData = {
           id: 1,
           user_id: 1,
           question: "Did you meditate?",
           notes: undefined,
+          frequency: defaultFrequency,
         };
 
         (global.fetch as Mock).mockResolvedValueOnce({
@@ -485,7 +482,7 @@ describe("api", () => {
 
         const result = await apiClient.updateTracking(
           1,
-          defaultDays,
+          defaultFrequency,
           "Did you meditate?"
         );
         expect(result).toEqual(mockTracking);
@@ -506,7 +503,7 @@ describe("api", () => {
         expect(updateCall![1]).toBeDefined();
         const body = JSON.parse(updateCall![1].body);
         expect(body.question).toBe("Did you meditate?");
-        expect(body.days).toEqual(defaultDays);
+        expect(body.frequency).toEqual(defaultFrequency);
         // notes, icon, and schedules are undefined, so they won't be in the JSON
         expect(body.notes).toBeUndefined();
         expect(body.icon).toBeUndefined();
