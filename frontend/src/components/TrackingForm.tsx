@@ -1,5 +1,5 @@
-import { useState, FormEvent, useEffect, useRef } from "react";
-import { DaysPattern, DaysPatternType } from "../models/Tracking";
+import { useState, FormEvent } from "react";
+import { Frequency } from "../models/Tracking";
 import { ApiClient } from "../config/api";
 import { DaysPatternInput } from "./DaysPatternInput";
 import "./TrackingForm.css";
@@ -10,8 +10,7 @@ interface TrackingFormProps {
         notes: string | undefined,
         icon: string | undefined,
         schedules: Array<{ hour: number; minutes: number }>,
-        days: DaysPattern | undefined,
-        oneTimeDate?: string
+        frequency: Frequency
     ) => Promise<void>;
     onCancel?: () => void;
     isSubmitting?: boolean;
@@ -43,24 +42,8 @@ export function TrackingForm({
         const minutes = String(now.getMinutes()).padStart(2, "0");
         return `${hours}:${minutes}`;
     });
-    const [frequency, setFrequency] = useState<"Daily" | "Weekly" | "Monthly" | "Yearly" | "One-time">("Daily");
-    const [oneTimeDate, setOneTimeDate] = useState<string>("");
-    const [oneTimeSchedules, setOneTimeSchedules] = useState<
-        Array<{ hour: number; minutes: number }>
-    >([]);
-    const [oneTimeScheduleTime, setOneTimeScheduleTime] = useState<string>(() => {
-        const now = new Date();
-        now.setMinutes(now.getMinutes() + 5);
-        const hours = String(now.getHours()).padStart(2, "0");
-        const minutes = String(now.getMinutes()).padStart(2, "0");
-        return `${hours}:${minutes}`;
-    });
-    const [days, setDays] = useState<DaysPattern>({
-        pattern_type: DaysPatternType.INTERVAL,
-        interval_value: 1,
-        interval_unit: "days",
-    });
-    const [daysError, setDaysError] = useState<string | null>(null);
+    const [frequency, setFrequency] = useState<Frequency>({ type: "daily" });
+    const [frequencyError, setFrequencyError] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isSuggestingEmoji, setIsSuggestingEmoji] = useState(false);
     const [apiClient] = useState(() => {
@@ -72,8 +55,6 @@ export function TrackingForm({
         return client;
     });
 
-    // Track previous frequency to detect changes
-    const prevFrequencyRef = useRef<"Daily" | "Weekly" | "Monthly" | "Yearly" | "One-time">(frequency);
 
     /**
      * Get current time plus 5 minutes in HH:MM format.
@@ -88,134 +69,6 @@ export function TrackingForm({
         return `${hours}:${minutes}`;
     };
 
-    /**
-     * Get tomorrow's date as ISO string (YYYY-MM-DD).
-     * @returns Tomorrow's date in YYYY-MM-DD format
-     * @internal
-     */
-    const getTomorrowDate = (): string => {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        return tomorrow.toISOString().slice(0, 10);
-    };
-
-    /**
-     * Get tomorrow's weekday (0-6, where 0=Sunday, 1=Monday, etc.).
-     * @returns Tomorrow's weekday number
-     * @internal
-     */
-    const getTomorrowWeekday = (): number => {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        return tomorrow.getDay();
-    };
-
-    /**
-     * Get tomorrow's day of month (1-31).
-     * @returns Tomorrow's day number
-     * @internal
-     */
-    const getTomorrowDayNumber = (): number => {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        return tomorrow.getDate();
-    };
-
-    /**
-     * Get tomorrow's month (1-12).
-     * @returns Tomorrow's month number
-     * @internal
-     */
-    const getTomorrowMonth = (): number => {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        return tomorrow.getMonth() + 1; // getMonth() returns 0-11, so add 1
-    };
-
-    /**
-     * Update days pattern when frequency changes.
-     * Resets additional fields and sets defaults based on frequency type.
-     * @internal
-     */
-    useEffect(() => {
-        const prevFrequency = prevFrequencyRef.current;
-        const currentFrequency = frequency;
-
-        // Only process if frequency actually changed
-        if (prevFrequency === currentFrequency) {
-            return;
-        }
-
-        // Reset oneTimeDate and preserve schedules when switching away from One-time
-        if (prevFrequency === "One-time" && currentFrequency !== "One-time") {
-            setOneTimeDate("");
-            // Preserve oneTimeSchedules by copying them to schedules if schedules is empty
-            if (oneTimeSchedules.length > 0 && schedules.length === 0) {
-                setSchedules([...oneTimeSchedules]);
-            }
-            setOneTimeSchedules([]);
-        }
-
-        // Set oneTimeDate to tomorrow when switching to One-time
-        if (currentFrequency === "One-time" && prevFrequency !== "One-time") {
-            setOneTimeDate(getTomorrowDate());
-            // Preserve schedules by copying them to oneTimeSchedules
-            // This ensures times are not lost when switching to one-time
-            if (schedules.length > 0) {
-                setOneTimeSchedules([...schedules]);
-            }
-            // Don't clear oneTimeSchedules if they already have values
-        }
-
-        // Reset and set default days pattern based on frequency
-        if (currentFrequency !== "One-time") {
-            switch (currentFrequency) {
-                case "Daily": {
-                    setDays({
-                        pattern_type: DaysPatternType.INTERVAL,
-                        interval_value: 1,
-                        interval_unit: "days",
-                    });
-                    break;
-                }
-                case "Weekly": {
-                    // Weekly uses DAY_OF_WEEK pattern, default to tomorrow's weekday
-                    const tomorrowWeekday = getTomorrowWeekday();
-                    setDays({
-                        pattern_type: DaysPatternType.DAY_OF_WEEK,
-                        days: [tomorrowWeekday],
-                    });
-                    break;
-                }
-                case "Monthly": {
-                    // Monthly uses DAY_OF_MONTH pattern, default to tomorrow's day number
-                    const tomorrowDay = getTomorrowDayNumber();
-                    setDays({
-                        pattern_type: DaysPatternType.DAY_OF_MONTH,
-                        type: "day_number",
-                        day_numbers: [tomorrowDay],
-                    });
-                    break;
-                }
-                case "Yearly": {
-                    // Yearly uses a day-of-year pattern, default to tomorrow's month and day
-                    const tomorrowMonth = getTomorrowMonth();
-                    const tomorrowDay = getTomorrowDayNumber();
-                    setDays({
-                        pattern_type: DaysPatternType.DAY_OF_YEAR,
-                        type: "date",
-                        month: tomorrowMonth,
-                        day: tomorrowDay,
-                    });
-                    break;
-                }
-            }
-            setDaysError(null);
-        }
-
-        // Update ref for next comparison
-        prevFrequencyRef.current = currentFrequency;
-    }, [frequency]);
 
     /**
      * Handle emoji suggestion.
@@ -303,68 +156,6 @@ export function TrackingForm({
         setError(null);
     };
 
-    /**
-     * Add or update a one-time schedule.
-     * @internal
-     */
-    const handleAddOrUpdateOneTimeSchedule = () => {
-        setError(null);
-
-        // Parse time string (format: "HH:MM")
-        const [hourStr, minutesStr] = oneTimeScheduleTime.split(":");
-        const hour = parseInt(hourStr, 10);
-        const minutes = parseInt(minutesStr, 10);
-
-        // Validate hour and minutes
-        if (
-            isNaN(hour) ||
-            isNaN(minutes) ||
-            hour < 0 ||
-            hour > 23 ||
-            minutes < 0 ||
-            minutes > 59
-        ) {
-            setError("Invalid time format. Please use HH:MM format (e.g., 00:05)");
-            return;
-        }
-
-        const newSchedule = { hour, minutes };
-
-        // Check for duplicates
-        const isDuplicate = oneTimeSchedules.some(
-            (s) =>
-                s.hour === newSchedule.hour &&
-                s.minutes === newSchedule.minutes
-        );
-
-        if (isDuplicate) {
-            setError(
-                `Time ${String(hour).padStart(2, "0")}:${String(minutes).padStart(2, "0")} already exists`
-            );
-            return;
-        }
-
-        // Add new schedule
-        if (oneTimeSchedules.length >= 5) {
-            setError("Maximum 5 times allowed");
-            return;
-        }
-        setOneTimeSchedules([...oneTimeSchedules, newSchedule]);
-
-        // Reset input
-        setOneTimeScheduleTime(getTimeInFiveMinutes());
-    };
-
-    /**
-     * Delete a one-time schedule.
-     * @param index - Index of schedule to delete
-     * @internal
-     */
-    const handleDeleteOneTimeSchedule = (index: number) => {
-        const updatedSchedules = oneTimeSchedules.filter((_, i) => i !== index);
-        setOneTimeSchedules(updatedSchedules);
-        setError(null);
-    };
 
     /**
      * Sort schedules by hour and minutes.
@@ -407,73 +198,25 @@ export function TrackingForm({
             return;
         }
 
-        let finalSchedules: Array<{ hour: number; minutes: number }>;
-        const isOneTime = frequency === "One-time";
-
-        if (!isOneTime) {
-            if (schedules.length === 0) {
-                setError("At least one time is required");
-                return;
-            }
-
-            if (daysError) {
-                setError(daysError);
-                return;
-            }
-
-            finalSchedules = sortSchedules(schedules);
-        } else {
-            if (!oneTimeDate) {
-                setError("Date is required for one-time tracking");
-                return;
-            }
-
-            if (oneTimeSchedules.length === 0) {
-                setError("At least one time is required for one-time tracking");
-                return;
-            }
-
-            // Validate that the date is today or in the future
-            const selectedDate = new Date(oneTimeDate + "T00:00:00");
-            const now = new Date();
-            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const selectedDateOnly = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
-
-            if (selectedDateOnly < today) {
-                setError("Date must be today or in the future");
-                return;
-            }
-
-            // If it's today, validate that all times are in the future
-            if (selectedDateOnly.getTime() === today.getTime()) {
-                const currentHour = now.getHours();
-                const currentMinutes = now.getMinutes();
-
-                for (const schedule of oneTimeSchedules) {
-                    if (schedule.hour < currentHour ||
-                        (schedule.hour === currentHour && schedule.minutes <= currentMinutes)) {
-                        setError("If the date is today, all times must be after the current time");
-                        return;
-                    }
-                }
-            }
-
-            finalSchedules = sortSchedules(oneTimeSchedules);
+        if (schedules.length === 0) {
+            setError("At least one time is required");
+            return;
         }
 
-        try {
-            // For one-time tracking, construct oneTimeDate from date + first schedule (date only, backend will handle schedules)
-            // We'll pass the date as ISO date string (YYYY-MM-DD) - backend expects ISO datetime but we'll construct it there
-            // Actually, let's keep the format consistent - pass date as YYYY-MM-DD and backend will combine with schedules
-            const oneTimeDateToSubmit = isOneTime ? oneTimeDate : undefined;
+        if (frequencyError) {
+            setError(frequencyError);
+            return;
+        }
 
+        const finalSchedules = sortSchedules(schedules);
+
+        try {
             await onSubmit(
                 question.trim(),
                 notes.trim() || undefined,
                 icon.trim() || undefined,
                 finalSchedules,
-                !isOneTime ? days : undefined,
-                oneTimeDateToSubmit
+                frequency
             );
             // Reset form on success
             setQuestion("");
@@ -481,15 +224,8 @@ export function TrackingForm({
             setIcon("");
             setSchedules([]);
             setScheduleTime(getTimeInFiveMinutes());
-            setFrequency("Daily");
-            setOneTimeDate("");
-            setOneTimeSchedules([]);
-            setOneTimeScheduleTime(getTimeInFiveMinutes());
-            setDays({
-                pattern_type: DaysPatternType.INTERVAL,
-                interval_value: 1,
-                interval_unit: "days",
-            });
+            setFrequency({ type: "daily" });
+            setFrequencyError(null);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Error creating tracking");
         }
@@ -540,216 +276,87 @@ export function TrackingForm({
                 </div>
             </div>
 
-            {frequency !== "One-time" && (
-                <div className="form-group">
-                    <DaysPatternInput
-                        value={days}
-                        onChange={setDays}
-                        disabled={isSubmitting}
-                        error={daysError}
-                        onErrorChange={setDaysError}
-                        hideFrequencySelector={false}
-                        frequency={frequency === "Daily" ? "daily" : frequency === "Weekly" ? "weekly" : frequency === "Monthly" ? "monthly" : frequency === "Yearly" ? "yearly" : "daily"}
-                        onFrequencyChange={(freq) => {
-                            if (freq === "One-time") {
-                                setFrequency("One-time");
-                            } else {
-                                setFrequency(freq === "daily" ? "Daily" : freq === "weekly" ? "Weekly" : freq === "monthly" ? "Monthly" : freq === "yearly" ? "Yearly" : "Daily");
-                            }
-                        }}
-                    />
-                </div>
-            )}
+            <div className="form-group">
+                <DaysPatternInput
+                    value={frequency}
+                    onChange={setFrequency}
+                    disabled={isSubmitting}
+                    error={frequencyError}
+                    onErrorChange={setFrequencyError}
+                    hideFrequencySelector={false}
+                />
+            </div>
 
-            {frequency !== "One-time" && (
-                <div className="form-group">
-                    <div className="form-label-row">
-                        <label htmlFor="tracking-schedules">
-                            Time(s) <span className="required-asterisk">*</span>{" "}
-                            <button
-                                type="button"
-                                className="field-help"
-                                aria-label="Times help"
-                                title="Define up to 5 times (hour and minutes) when reminders will be sent for this tracking. At least one time is required."
-                            >
-                                ?
-                            </button>
-                        </label>
-                    </div>
-                    <div className="schedule-input-row">
-                        <div className="schedule-time-inputs">
-                            <input
-                                type="time"
-                                id="schedule-time"
-                                name="schedule-time"
-                                value={scheduleTime}
-                                onChange={(e) => setScheduleTime(e.target.value)}
-                                disabled={isSubmitting || schedules.length >= 5}
-                            />
-                        </div>
+            <div className="form-group">
+                <div className="form-label-row">
+                    <label htmlFor="tracking-schedules">
+                        Time(s) <span className="required-asterisk">*</span>{" "}
                         <button
                             type="button"
-                            className="btn-primary schedule-add-button"
-                            onClick={handleAddOrUpdateSchedule}
-                            disabled={
-                                isSubmitting || schedules.length >= 5
-                            }
+                            className="field-help"
+                            aria-label="Times help"
+                            title="Define up to 5 times (hour and minutes) when reminders will be sent for this tracking. At least one time is required."
                         >
-                            Add
+                            ?
                         </button>
-                        {schedules.length > 0 && (
-                            <div className="schedules-list">
-                                {sortSchedules(schedules).map((schedule) => {
-                                    const originalIndex = schedules.findIndex(
-                                        (s) =>
-                                            s.hour === schedule.hour &&
-                                            s.minutes === schedule.minutes
-                                    );
-                                    return (
-                                        <div
-                                            key={`${schedule.hour}-${schedule.minutes}-${originalIndex}`}
-                                            className="schedule-item"
-                                        >
-                                            <span className="schedule-time">
-                                                {String(schedule.hour).padStart(2, "0")}:
-                                                {String(schedule.minutes).padStart(2, "0")}
-                                            </span>
-                                            <button
-                                                type="button"
-                                                className="btn-icon"
-                                                onClick={() =>
-                                                    handleDeleteSchedule(originalIndex)
-                                                }
-                                                disabled={isSubmitting}
-                                                aria-label="Delete schedule"
-                                            >
-                                                ×
-                                            </button>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
+                    </label>
                 </div>
-            )}
-
-            {frequency === "One-time" && (
-                <>
-                    <div className="form-group">
-                        <div className="form-label-row">
-                            <label htmlFor="tracking-frequency">
-                                Frequency <span className="required-asterisk">*</span>{" "}
-                                <button
-                                    type="button"
-                                    className="field-help"
-                                    aria-label="Frequency help"
-                                    title="Choose how often this tracking should repeat: Daily, Weekly, Monthly, Yearly, or One-time"
-                                >
-                                    ?
-                                </button>
-                            </label>
-                        </div>
-                        <div className="frequency-field-row">
-                            <select
-                                id="tracking-frequency"
-                                name="frequency"
-                                value={frequency}
-                                onChange={(e) => setFrequency(e.target.value as "Daily" | "Weekly" | "Monthly" | "Yearly" | "One-time")}
-                                disabled={isSubmitting}
-                                className="frequency-preset-select"
-                            >
-                                <option value="Daily">Daily</option>
-                                <option value="Weekly">Weekly</option>
-                                <option value="Monthly">Monthly</option>
-                                <option value="Yearly">Yearly</option>
-                                <option value="One-time">One-time</option>
-                            </select>
-                            <input
-                                type="date"
-                                id="one-time-date"
-                                name="one-time-date"
-                                value={oneTimeDate}
-                                onChange={(e) => setOneTimeDate(e.target.value)}
-                                disabled={isSubmitting}
-                                required={frequency === "One-time"}
-                                min={new Date().toISOString().slice(0, 10)}
-                                className="date-input-autofit"
-                            />
-                        </div>
+                <div className="schedule-input-row">
+                    <div className="schedule-time-inputs">
+                        <input
+                            type="time"
+                            id="schedule-time"
+                            name="schedule-time"
+                            value={scheduleTime}
+                            onChange={(e) => setScheduleTime(e.target.value)}
+                            disabled={isSubmitting || schedules.length >= 5}
+                        />
                     </div>
-                    <div className="form-group">
-                        <div className="form-label-row">
-                            <label htmlFor="one-time-schedules">
-                                Time(s) <span className="required-asterisk">*</span>{" "}
-                                <button
-                                    type="button"
-                                    className="field-help"
-                                    aria-label="Times help"
-                                    title="Define up to 5 times (hour and minutes) when reminders will be sent for this one-time tracking. If the date is today, all times must be after the current time."
-                                >
-                                    ?
-                                </button>
-                            </label>
+                    <button
+                        type="button"
+                        className="btn-primary schedule-add-button"
+                        onClick={handleAddOrUpdateSchedule}
+                        disabled={
+                            isSubmitting || schedules.length >= 5
+                        }
+                    >
+                        Add
+                    </button>
+                    {schedules.length > 0 && (
+                        <div className="schedules-list">
+                            {sortSchedules(schedules).map((schedule) => {
+                                const originalIndex = schedules.findIndex(
+                                    (s) =>
+                                        s.hour === schedule.hour &&
+                                        s.minutes === schedule.minutes
+                                );
+                                return (
+                                    <div
+                                        key={`${schedule.hour}-${schedule.minutes}-${originalIndex}`}
+                                        className="schedule-item"
+                                    >
+                                        <span className="schedule-time">
+                                            {String(schedule.hour).padStart(2, "0")}:
+                                            {String(schedule.minutes).padStart(2, "0")}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            className="btn-icon"
+                                            onClick={() =>
+                                                handleDeleteSchedule(originalIndex)
+                                            }
+                                            disabled={isSubmitting}
+                                            aria-label="Delete schedule"
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                );
+                            })}
                         </div>
-                        <div className="schedule-input-row">
-                            <div className="schedule-time-inputs">
-                                <input
-                                    type="time"
-                                    id="one-time-schedule-time"
-                                    name="one-time-schedule-time"
-                                    value={oneTimeScheduleTime}
-                                    onChange={(e) => setOneTimeScheduleTime(e.target.value)}
-                                    disabled={isSubmitting || oneTimeSchedules.length >= 5}
-                                />
-                            </div>
-                            <button
-                                type="button"
-                                className="btn-primary schedule-add-button"
-                                onClick={handleAddOrUpdateOneTimeSchedule}
-                                disabled={
-                                    isSubmitting || oneTimeSchedules.length >= 5
-                                }
-                            >
-                                Add
-                            </button>
-                            {oneTimeSchedules.length > 0 && (
-                                <div className="schedules-list">
-                                    {sortSchedules(oneTimeSchedules).map((schedule) => {
-                                        const originalIndex = oneTimeSchedules.findIndex(
-                                            (s) =>
-                                                s.hour === schedule.hour &&
-                                                s.minutes === schedule.minutes
-                                        );
-                                        return (
-                                            <div
-                                                key={`${schedule.hour}-${schedule.minutes}-${originalIndex}`}
-                                                className="schedule-item"
-                                            >
-                                                <span className="schedule-time">
-                                                    {String(schedule.hour).padStart(2, "0")}:
-                                                    {String(schedule.minutes).padStart(2, "0")}
-                                                </span>
-                                                <button
-                                                    type="button"
-                                                    className="btn-icon"
-                                                    onClick={() =>
-                                                        handleDeleteOneTimeSchedule(originalIndex)
-                                                    }
-                                                    disabled={isSubmitting}
-                                                    aria-label="Delete schedule"
-                                                >
-                                                    ×
-                                                </button>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </>
-            )}
+                    )}
+                </div>
+            </div>
 
             <div className="form-group">
                 <div className="form-label-row">
@@ -834,8 +441,8 @@ export function TrackingForm({
                     disabled={
                         isSubmitting ||
                         !question.trim() ||
-                        (frequency !== "One-time" && schedules.length === 0) ||
-                        (frequency === "One-time" && (!oneTimeDate || oneTimeSchedules.length === 0))
+                        schedules.length === 0 ||
+                        !!frequencyError
                     }
                 >
                     {isSubmitting ? "Creating..." : "Create"}

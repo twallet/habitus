@@ -1,17 +1,22 @@
-import { DaysPattern, DaysPatternType } from "./Tracking";
+import { Frequency } from "./Tracking";
 
 /**
  * Frequency preset type for simplified selection.
  * @public
  */
-export type FrequencyPreset = "daily" | "weekly" | "monthly" | "yearly";
+export type FrequencyPreset =
+  | "daily"
+  | "weekly"
+  | "monthly"
+  | "yearly"
+  | "one-time";
 
 /**
- * Builder class for creating and managing days patterns.
+ * Builder class for creating and managing frequency patterns.
  * Handles pattern building, validation, and preset detection using OOP principles.
  * @public
  */
-export class DaysPatternBuilder {
+export class FrequencyBuilder {
   private preset: FrequencyPreset;
   private selectedDays: number[];
   private monthlyDay: number;
@@ -20,26 +25,42 @@ export class DaysPatternBuilder {
   private ordinal: number;
   private yearlyMonth: number;
   private yearlyDay: number;
+  private oneTimeDate: string;
 
   /**
-   * Create a new DaysPatternBuilder instance.
-   * @param value - Optional existing pattern to initialize from
+   * Create a new FrequencyBuilder instance.
+   * @param value - Optional existing frequency to initialize from
    * @public
    */
-  constructor(value?: DaysPattern) {
-    this.preset = value ? this.detectPresetFromPattern(value) : "daily";
-    this.selectedDays = value?.days || [1]; // Default to Monday for weekly
-    this.monthlyDay = value?.day_numbers?.[0] || 1;
+  constructor(value?: Frequency) {
+    this.preset = value ? this.detectPresetFromFrequency(value) : "daily";
+    this.selectedDays = value?.type === "weekly" ? value.days || [1] : [1]; // Default to Monday for weekly
+    this.monthlyDay =
+      value?.type === "monthly" && value.kind === "day_number"
+        ? value.day_numbers?.[0] || 1
+        : 1;
     this.monthlyType =
-      value?.type === "last_day"
+      value?.type === "monthly" && value.kind === "last_day"
         ? "last"
-        : value?.type === "weekday_ordinal"
+        : value?.type === "monthly" && value.kind === "weekday_ordinal"
         ? "weekday"
         : "day";
-    this.weekday = value?.weekday || 1; // Monday by default
-    this.ordinal = value?.ordinal || 1;
-    this.yearlyMonth = value?.month || 1;
-    this.yearlyDay = value?.day || 1;
+    this.weekday =
+      value?.type === "monthly" || value?.type === "yearly"
+        ? value.weekday || 1
+        : 1; // Monday by default
+    this.ordinal =
+      value?.type === "monthly" || value?.type === "yearly"
+        ? value.ordinal || 1
+        : 1;
+    this.yearlyMonth =
+      value?.type === "yearly" && value.kind === "date" ? value.month || 1 : 1;
+    this.yearlyDay =
+      value?.type === "yearly" && value.kind === "date" ? value.day || 1 : 1;
+    this.oneTimeDate =
+      value?.type === "one-time"
+        ? value.date
+        : new Date().toISOString().split("T")[0];
   }
 
   /**
@@ -61,6 +82,9 @@ export class DaysPatternBuilder {
     // Set default values when switching presets
     if (preset === "weekly" && this.selectedDays.length === 0) {
       this.selectedDays = [1]; // Default to Monday
+    }
+    if (preset === "one-time" && !this.oneTimeDate) {
+      this.oneTimeDate = new Date().toISOString().split("T")[0];
     }
   }
 
@@ -211,6 +235,24 @@ export class DaysPatternBuilder {
   }
 
   /**
+   * Get one-time date.
+   * @returns Current one-time date (YYYY-MM-DD format)
+   * @public
+   */
+  getOneTimeDate(): string {
+    return this.oneTimeDate;
+  }
+
+  /**
+   * Set one-time date.
+   * @param date - Date to set (YYYY-MM-DD format)
+   * @public
+   */
+  setOneTimeDate(date: string): void {
+    this.oneTimeDate = date;
+  }
+
+  /**
    * Get the maximum number of days in a given month.
    * @param month - Month number (1-12)
    * @returns Maximum number of days in the month
@@ -230,27 +272,30 @@ export class DaysPatternBuilder {
   }
 
   /**
-   * Detect preset from a pattern.
-   * @param pattern - Pattern to analyze
+   * Detect preset from a frequency.
+   * @param frequency - Frequency to analyze
    * @returns Detected preset type
    * @public
    */
-  detectPresetFromPattern(pattern: DaysPattern): FrequencyPreset {
-    if (pattern.pattern_type === DaysPatternType.INTERVAL) {
-      // Interval patterns map to daily (every X days)
+  detectPresetFromFrequency(frequency: Frequency): FrequencyPreset {
+    if (frequency.type === "daily") {
       return "daily";
     }
 
-    if (pattern.pattern_type === DaysPatternType.DAY_OF_WEEK) {
+    if (frequency.type === "weekly") {
       return "weekly";
     }
 
-    if (pattern.pattern_type === DaysPatternType.DAY_OF_MONTH) {
+    if (frequency.type === "monthly") {
       return "monthly";
     }
 
-    if (pattern.pattern_type === DaysPatternType.DAY_OF_YEAR) {
+    if (frequency.type === "yearly") {
       return "yearly";
+    }
+
+    if (frequency.type === "one-time") {
+      return "one-time";
     }
 
     // Default to daily
@@ -258,20 +303,15 @@ export class DaysPatternBuilder {
   }
 
   /**
-   * Build pattern from current builder state.
-   * Always returns a pattern (mandatory field).
-   * @returns Built pattern
+   * Build frequency from current builder state.
+   * Always returns a frequency (mandatory field).
+   * @returns Built frequency
    * @throws Error if validation fails
    * @public
    */
-  buildPattern(): DaysPattern {
+  buildFrequency(): Frequency {
     if (this.preset === "daily") {
-      // Daily = every 1 day (interval pattern)
-      return {
-        pattern_type: DaysPatternType.INTERVAL,
-        interval_value: 1,
-        interval_unit: "days",
-      };
+      return { type: "daily" };
     }
 
     if (this.preset === "weekly") {
@@ -279,7 +319,7 @@ export class DaysPatternBuilder {
         throw new Error("Please select at least one day of the week");
       }
       return {
-        pattern_type: DaysPatternType.DAY_OF_WEEK,
+        type: "weekly",
         days: [...this.selectedDays].sort((a, b) => a - b),
       };
     }
@@ -287,21 +327,21 @@ export class DaysPatternBuilder {
     if (this.preset === "monthly") {
       if (this.monthlyType === "day") {
         return {
-          pattern_type: DaysPatternType.DAY_OF_MONTH,
-          type: "day_number",
+          type: "monthly",
+          kind: "day_number",
           day_numbers: [this.monthlyDay],
         };
       }
       if (this.monthlyType === "last") {
         return {
-          pattern_type: DaysPatternType.DAY_OF_MONTH,
-          type: "last_day",
+          type: "monthly",
+          kind: "last_day",
         };
       }
       if (this.monthlyType === "weekday") {
         return {
-          pattern_type: DaysPatternType.DAY_OF_MONTH,
-          type: "weekday_ordinal",
+          type: "monthly",
+          kind: "weekday_ordinal",
           weekday: this.weekday,
           ordinal: this.ordinal,
         };
@@ -310,19 +350,25 @@ export class DaysPatternBuilder {
 
     if (this.preset === "yearly") {
       return {
-        pattern_type: DaysPatternType.DAY_OF_YEAR,
-        type: "date",
+        type: "yearly",
+        kind: "date",
         month: this.yearlyMonth,
         day: this.yearlyDay,
       };
     }
 
+    if (this.preset === "one-time") {
+      if (!this.oneTimeDate) {
+        throw new Error("One-time date is required");
+      }
+      return {
+        type: "one-time",
+        date: this.oneTimeDate,
+      };
+    }
+
     // Fallback to daily
-    return {
-      pattern_type: DaysPatternType.INTERVAL,
-      interval_value: 1,
-      interval_unit: "days",
-    };
+    return { type: "daily" };
   }
 
   /**
@@ -339,10 +385,38 @@ export class DaysPatternBuilder {
           return `Day ${this.yearlyDay} is not valid for the selected month`;
         }
       }
-      this.buildPattern();
+      // Validate one-time date
+      if (this.preset === "one-time") {
+        if (!this.oneTimeDate) {
+          return "One-time date is required";
+        }
+        const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+        if (!datePattern.test(this.oneTimeDate)) {
+          return "Date must be in YYYY-MM-DD format";
+        }
+        const dateObj = new Date(this.oneTimeDate + "T00:00:00");
+        if (isNaN(dateObj.getTime())) {
+          return "Invalid date";
+        }
+        const now = new Date();
+        const today = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate()
+        );
+        const selectedDateOnly = new Date(
+          dateObj.getFullYear(),
+          dateObj.getMonth(),
+          dateObj.getDate()
+        );
+        if (selectedDateOnly < today) {
+          return "Date must be today or in the future";
+        }
+      }
+      this.buildFrequency();
       return null;
     } catch (error) {
-      return error instanceof Error ? error.message : "Invalid pattern";
+      return error instanceof Error ? error.message : "Invalid frequency";
     }
   }
 }

@@ -3,7 +3,7 @@ import {
   Tracking,
   type TrackingData,
   TrackingState,
-  type DaysPattern,
+  type Frequency,
 } from "../models/Tracking.js";
 import { TrackingSchedule } from "../models/TrackingSchedule.js";
 import { ReminderService } from "./reminderService.js";
@@ -82,8 +82,7 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
    * @param notes - Optional notes (rich text)
    * @param icon - Optional icon (emoji)
    * @param schedules - Array of schedules (required, 1-5 schedules)
-   * @param days - Optional days pattern for reminder frequency (required for recurring trackings)
-   * @param oneTimeDate - Optional date for one-time tracking (ISO date string YYYY-MM-DD)
+   * @param frequency - Frequency pattern for reminder schedule (required)
    * @returns Promise resolving to created tracking data
    * @throws Error if validation fails
    * @public
@@ -94,8 +93,7 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
     notes?: string,
     icon?: string,
     schedules?: Array<{ hour: number; minutes: number }>,
-    days?: import("../models/Tracking.js").DaysPattern,
-    oneTimeDate?: string
+    frequency?: Frequency
   ): Promise<TrackingData> {
     console.log(
       `[${new Date().toISOString()}] TRACKING | Creating tracking for userId: ${userId}`
@@ -106,7 +104,11 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
     const validatedQuestion = Tracking.validateQuestion(question);
     const validatedNotes = Tracking.validateNotes(notes);
     const validatedIcon = Tracking.validateIcon(icon);
-    const validatedDays = Tracking.validateDays(days);
+
+    if (!frequency) {
+      throw new TypeError("Frequency is required");
+    }
+    const validatedFrequency = Tracking.validateFrequency(frequency);
 
     // Validate schedules
     if (!schedules || schedules.length === 0) {
@@ -116,13 +118,13 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
 
     // Insert tracking with Running state by default
     const result = await this.db.run(
-      "INSERT INTO trackings (user_id, question, notes, icon, days, state) VALUES (?, ?, ?, ?, ?, ?)",
+      "INSERT INTO trackings (user_id, question, notes, icon, frequency, state) VALUES (?, ?, ?, ?, ?, ?)",
       [
         validatedUserId,
         validatedQuestion,
         validatedNotes || null,
         validatedIcon || null,
-        validatedDays ? JSON.stringify(validatedDays) : null,
+        JSON.stringify(validatedFrequency),
         "Running",
       ]
     );
@@ -160,34 +162,40 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
       }`
     );
 
-    // For one-time trackings, create reminders for each schedule on the specified date
-    if (oneTimeDate) {
+    // For one-time trackings, create a single reminder for the earliest schedule time
+    if (validatedFrequency.type === "one-time") {
       try {
-        // Create one reminder per schedule by combining date + schedule time
-        for (const schedule of validatedSchedules) {
-          // Construct ISO datetime string from date + schedule
-          // Create a Date object in local time, then convert to ISO string
-          const dateTimeString = `${oneTimeDate}T${String(
-            schedule.hour
-          ).padStart(2, "0")}:${String(schedule.minutes).padStart(2, "0")}:00`;
-          const dateTime = new Date(dateTimeString);
-          const isoDateTimeString = dateTime.toISOString();
+        // Find the earliest schedule time
+        const sortedSchedules = [...validatedSchedules].sort((a, b) => {
+          if (a.hour !== b.hour) return a.hour - b.hour;
+          return a.minutes - b.minutes;
+        });
+        const earliestSchedule = sortedSchedules[0];
 
-          await this.reminderService.createReminder(
-            tracking.id,
-            validatedUserId,
-            isoDateTimeString
-          );
-          console.log(
-            `[${new Date().toISOString()}] TRACKING | Created one-time reminder for tracking ${
-              tracking.id
-            } at ${isoDateTimeString}`
-          );
-        }
+        // Construct ISO datetime string from date + earliest schedule time
+        const dateTimeString = `${validatedFrequency.date}T${String(
+          earliestSchedule.hour
+        ).padStart(2, "0")}:${String(earliestSchedule.minutes).padStart(
+          2,
+          "0"
+        )}:00`;
+        const dateTime = new Date(dateTimeString);
+        const isoDateTimeString = dateTime.toISOString();
+
+        await this.reminderService.createReminder(
+          tracking.id,
+          validatedUserId,
+          isoDateTimeString
+        );
+        console.log(
+          `[${new Date().toISOString()}] TRACKING | Created one-time reminder for tracking ${
+            tracking.id
+          } at ${isoDateTimeString}`
+        );
       } catch (error) {
         // Log error but don't fail tracking creation if reminder creation fails
         console.error(
-          `[${new Date().toISOString()}] TRACKING | Failed to create one-time reminders for tracking ${
+          `[${new Date().toISOString()}] TRACKING | Failed to create one-time reminder for tracking ${
             tracking.id
           }:`,
           error
@@ -209,8 +217,7 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
    * @param notes - Updated notes (optional)
    * @param icon - Updated icon (optional)
    * @param schedules - Updated schedules array (optional, 1-5 schedules if provided)
-   * @param days - Updated days pattern (optional, undefined for one-time trackings)
-   * @param oneTimeDate - Updated one-time date (optional, YYYY-MM-DD format for one-time trackings)
+   * @param frequency - Updated frequency pattern (optional)
    * @returns Promise resolving to updated tracking data
    * @throws Error if tracking not found or validation fails
    * @public
@@ -222,8 +229,7 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
     notes?: string,
     icon?: string,
     schedules?: Array<{ hour: number; minutes: number }>,
-    days?: DaysPattern,
-    oneTimeDate?: string
+    frequency?: Frequency
   ): Promise<TrackingData> {
     console.log(
       `[${new Date().toISOString()}] TRACKING | Updating tracking ID: ${trackingId} for userId: ${userId}`
@@ -260,45 +266,11 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
       values.push(validatedIcon || null);
     }
 
-    // Handle days pattern update
-    // If days is explicitly set to undefined AND oneTimeDate is provided, set days to null (converting to one-time)
-    // If days is provided (converting to recurring), set days pattern
-    // If oneTimeDate is provided without days, we're converting to one-time, so set days to null
-    if (days !== undefined) {
-      const validatedDays = Tracking.validateDays(days);
-      updates.push("days = ?");
-      values.push(validatedDays ? JSON.stringify(validatedDays) : null);
-    } else if (oneTimeDate !== undefined) {
-      // Converting to one-time: explicitly set days to null
-      updates.push("days = ?");
-      values.push(null);
-    }
-
-    // Validate oneTimeDate if provided
-    if (oneTimeDate !== undefined) {
-      // Validate date format (YYYY-MM-DD)
-      const datePattern = /^\d{4}-\d{2}-\d{2}$/;
-      if (!datePattern.test(oneTimeDate)) {
-        throw new TypeError("Invalid oneTimeDate format. Expected YYYY-MM-DD");
-      }
-
-      const oneTimeDateObj = new Date(oneTimeDate + "T00:00:00");
-      if (isNaN(oneTimeDateObj.getTime())) {
-        throw new TypeError("Invalid oneTimeDate format");
-      }
-
-      // Validate that the date is today or in the future
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const selectedDateOnly = new Date(
-        oneTimeDateObj.getFullYear(),
-        oneTimeDateObj.getMonth(),
-        oneTimeDateObj.getDate()
-      );
-
-      if (selectedDateOnly < today) {
-        throw new TypeError("oneTimeDate must be today or in the future");
-      }
+    // Handle frequency update
+    if (frequency !== undefined) {
+      const validatedFrequency = Tracking.validateFrequency(frequency);
+      updates.push("frequency = ?");
+      values.push(JSON.stringify(validatedFrequency));
     }
 
     // Update schedules if provided
@@ -326,11 +298,7 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
       }
     }
 
-    if (
-      updates.length === 0 &&
-      schedules === undefined &&
-      oneTimeDate === undefined
-    ) {
+    if (updates.length === 0 && schedules === undefined) {
       console.warn(
         `[${new Date().toISOString()}] TRACKING | Update failed: no fields to update for tracking ID: ${trackingId}`
       );
@@ -364,18 +332,17 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
       throw new Error("Failed to retrieve updated tracking");
     }
 
-    // Handle reminder updates based on type conversion or oneTimeDate change
+    // Handle reminder updates based on frequency change
     const schedulesChanged = schedules !== undefined;
-    const daysChanged = days !== undefined;
-    const oneTimeDateChanged = oneTimeDate !== undefined;
-    const wasOneTime = !existingTracking.days;
-    // Determine if tracking is one-time after update (check the actual updated tracking)
-    const isNowOneTime = !tracking.days;
+    const frequencyChanged = frequency !== undefined;
+    const wasOneTime = existingTracking.frequency.type === "one-time";
+    const isNowOneTime = tracking.frequency.type === "one-time";
 
-    // If converting between one-time and recurring, or updating one-time date
+    // If converting between one-time and recurring, or updating one-time frequency
     if (
-      oneTimeDateChanged ||
-      (wasOneTime !== isNowOneTime && tracking.state === "Running")
+      frequencyChanged &&
+      (wasOneTime !== isNowOneTime || (wasOneTime && isNowOneTime)) &&
+      tracking.state === "Running"
     ) {
       try {
         const { Reminder } = await import("../models/Reminder.js");
@@ -386,42 +353,40 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
           [trackingId, userId]
         );
 
-        // If converting to one-time, create one-time reminders
+        // If converting to one-time, create single one-time reminder
         if (isNowOneTime) {
-          // Use oneTimeDate from parameter, or keep existing if just converting type
-          const dateToUse =
-            oneTimeDate || (wasOneTime ? oneTimeDate : undefined);
-          if (!dateToUse) {
-            console.warn(
-              `[${new Date().toISOString()}] TRACKING | Cannot convert to one-time without oneTimeDate for tracking ${trackingId}`
+          const finalSchedules =
+            schedules !== undefined
+              ? TrackingSchedule.validateSchedules(schedules, trackingId)
+              : tracking.schedules || [];
+
+          if (finalSchedules.length > 0) {
+            // Find the earliest schedule time
+            const sortedSchedules = [...finalSchedules].sort((a, b) => {
+              if (a.hour !== b.hour) return a.hour - b.hour;
+              return a.minutes - b.minutes;
+            });
+            const earliestSchedule = sortedSchedules[0];
+
+            const dateTimeString = `${tracking.frequency.date}T${String(
+              earliestSchedule.hour
+            ).padStart(2, "0")}:${String(earliestSchedule.minutes).padStart(
+              2,
+              "0"
+            )}:00`;
+            const dateTime = new Date(dateTimeString);
+            const isoDateTimeString = dateTime.toISOString();
+
+            await this.reminderService.createReminder(
+              trackingId,
+              userId,
+              isoDateTimeString
             );
-          } else {
-            const finalSchedules =
-              schedules !== undefined
-                ? TrackingSchedule.validateSchedules(schedules, trackingId)
-                : tracking.schedules || [];
-
-            for (const schedule of finalSchedules) {
-              const dateTimeString = `${dateToUse}T${String(
-                schedule.hour
-              ).padStart(2, "0")}:${String(schedule.minutes).padStart(
-                2,
-                "0"
-              )}:00`;
-              const dateTime = new Date(dateTimeString);
-              const isoDateTimeString = dateTime.toISOString();
-
-              await this.reminderService.createReminder(
-                trackingId,
-                userId,
-                isoDateTimeString
-              );
-            }
             console.log(
-              `[${new Date().toISOString()}] TRACKING | Created one-time reminders for tracking ${trackingId}`
+              `[${new Date().toISOString()}] TRACKING | Created one-time reminder for tracking ${trackingId}`
             );
           }
-        } else if (!isNowOneTime && tracking.state === "Running") {
+        } else {
           // If converting to recurring, create initial reminder
           await this.lifecycleManager.onCreate(tracking);
           console.log(
@@ -436,7 +401,7 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
         // Don't fail the update if reminder update fails
       }
     } else if (
-      (schedulesChanged || daysChanged) &&
+      (schedulesChanged || frequencyChanged) &&
       tracking.state === "Running" &&
       !isNowOneTime
     ) {

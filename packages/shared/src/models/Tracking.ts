@@ -1,7 +1,6 @@
 import {
   TrackingData,
-  DaysPattern,
-  DaysPatternType,
+  Frequency,
   TrackingState,
   MAX_TRACKING_QUESTION_LENGTH,
 } from "../types.js";
@@ -49,10 +48,10 @@ export class Tracking {
   icon?: string;
 
   /**
-   * Optional days pattern for reminder frequency.
+   * Frequency pattern for reminder schedule (required).
    * @public
    */
-  days?: DaysPattern;
+  frequency: Frequency;
 
   /**
    * Tracking state.
@@ -83,7 +82,7 @@ export class Tracking {
     this.question = data.question;
     this.notes = data.notes;
     this.icon = data.icon;
-    this.days = data.days;
+    this.frequency = data.frequency;
     this.state = data.state || TrackingState.RUNNING;
     this.created_at = data.created_at;
     this.updated_at = data.updated_at;
@@ -105,9 +104,7 @@ export class Tracking {
     if (this.icon !== undefined) {
       this.icon = Tracking.validateIcon(this.icon);
     }
-    if (this.days !== undefined) {
-      this.days = Tracking.validateDays(this.days);
-    }
+    this.frequency = Tracking.validateFrequency(this.frequency);
     this.state = Tracking.validateState(this.state);
     return this;
   }
@@ -124,7 +121,7 @@ export class Tracking {
       question: this.question,
       notes: this.notes,
       icon: this.icon,
-      days: this.days,
+      frequency: this.frequency,
       state: this.state,
       created_at: this.created_at,
       updated_at: this.updated_at,
@@ -284,72 +281,42 @@ export class Tracking {
   }
 
   /**
-   * Validates days pattern (optional).
-   * @param days - The days pattern to validate (optional)
-   * @returns The validated days pattern or undefined if empty
-   * @throws {@link TypeError} If the days pattern is invalid
+   * Validates frequency pattern (required).
+   * @param frequency - The frequency pattern to validate
+   * @returns The validated frequency pattern
+   * @throws {@link TypeError} If the frequency pattern is invalid
    * @public
    */
-  static validateDays(days?: DaysPattern | null): DaysPattern | undefined {
-    if (days === null || days === undefined) {
-      return undefined;
+  static validateFrequency(frequency: Frequency): Frequency {
+    if (frequency === null || frequency === undefined) {
+      throw new TypeError("Frequency is required");
     }
 
-    if (typeof days !== "object" || Array.isArray(days)) {
-      throw new TypeError("Days must be an object");
+    if (typeof frequency !== "object" || Array.isArray(frequency)) {
+      throw new TypeError("Frequency must be an object");
     }
 
-    if (!days.pattern_type) {
-      throw new TypeError("Days pattern_type is required");
+    if (!frequency.type) {
+      throw new TypeError("Frequency type is required");
     }
 
-    const patternType = days.pattern_type;
-    if (
-      patternType !== DaysPatternType.INTERVAL &&
-      patternType !== DaysPatternType.DAY_OF_WEEK &&
-      patternType !== DaysPatternType.DAY_OF_MONTH &&
-      patternType !== DaysPatternType.DAY_OF_YEAR
-    ) {
-      throw new TypeError(
-        `Invalid pattern_type: ${patternType}. Must be one of: interval, day_of_week, day_of_month, day_of_year`
-      );
+    // Validate daily frequency
+    if (frequency.type === "daily") {
+      return frequency;
     }
 
-    // Validate INTERVAL pattern
-    if (patternType === DaysPatternType.INTERVAL) {
-      if (days.interval_value === undefined || days.interval_value === null) {
-        throw new TypeError("interval_value is required for INTERVAL pattern");
-      }
+    // Validate weekly frequency
+    if (frequency.type === "weekly") {
       if (
-        typeof days.interval_value !== "number" ||
-        !Number.isInteger(days.interval_value) ||
-        days.interval_value <= 0
-      ) {
-        throw new TypeError("interval_value must be a positive integer");
-      }
-      if (!days.interval_unit) {
-        throw new TypeError("interval_unit is required for INTERVAL pattern");
-      }
-      if (
-        days.interval_unit !== "days" &&
-        days.interval_unit !== "weeks" &&
-        days.interval_unit !== "months" &&
-        days.interval_unit !== "years"
+        !frequency.days ||
+        !Array.isArray(frequency.days) ||
+        frequency.days.length === 0
       ) {
         throw new TypeError(
-          "interval_unit must be one of: days, weeks, months, years"
+          "days array is required for weekly frequency and must not be empty"
         );
       }
-    }
-
-    // Validate DAY_OF_WEEK pattern
-    if (patternType === DaysPatternType.DAY_OF_WEEK) {
-      if (!days.days || !Array.isArray(days.days) || days.days.length === 0) {
-        throw new TypeError(
-          "days array is required for DAY_OF_WEEK pattern and must not be empty"
-        );
-      }
-      for (const day of days.days) {
+      for (const day of frequency.days) {
         if (
           typeof day !== "number" ||
           !Number.isInteger(day) ||
@@ -362,37 +329,38 @@ export class Tracking {
         }
       }
       // Check for duplicates
-      const uniqueDays = new Set(days.days);
-      if (uniqueDays.size !== days.days.length) {
+      const uniqueDays = new Set(frequency.days);
+      if (uniqueDays.size !== frequency.days.length) {
         throw new TypeError("days array must not contain duplicates");
       }
+      return frequency;
     }
 
-    // Validate DAY_OF_MONTH pattern
-    if (patternType === DaysPatternType.DAY_OF_MONTH) {
-      if (!days.type) {
-        throw new TypeError("type is required for DAY_OF_MONTH pattern");
+    // Validate monthly frequency
+    if (frequency.type === "monthly") {
+      if (!frequency.kind) {
+        throw new TypeError("kind is required for monthly frequency");
       }
       if (
-        days.type !== "day_number" &&
-        days.type !== "last_day" &&
-        days.type !== "weekday_ordinal"
+        frequency.kind !== "day_number" &&
+        frequency.kind !== "last_day" &&
+        frequency.kind !== "weekday_ordinal"
       ) {
         throw new TypeError(
-          "type must be one of: day_number, last_day, weekday_ordinal"
+          "kind must be one of: day_number, last_day, weekday_ordinal"
         );
       }
-      if (days.type === "day_number") {
+      if (frequency.kind === "day_number") {
         if (
-          !days.day_numbers ||
-          !Array.isArray(days.day_numbers) ||
-          days.day_numbers.length === 0
+          !frequency.day_numbers ||
+          !Array.isArray(frequency.day_numbers) ||
+          frequency.day_numbers.length === 0
         ) {
           throw new TypeError(
-            "day_numbers array is required for day_number type and must not be empty"
+            "day_numbers array is required for day_number kind and must not be empty"
           );
         }
-        for (const dayNum of days.day_numbers) {
+        for (const dayNum of frequency.day_numbers) {
           if (
             typeof dayNum !== "number" ||
             !Number.isInteger(dayNum) ||
@@ -404,94 +372,127 @@ export class Tracking {
             );
           }
         }
-      } else if (days.type === "weekday_ordinal") {
-        if (days.weekday === undefined || days.weekday === null) {
-          throw new TypeError("weekday is required for weekday_ordinal type");
+      } else if (frequency.kind === "weekday_ordinal") {
+        if (frequency.weekday === undefined || frequency.weekday === null) {
+          throw new TypeError("weekday is required for weekday_ordinal kind");
         }
         if (
-          typeof days.weekday !== "number" ||
-          !Number.isInteger(days.weekday) ||
-          days.weekday < 0 ||
-          days.weekday > 6
+          typeof frequency.weekday !== "number" ||
+          !Number.isInteger(frequency.weekday) ||
+          frequency.weekday < 0 ||
+          frequency.weekday > 6
         ) {
           throw new TypeError(
             "weekday must be an integer between 0 and 6 (0=Sunday, 6=Saturday)"
           );
         }
-        if (days.ordinal === undefined || days.ordinal === null) {
-          throw new TypeError("ordinal is required for weekday_ordinal type");
+        if (frequency.ordinal === undefined || frequency.ordinal === null) {
+          throw new TypeError("ordinal is required for weekday_ordinal kind");
         }
         if (
-          typeof days.ordinal !== "number" ||
-          !Number.isInteger(days.ordinal) ||
-          days.ordinal < 1 ||
-          days.ordinal > 5
+          typeof frequency.ordinal !== "number" ||
+          !Number.isInteger(frequency.ordinal) ||
+          frequency.ordinal < 1 ||
+          frequency.ordinal > 5
         ) {
           throw new TypeError("ordinal must be an integer between 1 and 5");
         }
       }
+      return frequency;
     }
 
-    // Validate DAY_OF_YEAR pattern
-    if (patternType === DaysPatternType.DAY_OF_YEAR) {
-      if (!days.type) {
-        throw new TypeError("type is required for DAY_OF_YEAR pattern");
+    // Validate yearly frequency
+    if (frequency.type === "yearly") {
+      if (!frequency.kind) {
+        throw new TypeError("kind is required for yearly frequency");
       }
-      const dayOfYearType = days.type as "date" | "weekday_ordinal";
-      if (dayOfYearType !== "date" && dayOfYearType !== "weekday_ordinal") {
-        throw new TypeError("type must be one of: date, weekday_ordinal");
+      if (frequency.kind !== "date" && frequency.kind !== "weekday_ordinal") {
+        throw new TypeError("kind must be one of: date, weekday_ordinal");
       }
-      if (dayOfYearType === "date") {
-        if (days.month === undefined || days.month === null) {
-          throw new TypeError("month is required for date type");
+      if (frequency.kind === "date") {
+        if (frequency.month === undefined || frequency.month === null) {
+          throw new TypeError("month is required for date kind");
         }
         if (
-          typeof days.month !== "number" ||
-          !Number.isInteger(days.month) ||
-          days.month < 1 ||
-          days.month > 12
+          typeof frequency.month !== "number" ||
+          !Number.isInteger(frequency.month) ||
+          frequency.month < 1 ||
+          frequency.month > 12
         ) {
           throw new TypeError("month must be an integer between 1 and 12");
         }
-        if (days.day === undefined || days.day === null) {
-          throw new TypeError("day is required for date type");
+        if (frequency.day === undefined || frequency.day === null) {
+          throw new TypeError("day is required for date kind");
         }
         if (
-          typeof days.day !== "number" ||
-          !Number.isInteger(days.day) ||
-          days.day < 1 ||
-          days.day > 31
+          typeof frequency.day !== "number" ||
+          !Number.isInteger(frequency.day) ||
+          frequency.day < 1 ||
+          frequency.day > 31
         ) {
           throw new TypeError("day must be an integer between 1 and 31");
         }
-      } else if (dayOfYearType === "weekday_ordinal") {
-        if (days.weekday === undefined || days.weekday === null) {
-          throw new TypeError("weekday is required for weekday_ordinal type");
+      } else if (frequency.kind === "weekday_ordinal") {
+        if (frequency.weekday === undefined || frequency.weekday === null) {
+          throw new TypeError("weekday is required for weekday_ordinal kind");
         }
         if (
-          typeof days.weekday !== "number" ||
-          !Number.isInteger(days.weekday) ||
-          days.weekday < 0 ||
-          days.weekday > 6
+          typeof frequency.weekday !== "number" ||
+          !Number.isInteger(frequency.weekday) ||
+          frequency.weekday < 0 ||
+          frequency.weekday > 6
         ) {
           throw new TypeError(
             "weekday must be an integer between 0 and 6 (0=Sunday, 6=Saturday)"
           );
         }
-        if (days.ordinal === undefined || days.ordinal === null) {
-          throw new TypeError("ordinal is required for weekday_ordinal type");
+        if (frequency.ordinal === undefined || frequency.ordinal === null) {
+          throw new TypeError("ordinal is required for weekday_ordinal kind");
         }
         if (
-          typeof days.ordinal !== "number" ||
-          !Number.isInteger(days.ordinal) ||
-          days.ordinal < 1 ||
-          days.ordinal > 5
+          typeof frequency.ordinal !== "number" ||
+          !Number.isInteger(frequency.ordinal) ||
+          frequency.ordinal < 1 ||
+          frequency.ordinal > 5
         ) {
           throw new TypeError("ordinal must be an integer between 1 and 5");
         }
       }
+      return frequency;
     }
 
-    return days;
+    // Validate one-time frequency
+    if (frequency.type === "one-time") {
+      if (!frequency.date) {
+        throw new TypeError("date is required for one-time frequency");
+      }
+      // Validate date format (YYYY-MM-DD)
+      const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+      if (!datePattern.test(frequency.date)) {
+        throw new TypeError("date must be in YYYY-MM-DD format");
+      }
+      const dateObj = new Date(frequency.date + "T00:00:00");
+      if (isNaN(dateObj.getTime())) {
+        throw new TypeError("date must be a valid date");
+      }
+      // Validate that the date is today or in the future
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const selectedDateOnly = new Date(
+        dateObj.getFullYear(),
+        dateObj.getMonth(),
+        dateObj.getDate()
+      );
+      if (selectedDateOnly < today) {
+        throw new TypeError("date must be today or in the future");
+      }
+      return frequency;
+    }
+
+    throw new TypeError(
+      `Invalid frequency type: ${
+        (frequency as any).type
+      }. Must be one of: daily, weekly, monthly, yearly, one-time`
+    );
   }
 }

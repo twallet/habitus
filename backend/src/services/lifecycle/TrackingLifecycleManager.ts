@@ -178,20 +178,72 @@ export class TrackingLifecycleManager extends LifecycleManager<
   /**
    * Handle tracking resumed or unarchived state transition.
    * Creates next reminder for the tracking.
+   * For one-time frequencies, creates a single reminder if the date is in the future.
    * @param tracking - The tracking entity
    * @private
    */
   private async handleResumed(tracking: TrackingData): Promise<void> {
     try {
-      await this.reminderService.createNextReminderForTracking(
-        tracking.id,
-        tracking.user_id
-      );
-      console.log(
-        `[${new Date().toISOString()}] TRACKING_LIFECYCLE | Created next reminder for resumed/unarchived tracking ${
-          tracking.id
-        }`
-      );
+      // For one-time frequencies, create a single reminder if date is in the future
+      if (tracking.frequency.type === "one-time") {
+        const dateObj = new Date(tracking.frequency.date + "T00:00:00");
+        const now = new Date();
+        const today = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate()
+        );
+        const selectedDateOnly = new Date(
+          dateObj.getFullYear(),
+          dateObj.getMonth(),
+          dateObj.getDate()
+        );
+
+        // Only create reminder if date is in the future
+        if (
+          selectedDateOnly >= today &&
+          tracking.schedules &&
+          tracking.schedules.length > 0
+        ) {
+          // Find the earliest schedule time
+          const sortedSchedules = [...tracking.schedules].sort((a, b) => {
+            if (a.hour !== b.hour) return a.hour - b.hour;
+            return a.minutes - b.minutes;
+          });
+          const earliestSchedule = sortedSchedules[0];
+
+          const dateTimeString = `${tracking.frequency.date}T${String(
+            earliestSchedule.hour
+          ).padStart(2, "0")}:${String(earliestSchedule.minutes).padStart(
+            2,
+            "0"
+          )}:00`;
+          const dateTime = new Date(dateTimeString);
+          const isoDateTimeString = dateTime.toISOString();
+
+          await this.reminderService.createReminder(
+            tracking.id,
+            tracking.user_id,
+            isoDateTimeString
+          );
+          console.log(
+            `[${new Date().toISOString()}] TRACKING_LIFECYCLE | Created one-time reminder for resumed/unarchived tracking ${
+              tracking.id
+            }`
+          );
+        }
+      } else {
+        // For recurring frequencies, use the standard method
+        await this.reminderService.createNextReminderForTracking(
+          tracking.id,
+          tracking.user_id
+        );
+        console.log(
+          `[${new Date().toISOString()}] TRACKING_LIFECYCLE | Created next reminder for resumed/unarchived tracking ${
+            tracking.id
+          }`
+        );
+      }
     } catch (error) {
       // Log error but don't fail state update if reminder creation fails
       console.error(

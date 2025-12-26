@@ -93,28 +93,26 @@ async function getAllTrackings(db: Database): Promise<any[]> {
     question: string;
     notes: string | null;
     icon: string | null;
-    days: string | null;
+    frequency: string;
     state: string;
     created_at: string;
     updated_at: string;
   }>(
-    "SELECT id, user_id, question, notes, icon, days, state, created_at, updated_at FROM trackings ORDER BY created_at DESC"
+    "SELECT id, user_id, question, notes, icon, frequency, state, created_at, updated_at FROM trackings ORDER BY created_at DESC"
   );
 
   const trackings = await Promise.all(
     rows.map(async (row) => {
-      let daysPattern: any;
-      if (row.days) {
-        try {
-          daysPattern = JSON.parse(row.days);
-        } catch (err) {
-          console.error(
-            `[${new Date().toISOString()}] DEBUG_ROUTE | Failed to parse days JSON for tracking ${
-              row.id
-            }:`,
-            err
-          );
-        }
+      let frequency: any;
+      try {
+        frequency = JSON.parse(row.frequency);
+      } catch (err) {
+        console.error(
+          `[${new Date().toISOString()}] DEBUG_ROUTE | Failed to parse frequency JSON for tracking ${
+            row.id
+          }:`,
+          err
+        );
       }
 
       const tracking = {
@@ -123,7 +121,7 @@ async function getAllTrackings(db: Database): Promise<any[]> {
         question: row.question,
         notes: row.notes || undefined,
         icon: row.icon || undefined,
-        days: daysPattern,
+        frequency: frequency,
         state: row.state,
         created_at: row.created_at,
         updated_at: row.updated_at,

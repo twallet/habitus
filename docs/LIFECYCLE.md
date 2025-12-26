@@ -2,14 +2,6 @@
 
 This document explains the complete lifecycle of Trackings and Reminders in the Habitus application, including their states, transitions, relationships, and automatic behaviors.
 
-## Table of Contents
-
-1. [Tracking Lifecycle](#tracking-lifecycle)
-2. [Reminder Lifecycle](#reminder-lifecycle)
-3. [Relationship Between Trackings and Reminders](#relationship-between-trackings-and-reminders)
-4. [Times and Days Patterns](#times-and-days-patterns)
-5. [Automatic Behaviors](#automatic-behaviors)
-
 ---
 
 ## Tracking Lifecycle
@@ -43,24 +35,11 @@ Archived → Running
 
 When a tracking is created:
 
-1. **Required Fields:**
+1. **Default State:**
 
-   - `user_id`: The owner of the tracking
-   - `question`: The tracking question (max 100 characters)
-   - `times`: Array of 1-5 times (hour, minutes)
+   - New trackings are created with state `Running`
 
-2. **Optional Fields:**
-
-   - `notes`: Rich text notes
-   - `icon`: Emoji icon (max 20 characters)
-   - `days`: Days pattern for reminder frequency (for recurring trackings)
-   - `oneTimeDate`: Date for one-time tracking (YYYY-MM-DD format, must be today or in the future)
-
-3. **Default State:**
-
-   - New trackings are created with state `"Running"`
-
-4. **Automatic Actions:**
+2. **Automatic Actions:**
    - Tracking times are created (1-5 times per tracking)
    - **For recurring trackings:** An initial reminder is automatically created with status `"Upcoming"` (the time is always in the future)
    - **For one-time trackings:** One reminder is created for each schedule time on the specified `oneTimeDate` (all reminders are created with status `"Upcoming"`)

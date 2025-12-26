@@ -3,15 +3,14 @@ import { TrackingSchedule } from "./TrackingSchedule.js";
 import {
   Tracking as BaseTracking,
   TrackingData,
-  DaysPattern,
-  DaysPatternType,
+  Frequency,
   TrackingState,
   MAX_TRACKING_QUESTION_LENGTH,
   TrackingScheduleData,
 } from "@habitus/shared";
 
-export type { TrackingData, DaysPattern, TrackingScheduleData };
-export { DaysPatternType, TrackingState, MAX_TRACKING_QUESTION_LENGTH };
+export type { TrackingData, Frequency, TrackingScheduleData };
+export { TrackingState, MAX_TRACKING_QUESTION_LENGTH };
 
 /**
  * Backend Tracking model with database operations.
@@ -48,10 +47,8 @@ export class Tracking extends BaseTracking {
         values.push(this.icon || null);
       }
 
-      if (this.days !== undefined) {
-        updates.push("days = ?");
-        values.push(this.days ? JSON.stringify(this.days) : null);
-      }
+      updates.push("frequency = ?");
+      values.push(JSON.stringify(this.frequency));
 
       if (this.state !== undefined) {
         updates.push("state = ?");
@@ -72,13 +69,13 @@ export class Tracking extends BaseTracking {
     } else {
       // Create new tracking
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question, notes, icon, days, state) VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO trackings (user_id, question, notes, icon, frequency, state) VALUES (?, ?, ?, ?, ?, ?)",
         [
           this.user_id,
           this.question,
           this.notes || null,
           this.icon || null,
-          this.days ? JSON.stringify(this.days) : null,
+          JSON.stringify(this.frequency),
           this.state || TrackingState.RUNNING,
         ]
       );
@@ -117,8 +114,8 @@ export class Tracking extends BaseTracking {
     if (updates.icon !== undefined) {
       this.icon = Tracking.validateIcon(updates.icon);
     }
-    if (updates.days !== undefined) {
-      this.days = Tracking.validateDays(updates.days);
+    if (updates.frequency !== undefined) {
+      this.frequency = Tracking.validateFrequency(updates.frequency);
     }
 
     return this.save(db);
@@ -179,12 +176,12 @@ export class Tracking extends BaseTracking {
       question: string;
       notes: string | null;
       icon: string | null;
-      days: string | null;
+      frequency: string;
       state: string;
       created_at: string;
       updated_at: string;
     }>(
-      "SELECT id, user_id, question, notes, icon, days, state, created_at, updated_at FROM trackings WHERE id = ? AND user_id = ?",
+      "SELECT id, user_id, question, notes, icon, frequency, state, created_at, updated_at FROM trackings WHERE id = ? AND user_id = ?",
       [id, userId]
     );
 
@@ -192,16 +189,15 @@ export class Tracking extends BaseTracking {
       return null;
     }
 
-    let daysPattern: DaysPattern | undefined;
-    if (row.days) {
-      try {
-        daysPattern = JSON.parse(row.days) as DaysPattern;
-      } catch (err) {
-        console.error(
-          `[${new Date().toISOString()}] TRACKING | Failed to parse days JSON for tracking ${id}:`,
-          err
-        );
-      }
+    let frequency: Frequency;
+    try {
+      frequency = JSON.parse(row.frequency) as Frequency;
+    } catch (err) {
+      console.error(
+        `[${new Date().toISOString()}] TRACKING | Failed to parse frequency JSON for tracking ${id}:`,
+        err
+      );
+      throw new Error(`Invalid frequency data for tracking ${id}`);
     }
 
     const tracking = new Tracking({
@@ -210,7 +206,7 @@ export class Tracking extends BaseTracking {
       question: row.question,
       notes: row.notes || undefined,
       icon: row.icon || undefined,
-      days: daysPattern,
+      frequency: frequency,
       state: (row.state as TrackingState) || TrackingState.RUNNING,
       created_at: row.created_at,
       updated_at: row.updated_at,
@@ -237,29 +233,28 @@ export class Tracking extends BaseTracking {
       question: string;
       notes: string | null;
       icon: string | null;
-      days: string | null;
+      frequency: string;
       state: string;
       created_at: string;
       updated_at: string;
     }>(
-      "SELECT id, user_id, question, notes, icon, days, state, created_at, updated_at FROM trackings WHERE user_id = ? ORDER BY created_at DESC",
+      "SELECT id, user_id, question, notes, icon, frequency, state, created_at, updated_at FROM trackings WHERE user_id = ? ORDER BY created_at DESC",
       [userId]
     );
 
     const trackings = await Promise.all(
       rows.map(async (row) => {
-        let daysPattern: DaysPattern | undefined;
-        if (row.days) {
-          try {
-            daysPattern = JSON.parse(row.days) as DaysPattern;
-          } catch (err) {
-            console.error(
-              `[${new Date().toISOString()}] TRACKING | Failed to parse days JSON for tracking ${
-                row.id
-              }:`,
-              err
-            );
-          }
+        let frequency: Frequency;
+        try {
+          frequency = JSON.parse(row.frequency) as Frequency;
+        } catch (err) {
+          console.error(
+            `[${new Date().toISOString()}] TRACKING | Failed to parse frequency JSON for tracking ${
+              row.id
+            }:`,
+            err
+          );
+          throw new Error(`Invalid frequency data for tracking ${row.id}`);
         }
 
         const tracking = new Tracking({
@@ -268,7 +263,7 @@ export class Tracking extends BaseTracking {
           question: row.question,
           notes: row.notes || undefined,
           icon: row.icon || undefined,
-          days: daysPattern,
+          frequency: frequency,
           state: (row.state as TrackingState) || TrackingState.RUNNING,
           created_at: row.created_at,
           updated_at: row.updated_at,

@@ -79,14 +79,13 @@ router.get(
  * @body {string} notes - Optional notes (rich text)
  * @body {string} icon - Optional icon (emoji)
  * @body {Array<{hour: number, minutes: number}>} schedules - Required schedules array (1-5 schedules)
- * @body {DaysPattern} days - Optional days pattern for reminder frequency (required for recurring trackings)
- * @body {string} oneTimeDate - Optional date for one-time tracking (ISO date string YYYY-MM-DD)
+ * @body {Frequency} frequency - Required frequency pattern for reminder schedule
  * @returns {TrackingData} Created tracking data
  */
 router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
-    const { question, notes, icon, schedules, days, oneTimeDate } = req.body;
+    const { question, notes, icon, schedules, frequency } = req.body;
 
     if (!question) {
       return res.status(400).json({ error: "Question is required" });
@@ -98,67 +97,8 @@ router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
         .json({ error: "At least one schedule is required" });
     }
 
-    // Validate that either days or oneTimeDate is provided, but not both
-    if (!days && !oneTimeDate) {
-      return res
-        .status(400)
-        .json({ error: "Either days pattern or oneTimeDate must be provided" });
-    }
-
-    if (days && oneTimeDate) {
-      return res
-        .status(400)
-        .json({ error: "Cannot provide both days pattern and oneTimeDate" });
-    }
-
-    // Validate oneTimeDate if provided
-    if (oneTimeDate) {
-      // Validate date format (YYYY-MM-DD)
-      const datePattern = /^\d{4}-\d{2}-\d{2}$/;
-      if (!datePattern.test(oneTimeDate)) {
-        return res
-          .status(400)
-          .json({ error: "Invalid oneTimeDate format. Expected YYYY-MM-DD" });
-      }
-
-      const oneTimeDateObj = new Date(oneTimeDate + "T00:00:00");
-      if (isNaN(oneTimeDateObj.getTime())) {
-        return res.status(400).json({ error: "Invalid oneTimeDate format" });
-      }
-
-      // Validate that the date is today or in the future
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const selectedDateOnly = new Date(
-        oneTimeDateObj.getFullYear(),
-        oneTimeDateObj.getMonth(),
-        oneTimeDateObj.getDate()
-      );
-
-      if (selectedDateOnly < today) {
-        return res
-          .status(400)
-          .json({ error: "oneTimeDate must be today or in the future" });
-      }
-
-      // If it's today, validate that all schedules are in the future
-      if (selectedDateOnly.getTime() === today.getTime()) {
-        const currentHour = now.getHours();
-        const currentMinutes = now.getMinutes();
-
-        for (const schedule of schedules) {
-          if (
-            schedule.hour < currentHour ||
-            (schedule.hour === currentHour &&
-              schedule.minutes <= currentMinutes)
-          ) {
-            return res.status(400).json({
-              error:
-                "If the date is today, all times must be after the current time",
-            });
-          }
-        }
-      }
+    if (!frequency) {
+      return res.status(400).json({ error: "Frequency is required" });
     }
 
     const tracking = await getTrackingServiceInstance().createTracking(
@@ -167,8 +107,7 @@ router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
       notes,
       icon,
       schedules,
-      days,
-      oneTimeDate
+      frequency
     );
 
     res.status(201).json(tracking);
@@ -194,8 +133,7 @@ router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
  * @body {string} notes - Updated notes (optional)
  * @body {string} icon - Updated icon (optional)
  * @body {Array<{hour: number, minutes: number}>} schedules - Updated schedules array (optional, 1-5 schedules if provided)
- * @body {DaysPattern} days - Updated days pattern (optional, undefined for one-time trackings)
- * @body {string} oneTimeDate - Updated one-time date (optional, YYYY-MM-DD format for one-time trackings)
+ * @body {Frequency} frequency - Updated frequency pattern (optional)
  * @returns {TrackingData} Updated tracking data
  */
 router.put(
@@ -205,7 +143,7 @@ router.put(
     try {
       const trackingId = parseInt(req.params.id, 10);
       const userId = req.userId!;
-      const { question, notes, icon, schedules, days, oneTimeDate } = req.body;
+      const { question, notes, icon, schedules, frequency } = req.body;
 
       if (isNaN(trackingId)) {
         return res.status(400).json({ error: "Invalid tracking ID" });
@@ -227,8 +165,7 @@ router.put(
         notes,
         icon,
         schedules,
-        days,
-        oneTimeDate
+        frequency
       );
 
       res.json(tracking);

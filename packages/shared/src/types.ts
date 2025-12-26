@@ -16,35 +16,36 @@ export interface UserData {
 export const MAX_TRACKING_QUESTION_LENGTH = 100;
 export const MAX_SCHEDULES_PER_TRACKING = 5;
 
-export enum DaysPatternType {
-  INTERVAL = "interval",
-  DAY_OF_WEEK = "day_of_week",
-  DAY_OF_MONTH = "day_of_month",
-  DAY_OF_YEAR = "day_of_year",
-}
-
 export enum TrackingState {
   RUNNING = "Running",
   PAUSED = "Paused",
   ARCHIVED = "Archived",
 }
 
-export interface DaysPattern {
-  pattern_type: DaysPatternType;
-  // For INTERVAL pattern
-  interval_value?: number;
-  interval_unit?: "days" | "weeks" | "months" | "years";
-  // For DAY_OF_WEEK pattern
-  days?: number[]; // 0-6, where 0=Sunday
-  // For DAY_OF_MONTH pattern
-  type?: "day_number" | "last_day" | "weekday_ordinal" | "date";
-  day_numbers?: number[]; // 1-31
-  weekday?: number; // 0-6, where 0=Sunday
-  ordinal?: number; // 1-5 (first, second, third, fourth, fifth)
-  // For DAY_OF_YEAR pattern
-  month?: number; // 1-12
-  day?: number; // 1-31
-}
+/**
+ * Unified frequency type for tracking reminder schedules.
+ * Represents all possible frequency patterns including one-time events.
+ * @public
+ */
+export type Frequency =
+  | { type: "daily" }
+  | { type: "weekly"; days: number[] } // 0-6, where 0=Sunday
+  | {
+      type: "monthly";
+      kind: "day_number" | "last_day" | "weekday_ordinal";
+      day_numbers?: number[]; // 1-31
+      weekday?: number; // 0-6, where 0=Sunday
+      ordinal?: number; // 1-5 (first, second, third, fourth, fifth)
+    }
+  | {
+      type: "yearly";
+      kind: "date" | "weekday_ordinal";
+      month?: number; // 1-12
+      day?: number; // 1-31
+      weekday?: number; // 0-6, where 0=Sunday
+      ordinal?: number; // 1-5 (first, second, third, fourth, fifth)
+    }
+  | { type: "one-time"; date: string }; // YYYY-MM-DD format
 
 export interface TrackingScheduleData {
   id: number;
@@ -61,7 +62,7 @@ export interface TrackingData {
   question: string;
   notes?: string;
   icon?: string;
-  days?: DaysPattern;
+  frequency: Frequency;
   state?: TrackingState;
   schedules?: TrackingScheduleData[];
   created_at?: string;

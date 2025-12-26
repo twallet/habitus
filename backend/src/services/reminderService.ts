@@ -8,8 +8,7 @@ import {
 import {
   Tracking,
   type TrackingData,
-  type DaysPattern,
-  DaysPatternType,
+  type Frequency,
 } from "../models/Tracking.js";
 import { TrackingSchedule } from "../models/TrackingSchedule.js";
 import { User } from "../models/User.js";
@@ -681,12 +680,17 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       return null;
     }
 
-    if (!tracking.days) {
+    if (!tracking.frequency) {
       console.warn(
         `[${new Date().toISOString()}] REMINDER | Tracking ${
           tracking.id
-        } has no days pattern`
+        } has no frequency`
       );
+      return null;
+    }
+
+    // One-time frequencies don't generate recurring reminders
+    if (tracking.frequency.type === "one-time") {
       return null;
     }
 
@@ -700,10 +704,10 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       minutes: s.minutes,
     }));
 
-    // Calculate next occurrence for each schedule based on days pattern
+    // Calculate next occurrence for each schedule based on frequency
     for (const schedule of schedules) {
       const nextTime = this.calculateNextOccurrence(
-        tracking.days,
+        tracking.frequency,
         schedule.hour,
         schedule.minutes,
         now,
@@ -732,8 +736,8 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
   }
 
   /**
-   * Calculate next occurrence for a specific schedule time based on days pattern.
-   * @param daysPattern - The days pattern
+   * Calculate next occurrence for a specific schedule time based on frequency.
+   * @param frequency - The frequency pattern
    * @param hour - Hour (0-23)
    * @param minutes - Minutes (0-59)
    * @param fromDate - Start date to search from
@@ -742,21 +746,28 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
    * @private
    */
   private calculateNextOccurrence(
-    daysPattern: DaysPattern,
+    frequency: Frequency,
     hour: number,
     minutes: number,
     fromDate: Date,
     excludeDate: Date | null
   ): Date | null {
-    // Handle INTERVAL pattern separately
-    if (daysPattern.pattern_type === DaysPatternType.INTERVAL) {
-      return this.calculateNextIntervalOccurrence(
-        daysPattern,
-        hour,
-        minutes,
-        fromDate,
-        excludeDate
-      );
+    // Handle daily frequency - every day
+    if (frequency.type === "daily") {
+      const candidateDate = new Date(fromDate);
+      candidateDate.setHours(hour, minutes, 0, 0);
+
+      // If candidate is in the past, move to tomorrow
+      if (candidateDate <= fromDate) {
+        candidateDate.setDate(candidateDate.getDate() + 1);
+      }
+
+      // Check if this date matches the excludeDate
+      if (excludeDate && candidateDate.getTime() === excludeDate.getTime()) {
+        candidateDate.setDate(candidateDate.getDate() + 1);
+      }
+
+      return candidateDate;
     }
 
     const maxIterations = 1000; // Prevent infinite loops
@@ -784,8 +795,8 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
         continue;
       }
 
-      // Check if this date matches the days pattern
-      if (this.matchesDaysPattern(candidateDate, daysPattern)) {
+      // Check if this date matches the frequency pattern
+      if (this.matchesFrequency(candidateDate, frequency)) {
         return candidateDate;
       }
 
@@ -798,138 +809,86 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
   }
 
   /**
-   * Calculate next occurrence for INTERVAL pattern.
-   * @param daysPattern - The days pattern (must be INTERVAL type)
-   * @param hour - Hour (0-23)
-   * @param minutes - Minutes (0-59)
-   * @param fromDate - Start date to search from
-   * @param excludeDate - Optional date to exclude
-   * @returns Next occurrence date or null if not found
-   * @private
-   */
-  private calculateNextIntervalOccurrence(
-    daysPattern: DaysPattern,
-    hour: number,
-    minutes: number,
-    fromDate: Date,
-    excludeDate: Date | null
-  ): Date | null {
-    if (!daysPattern.interval_value || !daysPattern.interval_unit) {
-      return null;
-    }
-
-    // Calculate interval in milliseconds
-    let intervalMs = 0;
-    switch (daysPattern.interval_unit) {
-      case "days":
-        intervalMs = daysPattern.interval_value * 24 * 60 * 60 * 1000;
-        break;
-      case "weeks":
-        intervalMs = daysPattern.interval_value * 7 * 24 * 60 * 60 * 1000;
-        break;
-      case "months":
-        // Approximate months as 30 days
-        intervalMs = daysPattern.interval_value * 30 * 24 * 60 * 60 * 1000;
-        break;
-      case "years":
-        // Approximate years as 365 days
-        intervalMs = daysPattern.interval_value * 365 * 24 * 60 * 60 * 1000;
-        break;
-      default:
-        return null;
-    }
-
-    // Start from the base date with the schedule time
-    const baseDate = new Date(fromDate);
-    baseDate.setHours(hour, minutes, 0, 0);
-
-    // If base date is in the past, add one interval
-    if (baseDate <= fromDate) {
-      baseDate.setTime(baseDate.getTime() + intervalMs);
-    }
-
-    // Check if base date matches excludeDate, if so add one more interval
-    if (excludeDate && baseDate.getTime() === excludeDate.getTime()) {
-      baseDate.setTime(baseDate.getTime() + intervalMs);
-    }
-
-    return baseDate;
-  }
-
-  /**
-   * Check if a date matches the days pattern.
+   * Check if a date matches the frequency pattern.
    * @param date - The date to check
-   * @param pattern - The days pattern
-   * @returns True if date matches pattern
+   * @param frequency - The frequency pattern
+   * @returns True if date matches frequency pattern
    * @private
    */
-  private matchesDaysPattern(date: Date, pattern: DaysPattern): boolean {
-    switch (pattern.pattern_type) {
-      case DaysPatternType.INTERVAL:
-        // For interval patterns, we check if enough time has passed
-        // This is handled in calculateNextOccurrence by advancing days
+  private matchesFrequency(date: Date, frequency: Frequency): boolean {
+    switch (frequency.type) {
+      case "daily":
+        // Daily matches any day
         return true;
 
-      case DaysPatternType.DAY_OF_WEEK:
-        if (!pattern.days || pattern.days.length === 0) {
+      case "weekly":
+        if (!frequency.days || frequency.days.length === 0) {
           return false;
         }
         const dayOfWeek = date.getDay(); // 0=Sunday, 6=Saturday
-        return pattern.days.includes(dayOfWeek);
+        return frequency.days.includes(dayOfWeek);
 
-      case DaysPatternType.DAY_OF_MONTH:
-        if (!pattern.type) {
+      case "monthly":
+        if (!frequency.kind) {
           return false;
         }
-        if (pattern.type === "day_number") {
-          if (!pattern.day_numbers || pattern.day_numbers.length === 0) {
+        if (frequency.kind === "day_number") {
+          if (!frequency.day_numbers || frequency.day_numbers.length === 0) {
             return false;
           }
           const dayOfMonth = date.getDate();
-          return pattern.day_numbers.includes(dayOfMonth);
-        } else if (pattern.type === "last_day") {
+          return frequency.day_numbers.includes(dayOfMonth);
+        } else if (frequency.kind === "last_day") {
           const lastDayOfMonth = new Date(
             date.getFullYear(),
             date.getMonth() + 1,
             0
           ).getDate();
           return date.getDate() === lastDayOfMonth;
-        } else if (pattern.type === "weekday_ordinal") {
-          if (pattern.weekday === undefined || pattern.ordinal === undefined) {
+        } else if (frequency.kind === "weekday_ordinal") {
+          if (
+            frequency.weekday === undefined ||
+            frequency.ordinal === undefined
+          ) {
             return false;
           }
           return this.isNthWeekdayOfMonth(
             date,
-            pattern.weekday,
-            pattern.ordinal
+            frequency.weekday,
+            frequency.ordinal
           );
         }
         return false;
 
-      case DaysPatternType.DAY_OF_YEAR:
-        if (!pattern.type) {
+      case "yearly":
+        if (!frequency.kind) {
           return false;
         }
-        // TypeScript doesn't narrow properly, so we check the string value
-        const dayOfYearType = pattern.type as "date" | "weekday_ordinal";
-        if (dayOfYearType === "date") {
-          if (pattern.month === undefined || pattern.day === undefined) {
+        if (frequency.kind === "date") {
+          if (frequency.month === undefined || frequency.day === undefined) {
             return false;
           }
           return (
-            date.getMonth() + 1 === pattern.month &&
-            date.getDate() === pattern.day
+            date.getMonth() + 1 === frequency.month &&
+            date.getDate() === frequency.day
           );
-        } else if (dayOfYearType === "weekday_ordinal") {
-          if (pattern.weekday === undefined || pattern.ordinal === undefined) {
+        } else if (frequency.kind === "weekday_ordinal") {
+          if (
+            frequency.weekday === undefined ||
+            frequency.ordinal === undefined
+          ) {
             return false;
           }
           return this.isNthWeekdayOfYear(
             date,
-            pattern.weekday,
-            pattern.ordinal
+            frequency.weekday,
+            frequency.ordinal
           );
         }
+        return false;
+
+      case "one-time":
+        // One-time frequencies don't match here (they're handled separately)
         return false;
 
       default:
