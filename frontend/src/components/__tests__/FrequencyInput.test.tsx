@@ -2,10 +2,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { DaysPatternInput } from "../DaysPatternInput";
+import { FrequencyInput } from "../FrequencyInput";
 import { DaysPattern, DaysPatternType } from "../../models/Tracking";
 
-describe("DaysPatternInput", () => {
+describe("FrequencyInput", () => {
     const mockOnChange = vi.fn();
     const mockOnErrorChange = vi.fn();
 
@@ -15,7 +15,7 @@ describe("DaysPatternInput", () => {
 
     it("should render frequency selector", () => {
         render(
-            <DaysPatternInput
+            <FrequencyInput
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -28,7 +28,7 @@ describe("DaysPatternInput", () => {
 
     it("should have daily as default preset", () => {
         render(
-            <DaysPatternInput
+            <FrequencyInput
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -40,7 +40,7 @@ describe("DaysPatternInput", () => {
 
     it("should call onChange with daily pattern for daily preset", async () => {
         render(
-            <DaysPatternInput
+            <FrequencyInput
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -60,7 +60,7 @@ describe("DaysPatternInput", () => {
     it("should show weekly options when weekly preset is selected", async () => {
         const user = userEvent.setup();
         render(
-            <DaysPatternInput
+            <FrequencyInput
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -77,7 +77,7 @@ describe("DaysPatternInput", () => {
     it("should show weekday buttons when weekly preset is selected", async () => {
         const user = userEvent.setup();
         render(
-            <DaysPatternInput
+            <FrequencyInput
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -93,7 +93,7 @@ describe("DaysPatternInput", () => {
     it("should toggle weekday selection", async () => {
         const user = userEvent.setup();
         render(
-            <DaysPatternInput
+            <FrequencyInput
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -126,7 +126,7 @@ describe("DaysPatternInput", () => {
     it("should show monthly options when monthly preset is selected", async () => {
         const user = userEvent.setup();
         render(
-            <DaysPatternInput
+            <FrequencyInput
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -141,7 +141,7 @@ describe("DaysPatternInput", () => {
     it("should show yearly options when yearly preset is selected", async () => {
         const user = userEvent.setup();
         render(
-            <DaysPatternInput
+            <FrequencyInput
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -165,7 +165,7 @@ describe("DaysPatternInput", () => {
         };
 
         render(
-            <DaysPatternInput
+            <FrequencyInput
                 value={pattern}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
@@ -178,7 +178,7 @@ describe("DaysPatternInput", () => {
 
     it("should display error message when provided", () => {
         render(
-            <DaysPatternInput
+            <FrequencyInput
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
                 error="Test error message"
@@ -190,7 +190,7 @@ describe("DaysPatternInput", () => {
 
     it("should be disabled when disabled prop is true", () => {
         render(
-            <DaysPatternInput
+            <FrequencyInput
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
                 disabled={true}
@@ -204,7 +204,7 @@ describe("DaysPatternInput", () => {
     it("should call onErrorChange when validation fails", async () => {
         const user = userEvent.setup();
         render(
-            <DaysPatternInput
+            <FrequencyInput
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -230,7 +230,7 @@ describe("DaysPatternInput", () => {
     it("should handle monthly day input", async () => {
         const user = userEvent.setup();
         render(
-            <DaysPatternInput
+            <FrequencyInput
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -262,7 +262,7 @@ describe("DaysPatternInput", () => {
     it("should handle monthly last day option", async () => {
         const user = userEvent.setup();
         render(
-            <DaysPatternInput
+            <FrequencyInput
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -291,7 +291,7 @@ describe("DaysPatternInput", () => {
     it("should handle monthly weekday ordinal option", async () => {
         const user = userEvent.setup();
         render(
-            <DaysPatternInput
+            <FrequencyInput
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -326,7 +326,7 @@ describe("DaysPatternInput", () => {
     it("should handle yearly month and day inputs", async () => {
         const user = userEvent.setup();
         render(
-            <DaysPatternInput
+            <FrequencyInput
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -376,7 +376,7 @@ describe("DaysPatternInput", () => {
     it("should default to Monday when switching to weekly", async () => {
         const user = userEvent.setup();
         render(
-            <DaysPatternInput
+            <FrequencyInput
                 value={{
                     pattern_type: DaysPatternType.INTERVAL,
                     interval_value: 1,
@@ -400,7 +400,7 @@ describe("DaysPatternInput", () => {
     it("should work without onErrorChange callback", async () => {
         const user = userEvent.setup();
         render(
-            <DaysPatternInput
+            <FrequencyInput
                 onChange={mockOnChange}
             />
         );
@@ -415,7 +415,7 @@ describe("DaysPatternInput", () => {
 
     it("should not display error when error prop is null", () => {
         render(
-            <DaysPatternInput
+            <FrequencyInput
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
                 error={null}
@@ -427,7 +427,7 @@ describe("DaysPatternInput", () => {
 
     it("should handle disabled state for all inputs", () => {
         render(
-            <DaysPatternInput
+            <FrequencyInput
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
                 disabled={true}
@@ -442,7 +442,7 @@ describe("DaysPatternInput", () => {
         const user = userEvent.setup();
         const mockOnFrequencyChange = vi.fn();
         render(
-            <DaysPatternInput
+            <FrequencyInput
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
                 onFrequencyChange={mockOnFrequencyChange}
@@ -461,7 +461,7 @@ describe("DaysPatternInput", () => {
         const user = userEvent.setup();
         const mockOnFrequencyChange = vi.fn();
         render(
-            <DaysPatternInput
+            <FrequencyInput
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
                 onFrequencyChange={mockOnFrequencyChange}
@@ -478,7 +478,7 @@ describe("DaysPatternInput", () => {
 
     it("should sync preset with controlled frequency prop", async () => {
         const { rerender } = render(
-            <DaysPatternInput
+            <FrequencyInput
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
                 frequency="weekly"
@@ -490,7 +490,7 @@ describe("DaysPatternInput", () => {
 
         // Change controlled frequency
         rerender(
-            <DaysPatternInput
+            <FrequencyInput
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
                 frequency="monthly"
@@ -509,7 +509,7 @@ describe("DaysPatternInput", () => {
         };
 
         const { rerender } = render(
-            <DaysPatternInput
+            <FrequencyInput
                 value={initialPattern}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
@@ -530,7 +530,7 @@ describe("DaysPatternInput", () => {
 
         // Simulate parent updating value with the same pattern we sent
         rerender(
-            <DaysPatternInput
+            <FrequencyInput
                 value={lastCall}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
@@ -557,7 +557,7 @@ describe("DaysPatternInput", () => {
         };
 
         const { rerender } = render(
-            <DaysPatternInput
+            <FrequencyInput
                 value={initialPattern}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
@@ -582,7 +582,7 @@ describe("DaysPatternInput", () => {
 
         // Change to a different pattern
         rerender(
-            <DaysPatternInput
+            <FrequencyInput
                 value={newPattern}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
@@ -609,7 +609,7 @@ describe("DaysPatternInput", () => {
 
     it("should show Yearly option in frequency selector", () => {
         render(
-            <DaysPatternInput
+            <FrequencyInput
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -623,7 +623,7 @@ describe("DaysPatternInput", () => {
 
     it("should show One-time option in frequency selector", () => {
         render(
-            <DaysPatternInput
+            <FrequencyInput
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />
@@ -637,7 +637,7 @@ describe("DaysPatternInput", () => {
 
     it("should hide frequency selector when hideFrequencySelector is true", () => {
         render(
-            <DaysPatternInput
+            <FrequencyInput
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
                 hideFrequencySelector={true}
@@ -651,7 +651,7 @@ describe("DaysPatternInput", () => {
     it("should not cause infinite loop when selecting weekly days", async () => {
         const user = userEvent.setup();
         render(
-            <DaysPatternInput
+            <FrequencyInput
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
             />

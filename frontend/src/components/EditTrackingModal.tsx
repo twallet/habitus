@@ -1,7 +1,7 @@
 import { useState, FormEvent, useEffect, useRef } from "react";
 import { TrackingData, Frequency } from "../models/Tracking";
 import { ApiClient } from "../config/api";
-import { DaysPatternInput } from "./DaysPatternInput";
+import { FrequencyInput } from "./FrequencyInput";
 import "./EditTrackingModal.css";
 import "./TrackingForm.css";
 
@@ -334,7 +334,7 @@ export function EditTrackingModal({
                     </div>
 
                     <div className="form-group">
-                        <DaysPatternInput
+                        <FrequencyInput
                             value={frequency}
                             onChange={setFrequency}
                             disabled={isSubmitting}

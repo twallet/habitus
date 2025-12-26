@@ -1,7 +1,7 @@
 import { useState, FormEvent } from "react";
 import { Frequency } from "../models/Tracking";
 import { ApiClient } from "../config/api";
-import { DaysPatternInput } from "./DaysPatternInput";
+import { FrequencyInput } from "./FrequencyInput";
 import "./TrackingForm.css";
 
 interface TrackingFormProps {
@@ -277,7 +277,7 @@ export function TrackingForm({
             </div>
 
             <div className="form-group">
-                <DaysPatternInput
+                <FrequencyInput
                     value={frequency}
                     onChange={setFrequency}
                     disabled={isSubmitting}

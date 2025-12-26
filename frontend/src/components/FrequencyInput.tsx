@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { Frequency } from "../models/Tracking";
 import { FrequencyBuilder, FrequencyPreset } from "../models/FrequencyBuilder";
-import "./DaysPatternInput.css";
+import "./FrequencyInput.css";
 
-interface DaysPatternInputProps {
+interface FrequencyInputProps {
     value: Frequency;
     onChange: (frequency: Frequency) => void;
     disabled?: boolean;
@@ -25,7 +25,7 @@ interface DaysPatternInputProps {
  * @param props.onErrorChange - Callback when error changes
  * @public
  */
-export function DaysPatternInput({
+export function FrequencyInput({
     value,
     onChange,
     disabled = false,
@@ -34,7 +34,7 @@ export function DaysPatternInput({
     hideFrequencySelector = false,
     frequency,
     onFrequencyChange,
-}: DaysPatternInputProps) {
+}: FrequencyInputProps) {
     const builderRef = useRef<FrequencyBuilder>(new FrequencyBuilder(value));
     // Track the last frequency we sent to parent to avoid re-initializing from our own updates
     const lastSentFrequencyRef = useRef<Frequency | null>(null);
@@ -327,7 +327,7 @@ export function DaysPatternInput({
 
 
     return (
-        <div className="days-pattern-input">
+        <div className="frequency-input">
             {!hideFrequencySelector && (
                 <div className="form-label-row">
                     <label htmlFor="frequency-preset">
@@ -511,8 +511,9 @@ export function DaysPatternInput({
             </div>
 
             {error && (
-                <div className="days-pattern-error">{error}</div>
+                <div className="frequency-input-error">{error}</div>
             )}
         </div>
     );
 }
+

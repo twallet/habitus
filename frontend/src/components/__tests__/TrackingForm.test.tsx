@@ -18,7 +18,7 @@ describe("TrackingForm", () => {
      * @param frequency - Frequency value (default: "Daily")
      */
     const setFrequency = async (user: ReturnType<typeof userEvent.setup>, frequency: "Daily" | "Weekly" | "Monthly" | "Yearly" | "One-time" = "Daily") => {
-        // Try both frequency selectors (one in DaysPatternInput, one for One-time)
+        // Try both frequency selectors (one in FrequencyInput, one for One-time)
         let frequencySelect = document.getElementById("tracking-frequency") as HTMLSelectElement;
         if (!frequencySelect) {
             frequencySelect = document.getElementById("frequency-preset") as HTMLSelectElement;

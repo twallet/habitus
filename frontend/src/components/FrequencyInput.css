@@ -1,13 +1,13 @@
-.days-pattern-input {
+.frequency-input {
   margin-bottom: 1rem;
 }
 
-.days-pattern-input .required-asterisk {
+.frequency-input .required-asterisk {
   color: var(--error-color);
   margin-left: 2px;
 }
 
-.days-pattern-input .frequency-preset-select {
+.frequency-input .frequency-preset-select {
   width: fit-content;
   min-width: 8ch;
   padding: 0.5rem;
@@ -149,7 +149,7 @@
   box-sizing: border-box;
 }
 
-.days-pattern-error {
+.frequency-input-error {
   color: #dc3545;
   font-size: 0.875rem;
   margin-top: 0.5rem;
