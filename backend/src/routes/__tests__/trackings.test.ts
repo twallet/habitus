@@ -617,7 +617,12 @@ describe("Trackings Routes", () => {
     it("should update tracking state from Running to Paused", async () => {
       const result = await testDb.run(
         "INSERT INTO trackings (user_id, question, state, frequency) VALUES (?, ?, ?, ?)",
-        [testUserId, "Test Question", "Running", JSON.stringify({ type: "daily" })]
+        [
+          testUserId,
+          "Test Question",
+          "Running",
+          JSON.stringify({ type: "daily" }),
+        ]
       );
       const trackingId = result.lastID;
 
@@ -666,7 +671,12 @@ describe("Trackings Routes", () => {
     it("should return 400 for same state transition", async () => {
       const result = await testDb.run(
         "INSERT INTO trackings (user_id, question, state, frequency) VALUES (?, ?, ?, ?)",
-        [testUserId, "Test Question", "Running", JSON.stringify({ type: "daily" })]
+        [
+          testUserId,
+          "Test Question",
+          "Running",
+          JSON.stringify({ type: "daily" }),
+        ]
       );
       const trackingId = result.lastID;
 
@@ -682,7 +692,12 @@ describe("Trackings Routes", () => {
     it("should return 400 when state is missing", async () => {
       const result = await testDb.run(
         "INSERT INTO trackings (user_id, question, state, frequency) VALUES (?, ?, ?, ?)",
-        [testUserId, "Test Question", "Running", JSON.stringify({ type: "daily" })]
+        [
+          testUserId,
+          "Test Question",
+          "Running",
+          JSON.stringify({ type: "daily" }),
+        ]
       );
       const trackingId = result.lastID;
 
@@ -698,7 +713,12 @@ describe("Trackings Routes", () => {
     it("should return 400 for invalid state value", async () => {
       const result = await testDb.run(
         "INSERT INTO trackings (user_id, question, state, frequency) VALUES (?, ?, ?, ?)",
-        [testUserId, "Test Question", "Running", JSON.stringify({ type: "daily" })]
+        [
+          testUserId,
+          "Test Question",
+          "Running",
+          JSON.stringify({ type: "daily" }),
+        ]
       );
       const trackingId = result.lastID;
 
