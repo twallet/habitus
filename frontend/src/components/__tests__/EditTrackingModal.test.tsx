@@ -347,9 +347,14 @@ describe('EditTrackingModal', () => {
 
   it('should handle one-time tracking editing', async () => {
     const user = userEvent.setup();
+    // Use a future date to pass validation (date must be today or in the future)
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + 1);
+    const futureDateStr = futureDate.toISOString().split('T')[0];
+    
     const oneTimeTracking: TrackingData = {
       ...mockTracking,
-      frequency: { type: "one-time", date: "2024-12-31" }, // One-time tracking
+      frequency: { type: "one-time", date: futureDateStr }, // One-time tracking
     };
 
     render(
