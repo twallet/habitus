@@ -3,7 +3,7 @@ import {
   Tracking,
   TrackingState,
   TrackingData,
-  DaysPatternType,
+  Frequency,
 } from "../Tracking.js";
 import { Database } from "../../db/database.js";
 import sqlite3 from "sqlite3";
@@ -45,7 +45,7 @@ async function createTestDatabase(): Promise<Database> {
               question TEXT NOT NULL CHECK(length(question) <= 100),
               notes TEXT,
               icon TEXT,
-              days TEXT,
+              frequency TEXT NOT NULL,
               state TEXT NOT NULL DEFAULT 'Running' CHECK(state IN ('Running', 'Paused', 'Archived')),
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -502,22 +502,18 @@ describe("Tracking Model", () => {
     });
   });
 
-  describe("validateDays", () => {
-    it("should accept valid INTERVAL pattern", () => {
-      const days = {
-        pattern_type: DaysPatternType.INTERVAL,
-        interval_value: 2,
-        interval_unit: "days" as const,
-      };
-      expect(Tracking.validateDays(days)).toEqual(days);
+  describe("validateFrequency", () => {
+    it("should accept valid daily frequency", () => {
+      const frequency: Frequency = { type: "daily" };
+      expect(Tracking.validateFrequency(frequency)).toEqual(frequency);
     });
 
-    it("should accept valid DAY_OF_WEEK pattern", () => {
-      const days = {
-        pattern_type: DaysPatternType.DAY_OF_WEEK,
+    it("should accept valid weekly frequency", () => {
+      const frequency: Frequency = {
+        type: "weekly",
         days: [0, 1, 2],
       };
-      expect(Tracking.validateDays(days)).toEqual(days);
+      expect(Tracking.validateFrequency(frequency)).toEqual(frequency);
     });
 
     it("should accept valid DAY_OF_MONTH pattern with day_number", () => {
