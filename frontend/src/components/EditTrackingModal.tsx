@@ -1,5 +1,5 @@
 import { useState, FormEvent, useEffect, useRef } from "react";
-import { TrackingData, DaysPattern } from "../models/Tracking";
+import { TrackingData, DaysPattern, DaysPatternType } from "../models/Tracking";
 import { ApiClient } from "../config/api";
 import { DaysPatternInput } from "./DaysPatternInput";
 import "./EditTrackingModal.css";
@@ -43,8 +43,27 @@ export function EditTrackingModal({
             minutes: s.minutes,
         })) || []
     );
-    const [scheduleTime, setScheduleTime] = useState<string>("09:00");
+    const [scheduleTime, setScheduleTime] = useState<string>(() => {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() + 5);
+        const hours = String(now.getHours()).padStart(2, "0");
+        const minutes = String(now.getMinutes()).padStart(2, "0");
+        return `${hours}:${minutes}`;
+    });
     const isOneTime = !tracking.days;
+
+    /**
+     * Get current time plus 5 minutes in HH:MM format.
+     * @returns Time string in HH:MM format
+     * @internal
+     */
+    const getTimeInFiveMinutes = (): string => {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() + 5);
+        const hours = String(now.getHours()).padStart(2, "0");
+        const minutes = String(now.getMinutes()).padStart(2, "0");
+        return `${hours}:${minutes}`;
+    };
 
     /**
      * Get tomorrow's date as ISO string (YYYY-MM-DD).
@@ -55,6 +74,39 @@ export function EditTrackingModal({
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         return tomorrow.toISOString().slice(0, 10);
+    };
+
+    /**
+     * Get tomorrow's weekday (0-6, where 0=Sunday, 1=Monday, etc.).
+     * @returns Tomorrow's weekday number
+     * @internal
+     */
+    const getTomorrowWeekday = (): number => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return tomorrow.getDay();
+    };
+
+    /**
+     * Get tomorrow's day of month (1-31).
+     * @returns Tomorrow's day number
+     * @internal
+     */
+    const getTomorrowDayNumber = (): number => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return tomorrow.getDate();
+    };
+
+    /**
+     * Get tomorrow's month (1-12).
+     * @returns Tomorrow's month number
+     * @internal
+     */
+    const getTomorrowMonth = (): number => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return tomorrow.getMonth() + 1; // getMonth() returns 0-11, so add 1
     };
 
     // For one-time trackings, try to extract date from first reminder if available
@@ -88,12 +140,89 @@ export function EditTrackingModal({
     const hasCalledOnCloseRef = useRef(false);
     const isSubmittingRef = useRef(false);
 
+    // Track previous frequency to detect changes
+    const prevFrequencyRef = useRef<"daily" | "weekly" | "monthly" | "yearly" | "One-time">(currentFrequency);
+
     // Reset refs on mount to prevent state pollution between tests
     useEffect(() => {
         hasSaveErrorRef.current = false;
         hasCalledOnCloseRef.current = false;
         isSubmittingRef.current = false;
     }, []);
+
+    /**
+     * Update days pattern when frequency changes.
+     * Resets additional fields and sets defaults based on frequency type.
+     * @internal
+     */
+    useEffect(() => {
+        const prevFrequency = prevFrequencyRef.current;
+        const freq = currentFrequency;
+
+        // Only process if frequency actually changed
+        if (prevFrequency === freq) {
+            return;
+        }
+
+        // Reset oneTimeDate when switching away from One-time
+        if (prevFrequency === "One-time" && freq !== "One-time") {
+            setOneTimeDate(getTomorrowDate());
+        }
+
+        // Set oneTimeDate to tomorrow when switching to One-time
+        if (freq === "One-time" && prevFrequency !== "One-time") {
+            setOneTimeDate(getTomorrowDate());
+        }
+
+        // Reset and set default days pattern based on frequency
+        if (freq !== "One-time") {
+            switch (freq) {
+                case "daily": {
+                    setDays({
+                        pattern_type: DaysPatternType.INTERVAL,
+                        interval_value: 1,
+                        interval_unit: "days",
+                    });
+                    break;
+                }
+                case "weekly": {
+                    // Weekly uses DAY_OF_WEEK pattern, default to tomorrow's weekday
+                    const tomorrowWeekday = getTomorrowWeekday();
+                    setDays({
+                        pattern_type: DaysPatternType.DAY_OF_WEEK,
+                        days: [tomorrowWeekday],
+                    });
+                    break;
+                }
+                case "monthly": {
+                    // Monthly uses DAY_OF_MONTH pattern, default to tomorrow's day number
+                    const tomorrowDay = getTomorrowDayNumber();
+                    setDays({
+                        pattern_type: DaysPatternType.DAY_OF_MONTH,
+                        type: "day_number",
+                        day_numbers: [tomorrowDay],
+                    });
+                    break;
+                }
+                case "yearly": {
+                    // Yearly uses a day-of-year pattern, default to tomorrow's month and day
+                    const tomorrowMonth = getTomorrowMonth();
+                    const tomorrowDay = getTomorrowDayNumber();
+                    setDays({
+                        pattern_type: DaysPatternType.DAY_OF_YEAR,
+                        type: "date",
+                        month: tomorrowMonth,
+                        day: tomorrowDay,
+                    });
+                    break;
+                }
+            }
+            setDaysError(null);
+        }
+
+        // Update ref for next comparison
+        prevFrequencyRef.current = freq;
+    }, [currentFrequency]);
 
     /**
      * Handle emoji suggestion.
@@ -167,7 +296,7 @@ export function EditTrackingModal({
         setSchedules([...schedules, newSchedule]);
 
         // Reset input
-        setScheduleTime("09:00");
+        setScheduleTime(getTimeInFiveMinutes());
     };
 
     /**

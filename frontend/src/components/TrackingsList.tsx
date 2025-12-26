@@ -790,10 +790,18 @@ export function TrackingsList({
     /**
      * Handle action button click.
      * @param trackingId - The tracking ID
-     * @param newState - The new state to transition to
+     * @param newState - The new state to transition to, or null for delete action
      * @internal
      */
-    const handleActionClick = (trackingId: number, newState: TrackingState) => {
+    const handleActionClick = (trackingId: number, newState: TrackingState | null) => {
+        // If newState is null, this is a delete action
+        if (newState === null) {
+            const tracking = trackings.find((t) => t.id === trackingId);
+            if (tracking) {
+                setTrackingToDelete(tracking);
+            }
+            return;
+        }
         // All state changes proceed immediately
         handleStateChangeImmediate(trackingId, newState);
     };
@@ -1100,6 +1108,12 @@ export function TrackingsList({
                                                 label: "Archive",
                                                 tooltip: "Archive: Moves tracking to archived state and stops all reminder generation. All pending and upcoming reminders will be deleted."
                                             },
+                                            {
+                                                state: null as any, // Special marker for delete action
+                                                icon: "🗑️",
+                                                label: "Delete",
+                                                tooltip: "Delete: Permanently removes this tracking and all its reminders. This action cannot be undone."
+                                            },
                                         ];
                                     case TrackingState.PAUSED:
                                         return [
@@ -1115,6 +1129,12 @@ export function TrackingsList({
                                                 label: "Archive",
                                                 tooltip: "Archive: Moves tracking to archived state and stops all reminder generation. All pending and upcoming reminders will be deleted."
                                             },
+                                            {
+                                                state: null as any, // Special marker for delete action
+                                                icon: "🗑️",
+                                                label: "Delete",
+                                                tooltip: "Delete: Permanently removes this tracking and all its reminders. This action cannot be undone."
+                                            },
                                         ];
                                     case TrackingState.ARCHIVED:
                                         return [
@@ -1123,6 +1143,12 @@ export function TrackingsList({
                                                 icon: "▶️",
                                                 label: "Resume",
                                                 tooltip: "Resume: Restarts reminder generation according to the tracking schedule."
+                                            },
+                                            {
+                                                state: null as any, // Special marker for delete action
+                                                icon: "🗑️",
+                                                label: "Delete",
+                                                tooltip: "Delete: Permanently removes this tracking and all its reminders. This action cannot be undone."
                                             },
                                         ];
                                     default:
@@ -1193,7 +1219,7 @@ export function TrackingsList({
                                             <div className="actions-buttons">
                                                 {availableActions.map((action) => (
                                                     <button
-                                                        key={action.state}
+                                                        key={action.state ?? 'delete'}
                                                         type="button"
                                                         className="action-button"
                                                         onClick={() => handleActionClick(tracking.id, action.state)}
