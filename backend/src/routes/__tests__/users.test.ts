@@ -283,9 +283,9 @@ describe("Users Routes", () => {
 
     it("should handle TypeError errors with 400 status", async () => {
       const errorService = {
-        updateProfile: vi.fn().mockRejectedValue(
-          new TypeError("Invalid name format")
-        ),
+        updateProfile: vi
+          .fn()
+          .mockRejectedValue(new TypeError("Invalid name format")),
       };
       vi.spyOn(servicesModule.ServiceManager, "getUserService").mockReturnValue(
         errorService as any
@@ -301,9 +301,9 @@ describe("Users Routes", () => {
 
     it("should handle Email already registered error with 409 status", async () => {
       const errorService = {
-        updateProfile: vi.fn().mockRejectedValue(
-          new Error("Email already registered")
-        ),
+        updateProfile: vi
+          .fn()
+          .mockRejectedValue(new Error("Email already registered")),
       };
       vi.spyOn(servicesModule.ServiceManager, "getUserService").mockReturnValue(
         errorService as any
@@ -319,9 +319,9 @@ describe("Users Routes", () => {
 
     it("should handle Only image files error with 400 status", async () => {
       const errorService = {
-        updateProfile: vi.fn().mockRejectedValue(
-          new Error("Only image files are allowed")
-        ),
+        updateProfile: vi
+          .fn()
+          .mockRejectedValue(new Error("Only image files are allowed")),
       };
       vi.spyOn(servicesModule.ServiceManager, "getUserService").mockReturnValue(
         errorService as any
@@ -338,10 +338,10 @@ describe("Users Routes", () => {
     it("should handle file upload with cleanup on error", async () => {
       const fs = await import("fs");
       const path = await import("path");
-      const unlinkSyncSpy = vi.spyOn(fs, "unlinkSync").mockImplementation(() => {});
-      const existsSyncSpy = vi
-        .spyOn(fs, "existsSync")
-        .mockReturnValue(true);
+      const unlinkSyncSpy = vi
+        .spyOn(fs, "unlinkSync")
+        .mockImplementation(() => {});
+      const existsSyncSpy = vi.spyOn(fs, "existsSync").mockReturnValue(true);
 
       const mockFile = {
         filename: "test-file.jpg",
@@ -446,27 +446,21 @@ describe("Users Routes", () => {
     });
 
     it("should return 400 if notificationChannels is missing", async () => {
-      const response = await request(app).put("/api/users/notifications").send(
-        {}
-      );
+      const response = await request(app)
+        .put("/api/users/notifications")
+        .send({});
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe(
-        "notificationChannels must be an array"
-      );
+      expect(response.body.error).toBe("notificationChannels must be an array");
     });
 
     it("should return 400 if notificationChannels is not an array", async () => {
-      const response = await request(app)
-        .put("/api/users/notifications")
-        .send({
-          notificationChannels: "not-an-array",
-        });
+      const response = await request(app).put("/api/users/notifications").send({
+        notificationChannels: "not-an-array",
+      });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe(
-        "notificationChannels must be an array"
-      );
+      expect(response.body.error).toBe("notificationChannels must be an array");
     });
 
     it("should handle TypeError with 400 status", async () => {
