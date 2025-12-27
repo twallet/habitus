@@ -903,9 +903,15 @@ describe("Tracking Model", () => {
     });
 
     it("should throw TypeError for one-time frequency with past date", () => {
-      const yesterday = new Date();
+      // Create a date for yesterday in local timezone to avoid timezone issues
+      const today = new Date();
+      const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
-      const dateStr = yesterday.toISOString().split("T")[0];
+      // Format as YYYY-MM-DD in local timezone
+      const year = yesterday.getFullYear();
+      const month = String(yesterday.getMonth() + 1).padStart(2, "0");
+      const day = String(yesterday.getDate()).padStart(2, "0");
+      const dateStr = `${year}-${month}-${day}`;
       expect(() =>
         Tracking.validateFrequency({
           type: "one-time",
