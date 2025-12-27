@@ -3,27 +3,21 @@ import { vi, type Mock } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { useTrackings } from "../useTrackings";
 import { API_ENDPOINTS } from "../../config/api";
-import { Frequency } from "../../models/Tracking";
+import { Frequency, TrackingState } from "../../models/Tracking";
+import { tokenManager } from "../base/TokenManager.js";
 
 // Mock fetch
 global.fetch = vi.fn();
 
-// Mock localStorage
-const localStorageMock = {
-  getItem: vi.fn(),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
-};
-Object.defineProperty(window, "localStorage", {
-  value: localStorageMock,
-});
+const TOKEN_KEY = "habitus_token";
 
 describe("useTrackings", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (global.fetch as Mock).mockClear();
-    localStorageMock.getItem.mockReturnValue("test-token");
+    localStorage.clear();
+    tokenManager.reset();
+    localStorage.setItem(TOKEN_KEY, "test-token");
   });
 
   it("should initialize with empty trackings array", async () => {
@@ -48,6 +42,24 @@ describe("useTrackings", () => {
         }),
       })
     );
+  });
+
+  it("should clear trackings when no token is present", async () => {
+    localStorage.removeItem(TOKEN_KEY);
+    const consoleWarnSpy = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => {});
+
+    const { result } = renderHook(() => useTrackings());
+
+    await waitFor(() => {
+      expect(result.current.trackings).toEqual([]);
+    });
+
+    expect(consoleWarnSpy).toHaveBeenCalled();
+    expect(global.fetch).not.toHaveBeenCalled();
+
+    consoleWarnSpy.mockRestore();
   });
 
   it("should load trackings from API on mount", async () => {
@@ -270,8 +282,8 @@ describe("useTrackings", () => {
     ).rejects.toThrow();
   });
 
-  it("should throw error when not authenticated", async () => {
-    localStorageMock.getItem.mockReturnValue(null);
+  it("should throw error when not authenticated for createTracking", async () => {
+    localStorage.removeItem(TOKEN_KEY);
 
     (global.fetch as Mock).mockResolvedValueOnce({
       ok: true,
@@ -296,5 +308,286 @@ describe("useTrackings", () => {
         defaultFrequency
       )
     ).rejects.toThrow("Not authenticated");
+  });
+
+  it("should throw error when not authenticated for updateTracking", async () => {
+    localStorage.removeItem(TOKEN_KEY);
+
+    (global.fetch as Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    });
+
+    const { result } = renderHook(() => useTrackings());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    const defaultFrequency: Frequency = {
+      type: "daily",
+    };
+    await expect(
+      result.current.updateTracking(1, defaultFrequency, "New Question")
+    ).rejects.toThrow("Not authenticated");
+  });
+
+  it("should throw error when not authenticated for updateTrackingState", async () => {
+    localStorage.removeItem(TOKEN_KEY);
+
+    (global.fetch as Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    });
+
+    const { result } = renderHook(() => useTrackings());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await expect(
+      result.current.updateTrackingState(1, TrackingState.PAUSED)
+    ).rejects.toThrow("Not authenticated");
+  });
+
+  it("should throw error when not authenticated for deleteTracking", async () => {
+    localStorage.removeItem(TOKEN_KEY);
+
+    (global.fetch as Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    });
+
+    const { result } = renderHook(() => useTrackings());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await expect(result.current.deleteTracking(1)).rejects.toThrow(
+      "Not authenticated"
+    );
+  });
+
+  it("should update tracking state", async () => {
+    const existingTracking = {
+      id: 1,
+      user_id: 1,
+      question: "Question",
+      state: TrackingState.RUNNING,
+    };
+
+    (global.fetch as Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [existingTracking],
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          ...existingTracking,
+          state: TrackingState.PAUSED,
+        }),
+      });
+
+    const { result } = renderHook(() => useTrackings());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await result.current.updateTrackingState(1, TrackingState.PAUSED);
+
+    await waitFor(() => {
+      expect(result.current.trackings[0].state).toBe(TrackingState.PAUSED);
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      `${API_ENDPOINTS.trackings}/1/state`,
+      expect.objectContaining({
+        method: "PATCH",
+        headers: expect.objectContaining({
+          "Content-Type": "application/json",
+          Authorization: "Bearer test-token",
+        }),
+        body: JSON.stringify({ state: TrackingState.PAUSED }),
+      })
+    );
+  });
+
+  it("should throw error when updateTrackingState API request fails", async () => {
+    const existingTracking = {
+      id: 1,
+      user_id: 1,
+      question: "Question",
+      state: TrackingState.RUNNING,
+    };
+
+    (global.fetch as Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [existingTracking],
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error: "Error updating tracking state" }),
+      });
+
+    const { result } = renderHook(() => useTrackings());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await expect(
+      result.current.updateTrackingState(1, TrackingState.PAUSED)
+    ).rejects.toThrow();
+  });
+
+  it("should throw error when updateTracking API request fails", async () => {
+    const existingTracking = {
+      id: 1,
+      user_id: 1,
+      question: "Old Question",
+    };
+
+    (global.fetch as Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [existingTracking],
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error: "Error updating tracking" }),
+      });
+
+    const { result } = renderHook(() => useTrackings());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    const defaultFrequency: Frequency = {
+      type: "daily",
+    };
+
+    await expect(
+      result.current.updateTracking(1, defaultFrequency, "New Question")
+    ).rejects.toThrow();
+  });
+
+  it("should throw error when deleteTracking API request fails", async () => {
+    const existingTracking = {
+      id: 1,
+      user_id: 1,
+      question: "Question",
+    };
+
+    (global.fetch as Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [existingTracking],
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error: "Error deleting tracking" }),
+      });
+
+    const { result } = renderHook(() => useTrackings());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await expect(result.current.deleteTracking(1)).rejects.toThrow();
+  });
+
+  it("should dispatch trackingDeleted event when deleting a tracking", async () => {
+    const existingTracking = {
+      id: 1,
+      user_id: 1,
+      question: "Question",
+    };
+
+    const eventListener = vi.fn();
+
+    window.addEventListener("trackingDeleted", eventListener);
+
+    (global.fetch as Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [existingTracking],
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({}),
+      });
+
+    const { result } = renderHook(() => useTrackings());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await result.current.deleteTracking(1);
+
+    await waitFor(() => {
+      expect(eventListener).toHaveBeenCalled();
+    });
+
+    const event = eventListener.mock.calls[0][0] as CustomEvent;
+    expect(event.detail).toEqual({ trackingId: 1 });
+
+    window.removeEventListener("trackingDeleted", eventListener);
+  });
+
+  it("should refresh trackings", async () => {
+    const initialTrackings = [
+      {
+        id: 1,
+        user_id: 1,
+        question: "Question 1",
+      },
+    ];
+
+    const updatedTrackings = [
+      {
+        id: 1,
+        user_id: 1,
+        question: "Question 1",
+      },
+      {
+        id: 2,
+        user_id: 1,
+        question: "Question 2",
+      },
+    ];
+
+    (global.fetch as Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => initialTrackings,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => updatedTrackings,
+      });
+
+    const { result } = renderHook(() => useTrackings());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.trackings).toHaveLength(1);
+
+    await result.current.refreshTrackings();
+
+    await waitFor(() => {
+      expect(result.current.trackings).toHaveLength(2);
+    });
+
+    expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 });
