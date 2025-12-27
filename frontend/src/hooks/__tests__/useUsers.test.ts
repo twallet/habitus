@@ -224,4 +224,82 @@ describe("useUsers", () => {
       "Name is required"
     );
   });
+
+  it("should handle error when error is not an Error instance in createUser", async () => {
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    (global.fetch as Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [],
+      })
+      .mockRejectedValueOnce("String error"); // Non-Error value
+
+    const { result } = renderHook(() => useUsers());
+
+    await waitFor(() => {
+      expect(result.current.isInitialized).toBe(true);
+    });
+
+    await expect(result.current.createUser("Test User")).rejects.toBe(
+      "String error"
+    );
+
+    await waitFor(() => {
+      expect(result.current.error).toBe("Error creating user");
+    });
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("should handle error when error is not an Error instance in useEffect", async () => {
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    (global.fetch as Mock).mockRejectedValueOnce("String error");
+
+    const { result } = renderHook(() => useUsers());
+
+    await waitFor(() => {
+      expect(result.current.isInitialized).toBe(true);
+    });
+
+    expect(result.current.users).toEqual([]);
+    expect(result.current.error).toBe("Error loading users");
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("should clear error when createUser succeeds after previous error", async () => {
+    (global.fetch as Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [],
+      })
+      .mockRejectedValueOnce(new Error("First error"))
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: 1, name: "Success User" }),
+      });
+
+    const { result } = renderHook(() => useUsers());
+
+    await waitFor(() => {
+      expect(result.current.isInitialized).toBe(true);
+    });
+
+    // First call fails
+    await expect(result.current.createUser("Test")).rejects.toThrow();
+    expect(result.current.error).toBeTruthy();
+
+    // Second call succeeds
+    await result.current.createUser("Success User");
+
+    await waitFor(() => {
+      expect(result.current.error).toBeNull();
+    });
+  });
 });

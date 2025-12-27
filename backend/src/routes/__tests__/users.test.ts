@@ -280,6 +280,254 @@ describe("Users Routes", () => {
       expect(response.status).toBe(500);
       expect(response.body.error).toBe("Error updating profile");
     });
+
+    it("should handle TypeError errors with 400 status", async () => {
+      const errorService = {
+        updateProfile: vi.fn().mockRejectedValue(
+          new TypeError("Invalid name format")
+        ),
+      };
+      vi.spyOn(servicesModule.ServiceManager, "getUserService").mockReturnValue(
+        errorService as any
+      );
+
+      const response = await request(app).put("/api/users/profile").send({
+        name: "Invalid",
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Invalid name format");
+    });
+
+    it("should handle Email already registered error with 409 status", async () => {
+      const errorService = {
+        updateProfile: vi.fn().mockRejectedValue(
+          new Error("Email already registered")
+        ),
+      };
+      vi.spyOn(servicesModule.ServiceManager, "getUserService").mockReturnValue(
+        errorService as any
+      );
+
+      const response = await request(app).put("/api/users/profile").send({
+        name: "Updated Name",
+      });
+
+      expect(response.status).toBe(409);
+      expect(response.body.error).toBe("Email already registered");
+    });
+
+    it("should handle Only image files error with 400 status", async () => {
+      const errorService = {
+        updateProfile: vi.fn().mockRejectedValue(
+          new Error("Only image files are allowed")
+        ),
+      };
+      vi.spyOn(servicesModule.ServiceManager, "getUserService").mockReturnValue(
+        errorService as any
+      );
+
+      const response = await request(app).put("/api/users/profile").send({
+        name: "Updated Name",
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Only image files are allowed");
+    });
+
+    it("should handle file upload with cleanup on error", async () => {
+      const fs = await import("fs");
+      const path = await import("path");
+      const unlinkSyncSpy = vi.spyOn(fs, "unlinkSync").mockImplementation(() => {});
+      const existsSyncSpy = vi
+        .spyOn(fs, "existsSync")
+        .mockReturnValue(true);
+
+      const mockFile = {
+        filename: "test-file.jpg",
+        originalname: "test.jpg",
+        mimetype: "image/jpeg",
+        size: 1024,
+      };
+
+      (uploadModule.uploadProfilePicture as Mock).mockImplementation(
+        (req: any, _res: any, next: any) => {
+          req.file = mockFile;
+          next();
+        }
+      );
+
+      const errorService = {
+        updateProfile: vi.fn().mockRejectedValue(new Error("Database error")),
+      };
+      vi.spyOn(servicesModule.ServiceManager, "getUserService").mockReturnValue(
+        errorService as any
+      );
+
+      const response = await request(app).put("/api/users/profile").send({
+        name: "Updated Name",
+      });
+
+      expect(response.status).toBe(500);
+      expect(existsSyncSpy).toHaveBeenCalled();
+      expect(unlinkSyncSpy).toHaveBeenCalledWith(
+        path.join("/test/uploads", "test-file.jpg")
+      );
+
+      unlinkSyncSpy.mockRestore();
+      existsSyncSpy.mockRestore();
+    });
+
+    it("should handle removeProfilePicture set to true", async () => {
+      const response = await request(app).put("/api/users/profile").send({
+        name: "Updated Name",
+        removeProfilePicture: true,
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.name).toBe("Updated Name");
+    });
+
+    it("should handle removeProfilePicture set to string true", async () => {
+      const response = await request(app).put("/api/users/profile").send({
+        name: "Updated Name",
+        removeProfilePicture: "true",
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.name).toBe("Updated Name");
+    });
+  });
+
+  describe("PUT /api/users/notifications", () => {
+    let userId: number;
+
+    beforeEach(async () => {
+      const result = await testDb.run(
+        "INSERT INTO users (name, email) VALUES (?, ?)",
+        ["Test User", "test@example.com"]
+      );
+      userId = result.lastID;
+
+      vi.clearAllMocks();
+      (authMiddleware.authenticateToken as Mock).mockImplementation(
+        (req: any, _res: any, next: any) => {
+          req.userId = userId;
+          next();
+        }
+      );
+    });
+
+    it("should update notification preferences successfully", async () => {
+      const response = await request(app)
+        .put("/api/users/notifications")
+        .send({
+          notificationChannels: ["Email"],
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.notification_channels).toEqual(["Email"]);
+    });
+
+    it("should update notification preferences with Telegram", async () => {
+      const response = await request(app)
+        .put("/api/users/notifications")
+        .send({
+          notificationChannels: ["Email", "Telegram"],
+          telegramChatId: "123456789",
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.notification_channels).toEqual([
+        "Email",
+        "Telegram",
+      ]);
+      expect(response.body.telegram_chat_id).toBe("123456789");
+    });
+
+    it("should return 400 if notificationChannels is missing", async () => {
+      const response = await request(app).put("/api/users/notifications").send(
+        {}
+      );
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe(
+        "notificationChannels must be an array"
+      );
+    });
+
+    it("should return 400 if notificationChannels is not an array", async () => {
+      const response = await request(app)
+        .put("/api/users/notifications")
+        .send({
+          notificationChannels: "not-an-array",
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe(
+        "notificationChannels must be an array"
+      );
+    });
+
+    it("should handle TypeError with 400 status", async () => {
+      const errorService = {
+        updateNotificationPreferences: vi
+          .fn()
+          .mockRejectedValue(new TypeError("Invalid notification channels")),
+      };
+      vi.spyOn(servicesModule.ServiceManager, "getUserService").mockReturnValue(
+        errorService as any
+      );
+
+      const response = await request(app)
+        .put("/api/users/notifications")
+        .send({
+          notificationChannels: ["InvalidChannel"],
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Invalid notification channels");
+    });
+
+    it("should handle User not found error with 404 status", async () => {
+      (authMiddleware.authenticateToken as Mock).mockImplementation(
+        (req: any, _res: any, next: any) => {
+          req.userId = 999; // Non-existent user
+          next();
+        }
+      );
+
+      const response = await request(app)
+        .put("/api/users/notifications")
+        .send({
+          notificationChannels: ["Email"],
+        });
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe("User not found");
+    });
+
+    it("should handle errors when update fails", async () => {
+      const errorService = {
+        updateNotificationPreferences: vi
+          .fn()
+          .mockRejectedValue(new Error("Database error")),
+      };
+      vi.spyOn(servicesModule.ServiceManager, "getUserService").mockReturnValue(
+        errorService as any
+      );
+
+      const response = await request(app)
+        .put("/api/users/notifications")
+        .send({
+          notificationChannels: ["Email"],
+        });
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe(
+        "Error updating notification preferences"
+      );
+    });
   });
 
   describe("DELETE /api/users/profile", () => {
