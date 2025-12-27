@@ -293,7 +293,10 @@ describe("useUsers", () => {
 
     // First call fails
     await expect(result.current.createUser("Test")).rejects.toThrow();
-    expect(result.current.error).toBeTruthy();
+
+    await waitFor(() => {
+      expect(result.current.error).toBeTruthy();
+    });
 
     // Second call succeeds
     await result.current.createUser("Success User");

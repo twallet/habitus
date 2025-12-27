@@ -2,6 +2,8 @@ import { vi, type Mock } from "vitest";
 import request from "supertest";
 import express from "express";
 import sqlite3 from "sqlite3";
+import fs from "fs";
+import path from "path";
 import { Database } from "../../db/database.js";
 import { UserService } from "../../services/userService.js";
 import * as servicesModule from "../../services/index.js";
@@ -336,8 +338,6 @@ describe("Users Routes", () => {
     });
 
     it("should handle file upload with cleanup on error", async () => {
-      const fs = await import("fs");
-      const path = await import("path");
       const unlinkSyncSpy = vi
         .spyOn(fs, "unlinkSync")
         .mockImplementation(() => {});
