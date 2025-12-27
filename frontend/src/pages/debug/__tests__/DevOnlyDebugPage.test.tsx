@@ -18,20 +18,12 @@ describe('DevOnlyDebugPage', () => {
 
     afterEach(() => {
         // Restore original env value
-        Object.defineProperty(import.meta, 'env', {
-            value: { ...import.meta.env, DEV: originalDev },
-            writable: true,
-            configurable: true,
-        });
+        (import.meta.env as any).DEV = originalDev;
     });
 
     it('should render DebugPage when in development mode', () => {
-        // Mock DEV to true
-        Object.defineProperty(import.meta, 'env', {
-            value: { ...import.meta.env, DEV: true },
-            writable: true,
-            configurable: true,
-        });
+        // Set DEV to true
+        (import.meta.env as any).DEV = true;
 
         render(<DevOnlyDebugPage />);
 
@@ -41,12 +33,8 @@ describe('DevOnlyDebugPage', () => {
     });
 
     it('should show "not available" message when not in development mode', () => {
-        // Mock DEV to false
-        Object.defineProperty(import.meta, 'env', {
-            value: { ...import.meta.env, DEV: false },
-            writable: true,
-            configurable: true,
-        });
+        // Set DEV to false
+        (import.meta.env as any).DEV = false;
 
         render(<DevOnlyDebugPage />);
 
@@ -56,12 +44,8 @@ describe('DevOnlyDebugPage', () => {
     });
 
     it('should have correct styling for the "not available" message', () => {
-        // Mock DEV to false
-        Object.defineProperty(import.meta, 'env', {
-            value: { ...import.meta.env, DEV: false },
-            writable: true,
-            configurable: true,
-        });
+        // Set DEV to false
+        (import.meta.env as any).DEV = false;
 
         render(<DevOnlyDebugPage />);
 
@@ -76,12 +60,8 @@ describe('DevOnlyDebugPage', () => {
     });
 
     it('should have centered content in "not available" message', () => {
-        // Mock DEV to false
-        Object.defineProperty(import.meta, 'env', {
-            value: { ...import.meta.env, DEV: false },
-            writable: true,
-            configurable: true,
-        });
+        // Set DEV to false
+        (import.meta.env as any).DEV = false;
 
         render(<DevOnlyDebugPage />);
 
