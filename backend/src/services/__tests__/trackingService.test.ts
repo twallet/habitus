@@ -960,6 +960,27 @@ describe("TrackingService", () => {
       });
       await existingUpcoming.save(testDb);
 
+      // Create Pending and Answered reminders to verify they are preserved
+      const pendingReminder = new Reminder({
+        id: 0,
+        tracking_id: trackingId,
+        user_id: testUserId,
+        scheduled_time: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+        status: ReminderStatus.PENDING,
+        value: ReminderValue.DISMISSED,
+      });
+      await pendingReminder.save(testDb);
+
+      const answeredReminder = new Reminder({
+        id: 0,
+        tracking_id: trackingId,
+        user_id: testUserId,
+        scheduled_time: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        status: ReminderStatus.ANSWERED,
+        value: ReminderValue.COMPLETED,
+      });
+      await answeredReminder.save(testDb);
+
       // Convert to one-time with a future date
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + 1);
@@ -987,17 +1008,40 @@ describe("TrackingService", () => {
       expect(updatedTracking).not.toBeNull();
       expect(updatedTracking!.frequency).toEqual(oneTimeFrequency);
 
-      // Verify old recurring reminder was deleted and single one-time reminder was created
+      // Verify old Upcoming reminder was deleted, but Pending and Answered are preserved
       const reminders = await testDb.all<{
         id: number;
         scheduled_time: string;
+        status: string;
       }>(
-        "SELECT id, scheduled_time FROM reminders WHERE tracking_id = ? AND user_id = ? ORDER BY scheduled_time",
+        "SELECT id, scheduled_time, status FROM reminders WHERE tracking_id = ? AND user_id = ? ORDER BY scheduled_time",
         [trackingId, testUserId]
       );
-      expect(reminders.length).toBe(1); // Single reminder for one-time
+
+      // Should have: 1 new one-time Upcoming + 1 Pending + 1 Answered = 3 total
+      expect(reminders.length).toBe(3);
+
+      // Verify Pending reminder is preserved
+      const pendingReminders = reminders.filter(
+        (r) => r.status === ReminderStatus.PENDING
+      );
+      expect(pendingReminders.length).toBe(1);
+      expect(pendingReminders[0].id).toBe(pendingReminder.id);
+
+      // Verify Answered reminder is preserved
+      const answeredReminders = reminders.filter(
+        (r) => r.status === ReminderStatus.ANSWERED
+      );
+      expect(answeredReminders.length).toBe(1);
+      expect(answeredReminders[0].id).toBe(answeredReminder.id);
+
+      // Verify new one-time Upcoming reminder was created
+      const upcomingReminders = reminders.filter(
+        (r) => r.status === ReminderStatus.UPCOMING
+      );
+      expect(upcomingReminders.length).toBe(1);
       // Verify the reminder is on the one-time date
-      const reminderDate = new Date(reminders[0].scheduled_time)
+      const reminderDate = new Date(upcomingReminders[0].scheduled_time)
         .toISOString()
         .split("T")[0];
       expect(reminderDate).toBe(dateStr);
@@ -1029,7 +1073,7 @@ describe("TrackingService", () => {
         [trackingId, 9, 0]
       );
 
-      // Create one-time reminder
+      // Create one-time Upcoming reminder
       const reminder1 = new Reminder({
         id: 0,
         tracking_id: trackingId,
@@ -1039,6 +1083,27 @@ describe("TrackingService", () => {
         value: ReminderValue.DISMISSED,
       });
       await reminder1.save(testDb);
+
+      // Create Pending and Answered reminders to verify they are preserved
+      const pendingReminder = new Reminder({
+        id: 0,
+        tracking_id: trackingId,
+        user_id: testUserId,
+        scheduled_time: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+        status: ReminderStatus.PENDING,
+        value: ReminderValue.DISMISSED,
+      });
+      await pendingReminder.save(testDb);
+
+      const answeredReminder = new Reminder({
+        id: 0,
+        tracking_id: trackingId,
+        user_id: testUserId,
+        scheduled_time: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        status: ReminderStatus.ANSWERED,
+        value: ReminderValue.COMPLETED,
+      });
+      await answeredReminder.save(testDb);
 
       // Convert to recurring (daily)
       const dailyFrequency: Frequency = { type: "daily" };
@@ -1061,27 +1126,41 @@ describe("TrackingService", () => {
       expect(updatedTracking!.frequency).toBeDefined();
       expect(updatedTracking!.frequency).toEqual(dailyFrequency);
 
-      // Verify old one-time reminders were deleted and recurring reminder was created
+      // Verify old Upcoming reminder was deleted, but Pending and Answered are preserved
       const reminders = await testDb.all<{
         id: number;
         scheduled_time: string;
+        status: string;
       }>(
-        "SELECT id, scheduled_time FROM reminders WHERE tracking_id = ? AND user_id = ? ORDER BY scheduled_time",
+        "SELECT id, scheduled_time, status FROM reminders WHERE tracking_id = ? AND user_id = ? ORDER BY scheduled_time",
         [trackingId, testUserId]
       );
-      // Should have a new recurring reminder
-      expect(reminders.length).toBeGreaterThan(0);
-      // The new reminder should be in the future
-      const newReminder = reminders[0];
-      const newReminderTime = new Date(newReminder.scheduled_time);
-      const now = new Date();
-      expect(newReminderTime.getTime()).toBeGreaterThan(now.getTime());
-      // Verify it's an Upcoming reminder
-      const reminderStatus = await testDb.get<{ status: string }>(
-        "SELECT status FROM reminders WHERE id = ?",
-        [newReminder.id]
+
+      // Should have: 1 new recurring Upcoming + 1 Pending + 1 Answered = 3 total
+      expect(reminders.length).toBe(3);
+
+      // Verify Pending reminder is preserved
+      const pendingReminders = reminders.filter(
+        (r) => r.status === ReminderStatus.PENDING
       );
-      expect(reminderStatus?.status).toBe(ReminderStatus.UPCOMING);
+      expect(pendingReminders.length).toBe(1);
+      expect(pendingReminders[0].id).toBe(pendingReminder.id);
+
+      // Verify Answered reminder is preserved
+      const answeredReminders = reminders.filter(
+        (r) => r.status === ReminderStatus.ANSWERED
+      );
+      expect(answeredReminders.length).toBe(1);
+      expect(answeredReminders[0].id).toBe(answeredReminder.id);
+
+      // Verify new recurring Upcoming reminder was created
+      const upcomingReminders = reminders.filter(
+        (r) => r.status === ReminderStatus.UPCOMING
+      );
+      expect(upcomingReminders.length).toBe(1);
+      // Verify it's a future date (recurring reminder)
+      const newReminderDate = new Date(upcomingReminders[0].scheduled_time);
+      expect(newReminderDate.getTime()).toBeGreaterThan(Date.now());
     });
   });
 
