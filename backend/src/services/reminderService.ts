@@ -704,8 +704,9 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       [tracking.id, tracking.user_id]
     );
 
+    // Normalize existing times to ISO format for comparison
     const existingTimes = new Set(
-      existingReminders.map((r) => r.scheduled_time)
+      existingReminders.map((r) => new Date(r.scheduled_time).toISOString())
     );
 
     // Extract date from frequency.date (YYYY-MM-DD format)
@@ -724,7 +725,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       )}:${String(schedule.minutes).padStart(2, "0")}:00`;
       const candidateDate = new Date(dateTimeString);
 
-      // Check if this time already has a reminder
+      // Check if this time already has a reminder (compare normalized ISO strings)
       const candidateTimeString = candidateDate.toISOString();
       if (existingTimes.has(candidateTimeString)) {
         continue; // Skip times that already have reminders

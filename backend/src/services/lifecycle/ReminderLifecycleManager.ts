@@ -118,7 +118,8 @@ export class ReminderLifecycleManager extends LifecycleManager<
       const nextReminder =
         await this.reminderService.createNextReminderForTracking(
           reminder.tracking_id,
-          reminder.user_id
+          reminder.user_id,
+          reminder.scheduled_time
         );
 
       if (nextReminder) {
