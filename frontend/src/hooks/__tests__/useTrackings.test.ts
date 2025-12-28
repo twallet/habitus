@@ -378,6 +378,11 @@ describe("useTrackings", () => {
       state: TrackingState.RUNNING,
     };
 
+    const updatedTracking = {
+      ...existingTracking,
+      state: TrackingState.PAUSED,
+    };
+
     (global.fetch as Mock)
       .mockResolvedValueOnce({
         ok: true,
@@ -385,16 +390,17 @@ describe("useTrackings", () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({
-          ...existingTracking,
-          state: TrackingState.PAUSED,
-        }),
+        json: async () => updatedTracking,
       });
 
     const { result } = renderHook(() => useTrackings());
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
+    });
+
+    await waitFor(() => {
+      expect(result.current.trackings).toHaveLength(1);
     });
 
     await result.current.updateTrackingState(1, TrackingState.PAUSED);
@@ -404,7 +410,7 @@ describe("useTrackings", () => {
     });
 
     expect(global.fetch).toHaveBeenCalledWith(
-      `${API_ENDPOINTS.trackings}/1/state`,
+      expect.stringContaining(`${API_ENDPOINTS.trackings}/1/state`),
       expect.objectContaining({
         method: "PATCH",
         headers: expect.objectContaining({
@@ -431,13 +437,20 @@ describe("useTrackings", () => {
       })
       .mockResolvedValueOnce({
         ok: false,
-        json: async () => ({ error: "Error updating tracking state" }),
+        status: 400,
+        statusText: "Bad Request",
+        json: async () =>
+          Promise.resolve({ error: "Error updating tracking state" }),
       });
 
     const { result } = renderHook(() => useTrackings());
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
+    });
+
+    await waitFor(() => {
+      expect(result.current.trackings).toHaveLength(1);
     });
 
     await expect(
@@ -459,13 +472,19 @@ describe("useTrackings", () => {
       })
       .mockResolvedValueOnce({
         ok: false,
-        json: async () => ({ error: "Error updating tracking" }),
+        status: 400,
+        statusText: "Bad Request",
+        json: async () => Promise.resolve({ error: "Error updating tracking" }),
       });
 
     const { result } = renderHook(() => useTrackings());
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
+    });
+
+    await waitFor(() => {
+      expect(result.current.trackings).toHaveLength(1);
     });
 
     const defaultFrequency: Frequency = {
@@ -491,13 +510,19 @@ describe("useTrackings", () => {
       })
       .mockResolvedValueOnce({
         ok: false,
-        json: async () => ({ error: "Error deleting tracking" }),
+        status: 400,
+        statusText: "Bad Request",
+        json: async () => Promise.resolve({ error: "Error deleting tracking" }),
       });
 
     const { result } = renderHook(() => useTrackings());
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
+    });
+
+    await waitFor(() => {
+      expect(result.current.trackings).toHaveLength(1);
     });
 
     await expect(result.current.deleteTracking(1)).rejects.toThrow();
@@ -564,42 +589,15 @@ describe("useTrackings", () => {
       },
     ];
 
-    let trackingCallCount = 0;
-    (global.fetch as Mock).mockImplementation(
-      async (url: string | URL | Request) => {
-        const urlString =
-          typeof url === "string"
-            ? url
-            : url instanceof Request
-            ? url.url
-            : url.toString();
-
-        // Only mock trackings endpoint calls
-        if (
-          urlString.includes("/api/trackings") &&
-          !urlString.includes("/state")
-        ) {
-          trackingCallCount++;
-          if (trackingCallCount === 1) {
-            return {
-              ok: true,
-              json: async () => initialTrackings,
-            };
-          } else {
-            return {
-              ok: true,
-              json: async () => updatedTrackings,
-            };
-          }
-        }
-
-        // Return default response for other calls
-        return {
-          ok: true,
-          json: async () => ({}),
-        };
-      }
-    );
+    (global.fetch as Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => initialTrackings,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => updatedTrackings,
+      });
 
     const { result } = renderHook(() => useTrackings());
 
@@ -615,11 +613,10 @@ describe("useTrackings", () => {
     await result.current.refreshTrackings();
 
     await waitFor(() => {
-      expect(Array.isArray(result.current.trackings)).toBe(true);
       expect(result.current.trackings).toHaveLength(2);
       expect(result.current.trackings[1].id).toBe(2);
     });
 
-    expect(trackingCallCount).toBe(2);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 });
