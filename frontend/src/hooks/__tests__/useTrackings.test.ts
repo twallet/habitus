@@ -383,23 +383,60 @@ describe("useTrackings", () => {
       state: TrackingState.PAUSED,
     };
 
-    // Mock tokenManager to prevent additional calls
+    // Mock tokenManager methods to prevent polling and token change callbacks
+    // but keep getToken working normally
     const startPollingSpy = vi
       .spyOn(tokenManager, "startPolling")
-      .mockReturnValue(() => {});
+      .mockImplementation(() => () => {});
     const onTokenChangeSpy = vi
       .spyOn(tokenManager, "onTokenChange")
-      .mockReturnValue(() => {});
+      .mockImplementation(() => () => {});
 
-    (global.fetch as Mock)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => [existingTracking],
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => updatedTracking,
-      });
+    let getTrackingsCallCount = 0;
+    (global.fetch as Mock).mockImplementation(
+      async (url: string | URL | Request, options?: RequestInit) => {
+        const urlString =
+          typeof url === "string"
+            ? url
+            : url instanceof Request
+            ? url.url
+            : url.toString();
+        const method =
+          options?.method || (url instanceof Request ? url.method : "GET");
+
+        // GET /api/trackings (list all trackings)
+        if (
+          method === "GET" &&
+          urlString.includes("/api/trackings") &&
+          !urlString.includes("/state") &&
+          !urlString.match(/\/\d+$/)
+        ) {
+          getTrackingsCallCount++;
+          if (getTrackingsCallCount === 1) {
+            return {
+              ok: true,
+              json: async () => [existingTracking],
+            };
+          }
+        }
+        // PATCH /api/trackings/:id/state
+        else if (
+          method === "PATCH" &&
+          urlString.includes("/api/trackings") &&
+          urlString.includes("/state")
+        ) {
+          return {
+            ok: true,
+            json: async () => updatedTracking,
+          };
+        }
+        // Default response for other calls
+        return {
+          ok: true,
+          json: async () => [],
+        };
+      }
+    );
 
     const { result } = renderHook(() => useTrackings());
 
@@ -444,23 +481,59 @@ describe("useTrackings", () => {
     // Mock tokenManager to prevent additional calls
     const startPollingSpy = vi
       .spyOn(tokenManager, "startPolling")
-      .mockReturnValue(() => {});
+      .mockImplementation(() => () => {});
     const onTokenChangeSpy = vi
       .spyOn(tokenManager, "onTokenChange")
-      .mockReturnValue(() => {});
+      .mockImplementation(() => () => {});
 
-    (global.fetch as Mock)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => [existingTracking],
-      })
-      .mockResolvedValueOnce({
-        ok: false,
-        status: 400,
-        statusText: "Bad Request",
-        json: async () =>
-          Promise.resolve({ error: "Error updating tracking state" }),
-      });
+    let getTrackingsCallCount = 0;
+    (global.fetch as Mock).mockImplementation(
+      async (url: string | URL | Request, options?: RequestInit) => {
+        const urlString =
+          typeof url === "string"
+            ? url
+            : url instanceof Request
+            ? url.url
+            : url.toString();
+        const method =
+          options?.method || (url instanceof Request ? url.method : "GET");
+
+        // GET /api/trackings (list all trackings)
+        if (
+          method === "GET" &&
+          urlString.includes("/api/trackings") &&
+          !urlString.includes("/state") &&
+          !urlString.match(/\/\d+$/)
+        ) {
+          getTrackingsCallCount++;
+          if (getTrackingsCallCount === 1) {
+            return {
+              ok: true,
+              json: async () => [existingTracking],
+            };
+          }
+        }
+        // PATCH /api/trackings/:id/state (error case)
+        else if (
+          method === "PATCH" &&
+          urlString.includes("/api/trackings") &&
+          urlString.includes("/state")
+        ) {
+          return {
+            ok: false,
+            status: 400,
+            statusText: "Bad Request",
+            json: async () =>
+              Promise.resolve({ error: "Error updating tracking state" }),
+          };
+        }
+        // Default response for other calls
+        return {
+          ok: true,
+          json: async () => [],
+        };
+      }
+    );
 
     const { result } = renderHook(() => useTrackings());
 
@@ -486,6 +559,14 @@ describe("useTrackings", () => {
       user_id: 1,
       question: "Old Question",
     };
+
+    // Mock tokenManager to prevent additional calls
+    const startPollingSpy = vi
+      .spyOn(tokenManager, "startPolling")
+      .mockImplementation(() => () => {});
+    const onTokenChangeSpy = vi
+      .spyOn(tokenManager, "onTokenChange")
+      .mockImplementation(() => () => {});
 
     let getTrackingsCallCount = 0;
     (global.fetch as Mock).mockImplementation(
@@ -554,6 +635,9 @@ describe("useTrackings", () => {
     await expect(
       result.current.updateTracking(1, defaultFrequency, "New Question")
     ).rejects.toThrow();
+
+    startPollingSpy.mockRestore();
+    onTokenChangeSpy.mockRestore();
   });
 
   it("should throw error when deleteTracking API request fails", async () => {
@@ -563,17 +647,63 @@ describe("useTrackings", () => {
       question: "Question",
     };
 
-    (global.fetch as Mock)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => [existingTracking],
-      })
-      .mockResolvedValueOnce({
-        ok: false,
-        status: 400,
-        statusText: "Bad Request",
-        json: async () => Promise.resolve({ error: "Error deleting tracking" }),
-      });
+    // Mock tokenManager to prevent additional calls
+    const startPollingSpy = vi
+      .spyOn(tokenManager, "startPolling")
+      .mockImplementation(() => () => {});
+    const onTokenChangeSpy = vi
+      .spyOn(tokenManager, "onTokenChange")
+      .mockImplementation(() => () => {});
+
+    let getTrackingsCallCount = 0;
+    (global.fetch as Mock).mockImplementation(
+      async (url: string | URL | Request, options?: RequestInit) => {
+        const urlString =
+          typeof url === "string"
+            ? url
+            : url instanceof Request
+            ? url.url
+            : url.toString();
+        const method =
+          options?.method || (url instanceof Request ? url.method : "GET");
+
+        // GET /api/trackings (list all trackings)
+        if (
+          method === "GET" &&
+          urlString.includes("/api/trackings") &&
+          !urlString.includes("/state") &&
+          !urlString.match(/\/\d+$/)
+        ) {
+          getTrackingsCallCount++;
+          if (getTrackingsCallCount === 1) {
+            return {
+              ok: true,
+              json: async () => [existingTracking],
+            };
+          }
+        }
+        // DELETE /api/trackings/:id (error case)
+        else if (
+          method === "DELETE" &&
+          urlString.includes("/api/trackings") &&
+          urlString.match(/\/\d+$/) &&
+          !urlString.includes("/state")
+        ) {
+          return {
+            ok: false,
+            status: 400,
+            statusText: "Bad Request",
+            json: async () =>
+              Promise.resolve({ error: "Error deleting tracking" }),
+          };
+        }
+        // Default response for other calls
+        return {
+          ok: true,
+          json: async () => [],
+        };
+      }
+    );
 
     const { result } = renderHook(() => useTrackings());
 
@@ -586,6 +716,9 @@ describe("useTrackings", () => {
     });
 
     await expect(result.current.deleteTracking(1)).rejects.toThrow();
+
+    startPollingSpy.mockRestore();
+    onTokenChangeSpy.mockRestore();
   });
 
   it("should dispatch trackingDeleted event when deleting a tracking", async () => {
@@ -680,22 +813,35 @@ describe("useTrackings", () => {
       },
     ];
 
-    let trackingCallCount = 0;
+    // Mock tokenManager to prevent additional calls
+    const startPollingSpy = vi
+      .spyOn(tokenManager, "startPolling")
+      .mockImplementation(() => () => {});
+    const onTokenChangeSpy = vi
+      .spyOn(tokenManager, "onTokenChange")
+      .mockImplementation(() => () => {});
+
+    let getTrackingsCallCount = 0;
     (global.fetch as Mock).mockImplementation(
-      async (url: string | URL | Request) => {
+      async (url: string | URL | Request, options?: RequestInit) => {
         const urlString =
           typeof url === "string"
             ? url
             : url instanceof Request
             ? url.url
             : url.toString();
+        const method =
+          options?.method || (url instanceof Request ? url.method : "GET");
+
+        // GET /api/trackings (list all trackings)
         if (
+          method === "GET" &&
           urlString.includes("/api/trackings") &&
-          !urlString.match(/\/\d+$/) &&
-          !urlString.includes("/state")
+          !urlString.includes("/state") &&
+          !urlString.match(/\/\d+$/)
         ) {
-          trackingCallCount++;
-          if (trackingCallCount === 1) {
+          getTrackingsCallCount++;
+          if (getTrackingsCallCount === 1) {
             return {
               ok: true,
               json: async () => initialTrackings,
@@ -707,9 +853,10 @@ describe("useTrackings", () => {
             };
           }
         }
+        // Default response for other calls
         return {
           ok: true,
-          json: async () => ({}),
+          json: async () => [],
         };
       }
     );
@@ -732,6 +879,9 @@ describe("useTrackings", () => {
       expect(result.current.trackings[1].id).toBe(2);
     });
 
-    expect(trackingCallCount).toBe(2);
+    expect(getTrackingsCallCount).toBe(2);
+
+    startPollingSpy.mockRestore();
+    onTokenChangeSpy.mockRestore();
   });
 });
