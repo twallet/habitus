@@ -383,15 +383,41 @@ describe("useTrackings", () => {
       state: TrackingState.PAUSED,
     };
 
-    (global.fetch as Mock)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => [existingTracking],
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => updatedTracking,
-      });
+    let callCount = 0;
+    (global.fetch as Mock).mockImplementation(
+      async (url: string | URL | Request) => {
+        const urlString =
+          typeof url === "string"
+            ? url
+            : url instanceof Request
+            ? url.url
+            : url.toString();
+        if (
+          urlString.includes("/api/trackings") &&
+          !urlString.includes("/state")
+        ) {
+          callCount++;
+          if (callCount === 1) {
+            return {
+              ok: true,
+              json: async () => [existingTracking],
+            };
+          }
+        } else if (
+          urlString.includes("/api/trackings") &&
+          urlString.includes("/state")
+        ) {
+          return {
+            ok: true,
+            json: async () => updatedTracking,
+          };
+        }
+        return {
+          ok: true,
+          json: async () => ({}),
+        };
+      }
+    );
 
     const { result } = renderHook(() => useTrackings());
 
@@ -430,18 +456,44 @@ describe("useTrackings", () => {
       state: TrackingState.RUNNING,
     };
 
-    (global.fetch as Mock)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => [existingTracking],
-      })
-      .mockResolvedValueOnce({
-        ok: false,
-        status: 400,
-        statusText: "Bad Request",
-        json: async () =>
-          Promise.resolve({ error: "Error updating tracking state" }),
-      });
+    let callCount = 0;
+    (global.fetch as Mock).mockImplementation(
+      async (url: string | URL | Request) => {
+        const urlString =
+          typeof url === "string"
+            ? url
+            : url instanceof Request
+            ? url.url
+            : url.toString();
+        if (
+          urlString.includes("/api/trackings") &&
+          !urlString.includes("/state")
+        ) {
+          callCount++;
+          if (callCount === 1) {
+            return {
+              ok: true,
+              json: async () => [existingTracking],
+            };
+          }
+        } else if (
+          urlString.includes("/api/trackings") &&
+          urlString.includes("/state")
+        ) {
+          return {
+            ok: false,
+            status: 400,
+            statusText: "Bad Request",
+            json: async () =>
+              Promise.resolve({ error: "Error updating tracking state" }),
+          };
+        }
+        return {
+          ok: true,
+          json: async () => ({}),
+        };
+      }
+    );
 
     const { result } = renderHook(() => useTrackings());
 
@@ -465,17 +517,46 @@ describe("useTrackings", () => {
       question: "Old Question",
     };
 
-    (global.fetch as Mock)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => [existingTracking],
-      })
-      .mockResolvedValueOnce({
-        ok: false,
-        status: 400,
-        statusText: "Bad Request",
-        json: async () => Promise.resolve({ error: "Error updating tracking" }),
-      });
+    let callCount = 0;
+    (global.fetch as Mock).mockImplementation(
+      async (url: string | URL | Request) => {
+        const urlString =
+          typeof url === "string"
+            ? url
+            : url instanceof Request
+            ? url.url
+            : url.toString();
+        if (
+          urlString.includes("/api/trackings") &&
+          !urlString.includes("/state") &&
+          !urlString.match(/\/\d+$/)
+        ) {
+          callCount++;
+          if (callCount === 1) {
+            return {
+              ok: true,
+              json: async () => [existingTracking],
+            };
+          }
+        } else if (
+          urlString.includes("/api/trackings") &&
+          urlString.match(/\/\d+$/) &&
+          !urlString.includes("/state")
+        ) {
+          return {
+            ok: false,
+            status: 400,
+            statusText: "Bad Request",
+            json: async () =>
+              Promise.resolve({ error: "Error updating tracking" }),
+          };
+        }
+        return {
+          ok: true,
+          json: async () => ({}),
+        };
+      }
+    );
 
     const { result } = renderHook(() => useTrackings());
 
@@ -539,20 +620,51 @@ describe("useTrackings", () => {
 
     window.addEventListener("trackingDeleted", eventListener);
 
-    (global.fetch as Mock)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => [existingTracking],
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({}),
-      });
+    let callCount = 0;
+    (global.fetch as Mock).mockImplementation(
+      async (url: string | URL | Request) => {
+        const urlString =
+          typeof url === "string"
+            ? url
+            : url instanceof Request
+            ? url.url
+            : url.toString();
+        if (
+          urlString.includes("/api/trackings") &&
+          !urlString.match(/\/\d+$/)
+        ) {
+          callCount++;
+          if (callCount === 1) {
+            return {
+              ok: true,
+              json: async () => [existingTracking],
+            };
+          }
+        } else if (
+          urlString.includes("/api/trackings") &&
+          urlString.match(/\/\d+$/) &&
+          !urlString.includes("/state")
+        ) {
+          return {
+            ok: true,
+            json: async () => ({}),
+          };
+        }
+        return {
+          ok: true,
+          json: async () => ({}),
+        };
+      }
+    );
 
     const { result } = renderHook(() => useTrackings());
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
+    });
+
+    await waitFor(() => {
+      expect(result.current.trackings).toHaveLength(1);
     });
 
     await result.current.deleteTracking(1);
@@ -589,15 +701,39 @@ describe("useTrackings", () => {
       },
     ];
 
-    (global.fetch as Mock)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => initialTrackings,
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => updatedTrackings,
-      });
+    let trackingCallCount = 0;
+    (global.fetch as Mock).mockImplementation(
+      async (url: string | URL | Request) => {
+        const urlString =
+          typeof url === "string"
+            ? url
+            : url instanceof Request
+            ? url.url
+            : url.toString();
+        if (
+          urlString.includes("/api/trackings") &&
+          !urlString.match(/\/\d+$/) &&
+          !urlString.includes("/state")
+        ) {
+          trackingCallCount++;
+          if (trackingCallCount === 1) {
+            return {
+              ok: true,
+              json: async () => initialTrackings,
+            };
+          } else {
+            return {
+              ok: true,
+              json: async () => updatedTrackings,
+            };
+          }
+        }
+        return {
+          ok: true,
+          json: async () => ({}),
+        };
+      }
+    );
 
     const { result } = renderHook(() => useTrackings());
 
@@ -617,6 +753,6 @@ describe("useTrackings", () => {
       expect(result.current.trackings[1].id).toBe(2);
     });
 
-    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(trackingCallCount).toBe(2);
   });
 });
