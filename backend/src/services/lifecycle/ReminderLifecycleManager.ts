@@ -1,6 +1,7 @@
 import { Database } from "../../db/database.js";
 import { ReminderData, ReminderStatus } from "../../models/Reminder.js";
 import { ReminderService } from "../reminderService.js";
+import { TrackingService } from "../trackingService.js";
 import { LifecycleManager } from "./LifecycleManager.js";
 
 /**
@@ -13,15 +14,18 @@ export class ReminderLifecycleManager extends LifecycleManager<
   ReminderStatus
 > {
   private reminderService: ReminderService;
+  private db: Database;
 
   /**
    * Create a new ReminderLifecycleManager instance.
    * @param reminderService - ReminderService instance for reminder operations
+   * @param db - Database instance for tracking operations
    * @public
    */
-  constructor(reminderService: ReminderService) {
+  constructor(reminderService: ReminderService, db: Database) {
     super();
     this.reminderService = reminderService;
+    this.db = db;
 
     // Register status transition handlers
     this.setupStatusTransitionHandlers();
@@ -105,20 +109,54 @@ export class ReminderLifecycleManager extends LifecycleManager<
   /**
    * Handle reminder answered status transition.
    * Creates next upcoming reminder for the tracking.
+   * For one-time trackings, archives the tracking if no more reminders are available.
    * @param reminder - The reminder entity
    * @private
    */
   private async handleAnswered(reminder: ReminderData): Promise<void> {
     try {
-      await this.reminderService.createNextReminderForTracking(
-        reminder.tracking_id,
-        reminder.user_id
-      );
-      console.log(
-        `[${new Date().toISOString()}] REMINDER_LIFECYCLE | Created new Upcoming reminder after answering reminder ID ${
-          reminder.id
-        }`
-      );
+      const nextReminder =
+        await this.reminderService.createNextReminderForTracking(
+          reminder.tracking_id,
+          reminder.user_id
+        );
+
+      if (nextReminder) {
+        console.log(
+          `[${new Date().toISOString()}] REMINDER_LIFECYCLE | Created new Upcoming reminder after answering reminder ID ${
+            reminder.id
+          }`
+        );
+      } else {
+        // Check if this is a one-time tracking that has no more reminders
+        const { Tracking } = await import("../../models/Tracking.js");
+        const tracking = await Tracking.loadById(
+          reminder.tracking_id,
+          reminder.user_id,
+          this.db
+        );
+
+        if (tracking && tracking.frequency.type === "one-time") {
+          // No more reminders available for one-time tracking, archive it
+          const trackingService = new TrackingService(this.db);
+          await trackingService.updateTrackingState(
+            reminder.tracking_id,
+            reminder.user_id,
+            "Archived"
+          );
+          console.log(
+            `[${new Date().toISOString()}] REMINDER_LIFECYCLE | Archived one-time tracking ${
+              reminder.tracking_id
+            } after last reminder was answered`
+          );
+        } else {
+          console.log(
+            `[${new Date().toISOString()}] REMINDER_LIFECYCLE | No next reminder created for tracking ${
+              reminder.tracking_id
+            } (may be paused, archived, or have no valid times)`
+          );
+        }
+      }
     } catch (error) {
       // Log error but don't fail reminder update if next reminder creation fails
       console.error(

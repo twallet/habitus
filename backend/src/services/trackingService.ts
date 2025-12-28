@@ -347,11 +347,8 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
       try {
         const { Reminder } = await import("../models/Reminder.js");
 
-        // Delete all existing reminders for this tracking
-        await this.db.run(
-          "DELETE FROM reminders WHERE tracking_id = ? AND user_id = ?",
-          [trackingId, userId]
-        );
+        // Delete only Upcoming reminders (preserve Pending and Answered)
+        await Reminder.deleteUpcomingByTrackingId(trackingId, userId, this.db);
 
         // If converting to one-time, create single one-time reminder
         if (isNowOneTime) {

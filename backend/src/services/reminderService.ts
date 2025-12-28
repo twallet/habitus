@@ -30,7 +30,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
    */
   constructor(db: Database) {
     super(db);
-    this.lifecycleManager = new ReminderLifecycleManager(this);
+    this.lifecycleManager = new ReminderLifecycleManager(this, db);
   }
 
   /**
@@ -669,6 +669,91 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
   }
 
   /**
+   * Calculate the next reminder time for a one-time tracking.
+   * Finds the next unused schedule time on the same date.
+   * @param tracking - The tracking data (must be one-time)
+   * @param excludeTime - Optional time to exclude (ISO datetime string)
+   * @returns Promise resolving to ISO datetime string or null if no valid time found
+   * @private
+   */
+  private async calculateNextOneTimeReminderTime(
+    tracking: TrackingData,
+    excludeTime?: string
+  ): Promise<string | null> {
+    if (!tracking.schedules || tracking.schedules.length === 0) {
+      console.warn(
+        `[${new Date().toISOString()}] REMINDER | One-time tracking ${
+          tracking.id
+        } has no schedules`
+      );
+      return null;
+    }
+
+    if (!tracking.frequency || tracking.frequency.type !== "one-time") {
+      console.warn(
+        `[${new Date().toISOString()}] REMINDER | calculateNextOneTimeReminderTime called for non-one-time tracking ${
+          tracking.id
+        }`
+      );
+      return null;
+    }
+
+    // Get all existing reminders for this tracking
+    const existingReminders = await this.db.all<{ scheduled_time: string }>(
+      "SELECT scheduled_time FROM reminders WHERE tracking_id = ? AND user_id = ?",
+      [tracking.id, tracking.user_id]
+    );
+
+    const existingTimes = new Set(
+      existingReminders.map((r) => r.scheduled_time)
+    );
+
+    // Extract date from frequency.date (YYYY-MM-DD format)
+    const targetDate = tracking.frequency.date;
+    const now = new Date();
+    const excludeDate = excludeTime ? new Date(excludeTime) : now;
+
+    // Build candidate times for all schedule times on the target date
+    const candidateTimes: Date[] = [];
+
+    for (const schedule of tracking.schedules) {
+      // Construct full datetime: date + schedule time
+      const dateTimeString = `${targetDate}T${String(schedule.hour).padStart(
+        2,
+        "0"
+      )}:${String(schedule.minutes).padStart(2, "0")}:00`;
+      const candidateDate = new Date(dateTimeString);
+
+      // Check if this time already has a reminder
+      const candidateTimeString = candidateDate.toISOString();
+      if (existingTimes.has(candidateTimeString)) {
+        continue; // Skip times that already have reminders
+      }
+
+      // Only include times that are after the exclude time (or current time)
+      if (candidateDate > excludeDate) {
+        candidateTimes.push(candidateDate);
+      }
+    }
+
+    if (candidateTimes.length === 0) {
+      console.log(
+        `[${new Date().toISOString()}] REMINDER | No more schedule times available for one-time tracking ${
+          tracking.id
+        }`
+      );
+      return null;
+    }
+
+    // Return the earliest remaining time
+    const earliestTime = candidateTimes.reduce((earliest, current) =>
+      current < earliest ? current : earliest
+    );
+
+    return earliestTime.toISOString();
+  }
+
+  /**
    * Calculate the next reminder time based on tracking schedules and days pattern.
    * @param tracking - The tracking data
    * @param excludeTime - Optional time to exclude (ISO datetime string)
@@ -697,9 +782,9 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       return null;
     }
 
-    // One-time frequencies don't generate recurring reminders
+    // Handle one-time frequencies separately
     if (tracking.frequency.type === "one-time") {
-      return null;
+      return await this.calculateNextOneTimeReminderTime(tracking, excludeTime);
     }
 
     const now = new Date();

@@ -949,6 +949,186 @@ describe("ReminderService", () => {
       expect(nextDate.getTime()).not.toBe(excludeTime.getTime());
     });
 
+    it("should calculate next reminder time for one-time tracking with multiple schedules", async () => {
+      // Create a one-time tracking with multiple schedules
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 7);
+      const dateString = futureDate.toISOString().split("T")[0]; // YYYY-MM-DD
+
+      const oneTimeTrackingResult = await testDb.run(
+        "INSERT INTO trackings (user_id, question, frequency, state) VALUES (?, ?, ?, ?)",
+        [
+          testUserId,
+          "One-time task",
+          JSON.stringify({ type: "one-time", date: dateString }),
+          "Running",
+        ]
+      );
+      const oneTimeTrackingId = oneTimeTrackingResult.lastID;
+
+      // Create multiple schedules: 9:00, 12:00, 18:00
+      const schedule1 = new TrackingSchedule({
+        id: 0,
+        tracking_id: oneTimeTrackingId,
+        hour: 9,
+        minutes: 0,
+      });
+      await schedule1.save(testDb);
+
+      const schedule2 = new TrackingSchedule({
+        id: 0,
+        tracking_id: oneTimeTrackingId,
+        hour: 12,
+        minutes: 0,
+      });
+      await schedule2.save(testDb);
+
+      const schedule3 = new TrackingSchedule({
+        id: 0,
+        tracking_id: oneTimeTrackingId,
+        hour: 18,
+        minutes: 0,
+      });
+      await schedule3.save(testDb);
+
+      const schedules = await testDb.all(
+        "SELECT * FROM tracking_schedules WHERE tracking_id = ?",
+        [oneTimeTrackingId]
+      );
+
+      const trackingData = {
+        id: oneTimeTrackingId,
+        user_id: testUserId,
+        question: "One-time task",
+        frequency: { type: "one-time", date: dateString } as Frequency,
+        schedules: schedules.map((s: any) => ({
+          id: s.id,
+          tracking_id: s.tracking_id,
+          hour: s.hour,
+          minutes: s.minutes,
+        })),
+        state: "Running" as const,
+      };
+
+      // First call should return the earliest time (9:00)
+      const firstNextTime = await reminderService.calculateNextReminderTime(
+        trackingData as any
+      );
+      expect(firstNextTime).not.toBeNull();
+      const firstDate = new Date(firstNextTime!);
+      expect(firstDate.getHours()).toBe(9);
+      expect(firstDate.getMinutes()).toBe(0);
+
+      // Create a reminder for 9:00
+      await reminderService.createReminder(
+        oneTimeTrackingId,
+        testUserId,
+        firstNextTime!
+      );
+
+      // Second call should return the next time (12:00)
+      const secondNextTime = await reminderService.calculateNextReminderTime(
+        trackingData as any
+      );
+      expect(secondNextTime).not.toBeNull();
+      const secondDate = new Date(secondNextTime!);
+      expect(secondDate.getHours()).toBe(12);
+      expect(secondDate.getMinutes()).toBe(0);
+
+      // Create a reminder for 12:00
+      await reminderService.createReminder(
+        oneTimeTrackingId,
+        testUserId,
+        secondNextTime!
+      );
+
+      // Third call should return the last time (18:00)
+      const thirdNextTime = await reminderService.calculateNextReminderTime(
+        trackingData as any
+      );
+      expect(thirdNextTime).not.toBeNull();
+      const thirdDate = new Date(thirdNextTime!);
+      expect(thirdDate.getHours()).toBe(18);
+      expect(thirdDate.getMinutes()).toBe(0);
+
+      // Create a reminder for 18:00
+      await reminderService.createReminder(
+        oneTimeTrackingId,
+        testUserId,
+        thirdNextTime!
+      );
+
+      // Fourth call should return null (all times used)
+      const fourthNextTime = await reminderService.calculateNextReminderTime(
+        trackingData as any
+      );
+      expect(fourthNextTime).toBeNull();
+    });
+
+    it("should exclude time when calculating next one-time reminder", async () => {
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 7);
+      const dateString = futureDate.toISOString().split("T")[0];
+
+      const oneTimeTrackingResult = await testDb.run(
+        "INSERT INTO trackings (user_id, question, frequency, state) VALUES (?, ?, ?, ?)",
+        [
+          testUserId,
+          "One-time task",
+          JSON.stringify({ type: "one-time", date: dateString }),
+          "Running",
+        ]
+      );
+      const oneTimeTrackingId = oneTimeTrackingResult.lastID;
+
+      const schedule1 = new TrackingSchedule({
+        id: 0,
+        tracking_id: oneTimeTrackingId,
+        hour: 9,
+        minutes: 0,
+      });
+      await schedule1.save(testDb);
+
+      const schedule2 = new TrackingSchedule({
+        id: 0,
+        tracking_id: oneTimeTrackingId,
+        hour: 12,
+        minutes: 0,
+      });
+      await schedule2.save(testDb);
+
+      const schedules = await testDb.all(
+        "SELECT * FROM tracking_schedules WHERE tracking_id = ?",
+        [oneTimeTrackingId]
+      );
+
+      const trackingData = {
+        id: oneTimeTrackingId,
+        user_id: testUserId,
+        question: "One-time task",
+        frequency: { type: "one-time", date: dateString } as Frequency,
+        schedules: schedules.map((s: any) => ({
+          id: s.id,
+          tracking_id: s.tracking_id,
+          hour: s.hour,
+          minutes: s.minutes,
+        })),
+        state: "Running" as const,
+      };
+
+      // Exclude 9:00, should return 12:00
+      const excludeTime = `${dateString}T09:00:00`;
+      const nextTime = await reminderService.calculateNextReminderTime(
+        trackingData as any,
+        new Date(excludeTime).toISOString()
+      );
+
+      expect(nextTime).not.toBeNull();
+      const nextDate = new Date(nextTime!);
+      expect(nextDate.getHours()).toBe(12);
+      expect(nextDate.getMinutes()).toBe(0);
+    });
+
     it("should calculate next reminder time for DAY_OF_WEEK pattern", async () => {
       const schedules = await testDb.all(
         "SELECT * FROM tracking_schedules WHERE tracking_id = ?",
