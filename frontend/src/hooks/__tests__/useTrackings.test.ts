@@ -385,21 +385,26 @@ describe("useTrackings", () => {
 
     let getTrackingsCallCount = 0;
     (global.fetch as Mock).mockImplementation(
-      async (url: string | URL | Request) => {
+      async (url: string | URL | Request, options?: RequestInit) => {
         const urlString =
           typeof url === "string"
             ? url
             : url instanceof Request
             ? url.url
             : url.toString();
-        // GET /api/trackings (list all trackings)
+        const method =
+          options?.method || (url instanceof Request ? url.method : "GET");
+
+        // GET /api/trackings (list all trackings) - return trackings on first call
         if (
+          method === "GET" &&
           urlString.includes("/api/trackings") &&
           !urlString.includes("/state") &&
           !urlString.match(/\/\d+$/)
         ) {
+          const isFirstCall = getTrackingsCallCount === 0;
           getTrackingsCallCount++;
-          if (getTrackingsCallCount === 1) {
+          if (isFirstCall) {
             return {
               ok: true,
               json: async () => [existingTracking],
@@ -408,6 +413,7 @@ describe("useTrackings", () => {
         }
         // PATCH /api/trackings/:id/state
         else if (
+          method === "PATCH" &&
           urlString.includes("/api/trackings") &&
           urlString.includes("/state")
         ) {
@@ -416,7 +422,7 @@ describe("useTrackings", () => {
             json: async () => updatedTracking,
           };
         }
-        // Default response for other calls
+        // Default response for other calls (including subsequent GET /api/trackings)
         return {
           ok: true,
           json: async () => [],
@@ -463,21 +469,26 @@ describe("useTrackings", () => {
 
     let getTrackingsCallCount = 0;
     (global.fetch as Mock).mockImplementation(
-      async (url: string | URL | Request) => {
+      async (url: string | URL | Request, options?: RequestInit) => {
         const urlString =
           typeof url === "string"
             ? url
             : url instanceof Request
             ? url.url
             : url.toString();
-        // GET /api/trackings (list all trackings)
+        const method =
+          options?.method || (url instanceof Request ? url.method : "GET");
+
+        // GET /api/trackings (list all trackings) - return trackings on first call
         if (
+          method === "GET" &&
           urlString.includes("/api/trackings") &&
           !urlString.includes("/state") &&
           !urlString.match(/\/\d+$/)
         ) {
+          const isFirstCall = getTrackingsCallCount === 0;
           getTrackingsCallCount++;
-          if (getTrackingsCallCount === 1) {
+          if (isFirstCall) {
             return {
               ok: true,
               json: async () => [existingTracking],
@@ -486,6 +497,7 @@ describe("useTrackings", () => {
         }
         // PATCH /api/trackings/:id/state (error case)
         else if (
+          method === "PATCH" &&
           urlString.includes("/api/trackings") &&
           urlString.includes("/state")
         ) {
@@ -497,7 +509,7 @@ describe("useTrackings", () => {
               Promise.resolve({ error: "Error updating tracking state" }),
           };
         }
-        // Default response for other calls
+        // Default response for other calls (including subsequent GET /api/trackings)
         return {
           ok: true,
           json: async () => [],
@@ -527,28 +539,36 @@ describe("useTrackings", () => {
       question: "Old Question",
     };
 
-    let callCount = 0;
+    let getTrackingsCallCount = 0;
     (global.fetch as Mock).mockImplementation(
-      async (url: string | URL | Request) => {
+      async (url: string | URL | Request, options?: RequestInit) => {
         const urlString =
           typeof url === "string"
             ? url
             : url instanceof Request
             ? url.url
             : url.toString();
+        const method =
+          options?.method || (url instanceof Request ? url.method : "GET");
+
+        // GET /api/trackings (list all trackings)
         if (
+          method === "GET" &&
           urlString.includes("/api/trackings") &&
           !urlString.includes("/state") &&
           !urlString.match(/\/\d+$/)
         ) {
-          callCount++;
-          if (callCount === 1) {
+          getTrackingsCallCount++;
+          if (getTrackingsCallCount === 1) {
             return {
               ok: true,
               json: async () => [existingTracking],
             };
           }
-        } else if (
+        }
+        // PUT /api/trackings/:id (error case)
+        else if (
+          method === "PUT" &&
           urlString.includes("/api/trackings") &&
           urlString.match(/\/\d+$/) &&
           !urlString.includes("/state")
@@ -561,9 +581,10 @@ describe("useTrackings", () => {
               Promise.resolve({ error: "Error updating tracking" }),
           };
         }
+        // Default response for other calls
         return {
           ok: true,
-          json: async () => ({}),
+          json: async () => [],
         };
       }
     );
