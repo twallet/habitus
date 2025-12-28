@@ -404,12 +404,14 @@ describe("useTrackings", () => {
         const method =
           options?.method || (url instanceof Request ? url.method : "GET");
 
-        // GET /api/trackings (list all trackings)
+        // GET /api/trackings (list all trackings) - match any URL containing /api/trackings
+        // but not ending with a number or containing /state
         if (
           method === "GET" &&
           urlString.includes("/api/trackings") &&
           !urlString.includes("/state") &&
-          !urlString.match(/\/\d+$/)
+          !urlString.match(/\/\d+$/) &&
+          !urlString.match(/\/api\/trackings\/\d+/)
         ) {
           getTrackingsCallCount++;
           if (getTrackingsCallCount === 1) {
@@ -498,12 +500,14 @@ describe("useTrackings", () => {
         const method =
           options?.method || (url instanceof Request ? url.method : "GET");
 
-        // GET /api/trackings (list all trackings)
+        // GET /api/trackings (list all trackings) - match any URL containing /api/trackings
+        // but not ending with a number or containing /state
         if (
           method === "GET" &&
           urlString.includes("/api/trackings") &&
           !urlString.includes("/state") &&
-          !urlString.match(/\/\d+$/)
+          !urlString.match(/\/\d+$/) &&
+          !urlString.match(/\/api\/trackings\/\d+/)
         ) {
           getTrackingsCallCount++;
           if (getTrackingsCallCount === 1) {
@@ -580,12 +584,14 @@ describe("useTrackings", () => {
         const method =
           options?.method || (url instanceof Request ? url.method : "GET");
 
-        // GET /api/trackings (list all trackings)
+        // GET /api/trackings (list all trackings) - match any URL containing /api/trackings
+        // but not ending with a number or containing /state
         if (
           method === "GET" &&
           urlString.includes("/api/trackings") &&
           !urlString.includes("/state") &&
-          !urlString.match(/\/\d+$/)
+          !urlString.match(/\/\d+$/) &&
+          !urlString.match(/\/api\/trackings\/\d+/)
         ) {
           getTrackingsCallCount++;
           if (getTrackingsCallCount === 1) {
@@ -667,12 +673,14 @@ describe("useTrackings", () => {
         const method =
           options?.method || (url instanceof Request ? url.method : "GET");
 
-        // GET /api/trackings (list all trackings)
+        // GET /api/trackings (list all trackings) - match any URL containing /api/trackings
+        // but not ending with a number or containing /state
         if (
           method === "GET" &&
           urlString.includes("/api/trackings") &&
           !urlString.includes("/state") &&
-          !urlString.match(/\/\d+$/)
+          !urlString.match(/\/\d+$/) &&
+          !urlString.match(/\/api\/trackings\/\d+/)
         ) {
           getTrackingsCallCount++;
           if (getTrackingsCallCount === 1) {
@@ -833,12 +841,14 @@ describe("useTrackings", () => {
         const method =
           options?.method || (url instanceof Request ? url.method : "GET");
 
-        // GET /api/trackings (list all trackings)
+        // GET /api/trackings (list all trackings) - match any URL containing /api/trackings
+        // but not ending with a number or containing /state
         if (
           method === "GET" &&
           urlString.includes("/api/trackings") &&
           !urlString.includes("/state") &&
-          !urlString.match(/\/\d+$/)
+          !urlString.match(/\/\d+$/) &&
+          !urlString.match(/\/api\/trackings\/\d+/)
         ) {
           getTrackingsCallCount++;
           if (getTrackingsCallCount === 1) {
