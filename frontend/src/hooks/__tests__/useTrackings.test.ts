@@ -564,15 +564,42 @@ describe("useTrackings", () => {
       },
     ];
 
-    (global.fetch as Mock)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => initialTrackings,
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => updatedTrackings,
-      });
+    let trackingCallCount = 0;
+    (global.fetch as Mock).mockImplementation(
+      async (url: string | URL | Request) => {
+        const urlString =
+          typeof url === "string"
+            ? url
+            : url instanceof Request
+            ? url.url
+            : url.toString();
+
+        // Only mock trackings endpoint calls
+        if (
+          urlString.includes("/api/trackings") &&
+          !urlString.includes("/state")
+        ) {
+          trackingCallCount++;
+          if (trackingCallCount === 1) {
+            return {
+              ok: true,
+              json: async () => initialTrackings,
+            };
+          } else {
+            return {
+              ok: true,
+              json: async () => updatedTrackings,
+            };
+          }
+        }
+
+        // Return default response for other calls
+        return {
+          ok: true,
+          json: async () => ({}),
+        };
+      }
+    );
 
     const { result } = renderHook(() => useTrackings());
 
@@ -580,14 +607,19 @@ describe("useTrackings", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.trackings).toHaveLength(1);
+    await waitFor(() => {
+      expect(result.current.trackings).toHaveLength(1);
+      expect(result.current.trackings[0].id).toBe(1);
+    });
 
     await result.current.refreshTrackings();
 
     await waitFor(() => {
+      expect(Array.isArray(result.current.trackings)).toBe(true);
       expect(result.current.trackings).toHaveLength(2);
+      expect(result.current.trackings[1].id).toBe(2);
     });
 
-    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(trackingCallCount).toBe(2);
   });
 });
