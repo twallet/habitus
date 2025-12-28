@@ -351,7 +351,7 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
         await Reminder.deleteUpcomingByTrackingId(trackingId, userId, this.db);
 
         // If converting to one-time, create single one-time reminder
-        if (isNowOneTime) {
+        if (isNowOneTime && tracking.frequency.type === "one-time") {
           const finalSchedules =
             schedules !== undefined
               ? TrackingSchedule.validateSchedules(schedules, trackingId)
