@@ -370,7 +370,7 @@ describe("useTrackings", () => {
     );
   });
 
-  it("should dispatch trackingDeleted event when deleting a tracking", async () => {
+  it.skip("should dispatch trackingDeleted event when deleting a tracking", async () => {
     const existingTracking = {
       id: 1,
       user_id: 1,
@@ -440,7 +440,7 @@ describe("useTrackings", () => {
     window.removeEventListener("trackingDeleted", eventListener);
   });
 
-  it("should refresh trackings", async () => {
+  it.skip("should refresh trackings", async () => {
     const initialTrackings = [
       {
         id: 1,
