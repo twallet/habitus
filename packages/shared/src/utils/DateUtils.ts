@@ -7,7 +7,7 @@ export class DateUtils {
   /**
    * Format date/time using user's locale and timezone.
    * @param dateTime - ISO datetime string (UTC)
-   * @param locale - User locale (default: 'en-US')
+   * @param locale - User locale (default: 'es-AR')
    * @param timezone - User timezone (optional, uses system default if not provided)
    * @param options - Intl.DateTimeFormatOptions
    * @returns Formatted date/time string
@@ -15,7 +15,7 @@ export class DateUtils {
    */
   static formatDateTime(
     dateTime: string,
-    locale: string = "en-US",
+    locale: string = "es-AR",
     timezone?: string,
     options?: Intl.DateTimeFormatOptions
   ): string {
@@ -38,7 +38,7 @@ export class DateUtils {
   /**
    * Format date only using user's locale.
    * @param dateTime - ISO datetime string (UTC)
-   * @param locale - User locale (default: 'en-US')
+   * @param locale - User locale (default: 'es-AR')
    * @param timezone - User timezone (optional)
    * @param options - Intl.DateTimeFormatOptions
    * @returns Formatted date string
@@ -46,7 +46,7 @@ export class DateUtils {
    */
   static formatDate(
     dateTime: string,
-    locale: string = "en-US",
+    locale: string = "es-AR",
     timezone?: string,
     options?: Intl.DateTimeFormatOptions
   ): string {
@@ -61,7 +61,7 @@ export class DateUtils {
   /**
    * Format time only using user's locale.
    * @param dateTime - ISO datetime string (UTC)
-   * @param locale - User locale (default: 'en-US')
+   * @param locale - User locale (default: 'es-AR')
    * @param timezone - User timezone (optional)
    * @param options - Intl.DateTimeFormatOptions
    * @returns Formatted time string
@@ -69,7 +69,7 @@ export class DateUtils {
    */
   static formatTime(
     dateTime: string,
-    locale: string = "en-US",
+    locale: string = "es-AR",
     timezone?: string,
     options?: Intl.DateTimeFormatOptions
   ): string {
@@ -149,14 +149,14 @@ export class DateUtils {
 
   /**
    * Get user's default locale from browser/system.
-   * @returns Default locale string (e.g., 'en-US')
+   * @returns Default locale string (e.g., 'es-AR')
    * @public
    */
   static getDefaultLocale(): string {
     if (typeof navigator !== "undefined" && navigator.language) {
       return navigator.language;
     }
-    return "en-US";
+    return "es-AR";
   }
 
   /**

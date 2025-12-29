@@ -121,16 +121,17 @@ function FrequencyDisplay({ frequency }: { frequency?: Frequency }) {
             let dateLabel = "One-time";
             if (frequency.date) {
                 try {
-                    // Create a datetime string that represents midnight in the user's timezone
-                    // This ensures the date displays correctly regardless of timezone
-                    const userTimezone = user?.timezone || DateUtils.getDefaultTimezone();
-                    const dateStr = DateUtils.createDateTimeInTimezone(
-                        frequency.date,
-                        0, // hour: midnight
-                        0, // minutes: midnight
-                        userTimezone
-                    );
-                    dateLabel = formatUserDate(dateStr, user);
+                    // Parse the date string (YYYY-MM-DD) and format it directly
+                    // This avoids timezone conversion issues by treating it as a date-only value
+                    const [year, month, day] = frequency.date.split("-").map(Number);
+                    const date = new Date(year, month - 1, day);
+                    const locale = user?.locale || DateUtils.getDefaultLocale();
+                    // Format as date only, no timezone conversion needed
+                    dateLabel = date.toLocaleDateString(locale, {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                    });
                 } catch {
                     // Fallback if date is invalid
                     dateLabel = "One-time";
@@ -258,16 +259,17 @@ class TrackingFormatter {
                 // Format date using user locale or just show "One-time"
                 if (frequency.date) {
                     try {
-                        // Create a datetime string that represents midnight in the user's timezone
-                        // This ensures the date displays correctly regardless of timezone
-                        const userTimezone = user?.timezone || DateUtils.getDefaultTimezone();
-                        const dateStr = DateUtils.createDateTimeInTimezone(
-                            frequency.date,
-                            0, // hour: midnight
-                            0, // minutes: midnight
-                            userTimezone
-                        );
-                        return formatUserDate(dateStr, user);
+                        // Parse the date string (YYYY-MM-DD) and format it directly
+                        // This avoids timezone conversion issues by treating it as a date-only value
+                        const [year, month, day] = frequency.date.split("-").map(Number);
+                        const date = new Date(year, month - 1, day);
+                        const locale = user?.locale || DateUtils.getDefaultLocale();
+                        // Format as date only, no timezone conversion needed
+                        return date.toLocaleDateString(locale, {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                        });
                     } catch {
                         // Fallback if date is invalid
                         return "One-time";
@@ -342,16 +344,18 @@ class TrackingFormatter {
             case "one-time":
                 if (frequency.date) {
                     try {
-                        // Create a datetime string that represents midnight in the user's timezone
-                        // This ensures the date displays correctly regardless of timezone
-                        const userTimezone = user?.timezone || DateUtils.getDefaultTimezone();
-                        const dateStr = DateUtils.createDateTimeInTimezone(
-                            frequency.date,
-                            0, // hour: midnight
-                            0, // minutes: midnight
-                            userTimezone
-                        );
-                        details += `One-time (${formatUserDate(dateStr, user)})`;
+                        // Parse the date string (YYYY-MM-DD) and format it directly
+                        // This avoids timezone conversion issues by treating it as a date-only value
+                        const [year, month, day] = frequency.date.split("-").map(Number);
+                        const date = new Date(year, month - 1, day);
+                        const locale = user?.locale || DateUtils.getDefaultLocale();
+                        // Format as date only, no timezone conversion needed
+                        const formattedDate = date.toLocaleDateString(locale, {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                        });
+                        details += `One-time (${formattedDate})`;
                     } catch {
                         details += "One-time";
                     }

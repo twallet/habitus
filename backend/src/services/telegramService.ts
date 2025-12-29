@@ -98,7 +98,7 @@ export class TelegramService {
 
     const formattedTime = DateUtils.formatDateTime(
       scheduledTime,
-      locale || "en-US",
+      locale || "es-AR",
       timezone,
       {
         weekday: "long",
