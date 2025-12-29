@@ -2068,8 +2068,13 @@ describe("Server Configuration - Integration Tests", () => {
 
       // Create API route that throws error - server.ts already has error handler
       // Use /api prefix to avoid being caught by static file serving
-      capturedApp.get("/api/test-error-dev", () => {
-        throw new Error("Test error message");
+      // Register route before making request
+      capturedApp.get("/api/test-error-dev", (_req, _res, next) => {
+        try {
+          throw new Error("Test error message");
+        } catch (err) {
+          next(err);
+        }
       });
 
       const response = await request(capturedApp).get("/api/test-error-dev");
@@ -2091,8 +2096,13 @@ describe("Server Configuration - Integration Tests", () => {
 
       // Create API route that throws error - server.ts already has error handler
       // Use /api prefix to avoid being caught by static file serving
-      capturedApp.get("/api/test-error-prod", () => {
-        throw new Error("Test error message");
+      // Register route before making request
+      capturedApp.get("/api/test-error-prod", (_req, _res, next) => {
+        try {
+          throw new Error("Test error message");
+        } catch (err) {
+          next(err);
+        }
       });
 
       const response = await request(capturedApp).get("/api/test-error-prod");
