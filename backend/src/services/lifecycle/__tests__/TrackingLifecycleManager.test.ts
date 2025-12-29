@@ -130,6 +130,7 @@ describe("TrackingLifecycleManager", () => {
         id: testTrackingId,
         user_id: testUserId,
         question: "Test",
+        frequency: { type: "daily" },
         state: TrackingState.RUNNING,
       };
 
@@ -156,6 +157,7 @@ describe("TrackingLifecycleManager", () => {
         id: testTrackingId,
         user_id: testUserId,
         question: "Test",
+        frequency: { type: "daily" },
         state: TrackingState.RUNNING,
       };
 
