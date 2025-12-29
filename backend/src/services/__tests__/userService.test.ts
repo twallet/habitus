@@ -135,6 +135,47 @@ describe("UserService", () => {
       expect(typeof users[0].email).toBe("string");
       expect(typeof users[0].created_at).toBe("string");
     });
+
+    it("should return users with optional fields when present", async () => {
+      await testDb.run(
+        "INSERT INTO users (name, email, profile_picture_url, telegram_chat_id, notification_channels, locale, timezone, last_access) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          "Test User",
+          "test@example.com",
+          "http://example.com/pic.jpg",
+          "123456789",
+          '["Email", "Telegram"]',
+          "fr-FR",
+          "Europe/Paris",
+          "2024-01-01T00:00:00Z",
+        ]
+      );
+
+      const users = await userService.getAllUsers();
+
+      expect(users[0].profile_picture_url).toBe("http://example.com/pic.jpg");
+      expect(users[0].telegram_chat_id).toBe("123456789");
+      expect(users[0].notification_channels).toEqual(["Email", "Telegram"]);
+      expect(users[0].locale).toBe("fr-FR");
+      expect(users[0].timezone).toBe("Europe/Paris");
+      expect(users[0].last_access).toBe("2024-01-01T00:00:00Z");
+    });
+
+    it("should return undefined for optional fields when null", async () => {
+      await testDb.run(
+        "INSERT INTO users (name, email, locale) VALUES (?, ?, NULL)",
+        ["Test User", "test@example.com"]
+      );
+
+      const users = await userService.getAllUsers();
+
+      expect(users[0].profile_picture_url).toBeUndefined();
+      expect(users[0].telegram_chat_id).toBeUndefined();
+      expect(users[0].notification_channels).toBeUndefined();
+      expect(users[0].locale).toBeUndefined();
+      expect(users[0].timezone).toBeUndefined();
+      expect(users[0].last_access).toBeUndefined();
+    });
   });
 
   // Note: createUser method was removed from UserService - user creation is now done via AuthService
@@ -178,6 +219,49 @@ describe("UserService", () => {
       expect(typeof user?.name).toBe("string");
       expect(typeof user?.email).toBe("string");
       expect(typeof user?.created_at).toBe("string");
+    });
+
+    it("should return user with optional fields when present", async () => {
+      const result = await testDb.run(
+        "INSERT INTO users (name, email, profile_picture_url, telegram_chat_id, notification_channels, locale, timezone, last_access) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          "Test User",
+          "test@example.com",
+          "http://example.com/pic.jpg",
+          "123456789",
+          '["Email"]',
+          "es-AR",
+          "America/Buenos_Aires",
+          "2024-01-01T00:00:00Z",
+        ]
+      );
+      const insertedId = result.lastID;
+
+      const user = await userService.getUserById(insertedId);
+
+      expect(user?.profile_picture_url).toBe("http://example.com/pic.jpg");
+      expect(user?.telegram_chat_id).toBe("123456789");
+      expect(user?.notification_channels).toEqual(["Email"]);
+      expect(user?.locale).toBe("es-AR");
+      expect(user?.timezone).toBe("America/Buenos_Aires");
+      expect(user?.last_access).toBe("2024-01-01T00:00:00Z");
+    });
+
+    it("should return undefined for optional fields when null", async () => {
+      const result = await testDb.run(
+        "INSERT INTO users (name, email, locale) VALUES (?, ?, NULL)",
+        ["Test User", "test@example.com"]
+      );
+      const insertedId = result.lastID;
+
+      const user = await userService.getUserById(insertedId);
+
+      expect(user?.profile_picture_url).toBeUndefined();
+      expect(user?.telegram_chat_id).toBeUndefined();
+      expect(user?.notification_channels).toBeUndefined();
+      expect(user?.locale).toBeUndefined();
+      expect(user?.timezone).toBeUndefined();
+      expect(user?.last_access).toBeUndefined();
     });
   });
 
@@ -239,6 +323,236 @@ describe("UserService", () => {
       await expect(
         userService.updateProfile(userId, "New Name")
       ).rejects.toThrow("User not found");
+    });
+
+    it("should remove profile picture when profilePictureUrl is null", async () => {
+      // First set a profile picture
+      await testDb.run(
+        "UPDATE users SET profile_picture_url = ? WHERE id = ?",
+        ["http://example.com/pic.jpg", userId]
+      );
+
+      const updatedUser = await userService.updateProfile(
+        userId,
+        undefined,
+        null
+      );
+
+      expect(updatedUser.profile_picture_url).toBeUndefined();
+    });
+
+    it("should delete old profile picture file when updating to new one", async () => {
+      const { getUploadsDirectory } = uploadModule;
+      const oldUrl = `${process.env.VITE_SERVER_URL}:${process.env.VITE_PORT}/uploads/old-pic.jpg`;
+      await testDb.run(
+        "UPDATE users SET profile_picture_url = ? WHERE id = ?",
+        [oldUrl, userId]
+      );
+
+      // Mock fs and getUploadsDirectory
+      const mockUnlinkSync = vi
+        .spyOn(fs, "unlinkSync")
+        .mockImplementation(() => {});
+      const mockExistsSync = vi.spyOn(fs, "existsSync").mockReturnValue(true);
+      (getUploadsDirectory as Mock).mockReturnValue("/test/uploads");
+      const mockPathJoin = vi
+        .spyOn(path, "join")
+        .mockReturnValue("/test/uploads/old-pic.jpg");
+      const mockPathBasename = vi
+        .spyOn(path, "basename")
+        .mockReturnValue("old-pic.jpg");
+
+      const updatedUser = await userService.updateProfile(
+        userId,
+        undefined,
+        "http://example.com/new-pic.jpg"
+      );
+
+      expect(updatedUser.profile_picture_url).toBe(
+        "http://example.com/new-pic.jpg"
+      );
+      expect(mockUnlinkSync).toHaveBeenCalledWith("/test/uploads/old-pic.jpg");
+
+      // Cleanup mocks
+      mockUnlinkSync.mockRestore();
+      mockExistsSync.mockRestore();
+      mockPathJoin.mockRestore();
+      mockPathBasename.mockRestore();
+      (getUploadsDirectory as Mock).mockClear();
+    });
+
+    it("should handle profile picture URL with query parameters and fragments", async () => {
+      const { getUploadsDirectory } = uploadModule;
+      const oldUrl = `${process.env.VITE_SERVER_URL}:${process.env.VITE_PORT}/uploads/test.jpg?v=1#section`;
+      await testDb.run(
+        "UPDATE users SET profile_picture_url = ? WHERE id = ?",
+        [oldUrl, userId]
+      );
+
+      const mockUnlinkSync = vi
+        .spyOn(fs, "unlinkSync")
+        .mockImplementation(() => {});
+      const mockExistsSync = vi.spyOn(fs, "existsSync").mockReturnValue(true);
+      (getUploadsDirectory as Mock).mockReturnValue("/test/uploads");
+      const mockPathJoin = vi
+        .spyOn(path, "join")
+        .mockReturnValue("/test/uploads/test.jpg");
+      const mockPathBasename = vi
+        .spyOn(path, "basename")
+        .mockReturnValue("test.jpg");
+
+      await userService.updateProfile(
+        userId,
+        undefined,
+        "http://example.com/new.jpg"
+      );
+
+      // Should extract just "test.jpg" from URL with query params
+      expect(mockPathBasename).toHaveBeenCalled();
+      expect(mockUnlinkSync).toHaveBeenCalledWith("/test/uploads/test.jpg");
+
+      // Cleanup mocks
+      mockUnlinkSync.mockRestore();
+      mockExistsSync.mockRestore();
+      mockPathJoin.mockRestore();
+      mockPathBasename.mockRestore();
+      (getUploadsDirectory as Mock).mockClear();
+    });
+
+    it("should handle invalid profile picture URL format gracefully", async () => {
+      const { getUploadsDirectory } = uploadModule;
+      await testDb.run(
+        "UPDATE users SET profile_picture_url = ? WHERE id = ?",
+        ["invalid-url-format", userId]
+      );
+
+      (getUploadsDirectory as Mock).mockReturnValue("/test/uploads");
+
+      // Should not throw error, just log warning
+      await expect(
+        userService.updateProfile(
+          userId,
+          undefined,
+          "http://example.com/new.jpg"
+        )
+      ).resolves.not.toThrow();
+
+      // Cleanup mocks
+      (getUploadsDirectory as Mock).mockClear();
+    });
+
+    it("should handle file deletion errors gracefully", async () => {
+      const { getUploadsDirectory } = uploadModule;
+      const oldUrl = `${process.env.VITE_SERVER_URL}:${process.env.VITE_PORT}/uploads/old-pic.jpg`;
+      await testDb.run(
+        "UPDATE users SET profile_picture_url = ? WHERE id = ?",
+        [oldUrl, userId]
+      );
+
+      const mockUnlinkSync = vi
+        .spyOn(fs, "unlinkSync")
+        .mockImplementation(() => {
+          throw new Error("File system error");
+        });
+      const mockExistsSync = vi.spyOn(fs, "existsSync").mockReturnValue(true);
+      (getUploadsDirectory as Mock).mockReturnValue("/test/uploads");
+      const mockPathJoin = vi
+        .spyOn(path, "join")
+        .mockReturnValue("/test/uploads/old-pic.jpg");
+      const mockPathBasename = vi
+        .spyOn(path, "basename")
+        .mockReturnValue("old-pic.jpg");
+
+      // Should not throw error, profile update should succeed
+      await expect(
+        userService.updateProfile(
+          userId,
+          undefined,
+          "http://example.com/new.jpg"
+        )
+      ).resolves.not.toThrow();
+
+      // Cleanup mocks
+      mockUnlinkSync.mockRestore();
+      mockExistsSync.mockRestore();
+      mockPathJoin.mockRestore();
+      mockPathBasename.mockRestore();
+      (getUploadsDirectory as Mock).mockClear();
+    });
+
+    it("should handle missing old profile picture file gracefully", async () => {
+      const { getUploadsDirectory } = uploadModule;
+      const oldUrl = `${process.env.VITE_SERVER_URL}:${process.env.VITE_PORT}/uploads/missing.jpg`;
+      await testDb.run(
+        "UPDATE users SET profile_picture_url = ? WHERE id = ?",
+        [oldUrl, userId]
+      );
+
+      const mockUnlinkSync = vi.spyOn(fs, "unlinkSync");
+      const mockExistsSync = vi.spyOn(fs, "existsSync").mockReturnValue(false);
+      (getUploadsDirectory as Mock).mockReturnValue("/test/uploads");
+      const mockPathJoin = vi
+        .spyOn(path, "join")
+        .mockReturnValue("/test/uploads/missing.jpg");
+      const mockPathBasename = vi
+        .spyOn(path, "basename")
+        .mockReturnValue("missing.jpg");
+
+      // Should not throw error, just log warning
+      await expect(
+        userService.updateProfile(
+          userId,
+          undefined,
+          "http://example.com/new.jpg"
+        )
+      ).resolves.not.toThrow();
+
+      expect(mockUnlinkSync).not.toHaveBeenCalled();
+
+      // Cleanup mocks
+      mockUnlinkSync.mockRestore();
+      mockExistsSync.mockRestore();
+      mockPathJoin.mockRestore();
+      mockPathBasename.mockRestore();
+      (getUploadsDirectory as Mock).mockClear();
+    });
+
+    it("should protect against path traversal in profile picture filename", async () => {
+      const { getUploadsDirectory } = uploadModule;
+      const oldUrl = `${process.env.VITE_SERVER_URL}:${process.env.VITE_PORT}/uploads/../../etc/passwd`;
+      await testDb.run(
+        "UPDATE users SET profile_picture_url = ? WHERE id = ?",
+        [oldUrl, userId]
+      );
+
+      const mockUnlinkSync = vi
+        .spyOn(fs, "unlinkSync")
+        .mockImplementation(() => {});
+      const mockExistsSync = vi.spyOn(fs, "existsSync").mockReturnValue(true);
+      (getUploadsDirectory as Mock).mockReturnValue("/test/uploads");
+      const mockPathJoin = vi
+        .spyOn(path, "join")
+        .mockReturnValue("/test/uploads/passwd");
+      const mockPathBasename = vi
+        .spyOn(path, "basename")
+        .mockReturnValue("passwd"); // path.basename should sanitize
+
+      await userService.updateProfile(
+        userId,
+        undefined,
+        "http://example.com/new.jpg"
+      );
+
+      // Should use basename to prevent path traversal
+      expect(mockPathBasename).toHaveBeenCalled();
+      expect(mockUnlinkSync).toHaveBeenCalledWith("/test/uploads/passwd");
+
+      // Cleanup mocks
+      mockUnlinkSync.mockRestore();
+      mockExistsSync.mockRestore();
+      mockPathJoin.mockRestore();
+      mockPathBasename.mockRestore();
+      (getUploadsDirectory as Mock).mockClear();
     });
   });
 
@@ -364,6 +678,82 @@ describe("UserService", () => {
       expect(user).toBeNull();
 
       // Cleanup mocks
+      (getUploadsDirectory as Mock).mockClear();
+    });
+
+    it("should handle profile picture URL with query parameters and fragments", async () => {
+      const { getUploadsDirectory } = uploadModule;
+      const result = await testDb.run(
+        "INSERT INTO users (name, email, profile_picture_url) VALUES (?, ?, ?)",
+        [
+          "Test User",
+          "test@example.com",
+          `${process.env.VITE_SERVER_URL}:${process.env.VITE_PORT}/uploads/test.jpg?v=1#section`,
+        ]
+      );
+      const userId = result.lastID;
+
+      const mockUnlinkSync = vi
+        .spyOn(fs, "unlinkSync")
+        .mockImplementation(() => {});
+      const mockExistsSync = vi.spyOn(fs, "existsSync").mockReturnValue(true);
+      (getUploadsDirectory as Mock).mockReturnValue("/test/uploads");
+      const mockPathJoin = vi
+        .spyOn(path, "join")
+        .mockReturnValue("/test/uploads/test.jpg");
+      const mockPathBasename = vi
+        .spyOn(path, "basename")
+        .mockReturnValue("test.jpg");
+
+      await userService.deleteUser(userId);
+
+      // Should extract just "test.jpg" from URL with query params
+      expect(mockPathBasename).toHaveBeenCalled();
+      expect(mockUnlinkSync).toHaveBeenCalledWith("/test/uploads/test.jpg");
+
+      // Cleanup mocks
+      mockUnlinkSync.mockRestore();
+      mockExistsSync.mockRestore();
+      mockPathJoin.mockRestore();
+      mockPathBasename.mockRestore();
+      (getUploadsDirectory as Mock).mockClear();
+    });
+
+    it("should protect against path traversal in profile picture filename", async () => {
+      const { getUploadsDirectory } = uploadModule;
+      const result = await testDb.run(
+        "INSERT INTO users (name, email, profile_picture_url) VALUES (?, ?, ?)",
+        [
+          "Test User",
+          "test@example.com",
+          `${process.env.VITE_SERVER_URL}:${process.env.VITE_PORT}/uploads/../../etc/passwd`,
+        ]
+      );
+      const userId = result.lastID;
+
+      const mockUnlinkSync = vi
+        .spyOn(fs, "unlinkSync")
+        .mockImplementation(() => {});
+      const mockExistsSync = vi.spyOn(fs, "existsSync").mockReturnValue(true);
+      (getUploadsDirectory as Mock).mockReturnValue("/test/uploads");
+      const mockPathJoin = vi
+        .spyOn(path, "join")
+        .mockReturnValue("/test/uploads/passwd");
+      const mockPathBasename = vi
+        .spyOn(path, "basename")
+        .mockReturnValue("passwd"); // path.basename should sanitize
+
+      await userService.deleteUser(userId);
+
+      // Should use basename to prevent path traversal
+      expect(mockPathBasename).toHaveBeenCalled();
+      expect(mockUnlinkSync).toHaveBeenCalledWith("/test/uploads/passwd");
+
+      // Cleanup mocks
+      mockUnlinkSync.mockRestore();
+      mockExistsSync.mockRestore();
+      mockPathJoin.mockRestore();
+      mockPathBasename.mockRestore();
       (getUploadsDirectory as Mock).mockClear();
     });
 
@@ -553,6 +943,20 @@ describe("UserService", () => {
       expect(user?.email_verification_token).toBeNull();
     });
 
+    it("should handle token without expiration date", async () => {
+      // Set token without expiration
+      await testDb.run(
+        "UPDATE users SET email_verification_expires = NULL WHERE id = ?",
+        [userId]
+      );
+
+      const updatedUser = await userService.verifyEmailChange(
+        verificationToken
+      );
+
+      expect(updatedUser.email).toBe("newemail@example.com");
+    });
+
     it("should throw error if user not found after update", async () => {
       // This test is tricky because the token lookup happens before the update
       // Instead, we'll verify the token first, then delete the user before getUserById is called
@@ -643,6 +1047,142 @@ describe("UserService", () => {
     it("should throw error if user not found", async () => {
       await expect(
         userService.updateNotificationPreferences(999, ["Email"])
+      ).rejects.toThrow("User not found");
+    });
+
+    it("should throw error if Telegram is enabled with empty chat ID", async () => {
+      await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
+        "Test User",
+        "test@example.com",
+      ]);
+      const users = await userService.getAllUsers();
+      const user = users[0];
+
+      await expect(
+        userService.updateNotificationPreferences(user.id, ["Telegram"], "")
+      ).rejects.toThrow("Telegram chat ID is required");
+    });
+
+    it("should throw error if Telegram is enabled with whitespace-only chat ID", async () => {
+      await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
+        "Test User",
+        "test@example.com",
+      ]);
+      const users = await userService.getAllUsers();
+      const user = users[0];
+
+      await expect(
+        userService.updateNotificationPreferences(user.id, ["Telegram"], "   ")
+      ).rejects.toThrow("Telegram chat ID is required");
+    });
+
+    it("should keep existing telegram_chat_id when Telegram is enabled and existing one is provided", async () => {
+      await testDb.run(
+        "INSERT INTO users (name, email, telegram_chat_id) VALUES (?, ?, ?)",
+        ["Test User", "test@example.com", "existing-chat-id"]
+      );
+      const users = await userService.getAllUsers();
+      const user = users[0];
+
+      // The code requires telegramChatId to be provided, but if user already has one,
+      // we can pass it explicitly to keep it
+      const updatedUser = await userService.updateNotificationPreferences(
+        user.id,
+        ["Telegram"],
+        "existing-chat-id"
+      );
+
+      expect(updatedUser.telegram_chat_id).toBe("existing-chat-id");
+    });
+
+    it("should clear telegram_chat_id when Telegram is disabled", async () => {
+      await testDb.run(
+        "INSERT INTO users (name, email, telegram_chat_id) VALUES (?, ?, ?)",
+        ["Test User", "test@example.com", "123456789"]
+      );
+      const users = await userService.getAllUsers();
+      const user = users[0];
+
+      const updatedUser = await userService.updateNotificationPreferences(
+        user.id,
+        ["Email"]
+      );
+
+      expect(updatedUser.telegram_chat_id).toBeUndefined();
+    });
+  });
+
+  describe("updateLocaleAndTimezone", () => {
+    let userId: number;
+
+    beforeEach(async () => {
+      const result = await testDb.run(
+        "INSERT INTO users (name, email) VALUES (?, ?)",
+        ["Test User", "test@example.com"]
+      );
+      userId = result.lastID;
+    });
+
+    it("should update locale and timezone", async () => {
+      const updatedUser = await userService.updateLocaleAndTimezone(
+        userId,
+        "fr-FR",
+        "Europe/Paris"
+      );
+
+      expect(updatedUser.locale).toBe("fr-FR");
+      expect(updatedUser.timezone).toBe("Europe/Paris");
+    });
+
+    it("should update only locale", async () => {
+      const updatedUser = await userService.updateLocaleAndTimezone(
+        userId,
+        "es-AR"
+      );
+
+      expect(updatedUser.locale).toBe("es-AR");
+      expect(updatedUser.timezone).toBeUndefined();
+    });
+
+    it("should update only timezone", async () => {
+      // First set locale to NULL to test timezone-only update
+      await testDb.run("UPDATE users SET locale = NULL WHERE id = ?", [userId]);
+
+      const updatedUser = await userService.updateLocaleAndTimezone(
+        userId,
+        undefined,
+        "America/Buenos_Aires"
+      );
+
+      expect(updatedUser.locale).toBeUndefined();
+      expect(updatedUser.timezone).toBe("America/Buenos_Aires");
+    });
+
+    it("should throw error if no fields to update", async () => {
+      await expect(userService.updateLocaleAndTimezone(userId)).rejects.toThrow(
+        "No fields to update"
+      );
+    });
+
+    it("should set locale to undefined when empty string is provided", async () => {
+      const updatedUser = await userService.updateLocaleAndTimezone(userId, "");
+
+      expect(updatedUser.locale).toBeUndefined();
+    });
+
+    it("should set timezone to undefined when empty string is provided", async () => {
+      const updatedUser = await userService.updateLocaleAndTimezone(
+        userId,
+        undefined,
+        ""
+      );
+
+      expect(updatedUser.timezone).toBeUndefined();
+    });
+
+    it("should throw error if user not found", async () => {
+      await expect(
+        userService.updateLocaleAndTimezone(999, "fr-FR")
       ).rejects.toThrow("User not found");
     });
   });
