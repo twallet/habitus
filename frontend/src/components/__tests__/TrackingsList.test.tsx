@@ -393,8 +393,10 @@ describe("TrackingsList", () => {
             />
         );
 
-        const daysElements = screen.getAllByText("Days 1, 15 of month");
-        expect(daysElements.length).toBeGreaterThan(0);
+        // The FrequencyDisplay component shows abbreviated text: "Days 1, 15"
+        // Check for both the badge and detail separately
+        expect(screen.getByText("Monthly")).toBeInTheDocument();
+        expect(screen.getByText("Days 1, 15")).toBeInTheDocument();
     });
 
     it("should display frequency for yearly pattern", () => {
@@ -419,8 +421,10 @@ describe("TrackingsList", () => {
             />
         );
 
-        const januaryElements = screen.getAllByText("January 1");
-        expect(januaryElements.length).toBeGreaterThan(0);
+        // The FrequencyDisplay component shows abbreviated text: "Jan 1"
+        // Check for both the badge and detail separately
+        expect(screen.getByText("Yearly")).toBeInTheDocument();
+        expect(screen.getByText("Jan 1")).toBeInTheDocument();
     });
 
     it("should display default frequency when days pattern is missing", () => {
@@ -722,8 +726,10 @@ describe("TrackingsList", () => {
             />
         );
 
-        const lastDayElements = screen.getAllByText("Last day of month");
-        expect(lastDayElements.length).toBeGreaterThan(0);
+        // The FrequencyDisplay component shows abbreviated text: "Last day"
+        // Check for both the badge and detail separately
+        expect(screen.getByText("Monthly")).toBeInTheDocument();
+        expect(screen.getByText("Last day")).toBeInTheDocument();
     });
 
     it("should format weekday ordinal pattern", () => {
