@@ -543,18 +543,15 @@ describe("TrackingForm", () => {
         // Switch to One-time
         await setFrequency(user, "One-time");
 
-        // Verify oneTimeDate is set (component should set it to tomorrow)
-        // Note: The component may set it to today (min date) or tomorrow depending on timing
+        // Verify oneTimeDate is set (component should set it to today)
         await waitFor(() => {
             const dateInput = document.getElementById("one-time-date") as HTMLInputElement;
             expect(dateInput).toBeInTheDocument();
             expect(dateInput.value).not.toBe("");
-            // The date should be today or in the future (component sets it to tomorrow, but may default to today's min)
-            const today = new Date().toISOString().slice(0, 10);
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const tomorrowStr = tomorrow.toISOString().slice(0, 10);
-            expect([today, tomorrowStr]).toContain(dateInput.value);
+            // The date should be today (component sets it to today using local time)
+            const today = new Date();
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+            expect(dateInput.value).toBe(todayStr);
         });
 
         // Switch away from One-time to Weekly
@@ -567,7 +564,7 @@ describe("TrackingForm", () => {
         });
     });
 
-    it("should set oneTimeDate to tomorrow when switching to One-time", async () => {
+    it("should set oneTimeDate to today when switching to One-time", async () => {
         const user = userEvent.setup();
         render(<TrackingForm onSubmit={mockOnSubmit} />);
 
@@ -580,18 +577,15 @@ describe("TrackingForm", () => {
         // Switch to One-time
         await setFrequency(user, "One-time");
 
-        // Verify oneTimeDate is set (component should set it to tomorrow)
-        // Note: The component may set it to today (min date) or tomorrow depending on timing
+        // Verify oneTimeDate is set (component should set it to today)
         await waitFor(() => {
             const dateInput = document.getElementById("one-time-date") as HTMLInputElement;
             expect(dateInput).toBeInTheDocument();
             expect(dateInput.value).not.toBe("");
-            // The date should be today or in the future (component sets it to tomorrow, but may default to today's min)
-            const today = new Date().toISOString().slice(0, 10);
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const tomorrowStr = tomorrow.toISOString().slice(0, 10);
-            expect([today, tomorrowStr]).toContain(dateInput.value);
+            // The date should be today (component sets it to today using local time)
+            const today = new Date();
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+            expect(dateInput.value).toBe(todayStr);
         });
     });
 
