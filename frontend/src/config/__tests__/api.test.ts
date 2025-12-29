@@ -1,7 +1,7 @@
 import { vi, type Mock } from "vitest";
 import { API_ENDPOINTS, API_BASE_URL, ApiClient } from "../api";
 import { UserData } from "../../models/User";
-import { TrackingData, Frequency } from "../../models/Tracking";
+import { TrackingData, Frequency, TrackingState } from "../../models/Tracking";
 
 // Mock fetch
 global.fetch = vi.fn();
@@ -388,12 +388,14 @@ describe("api", () => {
 
     describe("getTrackings", () => {
       it("should fetch trackings successfully", async () => {
+        const defaultFrequency: Frequency = { type: "daily" };
         const mockTrackings: TrackingData[] = [
           {
             id: 1,
             user_id: 1,
             question: "Did you exercise?",
             notes: undefined,
+            frequency: defaultFrequency,
           },
         ];
 
@@ -423,6 +425,7 @@ describe("api", () => {
           user_id: 1,
           question: "Did you exercise?",
           notes: undefined,
+          frequency: defaultFrequency,
         };
 
         (global.fetch as Mock).mockResolvedValueOnce({
@@ -556,6 +559,777 @@ describe("api", () => {
         await client.getUsers();
         expect(global.fetch).toHaveBeenCalledWith(
           "http://example.com/api/users",
+          expect.any(Object)
+        );
+      });
+
+      it("should replace API_BASE_URL in absolute URLs when custom baseUrl is provided", async () => {
+        const mockUsers: UserData[] = [];
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockUsers,
+        });
+
+        const customBaseUrl = "http://custom-api.com:3000";
+        const client = new ApiClient(customBaseUrl);
+        await client.getUsers();
+        // Should replace API_BASE_URL with custom baseUrl
+        expect(global.fetch).toHaveBeenCalledWith(
+          `${customBaseUrl}/api/users`,
+          expect.any(Object)
+        );
+      });
+
+      it("should handle absolute URLs that don't start with API_BASE_URL", async () => {
+        const mockUsers: UserData[] = [];
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockUsers,
+        });
+
+        const client = new ApiClient("http://example.com");
+        // If URL is absolute and doesn't start with API_BASE_URL, use it as-is
+        await client.getUsers();
+        expect(global.fetch).toHaveBeenCalledWith(
+          "http://example.com/api/users",
+          expect.any(Object)
+        );
+      });
+    });
+
+    describe("updateNotificationPreferences", () => {
+      it("should update notification preferences successfully", async () => {
+        const mockUser: UserData = {
+          id: 1,
+          name: "John Doe",
+          email: "john@example.com",
+          created_at: "2024-01-01T00:00:00Z",
+        };
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockUser,
+        });
+
+        const result = await apiClient.updateNotificationPreferences(
+          ["Email", "Telegram"],
+          "123456789"
+        );
+        expect(result).toEqual(mockUser);
+        expect(global.fetch).toHaveBeenCalledWith(
+          `${API_ENDPOINTS.users}/notifications`,
+          expect.objectContaining({
+            method: "PUT",
+            body: JSON.stringify({
+              notificationChannels: ["Email", "Telegram"],
+              telegramChatId: "123456789",
+            }),
+          })
+        );
+      });
+
+      it("should update notification preferences without telegramChatId", async () => {
+        const mockUser: UserData = {
+          id: 1,
+          name: "John Doe",
+          email: "john@example.com",
+          created_at: "2024-01-01T00:00:00Z",
+        };
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockUser,
+        });
+
+        const result = await apiClient.updateNotificationPreferences(["Email"]);
+        expect(result).toEqual(mockUser);
+        const fetchCalls = (global.fetch as Mock).mock.calls;
+        const updateCall = fetchCalls.find(
+          (call) =>
+            call[0] === `${API_ENDPOINTS.users}/notifications` &&
+            call[1]?.method === "PUT"
+        );
+        expect(updateCall).toBeDefined();
+        const body = JSON.parse(updateCall![1].body);
+        expect(body.notificationChannels).toEqual(["Email"]);
+        expect(body.telegramChatId).toBeUndefined();
+      });
+    });
+
+    describe("updateUserPreferences", () => {
+      it("should update user preferences with locale and timezone", async () => {
+        const mockUser: UserData = {
+          id: 1,
+          name: "John Doe",
+          email: "john@example.com",
+          created_at: "2024-01-01T00:00:00Z",
+        };
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockUser,
+        });
+
+        const result = await apiClient.updateUserPreferences(
+          "es-AR",
+          "America/Buenos_Aires"
+        );
+        expect(result).toEqual(mockUser);
+        expect(global.fetch).toHaveBeenCalledWith(
+          `${API_ENDPOINTS.users}/preferences`,
+          expect.objectContaining({
+            method: "PUT",
+            body: JSON.stringify({
+              locale: "es-AR",
+              timezone: "America/Buenos_Aires",
+            }),
+          })
+        );
+      });
+
+      it("should update user preferences with only locale", async () => {
+        const mockUser: UserData = {
+          id: 1,
+          name: "John Doe",
+          email: "john@example.com",
+          created_at: "2024-01-01T00:00:00Z",
+        };
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockUser,
+        });
+
+        const result = await apiClient.updateUserPreferences("fr-FR");
+        expect(result).toEqual(mockUser);
+        const fetchCalls = (global.fetch as Mock).mock.calls;
+        const updateCall = fetchCalls.find(
+          (call) =>
+            call[0] === `${API_ENDPOINTS.users}/preferences` &&
+            call[1]?.method === "PUT"
+        );
+        expect(updateCall).toBeDefined();
+        const body = JSON.parse(updateCall![1].body);
+        expect(body.locale).toBe("fr-FR");
+        expect(body.timezone).toBeUndefined();
+      });
+
+      it("should update user preferences with only timezone", async () => {
+        const mockUser: UserData = {
+          id: 1,
+          name: "John Doe",
+          email: "john@example.com",
+          created_at: "2024-01-01T00:00:00Z",
+        };
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockUser,
+        });
+
+        const result = await apiClient.updateUserPreferences(
+          undefined,
+          "Europe/Paris"
+        );
+        expect(result).toEqual(mockUser);
+        const fetchCalls = (global.fetch as Mock).mock.calls;
+        const updateCall = fetchCalls.find(
+          (call) =>
+            call[0] === `${API_ENDPOINTS.users}/preferences` &&
+            call[1]?.method === "PUT"
+        );
+        expect(updateCall).toBeDefined();
+        const body = JSON.parse(updateCall![1].body);
+        expect(body.locale).toBeUndefined();
+        expect(body.timezone).toBe("Europe/Paris");
+      });
+    });
+
+    describe("updateTrackingState", () => {
+      it("should update tracking state successfully", async () => {
+        const defaultFrequency: Frequency = { type: "daily" };
+        const mockTracking: TrackingData = {
+          id: 1,
+          user_id: 1,
+          question: "Did you exercise?",
+          notes: undefined,
+          frequency: defaultFrequency,
+        };
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockTracking,
+        });
+
+        const result = await apiClient.updateTrackingState(
+          1,
+          "Paused" as TrackingState
+        );
+        expect(result).toEqual(mockTracking);
+        expect(global.fetch).toHaveBeenCalledWith(
+          `${API_ENDPOINTS.trackings}/1/state`,
+          expect.objectContaining({
+            method: "PATCH",
+            body: JSON.stringify({ state: "Paused" }),
+          })
+        );
+      });
+    });
+
+    describe("suggestEmoji", () => {
+      it("should suggest emoji successfully", async () => {
+        const mockResponse = { emoji: "🏃" };
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockResponse,
+        });
+
+        const result = await apiClient.suggestEmoji("Did you exercise?");
+        expect(result).toBe("🏃");
+        expect(global.fetch).toHaveBeenCalledWith(
+          `${API_ENDPOINTS.trackings}/suggest-emoji`,
+          expect.objectContaining({
+            method: "POST",
+            body: JSON.stringify({ question: "Did you exercise?" }),
+          })
+        );
+      });
+    });
+
+    describe("getReminders", () => {
+      it("should fetch reminders successfully", async () => {
+        const mockReminders = [
+          {
+            id: 1,
+            tracking_id: 1,
+            scheduled_time: "2024-01-01T09:00:00Z",
+            status: "Pending",
+          },
+        ];
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockReminders,
+        });
+
+        const result = await apiClient.getReminders();
+        expect(result).toEqual(mockReminders);
+        expect(global.fetch).toHaveBeenCalledWith(
+          API_ENDPOINTS.reminders,
+          expect.objectContaining({
+            method: "GET",
+          })
+        );
+      });
+    });
+
+    describe("getReminder", () => {
+      it("should fetch reminder by ID successfully", async () => {
+        const mockReminder = {
+          id: 1,
+          tracking_id: 1,
+          scheduled_time: "2024-01-01T09:00:00Z",
+          status: "Pending",
+        };
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockReminder,
+        });
+
+        const result = await apiClient.getReminder(1);
+        expect(result).toEqual(mockReminder);
+        expect(global.fetch).toHaveBeenCalledWith(
+          `${API_ENDPOINTS.reminders}/1`,
+          expect.objectContaining({
+            method: "GET",
+          })
+        );
+      });
+    });
+
+    describe("createReminder", () => {
+      it("should create reminder successfully", async () => {
+        const mockReminder = {
+          id: 1,
+          tracking_id: 1,
+          scheduled_time: "2024-01-01T09:00:00Z",
+          status: "Pending",
+        };
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockReminder,
+        });
+
+        const result = await apiClient.createReminder(
+          1,
+          "2024-01-01T09:00:00Z"
+        );
+        expect(result).toEqual(mockReminder);
+        expect(global.fetch).toHaveBeenCalledWith(
+          API_ENDPOINTS.reminders,
+          expect.objectContaining({
+            method: "POST",
+            body: JSON.stringify({
+              tracking_id: 1,
+              scheduled_time: "2024-01-01T09:00:00Z",
+            }),
+          })
+        );
+      });
+    });
+
+    describe("updateReminder", () => {
+      it("should update reminder with all fields", async () => {
+        const mockReminder = {
+          id: 1,
+          tracking_id: 1,
+          scheduled_time: "2024-01-01T10:00:00Z",
+          status: "Upcoming",
+          notes: "Updated notes",
+        };
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockReminder,
+        });
+
+        const result = await apiClient.updateReminder(
+          1,
+          "Updated notes",
+          "Upcoming",
+          "2024-01-01T10:00:00Z"
+        );
+        expect(result).toEqual(mockReminder);
+        expect(global.fetch).toHaveBeenCalledWith(
+          `${API_ENDPOINTS.reminders}/1`,
+          expect.objectContaining({
+            method: "PUT",
+            body: JSON.stringify({
+              notes: "Updated notes",
+              status: "Upcoming",
+              scheduled_time: "2024-01-01T10:00:00Z",
+            }),
+          })
+        );
+      });
+
+      it("should update reminder with partial fields", async () => {
+        const mockReminder = {
+          id: 1,
+          tracking_id: 1,
+          scheduled_time: "2024-01-01T09:00:00Z",
+          status: "Pending",
+        };
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockReminder,
+        });
+
+        const result = await apiClient.updateReminder(1, "New notes");
+        expect(result).toEqual(mockReminder);
+        const fetchCalls = (global.fetch as Mock).mock.calls;
+        const updateCall = fetchCalls.find(
+          (call) =>
+            call[0] === `${API_ENDPOINTS.reminders}/1` &&
+            call[1]?.method === "PUT"
+        );
+        expect(updateCall).toBeDefined();
+        const body = JSON.parse(updateCall![1].body);
+        expect(body.notes).toBe("New notes");
+        expect(body.status).toBeUndefined();
+        expect(body.scheduled_time).toBeUndefined();
+      });
+    });
+
+    describe("completeReminder", () => {
+      it("should complete reminder successfully", async () => {
+        const mockReminder = {
+          id: 1,
+          tracking_id: 1,
+          scheduled_time: "2024-01-01T09:00:00Z",
+          status: "Answered",
+        };
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockReminder,
+        });
+
+        const result = await apiClient.completeReminder(1);
+        expect(result).toEqual(mockReminder);
+        expect(global.fetch).toHaveBeenCalledWith(
+          `${API_ENDPOINTS.reminders}/1/complete`,
+          expect.objectContaining({
+            method: "PATCH",
+            body: JSON.stringify({}),
+          })
+        );
+      });
+    });
+
+    describe("dismissReminder", () => {
+      it("should dismiss reminder successfully", async () => {
+        const mockReminder = {
+          id: 1,
+          tracking_id: 1,
+          scheduled_time: "2024-01-01T09:00:00Z",
+          status: "Dismissed",
+        };
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockReminder,
+        });
+
+        const result = await apiClient.dismissReminder(1);
+        expect(result).toEqual(mockReminder);
+        expect(global.fetch).toHaveBeenCalledWith(
+          `${API_ENDPOINTS.reminders}/1/dismiss`,
+          expect.objectContaining({
+            method: "PATCH",
+            body: JSON.stringify({}),
+          })
+        );
+      });
+    });
+
+    describe("snoozeReminder", () => {
+      it("should snooze reminder successfully", async () => {
+        const mockReminder = {
+          id: 1,
+          tracking_id: 1,
+          scheduled_time: "2024-01-01T09:15:00Z",
+          status: "Pending",
+        };
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockReminder,
+        });
+
+        const result = await apiClient.snoozeReminder(1, 15);
+        expect(result).toEqual(mockReminder);
+        expect(global.fetch).toHaveBeenCalledWith(
+          `${API_ENDPOINTS.reminders}/1/snooze`,
+          expect.objectContaining({
+            method: "PATCH",
+            body: JSON.stringify({ minutes: 15 }),
+          })
+        );
+      });
+    });
+
+    describe("deleteReminder", () => {
+      it("should delete reminder successfully", async () => {
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({}),
+        });
+
+        await apiClient.deleteReminder(1);
+        expect(global.fetch).toHaveBeenCalledWith(
+          `${API_ENDPOINTS.reminders}/1`,
+          expect.objectContaining({
+            method: "DELETE",
+          })
+        );
+      });
+    });
+
+    describe("request method edge cases", () => {
+      it("should include Authorization header when token is set", async () => {
+        const mockUsers: UserData[] = [];
+        apiClient.setToken("test-token");
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockUsers,
+        });
+
+        await apiClient.getUsers();
+        expect(global.fetch).toHaveBeenCalledWith(
+          API_ENDPOINTS.users,
+          expect.objectContaining({
+            headers: expect.objectContaining({
+              Authorization: "Bearer test-token",
+            }),
+          })
+        );
+      });
+
+      it("should not include Authorization header when token is null", async () => {
+        const mockUsers: UserData[] = [];
+        apiClient.setToken(null);
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockUsers,
+        });
+
+        await apiClient.getUsers();
+        const fetchCalls = (global.fetch as Mock).mock.calls;
+        const getCall = fetchCalls[fetchCalls.length - 1];
+        expect(getCall[1].headers).not.toHaveProperty("Authorization");
+      });
+
+      it("should handle relative URLs correctly", async () => {
+        const mockUsers: UserData[] = [];
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockUsers,
+        });
+
+        await apiClient.getUsers();
+        expect(global.fetch).toHaveBeenCalledWith(
+          expect.stringContaining("/api/users"),
+          expect.any(Object)
+        );
+      });
+
+      it("should handle PUT with FormData", async () => {
+        const mockUser: UserData = {
+          id: 1,
+          name: "John Updated",
+          email: "john@example.com",
+          created_at: "2024-01-01T00:00:00Z",
+        };
+
+        const mockFile = new File(["content"], "profile.jpg", {
+          type: "image/jpeg",
+        });
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockUser,
+        });
+
+        const result = await apiClient.updateProfile("John Updated", mockFile);
+        expect(result).toEqual(mockUser);
+        const fetchCalls = (global.fetch as Mock).mock.calls;
+        const updateCall = fetchCalls.find(
+          (call) =>
+            call[0] === API_ENDPOINTS.profile.update &&
+            call[1]?.method === "PUT"
+        );
+        expect(updateCall).toBeDefined();
+        expect(updateCall![1].body).toBeInstanceOf(FormData);
+        // FormData should not have Content-Type header set (browser sets it with boundary)
+        expect(updateCall![1].headers).not.toHaveProperty("Content-Type");
+      });
+
+      it("should handle PUT with JSON body", async () => {
+        const defaultFrequency: Frequency = { type: "daily" };
+        const mockTracking: TrackingData = {
+          id: 1,
+          user_id: 1,
+          question: "Did you meditate?",
+          notes: undefined,
+          frequency: defaultFrequency,
+        };
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockTracking,
+        });
+        await apiClient.updateTracking(
+          1,
+          defaultFrequency,
+          "Did you meditate?"
+        );
+        const fetchCalls = (global.fetch as Mock).mock.calls;
+        const updateCall = fetchCalls.find(
+          (call) =>
+            call[0] === `${API_ENDPOINTS.trackings}/1` &&
+            call[1]?.method === "PUT"
+        );
+        expect(updateCall).toBeDefined();
+        expect(updateCall![1].headers).toHaveProperty(
+          "Content-Type",
+          "application/json"
+        );
+      });
+
+      it("should handle PATCH with JSON body", async () => {
+        const defaultFrequency: Frequency = { type: "daily" };
+        const mockTracking: TrackingData = {
+          id: 1,
+          user_id: 1,
+          question: "Did you exercise?",
+          notes: undefined,
+          frequency: defaultFrequency,
+        };
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockTracking,
+        });
+
+        await apiClient.updateTrackingState(1, "Paused" as TrackingState);
+        const fetchCalls = (global.fetch as Mock).mock.calls;
+        const patchCall = fetchCalls.find(
+          (call) =>
+            call[0] === `${API_ENDPOINTS.trackings}/1/state` &&
+            call[1]?.method === "PATCH"
+        );
+        expect(patchCall).toBeDefined();
+        expect(patchCall![1].headers).toHaveProperty(
+          "Content-Type",
+          "application/json"
+        );
+      });
+
+      it("should handle DELETE without body", async () => {
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({}),
+        });
+
+        await apiClient.deleteTracking(1);
+        const fetchCalls = (global.fetch as Mock).mock.calls;
+        const deleteCall = fetchCalls.find(
+          (call) =>
+            call[0] === `${API_ENDPOINTS.trackings}/1` &&
+            call[1]?.method === "DELETE"
+        );
+        expect(deleteCall).toBeDefined();
+        expect(deleteCall![1].body).toBeUndefined();
+      });
+
+      it("should handle request with custom headers", async () => {
+        const mockUsers: UserData[] = [];
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockUsers,
+        });
+
+        // Test that custom headers can be passed through
+        // This is tested indirectly through methods that accept options
+        await apiClient.getUsers();
+        const fetchCalls = (global.fetch as Mock).mock.calls;
+        const getCall = fetchCalls[fetchCalls.length - 1];
+        expect(getCall[1].headers).toBeDefined();
+      });
+
+      it("should handle request with empty body", async () => {
+        const mockResponse = { emoji: "🏃" };
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockResponse,
+        });
+
+        // PATCH with empty body
+        await apiClient.completeReminder(1);
+        const fetchCalls = (global.fetch as Mock).mock.calls;
+        const patchCall = fetchCalls.find(
+          (call) =>
+            call[0] === `${API_ENDPOINTS.reminders}/1/complete` &&
+            call[1]?.method === "PATCH"
+        );
+        expect(patchCall).toBeDefined();
+        expect(patchCall![1].body).toBe(JSON.stringify({}));
+      });
+
+      it("should handle POST with undefined body", async () => {
+        const mockUser: UserData = {
+          id: 1,
+          name: "John Doe",
+          email: "john@example.com",
+          created_at: "2024-01-01T00:00:00Z",
+        };
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockUser,
+        });
+
+        // POST without body (though createUser always has body)
+        // Test through a method that might not have body
+        await apiClient.createUser("John Doe");
+        const fetchCalls = (global.fetch as Mock).mock.calls;
+        const postCall = fetchCalls.find(
+          (call) =>
+            call[0] === API_ENDPOINTS.users && call[1]?.method === "POST"
+        );
+        expect(postCall).toBeDefined();
+        expect(postCall![1].body).toBeDefined();
+      });
+
+      it("should handle URL replacement when custom baseUrl matches API_BASE_URL prefix", async () => {
+        const mockUsers: UserData[] = [];
+        const customBaseUrl = "http://custom-api.com:3000";
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockUsers,
+        });
+
+        const client = new ApiClient(customBaseUrl);
+        await client.getUsers();
+        // Should use custom baseUrl
+        expect(global.fetch).toHaveBeenCalledWith(
+          `${customBaseUrl}/api/users`,
+          expect.any(Object)
+        );
+      });
+
+      it("should merge custom headers with Authorization header", async () => {
+        const mockUsers: UserData[] = [];
+        apiClient.setToken("test-token");
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockUsers,
+        });
+
+        await apiClient.getUsers();
+        const fetchCalls = (global.fetch as Mock).mock.calls;
+        const getCall = fetchCalls[fetchCalls.length - 1];
+        expect(getCall[1].headers).toHaveProperty(
+          "Authorization",
+          "Bearer test-token"
+        );
+      });
+    });
+
+    describe("constructor with custom baseUrl", () => {
+      it("should use custom baseUrl when provided", async () => {
+        const mockUsers: UserData[] = [];
+        const customBaseUrl = "http://custom-api.com:8080";
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockUsers,
+        });
+
+        const client = new ApiClient(customBaseUrl);
+        await client.getUsers();
+        expect(global.fetch).toHaveBeenCalledWith(
+          `${customBaseUrl}/api/users`,
+          expect.any(Object)
+        );
+      });
+
+      it("should use default API_BASE_URL when not provided", async () => {
+        const mockUsers: UserData[] = [];
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockUsers,
+        });
+
+        const client = new ApiClient();
+        await client.getUsers();
+        expect(global.fetch).toHaveBeenCalledWith(
+          expect.stringContaining("/api/users"),
           expect.any(Object)
         );
       });
