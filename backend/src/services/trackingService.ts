@@ -172,14 +172,19 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
         });
         const earliestSchedule = sortedSchedules[0];
 
-        // Construct ISO datetime string from date + earliest schedule time
-        const dateTimeString = `${validatedFrequency.date}T${String(
-          earliestSchedule.hour
-        ).padStart(2, "0")}:${String(earliestSchedule.minutes).padStart(
-          2,
-          "0"
-        )}:00`;
-        const dateTime = new Date(dateTimeString);
+        // Construct date explicitly in local time to avoid timezone issues
+        // Parse date string (YYYY-MM-DD format) and create Date object in local timezone
+        const [year, month, day] = validatedFrequency.date
+          .split("-")
+          .map(Number);
+        const dateTime = new Date(
+          year,
+          month - 1,
+          day,
+          earliestSchedule.hour,
+          earliestSchedule.minutes,
+          0
+        );
         const isoDateTimeString = dateTime.toISOString();
 
         await this.reminderService.createReminder(
@@ -365,13 +370,19 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
             });
             const earliestSchedule = sortedSchedules[0];
 
-            const dateTimeString = `${tracking.frequency.date}T${String(
-              earliestSchedule.hour
-            ).padStart(2, "0")}:${String(earliestSchedule.minutes).padStart(
-              2,
-              "0"
-            )}:00`;
-            const dateTime = new Date(dateTimeString);
+            // Construct date explicitly in local time to avoid timezone issues
+            // Parse date string (YYYY-MM-DD format) and create Date object in local timezone
+            const [year, month, day] = tracking.frequency.date
+              .split("-")
+              .map(Number);
+            const dateTime = new Date(
+              year,
+              month - 1,
+              day,
+              earliestSchedule.hour,
+              earliestSchedule.minutes,
+              0
+            );
             const isoDateTimeString = dateTime.toISOString();
 
             await this.reminderService.createReminder(

@@ -719,12 +719,17 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
     const candidateTimes: Date[] = [];
 
     for (const schedule of tracking.schedules) {
-      // Construct full datetime: date + schedule time
-      const dateTimeString = `${targetDate}T${String(schedule.hour).padStart(
-        2,
-        "0"
-      )}:${String(schedule.minutes).padStart(2, "0")}:00`;
-      const candidateDate = new Date(dateTimeString);
+      // Construct date explicitly in local time to avoid timezone issues
+      // Parse date string (YYYY-MM-DD format) and create Date object in local timezone
+      const [year, month, day] = targetDate.split("-").map(Number);
+      const candidateDate = new Date(
+        year,
+        month - 1,
+        day,
+        schedule.hour,
+        schedule.minutes,
+        0
+      );
 
       // Check if this time already has a reminder (compare normalized ISO strings)
       const candidateTimeString = candidateDate.toISOString();
