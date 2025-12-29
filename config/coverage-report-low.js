@@ -151,7 +151,7 @@ function calculateBranchPercentage(branchMap) {
 }
 
 /**
- * Display failed test suites from test results JSON file.
+ * Display failed test suites from test results JSON file in a table format.
  */
 function displayFailedTestSuites() {
   if (!existsSync(testResultsFile)) {
@@ -161,7 +161,7 @@ function displayFailedTestSuites() {
   try {
     const testResultsData = readFileSync(testResultsFile, "utf-8");
     const testResults = JSON.parse(testResultsData);
-    const failedFiles = new Set();
+    const failedFiles = new Map(); // Map<filePath, numFailed>
 
     // Vitest JSON reporter can output different formats
     // Handle array format or object with testFiles property
@@ -193,19 +193,30 @@ function displayFailedTestSuites() {
             relativePath = normalizedPath.slice(normalizedWorkspace.length + 1);
           }
           if (relativePath) {
-            failedFiles.add(relativePath);
+            failedFiles.set(relativePath, numFailed);
           }
         }
       }
     }
 
     if (failedFiles.size > 0) {
-      console.log(`\n❌ Failed Test Suites (${failedFiles.size}):`);
-      const sortedFiles = Array.from(failedFiles).sort();
-      for (const file of sortedFiles) {
-        const displayPath = file.length > 75 ? "..." + file.slice(-72) : file;
-        console.log(`   ${displayPath}`);
+      console.log(`\n❌ Failed Test Suites (${failedFiles.size}):\n`);
+      console.log("─".repeat(80));
+      console.log("Test Suite".padEnd(70) + "Failures");
+      console.log("─".repeat(80));
+
+      // Sort by file path
+      const sortedFiles = Array.from(failedFiles.entries()).sort((a, b) =>
+        a[0].localeCompare(b[0])
+      );
+
+      for (const [file, numFailed] of sortedFiles) {
+        const displayPath = file.length > 68 ? "..." + file.slice(-65) : file;
+        const failuresDisplay = numFailed.toString();
+        console.log(displayPath.padEnd(70) + failuresDisplay);
       }
+
+      console.log("─".repeat(80));
     }
   } catch (error) {
     // Silently ignore errors reading test results
