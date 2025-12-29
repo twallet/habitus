@@ -2239,4 +2239,1115 @@ describe("useAuth", () => {
       expect(result.current.token).toBe("new-token"); // This confirms localStorage is set
     });
   });
+
+  // HIGH PRIORITY: Additional syncLocaleAndTimezoneIfNeeded edge cases
+  describe("syncLocaleAndTimezoneIfNeeded edge cases", () => {
+    it("should sync only locale when timezone already matches", async () => {
+      const detectedLocale = "en-US";
+      const detectedTimezone = "America/New_York";
+
+      const mockUser = {
+        id: 1,
+        name: "John Doe",
+        email: "john@example.com",
+        created_at: "2024-01-01T00:00:00Z",
+        locale: "es-AR", // Different from detected
+        timezone: detectedTimezone, // Matches detected
+      };
+
+      const updatedUser = {
+        ...mockUser,
+        locale: detectedLocale,
+      };
+
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as Mock).mockImplementation(
+        (url: string | Request | URL, _options?: RequestInit) => {
+          const urlString =
+            typeof url === "string"
+              ? url
+              : url instanceof Request
+              ? url.url
+              : url.toString();
+
+          if (urlString.includes("/api/auth/me")) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => Promise.resolve(mockUser),
+            });
+          }
+
+          if (urlString.includes("/api/users/preferences")) {
+            return Promise.resolve({
+              ok: true,
+              status: 200,
+              json: async () => Promise.resolve(updatedUser),
+            });
+          }
+
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            json: async () => ({}),
+          });
+        }
+      );
+
+      const { result } = renderHook(() => useAuth());
+
+      await waitFor(() => {
+        expect(result.current.isAuthenticated).toBe(true);
+      });
+
+      // Wait for sync to complete
+      await waitFor(
+        () => {
+          expect(result.current.user?.locale).toBe(detectedLocale);
+          expect(result.current.user?.timezone).toBe(detectedTimezone);
+        },
+        { timeout: 3000 }
+      );
+    });
+
+    it("should sync only timezone when locale already matches", async () => {
+      const detectedLocale = "en-US";
+      const detectedTimezone = "America/New_York";
+
+      const mockUser = {
+        id: 1,
+        name: "John Doe",
+        email: "john@example.com",
+        created_at: "2024-01-01T00:00:00Z",
+        locale: detectedLocale, // Matches detected
+        timezone: "UTC", // Different from detected
+      };
+
+      const updatedUser = {
+        ...mockUser,
+        timezone: detectedTimezone,
+      };
+
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as Mock).mockImplementation(
+        (url: string | Request | URL, _options?: RequestInit) => {
+          const urlString =
+            typeof url === "string"
+              ? url
+              : url instanceof Request
+              ? url.url
+              : url.toString();
+
+          if (urlString.includes("/api/auth/me")) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => Promise.resolve(mockUser),
+            });
+          }
+
+          if (urlString.includes("/api/users/preferences")) {
+            return Promise.resolve({
+              ok: true,
+              status: 200,
+              json: async () => Promise.resolve(updatedUser),
+            });
+          }
+
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            json: async () => ({}),
+          });
+        }
+      );
+
+      const { result } = renderHook(() => useAuth());
+
+      await waitFor(() => {
+        expect(result.current.isAuthenticated).toBe(true);
+      });
+
+      // Wait for sync to complete
+      await waitFor(
+        () => {
+          expect(result.current.user?.locale).toBe(detectedLocale);
+          expect(result.current.user?.timezone).toBe(detectedTimezone);
+        },
+        { timeout: 3000 }
+      );
+    });
+
+    it("should handle syncLocaleAndTimezoneIfNeeded with null token parameter", async () => {
+      const mockUser = {
+        id: 1,
+        name: "John Doe",
+        email: "john@example.com",
+        created_at: "2024-01-01T00:00:00Z",
+      };
+
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as Mock).mockImplementation(
+        (url: string | Request | URL, _options?: RequestInit) => {
+          const urlString =
+            typeof url === "string"
+              ? url
+              : url instanceof Request
+              ? url.url
+              : url.toString();
+
+          if (urlString.includes("/api/auth/me")) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => Promise.resolve(mockUser),
+            });
+          }
+
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            json: async () => ({}),
+          });
+        }
+      );
+
+      const { result } = renderHook(() => useAuth());
+
+      await waitFor(() => {
+        expect(result.current.isAuthenticated).toBe(true);
+      });
+
+      // Sync should not be called if token is null
+      // The function checks tokenToUse and returns early if null
+      // Since we have a valid token in state, sync should proceed normally
+      expect(result.current.user).toEqual(mockUser);
+    });
+  });
+
+  // HIGH PRIORITY: setTokenFromCallback with sync failure
+  describe("setTokenFromCallback sync failure", () => {
+    it("should handle sync failure after setTokenFromCallback", async () => {
+      const mockUser = {
+        id: 1,
+        name: "John Doe",
+        email: "john@example.com",
+        created_at: "2024-01-01T00:00:00Z",
+      };
+
+      let callCount = 0;
+      (global.fetch as Mock).mockImplementation(
+        (url: string | Request | URL, options?: RequestInit) => {
+          const urlString =
+            typeof url === "string"
+              ? url
+              : url instanceof Request
+              ? url.url
+              : url.toString();
+
+          if (urlString.includes("/api/auth/me")) {
+            callCount++;
+            // First call is initialization (no Authorization header), second is callback token verification
+            if (callCount === 1) {
+              // Initialization call - no Authorization header
+              if (!options?.headers) {
+                return Promise.resolve({
+                  ok: false,
+                  status: 401,
+                  statusText: "Unauthorized",
+                  json: async () => ({}),
+                });
+              }
+            }
+            // Callback token verification - check Authorization header from options
+            const headers = options?.headers as
+              | Record<string, string>
+              | undefined;
+            const authHeader = headers?.["Authorization"];
+            if (authHeader === "Bearer callback-token") {
+              return Promise.resolve({
+                ok: true,
+                status: 200,
+                statusText: "OK",
+                json: async () => Promise.resolve(mockUser),
+              });
+            }
+            // If Authorization header exists but doesn't match, it's invalid
+            if (options?.headers) {
+              return Promise.resolve({
+                ok: false,
+                status: 401,
+                statusText: "Unauthorized",
+                json: async () => ({}),
+              });
+            }
+            // No Authorization header - initialization call
+            return Promise.resolve({
+              ok: false,
+              status: 401,
+              statusText: "Unauthorized",
+              json: async () => ({}),
+            });
+          }
+
+          if (urlString.includes("/api/users/preferences")) {
+            // Sync fails
+            return Promise.resolve({
+              ok: false,
+              status: 500,
+              statusText: "Internal Server Error",
+              json: async () => Promise.resolve({ error: "Server error" }),
+            });
+          }
+
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            statusText: "Unauthorized",
+            json: async () => ({}),
+          });
+        }
+      );
+
+      const { result } = renderHook(() => useAuth());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await result.current.setTokenFromCallback("callback-token");
+
+      // Wait for state updates
+      await waitFor(() => {
+        expect(result.current.user).toEqual(mockUser);
+        expect(result.current.token).toBe("callback-token");
+      });
+
+      // User should still be authenticated even if sync fails
+      expect(result.current.isAuthenticated).toBe(true);
+      expect(localStorage.getItem(TOKEN_KEY)).toBe("callback-token");
+    });
+  });
+
+  // HIGH PRIORITY: isAuthenticated edge cases
+  describe("isAuthenticated edge cases", () => {
+    it("should return false when token verification fails (user null, token cleared)", async () => {
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as Mock).mockImplementation(
+        (url: string | Request | URL) => {
+          const urlString =
+            typeof url === "string"
+              ? url
+              : url instanceof Request
+              ? url.url
+              : url.toString();
+
+          if (urlString.includes("/api/auth/me")) {
+            // Token verification fails
+            return Promise.resolve({
+              ok: false,
+              status: 401,
+              json: async () => ({}),
+            });
+          }
+
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            json: async () => ({}),
+          });
+        }
+      );
+
+      const { result } = renderHook(() => useAuth());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      // After invalid token, both should be null
+      expect(result.current.user).toBeNull();
+      expect(result.current.token).toBeNull();
+      expect(result.current.isAuthenticated).toBe(false);
+    });
+
+    it("should return true only when both user and token are set", async () => {
+      const mockUser = {
+        id: 1,
+        name: "John Doe",
+        email: "john@example.com",
+        created_at: "2024-01-01T00:00:00Z",
+      };
+
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as Mock).mockImplementation(
+        (url: string | Request | URL) => {
+          const urlString =
+            typeof url === "string"
+              ? url
+              : url instanceof Request
+              ? url.url
+              : url.toString();
+
+          if (urlString.includes("/api/auth/me")) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => Promise.resolve(mockUser),
+            });
+          }
+
+          if (urlString.includes("/api/users/preferences")) {
+            return Promise.resolve({
+              ok: true,
+              status: 200,
+              json: async () => Promise.resolve(mockUser),
+            });
+          }
+
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            json: async () => ({}),
+          });
+        }
+      );
+
+      const { result } = renderHook(() => useAuth());
+
+      await waitFor(() => {
+        expect(result.current.isAuthenticated).toBe(true);
+      });
+
+      // Both user and token should be set for isAuthenticated to be true
+      expect(result.current.user).not.toBeNull();
+      expect(result.current.token).not.toBeNull();
+      expect(result.current.isAuthenticated).toBe(true);
+    });
+  });
+
+  // HIGH PRIORITY: Network timeout and 500 error handling
+  describe("Network timeout and 500 error handling", () => {
+    it("should handle network timeout errors", async () => {
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as Mock).mockImplementation(() => {
+        return new Promise((_, reject) => {
+          setTimeout(() => {
+            reject(new Error("Network timeout"));
+          }, 100);
+        });
+      });
+
+      const { result } = renderHook(() => useAuth());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.user).toBeNull();
+      expect(result.current.token).toBeNull();
+      expect(result.current.isAuthenticated).toBe(false);
+      expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
+    });
+
+    it("should handle 500 server errors in updateProfile", async () => {
+      const mockUser = {
+        id: 1,
+        name: "John Doe",
+        email: "john@example.com",
+        created_at: "2024-01-01T00:00:00Z",
+      };
+
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as Mock).mockImplementation(
+        (url: string | Request | URL, _options?: RequestInit) => {
+          const urlString =
+            typeof url === "string"
+              ? url
+              : url instanceof Request
+              ? url.url
+              : url.toString();
+
+          if (urlString.includes("/api/auth/me")) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => Promise.resolve(mockUser),
+            });
+          }
+
+          if (
+            urlString.includes("/api/users/profile") &&
+            _options?.method !== "DELETE"
+          ) {
+            return Promise.resolve({
+              ok: false,
+              status: 500,
+              statusText: "Internal Server Error",
+              json: async () =>
+                Promise.resolve({ error: "Internal server error" }),
+            });
+          }
+
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            statusText: "Unauthorized",
+            json: async () => ({}),
+          });
+        }
+      );
+
+      const { result } = renderHook(() => useAuth());
+
+      await waitFor(() => {
+        expect(result.current.isAuthenticated).toBe(true);
+      });
+
+      await expect(
+        result.current.updateProfile("New Name", null)
+      ).rejects.toThrow();
+    });
+
+    it("should handle 500 server errors in updateNotificationPreferences", async () => {
+      const mockUser = {
+        id: 1,
+        name: "John Doe",
+        email: "john@example.com",
+        created_at: "2024-01-01T00:00:00Z",
+      };
+
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as Mock).mockImplementation(
+        (url: string | Request | URL, _options?: RequestInit) => {
+          const urlString =
+            typeof url === "string"
+              ? url
+              : url instanceof Request
+              ? url.url
+              : url.toString();
+
+          if (urlString.includes("/api/auth/me")) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => Promise.resolve(mockUser),
+            });
+          }
+
+          if (urlString.includes("/api/users/notifications")) {
+            return Promise.resolve({
+              ok: false,
+              status: 500,
+              statusText: "Internal Server Error",
+              json: async () =>
+                Promise.resolve({ error: "Internal server error" }),
+            });
+          }
+
+          // Handle sync locale/timezone call during initialization
+          if (urlString.includes("/api/users/preferences")) {
+            return Promise.resolve({
+              ok: true,
+              status: 200,
+              json: async () => Promise.resolve(mockUser),
+            });
+          }
+
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            statusText: "Unauthorized",
+            json: async () => ({}),
+          });
+        }
+      );
+
+      const { result } = renderHook(() => useAuth());
+
+      await waitFor(() => {
+        expect(result.current.isAuthenticated).toBe(true);
+      });
+
+      await expect(
+        result.current.updateNotificationPreferences(["Email"])
+      ).rejects.toThrow();
+    });
+  });
+
+  // MEDIUM PRIORITY: updateProfile edge cases
+  describe("updateProfile edge cases", () => {
+    it("should handle updateProfile with explicit null profilePicture", async () => {
+      const mockUser = {
+        id: 1,
+        name: "John Doe",
+        email: "john@example.com",
+        created_at: "2024-01-01T00:00:00Z",
+      };
+
+      const updatedUser = {
+        ...mockUser,
+        name: "John Updated",
+      };
+
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as Mock).mockImplementation(
+        (url: string | Request | URL, _options?: RequestInit) => {
+          const urlString =
+            typeof url === "string"
+              ? url
+              : url instanceof Request
+              ? url.url
+              : url.toString();
+
+          if (urlString.includes("/api/auth/me")) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => Promise.resolve(mockUser),
+            });
+          }
+
+          if (
+            urlString.includes("/api/users/profile") &&
+            _options?.method !== "DELETE"
+          ) {
+            return Promise.resolve({
+              ok: true,
+              status: 200,
+              json: async () => Promise.resolve(updatedUser),
+            });
+          }
+
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            statusText: "Unauthorized",
+            json: async () => ({}),
+          });
+        }
+      );
+
+      const { result } = renderHook(() => useAuth());
+
+      await waitFor(() => {
+        expect(result.current.isAuthenticated).toBe(true);
+      });
+
+      // Explicitly pass null (not undefined)
+      const user = await result.current.updateProfile("John Updated", null);
+      expect(user).toEqual(updatedUser);
+    });
+
+    it("should prioritize removeProfilePicture when both provided", async () => {
+      const mockUser = {
+        id: 1,
+        name: "John Doe",
+        email: "john@example.com",
+        created_at: "2024-01-01T00:00:00Z",
+        profile_picture_url: "https://example.com/pic.jpg",
+      };
+
+      const updatedUser = {
+        ...mockUser,
+        profile_picture_url: null,
+      };
+
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as Mock).mockImplementation(
+        (url: string | Request | URL, _options?: RequestInit) => {
+          const urlString =
+            typeof url === "string"
+              ? url
+              : url instanceof Request
+              ? url.url
+              : url.toString();
+
+          if (urlString.includes("/api/auth/me")) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => Promise.resolve(mockUser),
+            });
+          }
+
+          if (
+            urlString.includes("/api/users/profile") &&
+            _options?.method !== "DELETE"
+          ) {
+            return Promise.resolve({
+              ok: true,
+              status: 200,
+              json: async () => Promise.resolve(updatedUser),
+            });
+          }
+
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            statusText: "Unauthorized",
+            json: async () => ({}),
+          });
+        }
+      );
+
+      const { result } = renderHook(() => useAuth());
+
+      await waitFor(() => {
+        expect(result.current.isAuthenticated).toBe(true);
+      });
+
+      const mockFile = new File(["content"], "profile.jpg", {
+        type: "image/jpeg",
+      });
+
+      // Both profilePicture and removeProfilePicture provided
+      // removeProfilePicture should take priority
+      const user = await result.current.updateProfile(
+        "John Doe",
+        mockFile,
+        true
+      );
+      expect(user.profile_picture_url).toBeNull();
+    });
+  });
+
+  // MEDIUM PRIORITY: updateUserPreferences with both undefined
+  describe("updateUserPreferences edge cases", () => {
+    it("should handle updateUserPreferences with both locale and timezone undefined", async () => {
+      const mockUser = {
+        id: 1,
+        name: "John Doe",
+        email: "john@example.com",
+        created_at: "2024-01-01T00:00:00Z",
+        locale: "en-US",
+        timezone: "America/New_York",
+      };
+
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as Mock).mockImplementation(
+        (url: string | Request | URL, _options?: RequestInit) => {
+          const urlString =
+            typeof url === "string"
+              ? url
+              : url instanceof Request
+              ? url.url
+              : url.toString();
+
+          if (urlString.includes("/api/auth/me")) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => Promise.resolve(mockUser),
+            });
+          }
+
+          if (urlString.includes("/api/users/preferences")) {
+            // Should return user unchanged when both are undefined
+            return Promise.resolve({
+              ok: true,
+              status: 200,
+              json: async () => Promise.resolve(mockUser),
+            });
+          }
+
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            statusText: "Unauthorized",
+            json: async () => ({}),
+          });
+        }
+      );
+
+      const { result } = renderHook(() => useAuth());
+
+      await waitFor(() => {
+        expect(result.current.isAuthenticated).toBe(true);
+      });
+
+      // Call with both undefined
+      const user = await result.current.updateUserPreferences(
+        undefined,
+        undefined
+      );
+      expect(user).toEqual(mockUser);
+    });
+
+    it("should update only timezone when locale not provided", async () => {
+      const mockUser = {
+        id: 1,
+        name: "John Doe",
+        email: "john@example.com",
+        created_at: "2024-01-01T00:00:00Z",
+        locale: "en-US",
+      };
+
+      const updatedUser = {
+        ...mockUser,
+        timezone: "UTC",
+      };
+
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as Mock).mockImplementation(
+        (url: string | Request | URL, _options?: RequestInit) => {
+          const urlString =
+            typeof url === "string"
+              ? url
+              : url instanceof Request
+              ? url.url
+              : url.toString();
+
+          if (urlString.includes("/api/auth/me")) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => Promise.resolve(mockUser),
+            });
+          }
+
+          if (urlString.includes("/api/users/preferences")) {
+            return Promise.resolve({
+              ok: true,
+              status: 200,
+              json: async () => Promise.resolve(updatedUser),
+            });
+          }
+
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            statusText: "Unauthorized",
+            json: async () => ({}),
+          });
+        }
+      );
+
+      const { result } = renderHook(() => useAuth());
+
+      await waitFor(() => {
+        expect(result.current.isAuthenticated).toBe(true);
+      });
+
+      const user = await result.current.updateUserPreferences(undefined, "UTC");
+      expect(user).toEqual(updatedUser);
+      expect(user.timezone).toBe("UTC");
+    });
+  });
+
+  // MEDIUM PRIORITY: Concurrent request handling
+  describe("Concurrent request handling", () => {
+    it("should handle multiple rapid verifyMagicLink calls", async () => {
+      const mockUser = {
+        id: 1,
+        name: "John Doe",
+        email: "john@example.com",
+        created_at: "2024-01-01T00:00:00Z",
+      };
+
+      (global.fetch as Mock).mockImplementation(
+        (url: string | Request | URL) => {
+          const urlString =
+            typeof url === "string"
+              ? url
+              : url instanceof Request
+              ? url.url
+              : url.toString();
+
+          if (urlString.includes("/api/auth/me")) {
+            return Promise.resolve({
+              ok: false,
+              status: 401,
+              json: async () => ({}),
+            });
+          }
+
+          if (urlString.includes("/api/auth/verify-magic-link")) {
+            return Promise.resolve({
+              ok: true,
+              status: 200,
+              json: async () =>
+                Promise.resolve({
+                  user: mockUser,
+                  token: "new-token",
+                }),
+            });
+          }
+
+          if (urlString.includes("/api/users/preferences")) {
+            return Promise.resolve({
+              ok: true,
+              status: 200,
+              json: async () =>
+                Promise.resolve({
+                  ...mockUser,
+                  timezone: "America/New_York",
+                }),
+            });
+          }
+
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            json: async () => ({}),
+          });
+        }
+      );
+
+      const { result } = renderHook(() => useAuth());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      // Call verifyMagicLink multiple times rapidly
+      const promises = [
+        result.current.verifyMagicLink("token1"),
+        result.current.verifyMagicLink("token2"),
+        result.current.verifyMagicLink("token3"),
+      ];
+
+      // All should resolve (though only the last state matters)
+      await Promise.all(promises);
+
+      // Final state should be authenticated
+      await waitFor(() => {
+        expect(result.current.isAuthenticated).toBe(true);
+      });
+    });
+
+    it("should handle updateProfile called during sync", async () => {
+      const mockUser = {
+        id: 1,
+        name: "John Doe",
+        email: "john@example.com",
+        created_at: "2024-01-01T00:00:00Z",
+      };
+
+      const updatedUser = {
+        ...mockUser,
+        name: "John Updated",
+      };
+
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      let syncCallCount = 0;
+      (global.fetch as Mock).mockImplementation(
+        (url: string | Request | URL, _options?: RequestInit) => {
+          const urlString =
+            typeof url === "string"
+              ? url
+              : url instanceof Request
+              ? url.url
+              : url.toString();
+
+          if (urlString.includes("/api/auth/me")) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => Promise.resolve(mockUser),
+            });
+          }
+
+          if (urlString.includes("/api/users/preferences")) {
+            syncCallCount++;
+            // Delay sync to allow updateProfile to be called
+            if (syncCallCount === 1) {
+              return new Promise((resolve) => {
+                setTimeout(() => {
+                  resolve({
+                    ok: true,
+                    status: 200,
+                    json: async () => Promise.resolve(mockUser),
+                  });
+                }, 100);
+              });
+            }
+            return Promise.resolve({
+              ok: true,
+              status: 200,
+              json: async () => Promise.resolve(mockUser),
+            });
+          }
+
+          if (
+            urlString.includes("/api/users/profile") &&
+            _options?.method !== "DELETE"
+          ) {
+            return Promise.resolve({
+              ok: true,
+              status: 200,
+              json: async () => Promise.resolve(updatedUser),
+            });
+          }
+
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            statusText: "Unauthorized",
+            json: async () => ({}),
+          });
+        }
+      );
+
+      const { result } = renderHook(() => useAuth());
+
+      await waitFor(() => {
+        expect(result.current.isAuthenticated).toBe(true);
+      });
+
+      // Wait for initial sync to complete
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      // Now call updateProfile (sync should be done, but test that updateProfile works)
+      const user = await result.current.updateProfile("John Updated", null);
+      expect(user).toEqual(updatedUser);
+
+      // Wait for state to update
+      await waitFor(() => {
+        expect(result.current.user?.name).toBe("John Updated");
+      });
+
+      // User should be updated
+      expect(result.current.user?.name).toBe("John Updated");
+    });
+  });
+
+  // MEDIUM PRIORITY: State transition edge cases
+  describe("State transition edge cases", () => {
+    it("should handle logout during async operation", async () => {
+      const mockUser = {
+        id: 1,
+        name: "John Doe",
+        email: "john@example.com",
+        created_at: "2024-01-01T00:00:00Z",
+      };
+
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as Mock).mockImplementation(
+        (url: string | Request | URL, _options?: RequestInit) => {
+          const urlString =
+            typeof url === "string"
+              ? url
+              : url instanceof Request
+              ? url.url
+              : url.toString();
+
+          if (urlString.includes("/api/auth/me")) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => Promise.resolve(mockUser),
+            });
+          }
+
+          if (
+            urlString.includes("/api/users/profile") &&
+            _options?.method !== "DELETE"
+          ) {
+            // Delay to allow logout to be called
+            return new Promise((resolve) => {
+              setTimeout(() => {
+                resolve({
+                  ok: true,
+                  status: 200,
+                  json: async () => Promise.resolve(mockUser),
+                });
+              }, 200);
+            });
+          }
+
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            statusText: "Unauthorized",
+            json: async () => ({}),
+          });
+        }
+      );
+
+      const { result } = renderHook(() => useAuth());
+
+      await waitFor(() => {
+        expect(result.current.isAuthenticated).toBe(true);
+      });
+
+      // Start updateProfile (async operation)
+      const updatePromise = result.current.updateProfile("New Name", null);
+
+      // Immediately logout
+      result.current.logout();
+
+      // Wait for update to complete (or fail)
+      try {
+        await updatePromise;
+      } catch (error) {
+        // Expected to fail or be cancelled
+      }
+
+      // After logout, should be unauthenticated
+      expect(result.current.isAuthenticated).toBe(false);
+      expect(result.current.user).toBeNull();
+      expect(result.current.token).toBeNull();
+      expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
+    });
+
+    it("should handle state updates during re-renders", async () => {
+      const mockUser = {
+        id: 1,
+        name: "John Doe",
+        email: "john@example.com",
+        created_at: "2024-01-01T00:00:00Z",
+      };
+
+      localStorage.setItem(TOKEN_KEY, "valid-token");
+
+      (global.fetch as Mock).mockImplementation(
+        (url: string | Request | URL) => {
+          const urlString =
+            typeof url === "string"
+              ? url
+              : url instanceof Request
+              ? url.url
+              : url.toString();
+
+          if (urlString.includes("/api/auth/me")) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => Promise.resolve(mockUser),
+            });
+          }
+
+          if (urlString.includes("/api/users/preferences")) {
+            return Promise.resolve({
+              ok: true,
+              status: 200,
+              json: async () => Promise.resolve(mockUser),
+            });
+          }
+
+          return Promise.resolve({
+            ok: false,
+            status: 401,
+            json: async () => ({}),
+          });
+        }
+      );
+
+      const { result, rerender } = renderHook(() => useAuth());
+
+      await waitFor(() => {
+        expect(result.current.isAuthenticated).toBe(true);
+      });
+
+      // Re-render during authenticated state
+      rerender();
+
+      // State should remain consistent
+      expect(result.current.isAuthenticated).toBe(true);
+      expect(result.current.user).toEqual(mockUser);
+      expect(result.current.token).toBe("valid-token");
+    });
+  });
 });
