@@ -113,16 +113,14 @@ Deploy Habitus to Railway with:
 
 - **Included in Railway** - No separate account needed
 - **Free tier** - Covered by Railway's $5/month credit
-- **Automatic connection** - Railway automatically provides `DATABASE_URL`
 - **Simple setup** - Just add a service in Railway dashboard
 - **Integrated** - Works seamlessly with Railway web service
 
-**Note:** We'll create the PostgreSQL database service in Railway in Step 3.1 when we set up the project. Railway will automatically:
+**Note:** We'll create the PostgreSQL database service in Railway in Step 3.1 when we set up the project. **Important:** Railway does NOT automatically link the database to your web service. You will need to:
 
-- Create the PostgreSQL service
-- Link it to your web service
-- Provide `DATABASE_URL` environment variable automatically
-- No manual configuration needed
+- Create the PostgreSQL service (Step 3.1)
+- Manually link it to your web service (Step 3.1.1) to make `DATABASE_URL` available
+- Copy or reference the `DATABASE_URL` from the database service to your web service
 
 **You can skip this step for now** - We'll do it in Step 3.1 when creating the Railway project.**STOP HERE** - You can proceed to Phase 2 (Code Updates) or wait until Step 3.1 to set up the database.---
 
@@ -281,7 +279,6 @@ npm install cloudinary
          DATABASE_URL=postgresql://postgres:password@containers-us-west-xxx.railway.app:5432/railway
    ```
 
-
 (Your actual connection string will be different)
 
 6. Run the app: `npm run dev`
@@ -306,14 +303,12 @@ npm install cloudinary
 **Instructions:**
 
 1. Add to `config/.env` temporarily:
+
    ```javascript
-            CLOUDINARY_CLOUD_NAME=your_cloud_name
-            CLOUDINARY_API_KEY=your_api_key
-            CLOUDINARY_API_SECRET=your_api_secret
+   CLOUDINARY_CLOUD_NAME = your_cloud_name;
+   CLOUDINARY_API_KEY = your_api_key;
+   CLOUDINARY_API_SECRET = your_api_secret;
    ```
-
-
-
 
 2. Run `npm run dev`
 3. Test uploading a profile picture
@@ -355,12 +350,12 @@ npm test
 3. If not connected, authorize Railway to access your GitHub account
 4. Select your repository: `habitus` (or your repo name)
 5. Railway will automatically detect it's a Node.js project
-6. **Before deploying, add PostgreSQL database:**
+6. **Add PostgreSQL database:**
 
 - In the project, click "New" → "Database" → "Add PostgreSQL"
 - Name it `habitus-db` (or your preferred name)
-- Railway will automatically create it and link it to your web service
-- The `DATABASE_URL` will be automatically available
+- Railway will create the PostgreSQL service
+- **Note:** Railway does NOT automatically link the database to your web service - you need to do this manually (see Step 3.1.1 below)
 
 7. Click "Deploy Now" (we'll configure it properly in next steps)
 
@@ -372,6 +367,54 @@ npm test
 - ✅ Initial deployment has started
 
 **STOP HERE** - Don't worry if deployment fails, we'll configure it properly next.---
+
+### Step 3.1.1: Link PostgreSQL Database to Web Service
+
+**Action:** Manually link the PostgreSQL database service to your web service so `DATABASE_URL` is available**Detailed Instructions:**
+
+1. In your Railway project dashboard, you should see two services:
+
+   - Your web service (named after your repo, e.g., `habitus`)
+   - Your PostgreSQL database service (e.g., `habitus-db`)
+
+2. **Link the database to the web service:**
+
+   - Click on your **web service** (not the database)
+   - Go to the **"Variables"** tab
+   - Scroll down to find the **"Add Variable"** section
+   - Look for a button or option to **"Add Reference"** or **"Connect Database"**
+   - Alternatively, click **"New Variable"** and you should see an option to reference the database
+   - Select your PostgreSQL database service (e.g., `habitus-db`)
+   - Railway will automatically add `DATABASE_URL` as a reference variable
+
+3. **Alternative method (if above doesn't work):**
+
+   - Click on your **PostgreSQL database service**
+   - Go to the **"Variables"** tab
+   - Find the `DATABASE_URL` variable
+   - Copy the connection string value
+   - Go back to your **web service** → **"Variables"** tab
+   - Click **"New Variable"**
+   - Add: `DATABASE_URL` = [paste the connection string you copied]
+
+4. **Verify the link:**
+   - In your web service → "Variables" tab
+   - You should see `DATABASE_URL` listed
+   - It should show as a reference (with an icon) or as a regular variable
+
+**Important Notes:**
+
+- Railway does NOT automatically link services - you must do this manually
+- The `DATABASE_URL` must be available in your web service's environment variables
+- If you see `DATABASE_URL` in the database service but not in the web service, you need to copy it manually
+
+**Verification:**
+
+- ✅ `DATABASE_URL` appears in your web service's Variables tab
+- ✅ The variable contains a valid PostgreSQL connection string
+- ✅ The connection string format is: `postgresql://user:password@host:port/database`
+
+**STOP HERE** - Verify `DATABASE_URL` is linked to your web service before proceeding.---
 
 ### Step 3.2: Configure Build and Start Commands
 
@@ -420,46 +463,57 @@ npm test
 2. Click "New Variable" for each variable below
 3. Add the following variables one by one:
 
+**Note:** The backticks below are just for documentation formatting. In Railway, enter the variable name and value WITHOUT backticks.
+
 **Required Variables:**
 
-- `NODE_ENV` = `production`
-- `TRUST_PROXY` = `true`
-- `VITE_SERVER_URL` = `https://habitus.nextstepslab.com`
-- `VITE_PORT` = `${{PORT}}` (this references Railway's PORT variable)
-- `PROJECT_ROOT` = `/app` (Railway's project path)
+- Variable Name: `NODE_ENV` → Value: `production`
+- Variable Name: `TRUST_PROXY` → Value: `true`
+- Variable Name: `VITE_SERVER_URL` → Value: `https://habitus.nextstepslab.com`
+- Variable Name: `VITE_PORT` → Value: `${{PORT}}` (this references Railway's PORT variable)
+- Variable Name: `PROJECT_ROOT` → Value: `/app` (Railway's project path)
 
-**Database (Railway PostgreSQL - Auto-provided):**
+**Example:** When adding `NODE_ENV`:
 
-- `DATABASE_URL` - **Automatically provided by Railway** when you link the PostgreSQL service
-- Railway automatically links the database service to your web service
-- The `DATABASE_URL` variable will appear automatically in your Variables tab
-- **No manual setup needed** - Railway handles this automatically
+- In Railway's "Variable Name" field, enter: `NODE_ENV` (without backticks)
+- In Railway's "Value" field, enter: `production` (without backticks)
+
+**Database (Railway PostgreSQL - Manual Link Required):**
+
+- `DATABASE_URL` - **Must be manually linked** from your PostgreSQL service to your web service
+- If you completed Step 3.1.1, `DATABASE_URL` should already be available
+- If not, you need to:
+  1. Go to your PostgreSQL service → "Variables" tab
+  2. Copy the `DATABASE_URL` value
+  3. Go to your web service → "Variables" tab
+  4. Add `DATABASE_URL` = [paste the connection string]
+- The connection string format is: `postgresql://user:password@host:port/database`
 
 **JWT & Auth:**
 
-- `JWT_SECRET` = [Generate a secure random string, e.g., use `openssl rand -hex 32`]
-- `JWT_EXPIRES_IN` = `7d`
-- `MAGIC_LINK_EXPIRY_MINUTES` = `15`
-- `MAGIC_LINK_COOLDOWN_MINUTES` = `5`
+- Variable Name: `JWT_SECRET` → Value: [Generate a secure random string, e.g., use `openssl rand -hex 32`]
+- Variable Name: `JWT_EXPIRES_IN` → Value: `7d`
+- Variable Name: `MAGIC_LINK_EXPIRY_MINUTES` → Value: `15`
+- Variable Name: `MAGIC_LINK_COOLDOWN_MINUTES` → Value: `5`
 
 **Email (SMTP):**
 
-- `SMTP_HOST` = [Your SMTP host, e.g., `smtp.gmail.com`]
-- `SMTP_PORT` = `587` (or your SMTP port)
-- `SMTP_USER` = [Your SMTP username/email]
-- `SMTP_PASS` = [Your SMTP password/app password]
+- Variable Name: `SMTP_HOST` → Value: [Your SMTP host, e.g., `smtp.gmail.com`]
+- Variable Name: `SMTP_PORT` → Value: `587` (or your SMTP port)
+- Variable Name: `SMTP_USER` → Value: [Your SMTP username/email]
+- Variable Name: `SMTP_PASS` → Value: [Your SMTP password/app password]
 
 **Cloudinary:**
 
-- `CLOUDINARY_CLOUD_NAME` = [From Step 1.2]
-- `CLOUDINARY_API_KEY` = [From Step 1.2]
-- `CLOUDINARY_API_SECRET` = [From Step 1.2]
+- Variable Name: `CLOUDINARY_CLOUD_NAME` → Value: [From Step 1.2]
+- Variable Name: `CLOUDINARY_API_KEY` → Value: [From Step 1.2]
+- Variable Name: `CLOUDINARY_API_SECRET` → Value: [From Step 1.2]
 
 **Optional (if using):**
 
-- `TELEGRAM_BOT_TOKEN` = [Your Telegram bot token]
-- `PERPLEXITY_API_KEY` = [Your Perplexity API key]
-- `PERPLEXITY_MODEL` = `sonar`
+- Variable Name: `TELEGRAM_BOT_TOKEN` → Value: [Your Telegram bot token]
+- Variable Name: `PERPLEXITY_API_KEY` → Value: [Your Perplexity API key]
+- Variable Name: `PERPLEXITY_MODEL` → Value: `sonar`
 
 3. Mark sensitive variables (JWT_SECRET, SMTP_PASS, CLOUDINARY_API_SECRET, DATABASE_URL) as "Secret" by toggling the lock icon
 
@@ -479,7 +533,7 @@ Copy the output and use it as `JWT_SECRET`.**Important Notes:**
 **Verification:**
 
 - ✅ All required environment variables are set
-- ✅ `DATABASE_URL` is automatically present (from linked PostgreSQL service)
+- ✅ `DATABASE_URL` is present in your web service's Variables tab (manually linked from Step 3.1.1)
 - ✅ Sensitive values are marked as secrets (lock icon)
 - ✅ No typos in variable names
 
@@ -619,7 +673,6 @@ Copy the output and use it as `JWT_SECRET`.**Important Notes:**
             dig habitus.nextstepslab.com
    ```
 
-
 Should return the Railway IP or hostname
 
 3. In Railway dashboard, check "Domains" section
@@ -705,7 +758,7 @@ The application will **automatically detect** the environment and use the approp
 
 ### How It Works
 
-1. **Database**: 
+1. **Database**:
 
 - Checks for `DATABASE_URL` → PostgreSQL (Railway) (production)
 - Otherwise → SQLite (development)
@@ -733,7 +786,7 @@ The application will **automatically detect** the environment and use the approp
 
 - ✅ Railway sets `NODE_ENV=production` automatically (via your env vars)
 - ✅ Railway provides `PORT` automatically
-- ✅ Railway provides `DATABASE_URL` automatically (from linked PostgreSQL service)
+- ✅ `DATABASE_URL` must be manually linked from PostgreSQL service to web service (Step 3.1.1)
 - ✅ Set Cloudinary credentials in Railway dashboard
 - ✅ Set other required env vars in Railway dashboard
 - ✅ Application automatically uses production services
@@ -756,11 +809,15 @@ The application will **automatically detect** the environment and use the approp
 
 **Database Connection Errors:**
 
-- Verify PostgreSQL service is created and linked in Railway
-- Check `DATABASE_URL` is automatically present in Variables tab
+- Verify PostgreSQL service is created in Railway
+- **Most common issue:** `DATABASE_URL` is not linked to your web service
+  - Check if `DATABASE_URL` exists in your web service's Variables tab
+  - If not, manually link it (see Step 3.1.1)
+  - Copy `DATABASE_URL` from PostgreSQL service to web service if needed
 - Verify PostgreSQL service shows "Active" status in Railway
 - Check Railway logs for database connection errors
-- Ensure PostgreSQL service is in the same project as web service (for automatic linking)
+- Ensure both services are in the same Railway project
+- Verify the connection string format is correct: `postgresql://user:password@host:port/database`
 
 **File Upload Errors:**
 
@@ -784,4 +841,3 @@ The application will **automatically detect** the environment and use the approp
 **Railway-Specific:**
 
 - Check credit usage in Railway dashboard (Settings → Usage)
-
