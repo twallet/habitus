@@ -184,11 +184,11 @@ export function FrequencyInput({
 
         // Initialize one-time date if switching to one-time
         if (newPreset === "one-time" && !oneTimeDate) {
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const tomorrowStr = tomorrow.toISOString().slice(0, 10);
-            setOneTimeDate(tomorrowStr);
-            builderRef.current.setOneTimeDate(tomorrowStr);
+            // Use local time to get today's date in YYYY-MM-DD format
+            const today = new Date();
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+            setOneTimeDate(todayStr);
+            builderRef.current.setOneTimeDate(todayStr);
         }
 
         // Update state
@@ -371,7 +371,11 @@ export function FrequencyInput({
                         onChange={(e) => handleOneTimeDateChange(e.target.value)}
                         disabled={disabled}
                         required={preset === "one-time"}
-                        min={new Date().toISOString().slice(0, 10)}
+                        min={(() => {
+                            // Use local time to get today's date in YYYY-MM-DD format
+                            const today = new Date();
+                            return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+                        })()}
                         className="date-input-autofit"
                     />
                 )}
