@@ -102,10 +102,13 @@ function FrequencyDisplay({ frequency }: { frequency?: Frequency }) {
 
         case "yearly":
             let yearlyDetail = null;
-            if (frequency.kind === "date" && frequency.month && frequency.day) {
-                const monthNames = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-                yearlyDetail = `${monthNames[frequency.month]} ${frequency.day}`;
+            if (frequency.month && frequency.day) {
+                // Format month name using user's locale
+                const locale = user?.locale || DateUtils.getDefaultLocale();
+                // Create a date object for the month/day to format it with locale
+                const date = new Date(2000, frequency.month - 1, frequency.day);
+                const monthName = date.toLocaleDateString(locale, { month: "short" });
+                yearlyDetail = `${monthName} ${frequency.day}`;
             }
 
             return (
@@ -248,10 +251,13 @@ class TrackingFormatter {
                 return "Monthly";
 
             case "yearly":
-                if (frequency.kind === "date" && frequency.month && frequency.day) {
-                    const monthNames = ["", "January", "February", "March", "April", "May", "June",
-                        "July", "August", "September", "October", "November", "December"];
-                    return `${monthNames[frequency.month]} ${frequency.day}`;
+                if (frequency.month && frequency.day) {
+                    // Format month name using user's locale
+                    const locale = user?.locale || DateUtils.getDefaultLocale();
+                    // Create a date object for the month/day to format it with locale
+                    const date = new Date(2000, frequency.month - 1, frequency.day);
+                    const monthName = date.toLocaleDateString(locale, { month: "long" });
+                    return `${monthName} ${frequency.day}`;
                 }
                 return "Yearly";
 
@@ -332,10 +338,13 @@ class TrackingFormatter {
                 break;
 
             case "yearly":
-                if (frequency.kind === "date" && frequency.month && frequency.day) {
-                    const monthNames = ["", "January", "February", "March", "April", "May", "June",
-                        "July", "August", "September", "October", "November", "December"];
-                    details += `Yearly (${monthNames[frequency.month]} ${frequency.day})`;
+                if (frequency.month && frequency.day) {
+                    // Format month name using user's locale
+                    const locale = user?.locale || DateUtils.getDefaultLocale();
+                    // Create a date object for the month/day to format it with locale
+                    const date = new Date(2000, frequency.month - 1, frequency.day);
+                    const monthName = date.toLocaleDateString(locale, { month: "long" });
+                    details += `Yearly (${monthName} ${frequency.day})`;
                 } else {
                     details += "Yearly";
                 }
