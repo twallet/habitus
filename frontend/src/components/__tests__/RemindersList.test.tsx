@@ -274,10 +274,10 @@ describe("RemindersList", () => {
         const filterButton = screen.getByLabelText(/show filters/i);
         await userEvent.click(filterButton);
 
-        // Filter by time - use a more specific filter that will match January date format
+        // Filter by time - use "Jan" to match January date format (formatted as "Jan 1, 2024 10:00 AM")
         const timeInput = screen.getByLabelText(/filter by time/i);
         await userEvent.clear(timeInput);
-        await userEvent.type(timeInput, "1/1/2024");
+        await userEvent.type(timeInput, "Jan");
 
         // Should only show reminder from January (both table and card views)
         await waitFor(() => {
