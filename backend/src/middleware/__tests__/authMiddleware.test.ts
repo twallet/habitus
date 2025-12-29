@@ -9,7 +9,6 @@ import { ServiceManager } from "../../services/index.js";
 import { Database } from "../../db/database.js";
 import { AuthService } from "../../services/authService.js";
 import { UserService } from "../../services/userService.js";
-import { EmailService } from "../../services/emailService.js";
 import sqlite3 from "sqlite3";
 
 // Mock services
