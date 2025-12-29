@@ -6,7 +6,7 @@ import { useAuth } from "../hooks/useAuth";
 import { ReminderStatus } from "../models/Reminder";
 import { UserData } from "../models/User";
 import { DeleteTrackingConfirmationModal } from "./DeleteTrackingConfirmationModal";
-import { formatUserDate, formatUserDateTime } from "../utils/dateFormatting";
+import { formatUserDateTime } from "../utils/dateFormatting";
 import { DateUtils } from "@habitus/shared/utils";
 import "./TrackingsList.css";
 
