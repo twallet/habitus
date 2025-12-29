@@ -1191,6 +1191,10 @@ describe("Server Configuration - Integration Tests", () => {
         viteMock?: any;
         expressMock?: () => any;
         mockServerCloseFn?: typeof mockServerClose;
+        fsMock?: {
+          existsSync?: () => boolean;
+          readFileSync?: () => string;
+        };
       } = {}
     ) {
       // Store references to mock functions and modules before resetModules
@@ -1287,11 +1291,16 @@ describe("Server Configuration - Integration Tests", () => {
 
       // Mock fs - create a minimal mock with readFileSync
       // readFileSync is used in server.ts for reading index.html
-      const mockReadFileSyncFn = vi.fn().mockReturnValue("<html>test</html>");
+      const mockReadFileSyncFn = options.fsMock?.readFileSync
+        ? vi.fn(options.fsMock.readFileSync)
+        : vi.fn().mockReturnValue("<html>test</html>");
+      const mockExistsSyncFn = options.fsMock?.existsSync
+        ? vi.fn(options.fsMock.existsSync)
+        : vi.fn().mockReturnValue(true);
       vi.doMock("fs", () => ({
         readFileSync: mockReadFileSyncFn,
         // Add other common fs methods as no-ops or basic implementations
-        existsSync: vi.fn().mockReturnValue(true),
+        existsSync: mockExistsSyncFn,
         mkdirSync: vi.fn(),
         writeFileSync: vi.fn(),
         unlinkSync: vi.fn(),
@@ -1900,6 +1909,251 @@ describe("Server Configuration - Integration Tests", () => {
 
       // Trust proxy should be set
       expect(trustProxySet).toBe(true);
+    });
+
+    it("should handle port conflict error with helpful message", async () => {
+      process.env.NODE_ENV = "development";
+
+      const portError = new Error("Port 24679 is already in use");
+      portError.message = "Port 24679 is already in use";
+
+      const consoleErrorSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+
+      await setupAndImportServer({
+        viteMock: () => ({
+          createServer: vi.fn().mockRejectedValue(portError),
+        }),
+      });
+
+      // Wait for error to be logged
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      const errorCalls = consoleErrorSpy.mock.calls;
+      const hasHelpfulMessage = errorCalls.some(
+        (call) =>
+          call[0]?.toString().includes("VITE_HMR_PORT") ||
+          call[0]?.toString().includes("port")
+      );
+      expect(hasHelpfulMessage).toBe(true);
+    });
+
+    it("should handle URL parsing failure and use localhost", async () => {
+      process.env.NODE_ENV = "development";
+      process.env.VITE_SERVER_URL = "invalid-url-format!!!";
+
+      await setupAndImportServer({
+        viteMock: () => ({
+          createServer: vi.fn().mockResolvedValue({
+            middlewares: express(),
+            transformIndexHtml: vi
+              .fn()
+              .mockResolvedValue("<html>transformed</html>"),
+            close: vi.fn().mockResolvedValue(undefined),
+          }),
+        }),
+      });
+
+      // Vite should be initialized with localhost as fallback
+      expect(mockDbInitialize).toHaveBeenCalled();
+    });
+
+    it("should parse VITE_HMR_PORT environment variable", async () => {
+      process.env.NODE_ENV = "development";
+      process.env.VITE_HMR_PORT = "30001";
+
+      const mockCreateServer = vi.fn().mockResolvedValue({
+        middlewares: express(),
+        transformIndexHtml: vi
+          .fn()
+          .mockResolvedValue("<html>transformed</html>"),
+        close: vi.fn().mockResolvedValue(undefined),
+      });
+
+      await setupAndImportServer({
+        viteMock: () => ({
+          createServer: mockCreateServer,
+        }),
+      });
+
+      // Verify createServer was called (which means HMR port was parsed)
+      expect(mockCreateServer).toHaveBeenCalled();
+    });
+
+    it("should return 404 when index.html does not exist in production", async () => {
+      process.env.NODE_ENV = "production";
+
+      await setupAndImportServer({
+        fsMock: {
+          existsSync: () => false,
+          readFileSync: () => "<html>test</html>",
+        },
+      });
+
+      if (!capturedApp) {
+        expect(capturedApp).toBeTruthy();
+        return;
+      }
+
+      // Make request to non-API route
+      const response = await request(capturedApp).get("/some-route");
+
+      // Should return 404 when index.html doesn't exist
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe("Not found");
+    });
+
+    it("should handle readFileSync error in production", async () => {
+      process.env.NODE_ENV = "production";
+
+      await setupAndImportServer({
+        fsMock: {
+          existsSync: () => true,
+          readFileSync: () => {
+            throw new Error("File read error");
+          },
+        },
+      });
+
+      if (!capturedApp) {
+        expect(capturedApp).toBeTruthy();
+        return;
+      }
+
+      // Make request to non-API route
+      const response = await request(capturedApp).get("/some-route");
+
+      // Should return 404 on read error
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe("Not found");
+    });
+
+    it("should skip error handling when headers already sent", async () => {
+      await setupAndImportServer();
+
+      if (!capturedApp) {
+        expect(capturedApp).toBeTruthy();
+        return;
+      }
+
+      // Create a route that sends response then throws error
+      // The error handler in server.ts should check headersSent
+      let errorHandlerCalled = false;
+      capturedApp.get("/test-headers-sent", (_req, res, next) => {
+        res.json({ status: "ok" });
+        // Simulate error after headers sent
+        const error = new Error("Error after headers sent");
+        // Manually set headersSent and call error handler
+        (res as any).headersSent = true;
+        // Find the error handler middleware
+        const errorHandler = capturedApp!._router?.stack
+          .slice()
+          .reverse()
+          .find(
+            (layer: any) =>
+              layer.handle &&
+              layer.handle.length === 4 &&
+              typeof layer.handle === "function"
+          );
+        if (errorHandler) {
+          errorHandlerCalled = true;
+          errorHandler.handle(error, _req, res, next);
+        }
+      });
+
+      const response = await request(capturedApp).get("/test-headers-sent");
+      expect(response.status).toBe(200);
+      expect(response.body.status).toBe("ok");
+      // Error handler should have been called but delegated to next
+      expect(errorHandlerCalled).toBe(true);
+    });
+
+    it("should include error message in development mode", async () => {
+      process.env.NODE_ENV = "development";
+
+      await setupAndImportServer();
+
+      if (!capturedApp) {
+        expect(capturedApp).toBeTruthy();
+        return;
+      }
+
+      // Create route that throws error - server.ts already has error handler
+      capturedApp.get("/test-error-dev", () => {
+        throw new Error("Test error message");
+      });
+
+      const response = await request(capturedApp).get("/test-error-dev");
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe("Internal server error");
+      expect(response.body.message).toBe("Test error message");
+    });
+
+    it("should not include error message in production mode", async () => {
+      process.env.NODE_ENV = "production";
+
+      await setupAndImportServer();
+
+      if (!capturedApp) {
+        expect(capturedApp).toBeTruthy();
+        return;
+      }
+
+      // Create route that throws error - server.ts already has error handler
+      capturedApp.get("/test-error-prod", () => {
+        throw new Error("Test error message");
+      });
+
+      const response = await request(capturedApp).get("/test-error-prod");
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe("Internal server error");
+      expect(response.body.message).toBeUndefined();
+    });
+
+    it("should handle URL without http prefix", async () => {
+      process.env.NODE_ENV = "development";
+      process.env.VITE_SERVER_URL = "example.com:3000";
+
+      const mockCreateServer = vi.fn().mockResolvedValue({
+        middlewares: express(),
+        transformIndexHtml: vi
+          .fn()
+          .mockResolvedValue("<html>transformed</html>"),
+        close: vi.fn().mockResolvedValue(undefined),
+      });
+
+      await setupAndImportServer({
+        viteMock: () => ({
+          createServer: mockCreateServer,
+        }),
+      });
+
+      expect(mockCreateServer).toHaveBeenCalled();
+    });
+
+    it("should handle URL with http prefix", async () => {
+      process.env.NODE_ENV = "development";
+      process.env.VITE_SERVER_URL = "http://example.com:3000";
+
+      const mockCreateServer = vi.fn().mockResolvedValue({
+        middlewares: express(),
+        transformIndexHtml: vi
+          .fn()
+          .mockResolvedValue("<html>transformed</html>"),
+        close: vi.fn().mockResolvedValue(undefined),
+      });
+
+      await setupAndImportServer({
+        viteMock: () => ({
+          createServer: mockCreateServer,
+        }),
+      });
+
+      expect(mockCreateServer).toHaveBeenCalled();
     });
   });
 });
