@@ -59,16 +59,12 @@ function FrequencyDisplay({ frequency }: { frequency?: Frequency }) {
                 );
             }
 
+            const weekdaysText = sortedDays.map((d) => dayNames[d]).join(", ");
+
             return (
                 <span className="frequency-display">
                     <span className="frequency-badge frequency-badge-weekly">Weekly</span>
-                    <span className="frequency-days">
-                        {sortedDays.map((d) => (
-                            <span key={d} className="day-badge">
-                                {dayNames[d]}
-                            </span>
-                        ))}
-                    </span>
+                    <span className="frequency-detail">{weekdaysText}</span>
                 </span>
             );
 
@@ -127,7 +123,7 @@ function FrequencyDisplay({ frequency }: { frequency?: Frequency }) {
 
             return (
                 <span className="frequency-display">
-                    <span className="frequency-badge frequency-badge-onetime">1×</span>
+                    <span className="frequency-badge frequency-badge-onetime">Once</span>
                     <span className="frequency-detail">{dateLabel}</span>
                 </span>
             );

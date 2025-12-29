@@ -366,10 +366,8 @@ describe("TrackingsList", () => {
         // Check for Weekly badge
         const weeklyBadges = screen.getAllByText("Weekly");
         expect(weeklyBadges.length).toBeGreaterThan(0);
-        // Check for individual day badges
-        expect(screen.getByText("Mon")).toBeInTheDocument();
-        expect(screen.getByText("Wed")).toBeInTheDocument();
-        expect(screen.getByText("Fri")).toBeInTheDocument();
+        // Check for weekdays as comma-separated text
+        expect(screen.getByText("Mon, Wed, Fri")).toBeInTheDocument();
     });
 
     it("should display frequency for monthly pattern", () => {
@@ -474,12 +472,10 @@ describe("TrackingsList", () => {
             />
         );
 
-        // Check for Weekly badge and individual day badges
+        // Check for Weekly badge and weekdays as comma-separated text
         const weeklyBadges = screen.getAllByText("Weekly");
         expect(weeklyBadges.length).toBeGreaterThan(0);
-        expect(screen.getByText("Mon")).toBeInTheDocument();
-        expect(screen.getByText("Wed")).toBeInTheDocument();
-        expect(screen.getByText("Fri")).toBeInTheDocument();
+        expect(screen.getByText("Mon, Wed, Fri")).toBeInTheDocument();
         // Check that frequency cell has title attribute
         const frequencyCell = screen.getByText("Weekly").closest(".cell-frequency");
         expect(frequencyCell).toHaveAttribute("title");
@@ -582,12 +578,10 @@ describe("TrackingsList", () => {
         expect(trackingCell?.textContent).toContain("Did I exercise today?");
         const timeElements4 = screen.getAllByText(/09:00 \+1/);
         expect(timeElements4.length).toBeGreaterThan(0);
-        // Check for Weekly badge and individual day badges
+        // Check for Weekly badge and weekdays as comma-separated text
         const weeklyBadges = screen.getAllByText("Weekly");
         expect(weeklyBadges.length).toBeGreaterThan(0);
-        expect(screen.getByText("Mon")).toBeInTheDocument();
-        expect(screen.getByText("Wed")).toBeInTheDocument();
-        expect(screen.getByText("Fri")).toBeInTheDocument();
+        expect(screen.getByText("Mon, Wed, Fri")).toBeInTheDocument();
         // Check that notes icon is displayed
         const notesIcons = screen.getAllByText("📝");
         expect(notesIcons.length).toBeGreaterThan(0);
