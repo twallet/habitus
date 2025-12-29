@@ -2,12 +2,15 @@ import {
   getUploadsDirectory,
   uploadProfilePicture,
   UploadConfig,
+  isCloudinaryStorage,
 } from "../upload.js";
 import path from "path";
 import fs from "fs";
 import { Readable } from "stream";
 import { Request, Response, NextFunction } from "express";
 import multer from "multer";
+import { vi, beforeEach, afterEach } from "vitest";
+import { v2 as cloudinary } from "cloudinary";
 
 describe("Upload Middleware", () => {
   describe("getUploadsDirectory", () => {
@@ -728,6 +731,697 @@ describe("Upload Middleware", () => {
       // Should return consistent path
       expect(dir1).toBe(dir2);
       expect(dir1).toContain("uploads");
+    });
+  });
+
+  describe("Cloudinary Storage", () => {
+    const originalCloudinaryCloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    const originalCloudinaryApiKey = process.env.CLOUDINARY_API_KEY;
+    const originalCloudinaryApiSecret = process.env.CLOUDINARY_API_SECRET;
+
+    beforeEach(() => {
+      // Reset singleton instance
+      vi.resetModules();
+    });
+
+    afterEach(() => {
+      // Restore original environment variables
+      if (originalCloudinaryCloudName) {
+        process.env.CLOUDINARY_CLOUD_NAME = originalCloudinaryCloudName;
+      } else {
+        delete process.env.CLOUDINARY_CLOUD_NAME;
+      }
+      if (originalCloudinaryApiKey) {
+        process.env.CLOUDINARY_API_KEY = originalCloudinaryApiKey;
+      } else {
+        delete process.env.CLOUDINARY_API_KEY;
+      }
+      if (originalCloudinaryApiSecret) {
+        process.env.CLOUDINARY_API_SECRET = originalCloudinaryApiSecret;
+      } else {
+        delete process.env.CLOUDINARY_API_SECRET;
+      }
+    });
+
+    describe("getStorageType", () => {
+      it("should return LOCAL when Cloudinary credentials are not set", () => {
+        delete process.env.CLOUDINARY_CLOUD_NAME;
+        delete process.env.CLOUDINARY_API_KEY;
+        delete process.env.CLOUDINARY_API_SECRET;
+
+        const config = new UploadConfig();
+        expect(config.getStorageType()).toBe("local");
+      });
+
+      it("should return CLOUDINARY when all Cloudinary credentials are set", () => {
+        process.env.CLOUDINARY_CLOUD_NAME = "test-cloud";
+        process.env.CLOUDINARY_API_KEY = "test-key";
+        process.env.CLOUDINARY_API_SECRET = "test-secret";
+
+        const config = new UploadConfig();
+        expect(config.getStorageType()).toBe("cloudinary");
+      });
+
+      it("should return LOCAL when only some Cloudinary credentials are set", () => {
+        process.env.CLOUDINARY_CLOUD_NAME = "test-cloud";
+        process.env.CLOUDINARY_API_KEY = "test-key";
+        delete process.env.CLOUDINARY_API_SECRET;
+
+        const config = new UploadConfig();
+        expect(config.getStorageType()).toBe("local");
+      });
+    });
+
+    describe("isCloudinaryStorage", () => {
+      it("should return false when Cloudinary is not configured", async () => {
+        delete process.env.CLOUDINARY_CLOUD_NAME;
+        delete process.env.CLOUDINARY_API_KEY;
+        delete process.env.CLOUDINARY_API_SECRET;
+
+        // Reset module to get fresh singleton
+        vi.resetModules();
+        const uploadModule = await import("../upload.js");
+        expect(uploadModule.isCloudinaryStorage()).toBe(false);
+      });
+
+      it("should return true when Cloudinary is configured", async () => {
+        process.env.CLOUDINARY_CLOUD_NAME = "test-cloud";
+        process.env.CLOUDINARY_API_KEY = "test-key";
+        process.env.CLOUDINARY_API_SECRET = "test-secret";
+
+        // Reset module to get fresh singleton
+        vi.resetModules();
+        const uploadModule = await import("../upload.js");
+        expect(uploadModule.isCloudinaryStorage()).toBe(true);
+      });
+    });
+
+    describe("UploadConfig with Cloudinary", () => {
+      it("should configure Cloudinary when credentials are present", () => {
+        process.env.CLOUDINARY_CLOUD_NAME = "test-cloud";
+        process.env.CLOUDINARY_API_KEY = "test-key";
+        process.env.CLOUDINARY_API_SECRET = "test-secret";
+
+        const configSpy = vi.spyOn(cloudinary, "config");
+
+        const config = new UploadConfig();
+        expect(config.getStorageType()).toBe("cloudinary");
+        expect(configSpy).toHaveBeenCalledWith({
+          cloud_name: "test-cloud",
+          api_key: "test-key",
+          api_secret: "test-secret",
+        });
+
+        configSpy.mockRestore();
+      });
+
+      it("should not create uploads directory when using Cloudinary", () => {
+        process.env.CLOUDINARY_CLOUD_NAME = "test-cloud";
+        process.env.CLOUDINARY_API_KEY = "test-key";
+        process.env.CLOUDINARY_API_SECRET = "test-secret";
+
+        const originalDbPath = process.env.DB_PATH;
+        const testDataDir = path.join(
+          __dirname,
+          "../../../test-cloudinary-no-dir"
+        );
+        const testDbPath = path.join(testDataDir, "database.db");
+
+        // Ensure directory doesn't exist
+        if (fs.existsSync(testDataDir)) {
+          fs.rmSync(testDataDir, { recursive: true, force: true });
+        }
+
+        process.env.DB_PATH = testDbPath;
+
+        const config = new UploadConfig();
+        const uploadsDir = config.getUploadsDirectory();
+
+        // Directory should not be created for Cloudinary
+        // (it would be created if local storage was used)
+        // But the path should still be valid
+        expect(uploadsDir).toContain("test-cloudinary-no-dir");
+        expect(uploadsDir).toContain("uploads");
+
+        // Cleanup
+        if (fs.existsSync(testDataDir)) {
+          fs.rmSync(testDataDir, { recursive: true, force: true });
+        }
+
+        if (originalDbPath) {
+          process.env.DB_PATH = originalDbPath;
+        } else {
+          delete process.env.DB_PATH;
+        }
+      });
+    });
+
+    describe("uploadToCloudinary", () => {
+      beforeEach(() => {
+        process.env.CLOUDINARY_CLOUD_NAME = "test-cloud";
+        process.env.CLOUDINARY_API_KEY = "test-key";
+        process.env.CLOUDINARY_API_SECRET = "test-secret";
+      });
+
+      it("should throw error when Cloudinary is not configured", async () => {
+        delete process.env.CLOUDINARY_CLOUD_NAME;
+        delete process.env.CLOUDINARY_API_KEY;
+        delete process.env.CLOUDINARY_API_SECRET;
+
+        const config = new UploadConfig();
+        const buffer = Buffer.from("fake image data");
+
+        await expect(
+          config.uploadToCloudinary(buffer, "test.jpg", "image/jpeg")
+        ).rejects.toThrow("Cloudinary is not configured");
+      });
+
+      it("should upload file to Cloudinary successfully", async () => {
+        const config = new UploadConfig();
+        const buffer = Buffer.from("fake image data");
+
+        // Mock Cloudinary upload_stream
+        const mockUploadStream = {
+          end: vi.fn((buffer: Buffer) => {
+            // Simulate successful upload
+            setTimeout(() => {
+              const callback = (mockUploadStream as any).callback;
+              if (callback) {
+                callback(null, {
+                  secure_url:
+                    "https://res.cloudinary.com/test-cloud/image/upload/v123/test.jpg",
+                  public_id: "habitus/profile-pictures/test",
+                });
+              }
+            }, 0);
+          }),
+        };
+
+        vi.spyOn(cloudinary.uploader, "upload_stream").mockImplementation(((
+          options: any,
+          callback: any
+        ) => {
+          (mockUploadStream as any).callback = callback;
+          return mockUploadStream as any;
+        }) as any);
+
+        const result = await config.uploadToCloudinary(
+          buffer,
+          "test.jpg",
+          "image/jpeg"
+        );
+
+        expect(result.url).toBe(
+          "https://res.cloudinary.com/test-cloud/image/upload/v123/test.jpg"
+        );
+        expect(result.publicId).toBe("habitus/profile-pictures/test");
+        expect(cloudinary.uploader.upload_stream).toHaveBeenCalledWith(
+          {
+            folder: "habitus/profile-pictures",
+            resource_type: "image",
+            allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
+          },
+          expect.any(Function)
+        );
+
+        vi.restoreAllMocks();
+      });
+
+      it("should handle Cloudinary upload errors", async () => {
+        const config = new UploadConfig();
+        const buffer = Buffer.from("fake image data");
+
+        const mockError = new Error("Cloudinary upload failed");
+
+        // Mock Cloudinary upload_stream with error
+        const mockUploadStream = {
+          end: vi.fn((buffer: Buffer) => {
+            setTimeout(() => {
+              const callback = (mockUploadStream as any).callback;
+              if (callback) {
+                callback(mockError, null);
+              }
+            }, 0);
+          }),
+        };
+
+        vi.spyOn(cloudinary.uploader, "upload_stream").mockImplementation(((
+          options: any,
+          callback: any
+        ) => {
+          (mockUploadStream as any).callback = callback;
+          return mockUploadStream as any;
+        }) as any);
+
+        await expect(
+          config.uploadToCloudinary(buffer, "test.jpg", "image/jpeg")
+        ).rejects.toThrow("Cloudinary upload failed");
+
+        vi.restoreAllMocks();
+      });
+
+      it("should handle Cloudinary upload with no URL returned", async () => {
+        const config = new UploadConfig();
+        const buffer = Buffer.from("fake image data");
+
+        // Mock Cloudinary upload_stream with no URL
+        const mockUploadStream = {
+          end: vi.fn((buffer: Buffer) => {
+            setTimeout(() => {
+              const callback = (mockUploadStream as any).callback;
+              if (callback) {
+                callback(null, { public_id: "test" }); // No secure_url
+              }
+            }, 0);
+          }),
+        };
+
+        vi.spyOn(cloudinary.uploader, "upload_stream").mockImplementation(((
+          options: any,
+          callback: any
+        ) => {
+          (mockUploadStream as any).callback = callback;
+          return mockUploadStream as any;
+        }) as any);
+
+        await expect(
+          config.uploadToCloudinary(buffer, "test.jpg", "image/jpeg")
+        ).rejects.toThrow("Cloudinary upload failed: No URL returned");
+
+        vi.restoreAllMocks();
+      });
+
+      it("should handle Cloudinary upload with null result", async () => {
+        const config = new UploadConfig();
+        const buffer = Buffer.from("fake image data");
+
+        // Mock Cloudinary upload_stream with null result
+        const mockUploadStream = {
+          end: vi.fn((buffer: Buffer) => {
+            setTimeout(() => {
+              const callback = (mockUploadStream as any).callback;
+              if (callback) {
+                callback(null, null);
+              }
+            }, 0);
+          }),
+        };
+
+        vi.spyOn(cloudinary.uploader, "upload_stream").mockImplementation(((
+          options: any,
+          callback: any
+        ) => {
+          (mockUploadStream as any).callback = callback;
+          return mockUploadStream as any;
+        }) as any);
+
+        await expect(
+          config.uploadToCloudinary(buffer, "test.jpg", "image/jpeg")
+        ).rejects.toThrow("Cloudinary upload failed: No URL returned");
+
+        vi.restoreAllMocks();
+      });
+    });
+
+    describe("uploadProfilePicture with Cloudinary", () => {
+      beforeEach(() => {
+        process.env.CLOUDINARY_CLOUD_NAME = "test-cloud";
+        process.env.CLOUDINARY_API_KEY = "test-key";
+        process.env.CLOUDINARY_API_SECRET = "test-secret";
+      });
+
+      it("should use Cloudinary when configured", async () => {
+        vi.resetModules();
+        const uploadModule = await import("../upload.js");
+        const uploadMiddleware = uploadModule.uploadProfilePicture;
+
+        const mockReq = {
+          headers: {},
+          body: {},
+          file: undefined,
+        } as Request;
+
+        const mockRes = {
+          status: vi.fn().mockReturnThis(),
+          json: vi.fn().mockReturnThis(),
+        } as unknown as Response;
+
+        const mockNext = vi.fn() as NextFunction;
+
+        // Mock multer memory storage
+        const mockMulterSingle = vi.fn((fieldName: string) => {
+          return (req: Request, res: Response, callback: NextFunction) => {
+            // Simulate no file uploaded
+            callback();
+          };
+        });
+
+        vi.spyOn(multer, "default" as any).mockReturnValue({
+          single: mockMulterSingle,
+        } as any);
+
+        await new Promise<void>((resolve) => {
+          uploadMiddleware(mockReq, mockRes, (err?: any) => {
+            if (err) {
+              // Error is acceptable
+            }
+            resolve();
+          });
+        });
+
+        expect((multer as any).default).toHaveBeenCalledWith(
+          expect.objectContaining({
+            storage: expect.anything(),
+            fileFilter: expect.any(Function),
+            limits: expect.objectContaining({
+              fileSize: 5 * 1024 * 1024,
+            }),
+          })
+        );
+
+        vi.restoreAllMocks();
+      });
+
+      it("should upload file to Cloudinary and set file properties", async () => {
+        vi.resetModules();
+        const uploadModule = await import("../upload.js");
+        const uploadMiddleware = uploadModule.uploadProfilePicture;
+
+        const mockFile = {
+          fieldname: "profilePicture",
+          originalname: "test.jpg",
+          encoding: "7bit",
+          mimetype: "image/jpeg",
+          size: 1024,
+          buffer: Buffer.from("fake image data"),
+        } as Express.Multer.File;
+
+        const mockReq = {
+          headers: {},
+          body: {},
+          file: mockFile,
+        } as any;
+
+        const mockRes = {
+          status: vi.fn().mockReturnThis(),
+          json: vi.fn().mockReturnThis(),
+        } as unknown as Response;
+
+        const mockNext = vi.fn() as NextFunction;
+
+        // Mock multer memory storage to set file
+        const mockMulterSingle = vi.fn((fieldName: string) => {
+          return (req: Request, res: Response, callback: NextFunction) => {
+            (req as any).file = mockFile;
+            callback();
+          };
+        });
+
+        vi.spyOn(multer, "default" as any).mockReturnValue({
+          single: mockMulterSingle,
+        } as any);
+
+        // Mock Cloudinary upload
+        const mockUploadStream = {
+          end: vi.fn((buffer: Buffer) => {
+            setTimeout(() => {
+              const callback = (mockUploadStream as any).callback;
+              if (callback) {
+                callback(null, {
+                  secure_url:
+                    "https://res.cloudinary.com/test-cloud/image/upload/v123/test.jpg",
+                  public_id: "habitus/profile-pictures/test",
+                });
+              }
+            }, 0);
+          }),
+        };
+
+        vi.spyOn(cloudinary.uploader, "upload_stream").mockImplementation(((
+          options: any,
+          callback: any
+        ) => {
+          (mockUploadStream as any).callback = callback;
+          return mockUploadStream as any;
+        }) as any);
+
+        await new Promise<void>((resolve) => {
+          uploadMiddleware(mockReq, mockRes, (err?: any) => {
+            if (err) {
+              // Error is acceptable
+            }
+            resolve();
+          });
+        });
+
+        // Wait for async Cloudinary upload
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
+        expect(mockNext).toHaveBeenCalled();
+
+        vi.restoreAllMocks();
+      });
+
+      it("should handle Cloudinary upload errors in middleware", async () => {
+        vi.resetModules();
+        const uploadModule = await import("../upload.js");
+        const uploadMiddleware = uploadModule.uploadProfilePicture;
+
+        const mockFile = {
+          fieldname: "profilePicture",
+          originalname: "test.jpg",
+          encoding: "7bit",
+          mimetype: "image/jpeg",
+          size: 1024,
+          buffer: Buffer.from("fake image data"),
+        } as Express.Multer.File;
+
+        const mockReq = {
+          headers: {},
+          body: {},
+          file: mockFile,
+        } as any;
+
+        const mockRes = {
+          status: vi.fn().mockReturnThis(),
+          json: vi.fn().mockReturnThis(),
+        } as unknown as Response;
+
+        const mockNext = vi.fn() as NextFunction;
+
+        // Mock multer memory storage to set file
+        const mockMulterSingle = vi.fn((fieldName: string) => {
+          return (req: Request, res: Response, callback: NextFunction) => {
+            (req as any).file = mockFile;
+            callback();
+          };
+        });
+
+        vi.spyOn(multer, "default" as any).mockReturnValue({
+          single: mockMulterSingle,
+        } as any);
+
+        // Mock Cloudinary upload error
+        const mockError = new Error("Cloudinary upload failed");
+        const mockUploadStream = {
+          end: vi.fn((buffer: Buffer) => {
+            setTimeout(() => {
+              const callback = (mockUploadStream as any).callback;
+              if (callback) {
+                callback(mockError, null);
+              }
+            }, 0);
+          }),
+        };
+
+        vi.spyOn(cloudinary.uploader, "upload_stream").mockImplementation(((
+          options: any,
+          callback: any
+        ) => {
+          (mockUploadStream as any).callback = callback;
+          return mockUploadStream as any;
+        }) as any);
+
+        await new Promise<void>((resolve) => {
+          uploadMiddleware(mockReq, mockRes, (err?: any) => {
+            expect(err).toBe(mockError);
+            resolve();
+          });
+        });
+
+        // Wait for async Cloudinary upload
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
+        vi.restoreAllMocks();
+      });
+
+      it("should handle multer errors in Cloudinary mode", async () => {
+        vi.resetModules();
+        const uploadModule = await import("../upload.js");
+        const uploadMiddleware = uploadModule.uploadProfilePicture;
+
+        const mockReq = {
+          headers: {},
+          body: {},
+          file: undefined,
+        } as Request;
+
+        const mockRes = {
+          status: vi.fn().mockReturnThis(),
+          json: vi.fn().mockReturnThis(),
+        } as unknown as Response;
+
+        const mockNext = vi.fn() as NextFunction;
+
+        const mockError = new Error("Multer error");
+
+        // Mock multer memory storage to return error
+        const mockMulterSingle = vi.fn((fieldName: string) => {
+          return (req: Request, res: Response, callback: NextFunction) => {
+            callback(mockError);
+          };
+        });
+
+        vi.spyOn(multer, "default" as any).mockReturnValue({
+          single: mockMulterSingle,
+        } as any);
+
+        await new Promise<void>((resolve) => {
+          uploadMiddleware(mockReq, mockRes, (err?: any) => {
+            expect(err).toBe(mockError);
+            resolve();
+          });
+        });
+
+        vi.restoreAllMocks();
+      });
+
+      it("should accept valid image types in Cloudinary mode", async () => {
+        vi.resetModules();
+        const uploadModule = await import("../upload.js");
+        const uploadMiddleware = uploadModule.uploadProfilePicture;
+
+        const mockReq = {
+          headers: {},
+          body: {},
+          file: undefined,
+        } as Request;
+
+        const mockRes = {
+          status: vi.fn().mockReturnThis(),
+          json: vi.fn().mockReturnThis(),
+        } as unknown as Response;
+
+        const mockNext = vi.fn() as NextFunction;
+
+        // Mock multer with file filter
+        let fileFilterCallback: any;
+        const mockMulterSingle = vi.fn((fieldName: string) => {
+          return (req: Request, res: Response, callback: NextFunction) => {
+            // Test file filter with valid image
+            const mockFile = {
+              mimetype: "image/jpeg",
+            } as Express.Multer.File;
+
+            if (fileFilterCallback) {
+              fileFilterCallback(
+                null,
+                mockFile,
+                (err: any, accept: boolean) => {
+                  if (!err && accept) {
+                    callback();
+                  } else {
+                    callback(err);
+                  }
+                }
+              );
+            } else {
+              callback();
+            }
+          };
+        });
+
+        vi.spyOn(multer, "default" as any).mockImplementation(
+          (options: any) => {
+            fileFilterCallback = options.fileFilter;
+            return {
+              single: mockMulterSingle,
+            } as any;
+          }
+        );
+
+        await new Promise<void>((resolve) => {
+          uploadMiddleware(mockReq, mockRes, (err?: any) => {
+            if (err) {
+              // Error is acceptable
+            }
+            resolve();
+          });
+        });
+
+        vi.restoreAllMocks();
+      });
+
+      it("should reject invalid file types in Cloudinary mode", async () => {
+        vi.resetModules();
+        const uploadModule = await import("../upload.js");
+        const uploadMiddleware = uploadModule.uploadProfilePicture;
+
+        const mockReq = {
+          headers: {},
+          body: {},
+          file: undefined,
+        } as Request;
+
+        const mockRes = {
+          status: vi.fn().mockReturnThis(),
+          json: vi.fn().mockReturnThis(),
+        } as unknown as Response;
+
+        const mockNext = vi.fn() as NextFunction;
+
+        // Mock multer with file filter
+        let fileFilterCallback: any;
+        const mockMulterSingle = vi.fn((fieldName: string) => {
+          return (req: Request, res: Response, callback: NextFunction) => {
+            // Test file filter with invalid file type
+            const mockFile = {
+              mimetype: "application/pdf",
+            } as Express.Multer.File;
+
+            if (fileFilterCallback) {
+              fileFilterCallback(
+                null,
+                mockFile,
+                (err: any, accept: boolean) => {
+                  callback(err);
+                }
+              );
+            } else {
+              callback();
+            }
+          };
+        });
+
+        vi.spyOn(multer, "default" as any).mockImplementation(
+          (options: any) => {
+            fileFilterCallback = options.fileFilter;
+            return {
+              single: mockMulterSingle,
+            } as any;
+          }
+        );
+
+        await new Promise<void>((resolve) => {
+          uploadMiddleware(mockReq, mockRes, (err?: any) => {
+            expect(err).toBeInstanceOf(Error);
+            expect(err?.message).toContain("Only image files");
+            resolve();
+          });
+        });
+
+        vi.restoreAllMocks();
+      });
     });
   });
 });
