@@ -57,10 +57,12 @@ export class FrequencyBuilder {
       value?.type === "yearly" && value.kind === "date" ? value.month || 1 : 1;
     this.yearlyDay =
       value?.type === "yearly" && value.kind === "date" ? value.day || 1 : 1;
-    this.oneTimeDate =
-      value?.type === "one-time"
-        ? value.date
-        : new Date().toISOString().split("T")[0];
+    // Use local time to get today's date in YYYY-MM-DD format
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(
+      today.getMonth() + 1
+    ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    this.oneTimeDate = value?.type === "one-time" ? value.date : todayStr;
   }
 
   /**
@@ -84,7 +86,11 @@ export class FrequencyBuilder {
       this.selectedDays = [1]; // Default to Monday
     }
     if (preset === "one-time" && !this.oneTimeDate) {
-      this.oneTimeDate = new Date().toISOString().split("T")[0];
+      // Use local time to get today's date in YYYY-MM-DD format
+      const today = new Date();
+      this.oneTimeDate = `${today.getFullYear()}-${String(
+        today.getMonth() + 1
+      ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
     }
   }
 
