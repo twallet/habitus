@@ -120,7 +120,15 @@ function FrequencyDisplay({ frequency }: { frequency?: Frequency }) {
             let dateLabel = "One-time";
             if (frequency.date) {
                 try {
-                    const dateStr = `${frequency.date}T00:00:00Z`;
+                    // Create a datetime string that represents midnight in the user's timezone
+                    // This ensures the date displays correctly regardless of timezone
+                    const userTimezone = user?.timezone || DateUtils.getDefaultTimezone();
+                    const dateStr = DateUtils.createDateTimeInTimezone(
+                        frequency.date,
+                        0, // hour: midnight
+                        0, // minutes: midnight
+                        userTimezone
+                    );
                     dateLabel = formatUserDate(dateStr, user);
                 } catch {
                     // Fallback if date is invalid
@@ -247,11 +255,16 @@ class TrackingFormatter {
             case "one-time":
                 // Format date using user locale or just show "One-time"
                 if (frequency.date) {
-                    const locale = user?.locale || DateUtils.getDefaultLocale();
-                    const timezone = user?.timezone || DateUtils.getDefaultTimezone();
-                    // Create a date at midnight in the user's timezone for display
-                    const dateStr = `${frequency.date}T00:00:00Z`;
                     try {
+                        // Create a datetime string that represents midnight in the user's timezone
+                        // This ensures the date displays correctly regardless of timezone
+                        const userTimezone = user?.timezone || DateUtils.getDefaultTimezone();
+                        const dateStr = DateUtils.createDateTimeInTimezone(
+                            frequency.date,
+                            0, // hour: midnight
+                            0, // minutes: midnight
+                            userTimezone
+                        );
                         return formatUserDate(dateStr, user);
                     } catch {
                         // Fallback if date is invalid
@@ -326,15 +339,18 @@ class TrackingFormatter {
 
             case "one-time":
                 if (frequency.date) {
-                    const date = new Date(frequency.date);
-                    if (!isNaN(date.getTime())) {
-                        try {
-                            const dateStr = `${frequency.date}T00:00:00Z`;
-                            details += `One-time (${formatUserDate(dateStr, user)})`;
-                        } catch {
-                            details += "One-time";
-                        }
-                    } else {
+                    try {
+                        // Create a datetime string that represents midnight in the user's timezone
+                        // This ensures the date displays correctly regardless of timezone
+                        const userTimezone = user?.timezone || DateUtils.getDefaultTimezone();
+                        const dateStr = DateUtils.createDateTimeInTimezone(
+                            frequency.date,
+                            0, // hour: midnight
+                            0, // minutes: midnight
+                            userTimezone
+                        );
+                        details += `One-time (${formatUserDate(dateStr, user)})`;
+                    } catch {
                         details += "One-time";
                     }
                 } else {
