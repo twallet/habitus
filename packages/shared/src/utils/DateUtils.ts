@@ -105,20 +105,14 @@ export class DateUtils {
       return date.toISOString();
     }
 
-    // Create a date string representing the local time in the target timezone
-    // We'll use a workaround: create a date in UTC that represents the same
-    // wall-clock time, then adjust for the timezone offset
-    const dateTimeString = `${year}-${String(month).padStart(2, "0")}-${String(
-      day
-    ).padStart(2, "0")}T${String(hour).padStart(2, "0")}:${String(
-      minutes
-    ).padStart(2, "0")}:00`;
+    // Strategy: We need to find what UTC time corresponds to the given
+    // wall-clock time (year, month, day, hour, minutes) in the target timezone.
+    //
+    // Approach: Create a date at noon UTC on the target date, then see what
+    // that is in the target timezone. Use that to calculate the offset.
+    const noonUtc = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
 
-    // Create a temporary date to determine the timezone offset
-    // We create it as if it's in UTC, then we'll adjust
-    const tempDate = new Date(`${dateTimeString}Z`);
-
-    // Get what this UTC time would be in the target timezone
+    // Get what noon UTC is in the target timezone
     const formatter = new Intl.DateTimeFormat("en-US", {
       timeZone: timezone,
       year: "numeric",
@@ -127,26 +121,29 @@ export class DateUtils {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
-      timeZoneName: "longOffset",
     });
 
-    const parts = formatter.formatToParts(tempDate);
+    const parts = formatter.formatToParts(noonUtc);
     const tzYear = parseInt(parts.find((p) => p.type === "year")!.value);
     const tzMonth = parseInt(parts.find((p) => p.type === "month")!.value);
     const tzDay = parseInt(parts.find((p) => p.type === "day")!.value);
     const tzHour = parseInt(parts.find((p) => p.type === "hour")!.value);
     const tzMinute = parseInt(parts.find((p) => p.type === "minute")!.value);
 
-    // Calculate the offset: how much we need to adjust the UTC time
-    // to get the desired local time in the target timezone
-    const utcDate = new Date(Date.UTC(year, month - 1, day, hour, minutes, 0));
-    const tzDate = new Date(
+    // Calculate offset: difference between UTC noon and what it shows in target timezone
+    const tzNoon = new Date(
       Date.UTC(tzYear, tzMonth - 1, tzDay, tzHour, tzMinute, 0)
     );
-    const offset = utcDate.getTime() - tzDate.getTime();
+    const offset = noonUtc.getTime() - tzNoon.getTime();
+
+    // Now create the target date/time in UTC
+    const targetUtc = new Date(
+      Date.UTC(year, month - 1, day, hour, minutes, 0)
+    );
 
     // Apply the offset to get the correct UTC time
-    const result = new Date(utcDate.getTime() - offset);
+    // If timezone is ahead of UTC (positive offset), we subtract to get correct UTC
+    const result = new Date(targetUtc.getTime() - offset);
     return result.toISOString();
   }
 
