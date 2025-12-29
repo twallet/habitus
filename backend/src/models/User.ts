@@ -134,10 +134,12 @@ export class User extends BaseUser {
       this.notification_channels = updates.notification_channels;
     }
     if (updates.locale !== undefined) {
-      this.locale = updates.locale;
+      // Convert null to undefined to clear the field
+      this.locale = updates.locale === null ? undefined : updates.locale;
     }
     if (updates.timezone !== undefined) {
-      this.timezone = updates.timezone;
+      // Convert null to undefined to clear the field
+      this.timezone = updates.timezone === null ? undefined : updates.timezone;
     }
 
     return this.save(db);

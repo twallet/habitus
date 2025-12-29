@@ -361,12 +361,17 @@ export class UserService {
     }
 
     // Build update object
-    const updates: Partial<UserData> = {};
+    const updates: Partial<UserData> & {
+      locale?: string | null;
+      timezone?: string | null;
+    } = {};
     if (locale !== undefined) {
-      updates.locale = locale || undefined;
+      // Convert empty string to null to explicitly clear the field
+      updates.locale = locale === "" ? null : locale || undefined;
     }
     if (timezone !== undefined) {
-      updates.timezone = timezone || undefined;
+      // Convert empty string to null to explicitly clear the field
+      updates.timezone = timezone === "" ? null : timezone || undefined;
     }
 
     if (Object.keys(updates).length === 0) {
