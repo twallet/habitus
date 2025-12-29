@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { UserData } from "../models/User";
 import { ApiClient } from "../config/api";
+import { DateUtils } from "@habitus/shared/utils";
 
 /**
  * Authentication token storage key.
@@ -19,6 +20,47 @@ export function useAuth() {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [apiClient] = useState(() => new ApiClient());
+
+  /**
+   * Sync user's timezone from browser to database if not already set.
+   * @param currentUser - Current user data
+   * @internal
+   */
+  const syncTimezoneIfNeeded = useCallback(
+    async (currentUser: UserData) => {
+      if (!currentUser || !token) {
+        return;
+      }
+
+      const detectedTimezone = DateUtils.getDefaultTimezone();
+
+      // Only update if timezone is not set or different from detected timezone
+      if (!currentUser.timezone || currentUser.timezone !== detectedTimezone) {
+        try {
+          console.log(
+            `[${new Date().toISOString()}] FRONTEND_AUTH | Syncing timezone: ${detectedTimezone} for user ID: ${
+              currentUser.id
+            }`
+          );
+          const updatedUser = await apiClient.updateUserPreferences(
+            undefined,
+            detectedTimezone
+          );
+          setUser(updatedUser);
+          console.log(
+            `[${new Date().toISOString()}] FRONTEND_AUTH | Timezone synced successfully: ${detectedTimezone}`
+          );
+        } catch (error) {
+          // Log error but don't fail authentication
+          console.warn(
+            `[${new Date().toISOString()}] FRONTEND_AUTH | Failed to sync timezone:`,
+            error
+          );
+        }
+      }
+    },
+    [apiClient, token]
+  );
 
   /**
    * Load token from localStorage on mount and verify it.
@@ -45,6 +87,8 @@ export function useAuth() {
           );
           setUser(userData);
           setToken(storedToken);
+          // Sync timezone if needed
+          await syncTimezoneIfNeeded(userData);
         } catch (error) {
           // Token is invalid, remove it
           console.warn(
@@ -62,7 +106,7 @@ export function useAuth() {
     };
 
     loadAuth();
-  }, [apiClient]);
+  }, [apiClient, syncTimezoneIfNeeded]);
 
   /**
    * Request registration magic link (passwordless).
@@ -161,9 +205,12 @@ export function useAuth() {
       apiClient.setToken(data.token);
       localStorage.setItem(TOKEN_KEY, data.token);
 
+      // Sync timezone if needed
+      await syncTimezoneIfNeeded(data.user);
+
       return data.user;
     },
-    [apiClient]
+    [apiClient, syncTimezoneIfNeeded]
   );
 
   /**
@@ -208,6 +255,8 @@ export function useAuth() {
       setUser(userData);
       setToken(callbackToken);
       localStorage.setItem(TOKEN_KEY, callbackToken);
+      // Sync timezone if needed
+      await syncTimezoneIfNeeded(userData);
     } catch (error) {
       console.error(
         `[${new Date().toISOString()}] FRONTEND_AUTH | Error setting token from callback:`,
