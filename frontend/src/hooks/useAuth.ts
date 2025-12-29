@@ -298,6 +298,41 @@ export function useAuth() {
   };
 
   /**
+   * Update locale and timezone preferences.
+   * @param locale - Optional locale (BCP 47 format like 'en-US', 'es-AR')
+   * @param timezone - Optional timezone (IANA timezone like 'America/Buenos_Aires')
+   * @returns Promise resolving to updated user data
+   * @throws Error if request fails
+   * @public
+   */
+  const updateUserPreferences = async (
+    locale?: string,
+    timezone?: string
+  ): Promise<UserData> => {
+    if (!token) {
+      console.error(
+        `[${new Date().toISOString()}] FRONTEND_AUTH | User preferences update failed: not authenticated`
+      );
+      throw new Error("Not authenticated");
+    }
+
+    console.log(
+      `[${new Date().toISOString()}] FRONTEND_AUTH | Updating user preferences for user ID: ${
+        user?.id
+      }`
+    );
+
+    const updatedUser = await apiClient.updateUserPreferences(locale, timezone);
+    console.log(
+      `[${new Date().toISOString()}] FRONTEND_AUTH | User preferences updated successfully for user ID: ${
+        updatedUser.id
+      }`
+    );
+    setUser(updatedUser);
+    return updatedUser;
+  };
+
+  /**
    * Delete user account.
    * @returns Promise resolving when account is deleted
    * @throws Error if request fails
@@ -352,6 +387,7 @@ export function useAuth() {
     setTokenFromCallback,
     updateProfile,
     updateNotificationPreferences,
+    updateUserPreferences,
     deleteUser,
   };
 }

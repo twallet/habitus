@@ -2,8 +2,11 @@ import { useState, useRef, useEffect } from "react";
 import { TrackingData, TrackingState, Frequency } from "../models/Tracking";
 import { useTrackings } from "../hooks/useTrackings";
 import { useReminders } from "../hooks/useReminders";
+import { useAuth } from "../hooks/useAuth";
 import { ReminderStatus } from "../models/Reminder";
 import { DeleteTrackingConfirmationModal } from "./DeleteTrackingConfirmationModal";
+import { formatUserDate, formatUserDateTime } from "../utils/dateFormatting";
+import { DateUtils } from "@habitus/shared/utils";
 import "./TrackingsList.css";
 
 interface TrackingsListProps {
@@ -24,6 +27,7 @@ interface TrackingsListProps {
  * @internal
  */
 function FrequencyDisplay({ frequency }: { frequency?: Frequency }) {
+    const { user } = useAuth();
     if (!frequency || !frequency.type) {
         return (
             <span className="frequency-display">
@@ -115,9 +119,12 @@ function FrequencyDisplay({ frequency }: { frequency?: Frequency }) {
         case "one-time":
             let dateLabel = "One-time";
             if (frequency.date) {
-                const date = new Date(frequency.date);
-                if (!isNaN(date.getTime())) {
-                    dateLabel = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                try {
+                    const dateStr = `${frequency.date}T00:00:00Z`;
+                    dateLabel = formatUserDate(dateStr, user);
+                } catch {
+                    // Fallback if date is invalid
+                    dateLabel = "One-time";
                 }
             }
 
@@ -238,11 +245,17 @@ class TrackingFormatter {
                 return "Yearly";
 
             case "one-time":
-                // Format date as MM/DD/YYYY or just show "One-time"
+                // Format date using user locale or just show "One-time"
                 if (frequency.date) {
-                    const date = new Date(frequency.date);
-                    if (!isNaN(date.getTime())) {
-                        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    const locale = user?.locale || DateUtils.getDefaultLocale();
+                    const timezone = user?.timezone || DateUtils.getDefaultTimezone();
+                    // Create a date at midnight in the user's timezone for display
+                    const dateStr = `${frequency.date}T00:00:00Z`;
+                    try {
+                        return formatUserDate(dateStr, user);
+                    } catch {
+                        // Fallback if date is invalid
+                        return "One-time";
                     }
                 }
                 return "One-time";
@@ -346,16 +359,14 @@ class TrackingFormatter {
     /**
      * Format next reminder time for table display.
      * @param nextReminderTime - ISO datetime string or null
+     * @param user - User data (optional, for locale/timezone)
      * @returns Formatted reminder time string for display
      */
-    static formatNextReminderTimeDisplay(nextReminderTime: string | null): string {
+    static formatNextReminderTimeDisplay(nextReminderTime: string | null, user?: { locale?: string; timezone?: string } | null): string {
         if (!nextReminderTime) {
             return "—";
         }
-        const date = new Date(nextReminderTime);
-        const dateStr = date.toLocaleDateString();
-        const timeStr = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-        return `${dateStr} ${timeStr}`;
+        return formatUserDateTime(nextReminderTime, user);
     }
 }
 
@@ -700,6 +711,7 @@ export function TrackingsList({
 }: TrackingsListProps) {
     const { trackings: hookTrackings, isLoading: hookIsLoading, updateTrackingState: hookUpdateTrackingState, deleteTracking: hookDeleteTracking, createTracking: hookCreateTracking } = useTrackings();
     const { reminders, refreshReminders } = useReminders();
+    const { user } = useAuth();
     const [trackingToDelete, setTrackingToDelete] = useState<TrackingData | null>(null);
     const actionRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
@@ -1333,7 +1345,7 @@ export function TrackingsList({
                                         <FrequencyDisplay frequency={tracking.frequency} />
                                     </td>
                                     <td className="cell-next-reminder">
-                                        {TrackingFormatter.formatNextReminderTimeDisplay(getNextReminderTime(tracking.id))}
+                                        {TrackingFormatter.formatNextReminderTimeDisplay(getNextReminderTime(tracking.id), user)}
                                     </td>
                                     <td className="cell-status">
                                         <span className={`status-badge ${stateColorClass}`}>
@@ -1402,7 +1414,7 @@ export function TrackingsList({
                                         <div className="tracking-card-row">
                                             <span className="tracking-card-label">Next Reminder</span>
                                             <span className="tracking-card-value">
-                                                {TrackingFormatter.formatNextReminderTimeDisplay(nextReminderTime)}
+                                                {TrackingFormatter.formatNextReminderTimeDisplay(nextReminderTime, user)}
                                             </span>
                                         </div>
                                     )}

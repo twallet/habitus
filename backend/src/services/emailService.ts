@@ -204,7 +204,9 @@ export class EmailService {
     scheduledTime: string,
     trackingIcon?: string,
     trackingNotes?: string,
-    notes?: string
+    notes?: string,
+    locale?: string,
+    timezone?: string
   ): Promise<void> {
     console.log(
       `[${new Date().toISOString()}] EMAIL | Preparing to send reminder email to: ${email}, reminderId: ${reminderId}`
@@ -217,15 +219,19 @@ export class EmailService {
     const dismissUrl = `${baseUrl}&action=dismiss`;
     const snoozeUrl = `${baseUrl}&action=snooze`;
 
-    const scheduledDate = new Date(scheduledTime);
-    const formattedTime = scheduledDate.toLocaleString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    const formattedTime = DateUtils.formatDateTime(
+      scheduledTime,
+      locale || "en-US",
+      timezone,
+      {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }
+    );
 
     const icon = trackingIcon || "📝";
     const subject = `🌱 Habitus reminder for ${icon} ${trackingQuestion}`;

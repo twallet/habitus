@@ -9,6 +9,7 @@ import { TrackingSchedule } from "../models/TrackingSchedule.js";
 import { ReminderService } from "./reminderService.js";
 import { BaseEntityService } from "./base/BaseEntityService.js";
 import { TrackingLifecycleManager } from "./lifecycle/TrackingLifecycleManager.js";
+import { DateUtils } from "@habitus/shared/utils";
 
 /**
  * Service for tracking-related database operations.
@@ -172,20 +173,20 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
         });
         const earliestSchedule = sortedSchedules[0];
 
-        // Construct date explicitly in local time to avoid timezone issues
-        // Parse date string (YYYY-MM-DD format) and create Date object in local timezone
-        const [year, month, day] = validatedFrequency.date
-          .split("-")
-          .map(Number);
-        const dateTime = new Date(
-          year,
-          month - 1,
-          day,
+        // Get user's timezone from database
+        const userRow = await this.db.get<{ timezone: string | null }>(
+          "SELECT timezone FROM users WHERE id = ?",
+          [validatedUserId]
+        );
+        const userTimezone = userRow?.timezone || undefined;
+
+        // Create datetime in user's timezone, then convert to UTC for storage
+        const isoDateTimeString = DateUtils.createDateTimeInTimezone(
+          validatedFrequency.date,
           earliestSchedule.hour,
           earliestSchedule.minutes,
-          0
+          userTimezone
         );
-        const isoDateTimeString = dateTime.toISOString();
 
         await this.reminderService.createReminder(
           tracking.id,

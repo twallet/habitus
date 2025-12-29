@@ -4,6 +4,8 @@ import { ReminderData, ReminderStatus } from "../models/Reminder";
 import { TrackingData } from "../models/Tracking";
 import { useReminders } from "../hooks/useReminders";
 import { useTrackings } from "../hooks/useTrackings";
+import { useAuth } from "../hooks/useAuth";
+import { formatUserDateTime } from "../utils/dateFormatting";
 import "./RemindersList.css";
 
 /**
@@ -78,7 +80,7 @@ class ReminderFilter {
         if (!filterValue.trim()) {
             return true;
         }
-        const timeDisplay = ReminderFormatter.formatDateTime(reminder.scheduled_time);
+        const timeDisplay = ReminderFormatter.formatDateTime(reminder.scheduled_time, user);
         return timeDisplay.toLowerCase().includes(filterValue.toLowerCase());
     }
 
@@ -245,13 +247,11 @@ export class ReminderFormatter {
     /**
      * Format date and time for display.
      * @param dateTime - ISO datetime string
+     * @param user - User data (optional, for locale/timezone)
      * @returns Formatted date and time string
      */
-    static formatDateTime(dateTime: string): string {
-        const date = new Date(dateTime);
-        const dateStr = date.toLocaleDateString();
-        const timeStr = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-        return `${dateStr} ${timeStr}`;
+    static formatDateTime(dateTime: string, user?: { locale?: string; timezone?: string } | null): string {
+        return formatUserDateTime(dateTime, user);
     }
 
     /**
@@ -343,6 +343,7 @@ export function RemindersList({
 }: RemindersListProps = {}) {
     // Use hook only if props not provided
     const hookReminders = useReminders();
+    const { user } = useAuth();
     const {
         reminders: hookRemindersData,
         isLoading: hookIsLoading,
@@ -581,7 +582,7 @@ export function RemindersList({
             });
             // Badge updates immediately via optimistic update in useReminders hook
             if (onMessage) {
-                const formattedTime = ReminderFormatter.formatDateTime(updatedReminder.scheduled_time);
+                const formattedTime = ReminderFormatter.formatDateTime(updatedReminder.scheduled_time, user);
                 onMessage(`Reminder snoozed successfully (Next: ${formattedTime})`, "success");
             }
         } catch (error) {
@@ -960,7 +961,7 @@ export function RemindersList({
 
                                 return (
                                     <tr key={reminder.id} className="reminder-row">
-                                        <td className="cell-time">{ReminderFormatter.formatDateTime(reminder.scheduled_time)}</td>
+                                        <td className="cell-time">{ReminderFormatter.formatDateTime(reminder.scheduled_time, user)}</td>
                                         <td className="cell-tracking">
                                             <span
                                                 title={ReminderFormatter.buildTrackingTooltip(tracking)}
@@ -1107,7 +1108,7 @@ export function RemindersList({
                                     <div className="reminder-card-title">
                                         <h3 className="reminder-card-question">{tracking.question}</h3>
                                         <div className="reminder-card-time">
-                                            {ReminderFormatter.formatDateTime(reminder.scheduled_time)}
+                                            {ReminderFormatter.formatDateTime(reminder.scheduled_time, user)}
                                         </div>
                                     </div>
                                 </div>

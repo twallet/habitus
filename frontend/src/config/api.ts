@@ -546,6 +546,24 @@ export class ApiClient {
   }
 
   /**
+   * Update locale and timezone preferences for the authenticated user.
+   * @param locale - Optional locale (BCP 47 format like 'en-US', 'es-AR')
+   * @param timezone - Optional timezone (IANA timezone like 'America/Buenos_Aires')
+   * @returns Promise resolving to updated user data
+   * @throws Error if request fails
+   * @public
+   */
+  async updateUserPreferences(
+    locale?: string,
+    timezone?: string
+  ): Promise<UserData> {
+    return this.put<UserData>(`${API_ENDPOINTS.users}/preferences`, {
+      locale,
+      timezone,
+    });
+  }
+
+  /**
    * Delete user account.
    * @returns Promise resolving when account is deleted
    * @throws Error if request fails

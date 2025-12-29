@@ -149,6 +149,8 @@ export class Database {
               email_verification_expires DATETIME,
               telegram_chat_id TEXT,
               notification_channels TEXT,
+              locale TEXT DEFAULT 'en-US',
+              timezone TEXT,
               last_access DATETIME,
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP

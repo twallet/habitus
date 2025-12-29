@@ -36,10 +36,12 @@ export class UserService {
       profile_picture_url: string | null;
       telegram_chat_id: string | null;
       notification_channels: string | null;
+      locale: string | null;
+      timezone: string | null;
       last_access: string | null;
       created_at: string;
     }>(
-      "SELECT id, name, email, profile_picture_url, telegram_chat_id, notification_channels, last_access, created_at FROM users ORDER BY id"
+      "SELECT id, name, email, profile_picture_url, telegram_chat_id, notification_channels, locale, timezone, last_access, created_at FROM users ORDER BY id"
     );
 
     console.log(
@@ -57,6 +59,8 @@ export class UserService {
       notification_channels: row.notification_channels
         ? JSON.parse(row.notification_channels)
         : undefined,
+      locale: row.locale || undefined,
+      timezone: row.timezone || undefined,
       last_access: row.last_access || undefined,
       created_at: row.created_at,
     }));
@@ -80,10 +84,12 @@ export class UserService {
       profile_picture_url: string | null;
       telegram_chat_id: string | null;
       notification_channels: string | null;
+      locale: string | null;
+      timezone: string | null;
       last_access: string | null;
       created_at: string;
     }>(
-      "SELECT id, name, email, profile_picture_url, telegram_chat_id, notification_channels, last_access, created_at FROM users WHERE id = ?",
+      "SELECT id, name, email, profile_picture_url, telegram_chat_id, notification_channels, locale, timezone, last_access, created_at FROM users WHERE id = ?",
       [id]
     );
 
@@ -109,6 +115,8 @@ export class UserService {
       notification_channels: row.notification_channels
         ? JSON.parse(row.notification_channels)
         : undefined,
+      locale: row.locale || undefined,
+      timezone: row.timezone || undefined,
       last_access: row.last_access || undefined,
       created_at: row.created_at,
     };
@@ -318,6 +326,70 @@ export class UserService {
 
     console.log(
       `[${new Date().toISOString()}] USER | Notification preferences updated successfully for userId: ${userId}`
+    );
+
+    return updatedUser;
+  }
+
+  /**
+   * Update locale and timezone preferences for a user.
+   * @param userId - The user ID
+   * @param locale - Optional locale (BCP 47 format like 'en-US', 'es-AR')
+   * @param timezone - Optional timezone (IANA timezone like 'America/Buenos_Aires')
+   * @returns Promise resolving to updated user data
+   * @throws Error if user not found
+   * @public
+   */
+  async updateLocaleAndTimezone(
+    userId: number,
+    locale?: string,
+    timezone?: string
+  ): Promise<UserData> {
+    console.log(
+      `[${new Date().toISOString()}] USER | Updating locale/timezone for userId: ${userId}, locale: ${
+        locale || "not provided"
+      }, timezone: ${timezone || "not provided"}`
+    );
+
+    // Get current user
+    const user = await User.loadById(userId, this.db);
+    if (!user) {
+      console.warn(
+        `[${new Date().toISOString()}] USER | Update locale/timezone failed: user not found for userId: ${userId}`
+      );
+      throw new Error("User not found");
+    }
+
+    // Build update object
+    const updates: Partial<UserData> = {};
+    if (locale !== undefined) {
+      updates.locale = locale || undefined;
+    }
+    if (timezone !== undefined) {
+      updates.timezone = timezone || undefined;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      console.warn(
+        `[${new Date().toISOString()}] USER | Update locale/timezone failed: no fields to update for userId: ${userId}`
+      );
+      throw new Error("No fields to update");
+    }
+
+    // Update user
+    await user.update(updates, this.db);
+
+    // Retrieve updated user
+    const updatedUser = await this.getUserById(userId);
+    if (!updatedUser) {
+      console.error(
+        `[${new Date().toISOString()}] USER | Failed to retrieve updated user for userId: ${userId}`
+      );
+      throw new Error("Failed to retrieve updated user");
+    }
+
+    console.log(
+      `[${new Date().toISOString()}] USER | Locale/timezone updated successfully for userId: ${userId}`
     );
 
     return updatedUser;

@@ -49,6 +49,18 @@ export class User {
   notification_channels?: string[];
 
   /**
+   * User locale (optional, BCP 47 format like 'en-US', 'es-AR', 'fr-FR').
+   * @public
+   */
+  locale?: string;
+
+  /**
+   * User timezone (optional, IANA timezone like 'America/Buenos_Aires', 'Europe/London').
+   * @public
+   */
+  timezone?: string;
+
+  /**
    * Last access timestamp (optional).
    * @public
    */
@@ -72,6 +84,8 @@ export class User {
     this.profile_picture_url = data.profile_picture_url;
     this.telegram_chat_id = data.telegram_chat_id;
     this.notification_channels = data.notification_channels;
+    this.locale = data.locale;
+    this.timezone = data.timezone;
     this.last_access = data.last_access;
     this.created_at = data.created_at;
   }
@@ -102,6 +116,8 @@ export class User {
       profile_picture_url: this.profile_picture_url,
       telegram_chat_id: this.telegram_chat_id,
       notification_channels: this.notification_channels,
+      locale: this.locale,
+      timezone: this.timezone,
       last_access: this.last_access,
       created_at: this.created_at,
     };

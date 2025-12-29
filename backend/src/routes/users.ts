@@ -202,6 +202,46 @@ router.put(
 );
 
 /**
+ * PUT /api/users/preferences
+ * Update authenticated user's locale and timezone preferences.
+ * @route PUT /api/users/preferences
+ * @header {string} Authorization - Bearer token
+ * @body {string} locale - Optional locale (BCP 47 format like 'en-US', 'es-AR')
+ * @body {string} timezone - Optional timezone (IANA timezone like 'America/Buenos_Aires')
+ * @returns {UserData} Updated user data
+ */
+router.put(
+  "/preferences",
+  authenticateToken,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId!;
+      const { locale, timezone } = req.body;
+
+      const user = await getUserServiceInstance().updateLocaleAndTimezone(
+        userId,
+        locale,
+        timezone
+      );
+
+      res.json(user);
+    } catch (error) {
+      if (error instanceof Error && error.message === "User not found") {
+        return res.status(404).json({ error: error.message });
+      }
+      if (error instanceof Error && error.message === "No fields to update") {
+        return res.status(400).json({ error: error.message });
+      }
+      console.error(
+        `[${new Date().toISOString()}] USER_ROUTE | Error updating preferences:`,
+        error
+      );
+      res.status(500).json({ error: "Error updating preferences" });
+    }
+  }
+);
+
+/**
  * GET /api/users/:id
  * Get a user by ID.
  * @route GET /api/users/:id

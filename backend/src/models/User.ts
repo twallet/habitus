@@ -70,6 +70,16 @@ export class User extends BaseUser {
         );
       }
 
+      if (this.locale !== undefined) {
+        updates.push("locale = ?");
+        values.push(this.locale || null);
+      }
+
+      if (this.timezone !== undefined) {
+        updates.push("timezone = ?");
+        values.push(this.timezone || null);
+      }
+
       updates.push("updated_at = CURRENT_TIMESTAMP");
       values.push(this.id);
 
@@ -123,6 +133,12 @@ export class User extends BaseUser {
     if (updates.notification_channels !== undefined) {
       this.notification_channels = updates.notification_channels;
     }
+    if (updates.locale !== undefined) {
+      this.locale = updates.locale;
+    }
+    if (updates.timezone !== undefined) {
+      this.timezone = updates.timezone;
+    }
 
     return this.save(db);
   }
@@ -161,10 +177,12 @@ export class User extends BaseUser {
       profile_picture_url: string | null;
       telegram_chat_id: string | null;
       notification_channels: string | null;
+      locale: string | null;
+      timezone: string | null;
       last_access: string | null;
       created_at: string;
     }>(
-      "SELECT id, name, email, profile_picture_url, telegram_chat_id, notification_channels, last_access, created_at FROM users WHERE id = ?",
+      "SELECT id, name, email, profile_picture_url, telegram_chat_id, notification_channels, locale, timezone, last_access, created_at FROM users WHERE id = ?",
       [id]
     );
 
@@ -202,10 +220,12 @@ export class User extends BaseUser {
       profile_picture_url: string | null;
       telegram_chat_id: string | null;
       notification_channels: string | null;
+      locale: string | null;
+      timezone: string | null;
       last_access: string | null;
       created_at: string;
     }>(
-      "SELECT id, name, email, profile_picture_url, telegram_chat_id, notification_channels, last_access, created_at FROM users WHERE email = ?",
+      "SELECT id, name, email, profile_picture_url, telegram_chat_id, notification_channels, locale, timezone, last_access, created_at FROM users WHERE email = ?",
       [validatedEmail]
     );
 

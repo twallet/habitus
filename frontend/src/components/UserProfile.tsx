@@ -1,4 +1,5 @@
 import { UserData } from '../models/User';
+import { formatUserDateTime } from '../utils/dateFormatting';
 
 interface UserProfileProps {
   user: UserData;
@@ -13,30 +14,6 @@ interface UserProfileProps {
  * @public
  */
 export function UserProfile({ user }: UserProfileProps) {
-  /**
-   * Format date for display.
-   * @param dateString - ISO date string
-   * @returns Formatted date string
-   * @internal
-   */
-  const formatDate = (dateString: string): string => {
-    try {
-      const date = new Date(dateString);
-      // Check if date is valid
-      if (isNaN(date.getTime())) {
-        return dateString;
-      }
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    } catch {
-      return dateString;
-    }
-  };
 
   /**
    * Get user initials from name.
@@ -86,13 +63,13 @@ export function UserProfile({ user }: UserProfileProps) {
           {user.last_access && (
             <div className="profile-field">
               <label>Last Access</label>
-              <div className="profile-value">{formatDate(user.last_access)}</div>
+              <div className="profile-value">{formatUserDateTime(user.last_access, user)}</div>
             </div>
           )}
           {user.created_at && (
             <div className="profile-field">
               <label>Member Since</label>
-              <div className="profile-value">{formatDate(user.created_at)}</div>
+              <div className="profile-value">{formatUserDateTime(user.created_at, user)}</div>
             </div>
           )}
         </div>

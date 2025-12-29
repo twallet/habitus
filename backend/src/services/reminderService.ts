@@ -1326,7 +1326,9 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       reminder.scheduled_time,
       tracking.icon,
       tracking.notes,
-      reminder.notes
+      reminder.notes,
+      user.locale,
+      user.timezone
     );
     console.log(
       `[${new Date().toISOString()}] REMINDER | Email notification sent for reminder ID ${
@@ -1360,7 +1362,9 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       reminder.scheduled_time,
       tracking.icon,
       tracking.notes,
-      reminder.notes
+      reminder.notes,
+      user.locale,
+      user.timezone
     );
     console.log(
       `[${new Date().toISOString()}] REMINDER | Telegram notification sent for reminder ID ${

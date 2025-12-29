@@ -6,6 +6,7 @@ import {
 } from "../../models/Tracking.js";
 import { ReminderService } from "../reminderService.js";
 import { LifecycleManager } from "./LifecycleManager.js";
+import { DateUtils } from "@habitus/shared/utils";
 
 /**
  * Tracking lifecycle manager for managing tracking state transitions.
@@ -212,20 +213,20 @@ export class TrackingLifecycleManager extends LifecycleManager<
           });
           const earliestSchedule = sortedSchedules[0];
 
-          // Construct date explicitly in local time to avoid timezone issues
-          // Parse date string (YYYY-MM-DD format) and create Date object in local timezone
-          const [year, month, day] = tracking.frequency.date
-            .split("-")
-            .map(Number);
-          const dateTime = new Date(
-            year,
-            month - 1,
-            day,
+          // Get user's timezone from database
+          const userRow = await this.db.get<{ timezone: string | null }>(
+            "SELECT timezone FROM users WHERE id = ?",
+            [tracking.user_id]
+          );
+          const userTimezone = userRow?.timezone || undefined;
+
+          // Create datetime in user's timezone, then convert to UTC for storage
+          const isoDateTimeString = DateUtils.createDateTimeInTimezone(
+            tracking.frequency.date,
             earliestSchedule.hour,
             earliestSchedule.minutes,
-            0
+            userTimezone
           );
-          const isoDateTimeString = dateTime.toISOString();
 
           await this.reminderService.createReminder(
             tracking.id,
