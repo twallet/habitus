@@ -1476,7 +1476,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         scheduled_time: futureTime,
                         status: ReminderStatus.PENDING,
-                        value: ReminderValue.COMPLETED
+                        value: null
                     },
                 ];
 
@@ -1550,7 +1550,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         scheduled_time: pastTime,
                         status: ReminderStatus.PENDING,
-                        value: ReminderValue.COMPLETED
+                        value: null
                     },
                 ];
 
@@ -1574,7 +1574,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         scheduled_time: pastTime,
                         status: ReminderStatus.PENDING,
-                        value: ReminderValue.COMPLETED
+                        value: null
                     },
                     {
                         id: 2,
@@ -1582,7 +1582,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         scheduled_time: laterFutureTime,
                         status: ReminderStatus.UPCOMING,
-                        value: ReminderValue.COMPLETED
+                        value: null
                     },
                 ];
 
@@ -1625,7 +1625,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         scheduled_time: futureTime,
                         status: ReminderStatus.PENDING,
-                        value: ReminderValue.COMPLETED
+                        value: null
                     },
                 ];
 
@@ -1649,7 +1649,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         scheduled_time: laterFutureTime,
                         status: ReminderStatus.UPCOMING,
-                        value: ReminderValue.COMPLETED
+                        value: null
                     },
                 ];
 
@@ -1828,7 +1828,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         scheduled_time: futureTime,
                         status: ReminderStatus.UPCOMING,
-                        value: ReminderValue.COMPLETED
+                        value: null
                     },
                 ];
 
@@ -1990,7 +1990,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         scheduled_time: futureTime,
                         status: ReminderStatus.UPCOMING,
-                        value: ReminderValue.COMPLETED
+                        value: null
                     },
                 ];
 
@@ -2066,7 +2066,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         scheduled_time: laterFutureTime,
                         status: ReminderStatus.PENDING,
-                        value: ReminderValue.COMPLETED
+                        value: null
                     },
                     {
                         id: 2,
@@ -2074,7 +2074,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         scheduled_time: futureTime,
                         status: ReminderStatus.PENDING,
-                        value: ReminderValue.COMPLETED
+                        value: null
                     },
                 ];
 
@@ -2118,7 +2118,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         scheduled_time: laterFutureTime,
                         status: ReminderStatus.UPCOMING,
-                        value: ReminderValue.COMPLETED
+                        value: null
                     },
                     {
                         id: 2,
@@ -2126,7 +2126,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         scheduled_time: futureTime,
                         status: ReminderStatus.UPCOMING,
-                        value: ReminderValue.COMPLETED
+                        value: null
                     },
                 ];
 
@@ -2170,7 +2170,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         scheduled_time: laterFutureTime,
                         status: ReminderStatus.UPCOMING,
-                        value: ReminderValue.COMPLETED
+                        value: null
                     },
                     {
                         id: 2,
@@ -2178,7 +2178,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         scheduled_time: futureTime,
                         status: ReminderStatus.PENDING,
-                        value: ReminderValue.COMPLETED
+                        value: null
                     },
                 ];
 
@@ -2222,7 +2222,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         scheduled_time: pastTime,
                         status: ReminderStatus.PENDING,
-                        value: ReminderValue.COMPLETED
+                        value: null
                     },
                 ];
 

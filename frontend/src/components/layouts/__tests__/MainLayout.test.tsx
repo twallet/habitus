@@ -7,7 +7,7 @@ import { MainLayout } from '../MainLayout';
 import { useAuth } from '../../../hooks/useAuth';
 import { useCoordinatedEntities } from '../../../hooks/useCoordinatedEntities';
 import { TrackingState, Frequency } from '../../../models/Tracking';
-import { ReminderStatus } from '../../../models/Reminder';
+import { ReminderStatus, ReminderValue } from '../../../models/Reminder';
 
 // Mock hooks
 vi.mock('../../../hooks/useAuth', () => ({
@@ -52,6 +52,7 @@ describe('MainLayout', () => {
             user_id: 1,
             scheduled_time: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
             status: ReminderStatus.PENDING,
+            value: null,
             notes: undefined,
         },
     ];
@@ -179,6 +180,7 @@ describe('MainLayout', () => {
                 user_id: 1,
                 scheduled_time: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
                 status: ReminderStatus.PENDING,
+                value: null,
                 notes: undefined,
             },
             {
@@ -187,6 +189,7 @@ describe('MainLayout', () => {
                 user_id: 1,
                 scheduled_time: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
                 status: ReminderStatus.PENDING,
+                value: null,
                 notes: undefined,
             },
         ];
@@ -617,6 +620,7 @@ describe('MainLayout', () => {
             user_id: 1,
             scheduled_time: new Date().toISOString(),
             status: ReminderStatus.PENDING,
+            value: null,
             notes: undefined,
         }];
 
@@ -661,6 +665,7 @@ describe('MainLayout', () => {
                 user_id: 1,
                 scheduled_time: new Date().toISOString(),
                 status: ReminderStatus.PENDING,
+                value: null,
                 notes: undefined,
             },
         ];
@@ -703,6 +708,7 @@ describe('MainLayout', () => {
                 user_id: 1,
                 scheduled_time: new Date().toISOString(),
                 status: ReminderStatus.PENDING,
+                value: null,
                 notes: undefined,
             },
         ];
@@ -743,6 +749,7 @@ describe('MainLayout', () => {
                 user_id: 1,
                 scheduled_time: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
                 status: ReminderStatus.PENDING,
+                value: null,
                 notes: undefined,
             },
             {
@@ -751,6 +758,7 @@ describe('MainLayout', () => {
                 user_id: 1,
                 scheduled_time: new Date().toISOString(),
                 status: ReminderStatus.ANSWERED,
+                value: ReminderValue.COMPLETED,
                 notes: undefined,
             },
             {
@@ -759,6 +767,7 @@ describe('MainLayout', () => {
                 user_id: 1,
                 scheduled_time: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
                 status: ReminderStatus.UPCOMING,
+                value: null,
                 notes: undefined,
             },
         ];
