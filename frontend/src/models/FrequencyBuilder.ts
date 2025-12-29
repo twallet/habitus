@@ -394,7 +394,9 @@ export class FrequencyBuilder {
         if (!datePattern.test(this.oneTimeDate)) {
           return "Date must be in YYYY-MM-DD format";
         }
-        const dateObj = new Date(this.oneTimeDate + "T00:00:00");
+        // Parse date string (YYYY-MM-DD format) and create Date object in local timezone
+        const [year, month, day] = this.oneTimeDate.split("-").map(Number);
+        const dateObj = new Date(year, month - 1, day);
         if (isNaN(dateObj.getTime())) {
           return "Invalid date";
         }
