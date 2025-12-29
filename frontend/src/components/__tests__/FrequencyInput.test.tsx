@@ -435,6 +435,7 @@ describe("FrequencyInput", () => {
     it("should handle disabled state for all inputs", () => {
         render(
             <FrequencyInput
+                value={{ type: "daily" }}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
                 disabled={true}
@@ -501,7 +502,7 @@ describe("FrequencyInput", () => {
         // Change controlled frequency
         rerender(
             <FrequencyInput
-                value={{ type: "monthly", day: 1 }}
+                value={{ type: "monthly", kind: "day_number", day_numbers: [1] }}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
                 frequency="monthly"
