@@ -748,8 +748,10 @@ describe("TrackingsList", () => {
             />
         );
 
-        const secondMondayElements = screen.getAllByText("Second Monday of month");
-        expect(secondMondayElements.length).toBeGreaterThan(0);
+        // The FrequencyDisplay component shows "2nd Mon" (abbreviated)
+        // Check for both the badge and detail separately
+        expect(screen.getByText("Monthly")).toBeInTheDocument();
+        expect(screen.getByText("2nd Mon")).toBeInTheDocument();
     });
 
     it("should format all days of week as Daily", () => {
