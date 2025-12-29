@@ -37,7 +37,28 @@ export class EmailService {
         config?.pass !== undefined ? config.pass : process.env.SMTP_PASS || "",
       frontendUrl:
         config?.frontendUrl ||
-        `${ServerConfig.getServerUrl()}:${ServerConfig.getPort()}`,
+        (() => {
+          const serverUrl = ServerConfig.getServerUrl();
+          // In production with custom domain, don't include port (Railway handles routing)
+          // If URL already includes protocol (http/https), use it as-is
+          // Otherwise, only add port in development (localhost)
+          if (
+            serverUrl.startsWith("https://") ||
+            serverUrl.startsWith("http://")
+          ) {
+            // Production: use URL as-is (no port needed)
+            // Development: add port if it's localhost
+            if (
+              serverUrl.includes("localhost") ||
+              serverUrl.includes("127.0.0.1")
+            ) {
+              return `${serverUrl}:${ServerConfig.getPort()}`;
+            }
+            return serverUrl;
+          }
+          // Fallback: add port if URL doesn't have protocol
+          return `${serverUrl}:${ServerConfig.getPort()}`;
+        })(),
     };
   }
 
