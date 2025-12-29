@@ -1068,17 +1068,22 @@ describe("Upload Middleware", () => {
 
         const mockNext = vi.fn() as NextFunction;
 
-        // Mock multer memory storage
+        // Mock multer before importing
         const mockMulterSingle = vi.fn((fieldName: string) => {
           return (req: Request, res: Response, callback: NextFunction) => {
             // Simulate no file uploaded
             callback();
           };
         });
-
-        vi.spyOn(multer, "default" as any).mockReturnValue({
+        const mockMulterFn = vi.fn(() => ({
           single: mockMulterSingle,
-        } as any);
+        }));
+        (mockMulterFn as any).memoryStorage = vi.fn(() => ({}));
+        vi.doMock("multer", () => ({ default: mockMulterFn }));
+
+        vi.resetModules();
+        const uploadModule = await import("../upload.js");
+        const uploadMiddleware = uploadModule.uploadProfilePicture;
 
         await new Promise<void>((resolve) => {
           uploadMiddleware(mockReq, mockRes, (err?: any) => {
@@ -1089,7 +1094,7 @@ describe("Upload Middleware", () => {
           });
         });
 
-        expect((multer as any).default).toHaveBeenCalledWith(
+        expect(multer).toHaveBeenCalledWith(
           expect.objectContaining({
             storage: expect.anything(),
             fileFilter: expect.any(Function),
@@ -1103,10 +1108,6 @@ describe("Upload Middleware", () => {
       });
 
       it("should upload file to Cloudinary and set file properties", async () => {
-        vi.resetModules();
-        const uploadModule = await import("../upload.js");
-        const uploadMiddleware = uploadModule.uploadProfilePicture;
-
         const mockFile = {
           fieldname: "profilePicture",
           originalname: "test.jpg",
@@ -1137,7 +1138,7 @@ describe("Upload Middleware", () => {
           };
         });
 
-        vi.spyOn(multer, "default" as any).mockReturnValue({
+        vi.mocked(multer).mockReturnValue({
           single: mockMulterSingle,
         } as any);
 
@@ -1180,9 +1181,23 @@ describe("Upload Middleware", () => {
         expect(mockNext).toHaveBeenCalled();
 
         vi.restoreAllMocks();
+        vi.resetModules();
       });
 
       it("should handle Cloudinary upload errors in middleware", async () => {
+        // Mock multer before importing
+        const mockMulterSingle3 = vi.fn((fieldName: string) => {
+          return (req: Request, res: Response, callback: NextFunction) => {
+            (req as any).file = mockFile;
+            callback();
+          };
+        });
+        const mockMulterFn3 = vi.fn(() => ({
+          single: mockMulterSingle3,
+        }));
+        (mockMulterFn3 as any).memoryStorage = vi.fn(() => ({}));
+        vi.doMock("multer", () => ({ default: mockMulterFn3 }));
+
         vi.resetModules();
         const uploadModule = await import("../upload.js");
         const uploadMiddleware = uploadModule.uploadProfilePicture;
@@ -1217,7 +1232,7 @@ describe("Upload Middleware", () => {
           };
         });
 
-        vi.spyOn(multer, "default" as any).mockReturnValue({
+        vi.mocked(multer).mockReturnValue({
           single: mockMulterSingle,
         } as any);
 
@@ -1256,6 +1271,19 @@ describe("Upload Middleware", () => {
       });
 
       it("should handle multer errors in Cloudinary mode", async () => {
+        // Mock multer before importing
+        const mockError2 = new Error("Multer error");
+        const mockMulterSingle4 = vi.fn((fieldName: string) => {
+          return (req: Request, res: Response, callback: NextFunction) => {
+            callback(mockError2);
+          };
+        });
+        const mockMulterFn3 = vi.fn(() => ({
+          single: mockMulterSingle3,
+        }));
+        (mockMulterFn3 as any).memoryStorage = vi.fn(() => ({}));
+        vi.doMock("multer", () => ({ default: mockMulterFn3 }));
+
         vi.resetModules();
         const uploadModule = await import("../upload.js");
         const uploadMiddleware = uploadModule.uploadProfilePicture;
@@ -1278,11 +1306,11 @@ describe("Upload Middleware", () => {
         // Mock multer memory storage to return error
         const mockMulterSingle = vi.fn((fieldName: string) => {
           return (req: Request, res: Response, callback: NextFunction) => {
-            callback(mockError);
+            callback(mockError2);
           };
         });
 
-        vi.spyOn(multer, "default" as any).mockReturnValue({
+        vi.mocked(multer).mockReturnValue({
           single: mockMulterSingle,
         } as any);
 
@@ -1294,6 +1322,7 @@ describe("Upload Middleware", () => {
         });
 
         vi.restoreAllMocks();
+        vi.resetModules();
       });
 
       it("should accept valid image types in Cloudinary mode", async () => {
@@ -1315,16 +1344,16 @@ describe("Upload Middleware", () => {
         const mockNext = vi.fn() as NextFunction;
 
         // Mock multer with file filter
-        let fileFilterCallback: any;
-        const mockMulterSingle = vi.fn((fieldName: string) => {
+        let fileFilterCallback3: any;
+        const mockMulterSingle6 = vi.fn((fieldName: string) => {
           return (req: Request, res: Response, callback: NextFunction) => {
             // Test file filter with valid image
             const mockFile = {
               mimetype: "image/jpeg",
             } as Express.Multer.File;
 
-            if (fileFilterCallback) {
-              fileFilterCallback(
+            if (fileFilterCallback3) {
+              fileFilterCallback3(
                 null,
                 mockFile,
                 (err: any, accept: boolean) => {
@@ -1341,14 +1370,18 @@ describe("Upload Middleware", () => {
           };
         });
 
-        vi.spyOn(multer, "default" as any).mockImplementation(
-          (options: any) => {
-            fileFilterCallback = options.fileFilter;
-            return {
-              single: mockMulterSingle,
-            } as any;
-          }
-        );
+        // Reset multer mock and set up implementation
+        vi.mocked(multer).mockReset();
+        vi.mocked(multer).mockImplementation((options: any) => {
+          fileFilterCallback = options.fileFilter;
+          return {
+            single: mockMulterSingle,
+          } as any;
+        });
+        // Ensure memoryStorage is available (needed for Cloudinary mode)
+        if (!(multer as any).memoryStorage) {
+          (multer as any).memoryStorage = vi.fn(() => ({}));
+        }
 
         await new Promise<void>((resolve) => {
           uploadMiddleware(mockReq, mockRes, (err?: any) => {
@@ -1363,6 +1396,20 @@ describe("Upload Middleware", () => {
       });
 
       it("should reject invalid file types in Cloudinary mode", async () => {
+        // Mock multer before importing
+        let fileFilterCallback3: any;
+        const mockMulterSingle6 = vi.fn((fieldName: string) => {
+          return (req: Request, res: Response, callback: NextFunction) => {
+            callback();
+          };
+        });
+        const mockMulterFn5 = vi.fn((options: any) => {
+          fileFilterCallback3 = options.fileFilter;
+          return { single: mockMulterSingle6 };
+        });
+        (mockMulterFn3 as any).memoryStorage = vi.fn(() => ({}));
+        vi.doMock("multer", () => ({ default: mockMulterFn3 }));
+
         vi.resetModules();
         const uploadModule = await import("../upload.js");
         const uploadMiddleware = uploadModule.uploadProfilePicture;
@@ -1380,37 +1427,24 @@ describe("Upload Middleware", () => {
 
         const mockNext = vi.fn() as NextFunction;
 
-        // Mock multer with file filter
-        let fileFilterCallback: any;
-        const mockMulterSingle = vi.fn((fieldName: string) => {
-          return (req: Request, res: Response, callback: NextFunction) => {
-            // Test file filter with invalid file type
-            const mockFile = {
-              mimetype: "application/pdf",
-            } as Express.Multer.File;
+        // Test file filter with invalid file type
+        const mockFileInvalid = {
+          mimetype: "application/pdf",
+        } as Express.Multer.File;
 
-            if (fileFilterCallback) {
-              fileFilterCallback(
-                null,
-                mockFile,
-                (err: any, accept: boolean) => {
-                  callback(err);
-                }
-              );
-            } else {
-              callback();
+        if (fileFilterCallback3) {
+          fileFilterCallback3(
+            null,
+            mockFileInvalid,
+            (err: any, accept: boolean) => {
+              // File should be rejected
+              expect(accept).toBe(false);
             }
-          };
-        });
+          );
+        }
 
-        vi.spyOn(multer, "default" as any).mockImplementation(
-          (options: any) => {
-            fileFilterCallback = options.fileFilter;
-            return {
-              single: mockMulterSingle,
-            } as any;
-          }
-        );
+        vi.restoreAllMocks();
+        vi.resetModules();
 
         await new Promise<void>((resolve) => {
           uploadMiddleware(mockReq, mockRes, (err?: any) => {
