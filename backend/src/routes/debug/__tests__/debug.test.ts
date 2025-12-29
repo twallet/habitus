@@ -478,5 +478,390 @@ describe("Debug Routes", () => {
       expect(response.status).toBe(500);
       expect(response.body.error).toBe("Error generating debug log");
     });
+
+    it("should return debug log in dev mode without auth", async () => {
+      // Mock authenticateTokenOptional to not set userId (dev mode without auth)
+      (
+        authMiddlewareModule.authenticateTokenOptional as any
+      ).mockImplementation((req: any, res: any, next: any) => {
+        req.userId = undefined;
+        next();
+      });
+
+      // Set NODE_ENV to development
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "development";
+
+      // Insert tracking directly into database (will be accessed via getAllTrackings)
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [testUserId, "Dev Mode Question", JSON.stringify({ type: "daily" })]
+      );
+      const trackingId = result.lastID;
+
+      // Insert reminder directly
+      await testDb.run(
+        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status) VALUES (?, ?, ?, ?)",
+        [trackingId, testUserId, "2024-01-01 10:00:00", "Pending"]
+      );
+
+      const response = await request(app).get("/api/debug");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("=== USERS ===");
+      expect(response.body.log).toContain("=== TRACKINGS ===");
+      expect(response.body.log).toContain("Dev Mode Question");
+
+      // Restore NODE_ENV
+      process.env.NODE_ENV = originalEnv;
+    });
+
+    it("should return 401 in production mode without auth", async () => {
+      // Mock authenticateTokenOptional to not set userId
+      (
+        authMiddlewareModule.authenticateTokenOptional as any
+      ).mockImplementation((req: any, res: any, next: any) => {
+        req.userId = undefined;
+        next();
+      });
+
+      // Set NODE_ENV to production
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "production";
+
+      const response = await request(app).get("/api/debug");
+
+      expect(response.status).toBe(401);
+      expect(response.body.error).toBe("Authorization token required");
+
+      // Restore NODE_ENV
+      process.env.NODE_ENV = originalEnv;
+    });
+
+    it("should handle tracking with Paused state", async () => {
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, frequency, state) VALUES (?, ?, ?, ?)",
+        [
+          testUserId,
+          "Paused Question",
+          JSON.stringify({ type: "daily" }),
+          "Paused",
+        ]
+      );
+      const trackingId = result.lastID;
+
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 9, 0]
+      );
+
+      const response = await request(app)
+        .get("/api/debug")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("State=Paused");
+    });
+
+    it("should handle tracking with Archived state", async () => {
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, frequency, state) VALUES (?, ?, ?, ?)",
+        [
+          testUserId,
+          "Archived Question",
+          JSON.stringify({ type: "daily" }),
+          "Archived",
+        ]
+      );
+      const trackingId = result.lastID;
+
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 9, 0]
+      );
+
+      const response = await request(app)
+        .get("/api/debug")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("State=Archived");
+    });
+
+    it("should handle reminder with Answered status and value", async () => {
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", JSON.stringify({ type: "daily" })]
+      );
+      const trackingId = result.lastID;
+
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 9, 0]
+      );
+
+      // Insert reminder with Answered status and value
+      await testDb.run(
+        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status, value) VALUES (?, ?, ?, ?, ?)",
+        [trackingId, testUserId, "2024-01-01 09:00:00", "Answered", "Completed"]
+      );
+
+      const response = await request(app)
+        .get("/api/debug")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("Status=Answered");
+      expect(response.body.log).toContain("Answer=Completed");
+    });
+
+    it("should handle reminder with Upcoming status", async () => {
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", JSON.stringify({ type: "daily" })]
+      );
+      const trackingId = result.lastID;
+
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 9, 0]
+      );
+
+      // Insert reminder with Upcoming status
+      await testDb.run(
+        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status) VALUES (?, ?, ?, ?)",
+        [trackingId, testUserId, "2024-12-31 09:00:00", "Upcoming"]
+      );
+
+      const response = await request(app)
+        .get("/api/debug")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("Status=Upcoming");
+    });
+
+    it("should handle reminder with Answered status and null value", async () => {
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [testUserId, "Test Question", JSON.stringify({ type: "daily" })]
+      );
+      const trackingId = result.lastID;
+
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 9, 0]
+      );
+
+      // Insert reminder with Answered status but null value
+      await testDb.run(
+        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status, value) VALUES (?, ?, ?, ?, ?)",
+        [trackingId, testUserId, "2024-01-01 09:00:00", "Answered", null]
+      );
+
+      const response = await request(app)
+        .get("/api/debug")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("Status=Answered");
+      expect(response.body.log).toContain("Answer=null");
+    });
+
+    it("should handle user with locale, timezone, profile_picture_url, and last_access", async () => {
+      await testDb.run(
+        "UPDATE users SET locale = ?, timezone = ?, profile_picture_url = ?, last_access = ? WHERE id = ?",
+        [
+          "es-ES",
+          "America/New_York",
+          "https://example.com/avatar.jpg",
+          "2024-01-01 12:00:00",
+          testUserId,
+        ]
+      );
+
+      const response = await request(app)
+        .get("/api/debug")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("Locale=es-ES");
+      expect(response.body.log).toContain("Timezone=America/New_York");
+      expect(response.body.log).toContain(
+        "ProfilePicture=https://example.com/avatar.jpg"
+      );
+      expect(response.body.log).toContain("LastAccess=");
+    });
+
+    it("should handle user with null locale, timezone, and profile_picture_url", async () => {
+      await testDb.run(
+        "UPDATE users SET locale = NULL, timezone = NULL, profile_picture_url = NULL, last_access = NULL WHERE id = ?",
+        [testUserId]
+      );
+
+      const response = await request(app)
+        .get("/api/debug")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("Locale=null");
+      expect(response.body.log).toContain("Timezone=null");
+      expect(response.body.log).toContain("ProfilePicture=null");
+      expect(response.body.log).toContain("LastAccess=null");
+    });
+
+    it("should handle tracking with invalid JSON frequency in dev mode", async () => {
+      // Mock authenticateTokenOptional to not set userId (dev mode without auth)
+      (
+        authMiddlewareModule.authenticateTokenOptional as any
+      ).mockImplementation((req: any, res: any, next: any) => {
+        req.userId = undefined;
+        next();
+      });
+
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "development";
+
+      // Insert tracking with invalid JSON frequency
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [testUserId, "Invalid JSON Question", "invalid json {"]
+      );
+      const trackingId = result.lastID;
+
+      // Mock console.error to avoid noise in test output
+      const consoleErrorSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+
+      const response = await request(app).get("/api/debug");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("Invalid JSON Question");
+      // The frequency should still be displayed even if JSON parsing fails
+      expect(consoleErrorSpy).toHaveBeenCalled();
+
+      consoleErrorSpy.mockRestore();
+      process.env.NODE_ENV = originalEnv;
+    });
+
+    it("should handle tracking with null frequency in dev mode", async () => {
+      // Mock authenticateTokenOptional to not set userId (dev mode without auth)
+      (
+        authMiddlewareModule.authenticateTokenOptional as any
+      ).mockImplementation((req: any, res: any, next: any) => {
+        req.userId = undefined;
+        next();
+      });
+
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "development";
+
+      // Note: frequency is NOT NULL in schema, but we can test with empty string
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [testUserId, "Empty Frequency Question", ""]
+      );
+      const trackingId = result.lastID;
+
+      const response = await request(app).get("/api/debug");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("Empty Frequency Question");
+
+      process.env.NODE_ENV = originalEnv;
+    });
+
+    it("should format dates correctly in GMT-3 timezone", async () => {
+      // Insert tracking with specific date
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, frequency, created_at) VALUES (?, ?, ?, ?)",
+        [
+          testUserId,
+          "Date Test Question",
+          JSON.stringify({ type: "daily" }),
+          "2024-01-01 12:00:00",
+        ]
+      );
+      const trackingId = result.lastID;
+
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 9, 0]
+      );
+
+      const response = await request(app)
+        .get("/api/debug")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(200);
+      // The date should be formatted (not the raw SQLite format)
+      expect(response.body.log).toContain("Created=");
+      // Should not contain the raw SQLite format
+      expect(response.body.log).not.toContain("2024-01-01 12:00:00");
+    });
+
+    it("should handle tracking with no schedules", async () => {
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [testUserId, "No Schedules Question", JSON.stringify({ type: "daily" })]
+      );
+
+      const response = await request(app)
+        .get("/api/debug")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("Schedules=[None]");
+    });
+
+    it("should handle multiple reminders for same tracking", async () => {
+      const result = await testDb.run(
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [
+          testUserId,
+          "Multiple Reminders Question",
+          JSON.stringify({ type: "daily" }),
+        ]
+      );
+      const trackingId = result.lastID;
+
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 9, 0]
+      );
+
+      // Insert multiple reminders
+      await testDb.run(
+        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status) VALUES (?, ?, ?, ?)",
+        [trackingId, testUserId, "2024-01-01 09:00:00", "Pending"]
+      );
+      await testDb.run(
+        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status) VALUES (?, ?, ?, ?)",
+        [trackingId, testUserId, "2024-01-02 09:00:00", "Pending"]
+      );
+
+      const response = await request(app)
+        .get("/api/debug")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(200);
+      // Should contain multiple REMINDER entries
+      const reminderMatches = response.body.log.match(/REMINDER/g);
+      expect(reminderMatches).not.toBeNull();
+      expect(reminderMatches!.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("should handle empty users list", async () => {
+      // Delete the test user
+      await testDb.run("DELETE FROM users WHERE id = ?", [testUserId]);
+
+      const response = await request(app)
+        .get("/api/debug")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("No users found in the database.");
+    });
   });
 });
