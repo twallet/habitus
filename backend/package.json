@@ -8,7 +8,8 @@
     "start": "node dist/server.js",
     "test": "vitest run --config ../config/vitest.config.ts --coverage",
     "test:watch": "vitest --config ../config/vitest.config.ts",
-    "test:coverage": "vitest run --config ../config/vitest.config.ts --coverage"
+    "test:coverage": "vitest run --config ../config/vitest.config.ts --coverage",
+    "test:smtp": "tsx src/test-smtp.ts"
   },
   "dependencies": {
     "@habitus/shared": "^1.0.0",
