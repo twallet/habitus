@@ -64,7 +64,7 @@ async function createTestDatabase(): Promise<Database> {
           );
         });
       });
-    };
+    });
   });
 }
 
@@ -169,9 +169,14 @@ describe("ReminderValueNullableMigration", () => {
     await expect(
       db.run(
         "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status, value) VALUES (?, ?, ?, ?, ?)",
-        [trackingId, userId, "2024-01-01T10:00:00Z", ReminderStatus.ANSWERED, null]
+        [
+          trackingId,
+          userId,
+          "2024-01-01T10:00:00Z",
+          ReminderStatus.ANSWERED,
+          null,
+        ]
       )
     ).rejects.toThrow();
   });
 });
-
