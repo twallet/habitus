@@ -1,4 +1,7 @@
-import rateLimit, { RateLimitRequestHandler } from "express-rate-limit";
+import rateLimit, {
+  RateLimitRequestHandler,
+  ipKeyGenerator,
+} from "express-rate-limit";
 import { Request, Response } from "express";
 
 /**
@@ -44,24 +47,12 @@ export const authRateLimiter: RateLimitRequestHandler = rateLimit({
   // Skip rate limiting in test environment
   skip: (req) => process.env.NODE_ENV === "test",
   handler: handleRateLimitExceeded,
-  // Validate trust proxy setting to prevent bypassing rate limits
-  // When TRUST_PROXY=true, we need to validate the proxy configuration
-  validate: {
-    trustProxy: false, // Disable automatic trust proxy validation
-    // Use a custom key generator that validates the IP properly
-  },
-  // Custom key generator that handles proxy headers safely
+  // Use the built-in ipKeyGenerator helper which properly handles IPv6 and proxy headers
+  // This is required when TRUST_PROXY=true to prevent IPv6 bypass issues
+  // ipKeyGenerator takes the IP string and returns a normalized key
   keyGenerator: (req) => {
-    // Use X-Forwarded-For header if available and trust proxy is enabled
-    // Otherwise fall back to direct connection IP
-    if (process.env.TRUST_PROXY === "true") {
-      const forwarded = req.headers["x-forwarded-for"];
-      if (forwarded) {
-        // X-Forwarded-For can contain multiple IPs, take the first one
-        const ips = Array.isArray(forwarded) ? forwarded[0] : forwarded;
-        return ips.split(",")[0].trim();
-      }
-    }
-    return req.ip || req.socket.remoteAddress || "unknown";
+    const ip = req.ip || req.socket.remoteAddress || "unknown";
+    // Use ipKeyGenerator helper to properly handle IPv6 addresses
+    return ipKeyGenerator(ip);
   },
 });
