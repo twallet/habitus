@@ -98,8 +98,8 @@ export function useAuth() {
           );
           setUser(userData);
           setToken(storedToken);
-          // Sync locale and timezone if needed
-          await syncLocaleAndTimezoneIfNeeded(userData);
+          // Sync locale and timezone if needed (pass token explicitly since state hasn't updated yet)
+          await syncLocaleAndTimezoneIfNeeded(userData, storedToken);
         } catch (error) {
           // Token is invalid, remove it
           console.warn(
