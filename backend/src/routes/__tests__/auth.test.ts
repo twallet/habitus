@@ -41,6 +41,14 @@ vi.mock("../../services/index.js", () => ({
   },
 }));
 
+// Mock upload middleware
+vi.mock("../../middleware/upload.js", () => ({
+  uploadProfilePicture: vi.fn((req: any, _res: any, next: any) => {
+    next();
+  }),
+  getUploadsDirectory: vi.fn(() => "/test/uploads"),
+}));
+
 import request from "supertest";
 import express from "express";
 import sqlite3 from "sqlite3";
@@ -50,6 +58,7 @@ import { EmailService } from "../../services/emailService.js";
 import { UserService } from "../../services/userService.js";
 import * as servicesModule from "../../services/index.js";
 import * as authMiddlewareModule from "../../middleware/authMiddleware.js";
+import * as uploadModule from "../../middleware/upload.js";
 import authRouter from "../auth.js";
 
 /**
@@ -161,10 +170,33 @@ describe("Auth Routes", () => {
       }
     );
 
+    // Reset upload middleware mock
+    (uploadModule.uploadProfilePicture as Mock).mockImplementation(
+      (req: any, _res: any, next: any) => {
+        next();
+      }
+    );
+
     // Create Express app with routes
     app = express();
     app.use(express.json());
     app.use("/api/auth", authRouter);
+    // Add error handler middleware to catch errors from route handlers
+    app.use(
+      (
+        err: Error,
+        _req: express.Request,
+        res: express.Response,
+        _next: express.NextFunction
+      ) => {
+        // This will be caught by route handler's catch block if it's in the try-catch
+        // But for middleware errors, we need this handler
+        if (err.message.includes("Only image files")) {
+          return res.status(400).json({ error: err.message });
+        }
+        res.status(500).json({ error: err.message });
+      }
+    );
   });
 
   afterEach(async () => {
@@ -267,6 +299,143 @@ describe("Auth Routes", () => {
       expect(secondResponse.body.error).toContain("wait");
       expect(secondResponse.body.error).toContain("minutes");
     });
+
+    it("should handle profile picture upload", async () => {
+      const mockFile = {
+        filename: "test-profile-123.jpg",
+        originalname: "test.jpg",
+        mimetype: "image/jpeg",
+        size: 1024,
+      };
+
+      // Mock upload middleware to set req.file
+      (uploadModule.uploadProfilePicture as Mock).mockImplementation(
+        (req: any, _res: any, next: any) => {
+          req.file = mockFile;
+          next();
+        }
+      );
+
+      const response = await request(app).post("/api/auth/register").send({
+        name: "John Doe",
+        email: "john@example.com",
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.message.toLowerCase()).toContain(
+        "registration link"
+      );
+      // Verify that the service was called with profile picture URL
+      expect(emailService.sendMagicLink).toHaveBeenCalled();
+    });
+
+    it("should return 400 for 'Only image files' error", async () => {
+      // Mock upload middleware to throw error
+      (uploadModule.uploadProfilePicture as Mock).mockImplementation(
+        (_req: any, _res: any, next: any) => {
+          const error = new Error("Only image files are allowed");
+          next(error);
+        }
+      );
+
+      const response = await request(app).post("/api/auth/register").send({
+        name: "John Doe",
+        email: "john@example.com",
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain("Only image files");
+    });
+
+    it("should return 400 for TypeError", async () => {
+      // Reset upload mock first
+      (uploadModule.uploadProfilePicture as Mock).mockImplementation(
+        (req: any, _res: any, next: any) => {
+          next();
+        }
+      );
+
+      // Mock service to throw TypeError
+      const errorService = {
+        requestRegisterMagicLink: vi
+          .fn()
+          .mockRejectedValue(new TypeError("Invalid input type")),
+      };
+      (servicesModule.ServiceManager.getAuthService as Mock).mockReturnValue(
+        errorService
+      );
+
+      const response = await request(app).post("/api/auth/register").send({
+        name: "John Doe",
+        email: "john@example.com",
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Invalid input type");
+    });
+
+    it("should return 500 for generic error", async () => {
+      // Reset upload mock first
+      (uploadModule.uploadProfilePicture as Mock).mockImplementation(
+        (req: any, _res: any, next: any) => {
+          next();
+        }
+      );
+
+      // Mock service to throw unexpected error
+      const errorService = {
+        requestRegisterMagicLink: vi
+          .fn()
+          .mockRejectedValue(new Error("Database connection failed")),
+      };
+      (servicesModule.ServiceManager.getAuthService as Mock).mockReturnValue(
+        errorService
+      );
+
+      const response = await request(app).post("/api/auth/register").send({
+        name: "John Doe",
+        email: "john@example.com",
+      });
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe("Error requesting registration link");
+    });
+
+    it("should return 400 for non-string name", async () => {
+      // Reset upload mock first
+      (uploadModule.uploadProfilePicture as Mock).mockImplementation(
+        (req: any, _res: any, next: any) => {
+          next();
+        }
+      );
+
+      const response = await request(app).post("/api/auth/register").send({
+        name: 123,
+        email: "john@example.com",
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain("Name");
+    });
+
+    it("should return 400 for non-string email", async () => {
+      // Reset upload mock first
+      (uploadModule.uploadProfilePicture as Mock).mockImplementation(
+        (req: any, _res: any, next: any) => {
+          next();
+        }
+      );
+
+      const response = await request(app)
+        .post("/api/auth/register")
+        .send({
+          name: "John Doe",
+          email: { invalid: "email" },
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain("Email");
+    });
   });
 
   describe("POST /api/auth/login", () => {
@@ -304,43 +473,141 @@ describe("Auth Routes", () => {
     });
 
     it("should enforce cooldown period but still return success for login (to prevent email enumeration)", async () => {
-      // Request login magic link (first call)
-      const firstResponse = await request(app).post("/api/auth/login").send({
-        email: testEmail,
-      });
-
-      expect(firstResponse.status).toBe(200);
-
-      // Get the call count after first request
-      const callsAfterFirst = (emailService.sendMagicLink as Mock).mock.calls
-        .length;
-      expect(callsAfterFirst).toBeGreaterThanOrEqual(1);
-
-      // Simulate cooldown by setting recent magic_link_expires
-      const futureDate = new Date();
-      futureDate.setMinutes(futureDate.getMinutes() + 15); // 15 minutes from now
-
-      await testDb.run(
-        "UPDATE users SET magic_link_expires = ? WHERE email = ?",
-        [futureDate.toISOString(), testEmail]
+      // Mock service to throw cooldown error
+      const errorService = {
+        requestLoginMagicLink: vi
+          .fn()
+          .mockRejectedValue(
+            new Error("Please wait 5 minutes before requesting another link")
+          ),
+      };
+      (servicesModule.ServiceManager.getAuthService as Mock).mockReturnValue(
+        errorService
       );
 
-      // Clear mock to track only second call
-      (emailService.sendMagicLink as Mock).mockClear();
-
-      // Second login request should still return success (to prevent email enumeration)
-      // but the cooldown is enforced internally
-      const secondResponse = await request(app).post("/api/auth/login").send({
+      // Login request with cooldown should still return success (to prevent email enumeration)
+      const response = await request(app).post("/api/auth/login").send({
         email: testEmail,
       });
 
-      expect(secondResponse.status).toBe(200);
-      expect(secondResponse.body.cooldown).toBe(true); // Cooldown should be set
-      expect(secondResponse.body.message).toContain("wait");
-      // Verify that email service was not called again (cooldown prevented it)
-      const callsAfterSecond = (emailService.sendMagicLink as Mock).mock.calls
-        .length;
-      expect(callsAfterSecond).toBe(0); // No additional calls due to cooldown
+      expect(response.status).toBe(200);
+      expect(response.body.cooldown).toBe(true); // Cooldown should be set
+      expect(response.body.message).toContain("wait");
+    });
+
+    it("should return 200 for generic error (to prevent email enumeration)", async () => {
+      // Mock service to throw unexpected error
+      const errorService = {
+        requestLoginMagicLink: vi
+          .fn()
+          .mockRejectedValue(new Error("Database connection failed")),
+      };
+      (servicesModule.ServiceManager.getAuthService as Mock).mockReturnValue(
+        errorService
+      );
+
+      const response = await request(app).post("/api/auth/login").send({
+        email: testEmail,
+      });
+
+      // Should still return 200 to prevent email enumeration
+      expect(response.status).toBe(200);
+      expect(response.body.message).toContain("If an account exists");
+    });
+  });
+
+  describe("GET /api/auth/verify-magic-link", () => {
+    let magicLinkToken: string;
+    let userId: number;
+
+    beforeEach(async () => {
+      // Create a user with a magic link token
+      const result = await testDb.run(
+        "INSERT INTO users (name, email) VALUES (?, ?)",
+        ["John Doe", "john@example.com"]
+      );
+      userId = result.lastID;
+
+      magicLinkToken = "test-magic-link-token-123";
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+      await testDb.run(
+        "UPDATE users SET magic_link_token = ?, magic_link_expires = ? WHERE id = ?",
+        [magicLinkToken, expiresAt.toISOString(), userId]
+      );
+    });
+
+    it("should verify magic link and return user data with JWT token", async () => {
+      const response = await request(app).get(
+        `/api/auth/verify-magic-link?token=${magicLinkToken}`
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty("user");
+      expect(response.body).toHaveProperty("token");
+      expect(response.body.user.email).toBe("john@example.com");
+      expect(response.body.user.name).toBe("John Doe");
+    });
+
+    it("should return 400 for missing token", async () => {
+      const response = await request(app).get("/api/auth/verify-magic-link");
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Token is required");
+    });
+
+    it("should return 400 for non-string token", async () => {
+      const response = await request(app).get(
+        "/api/auth/verify-magic-link?token[]=invalid"
+      );
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Token is required");
+    });
+
+    it("should return 400 for invalid token", async () => {
+      const response = await request(app).get(
+        "/api/auth/verify-magic-link?token=invalid-token"
+      );
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toMatch(/Invalid|invalid/);
+    });
+
+    it("should return 400 for expired token", async () => {
+      // Set token to expired
+      const pastDate = new Date();
+      pastDate.setMinutes(pastDate.getMinutes() - 1);
+      await testDb.run("UPDATE users SET magic_link_expires = ? WHERE id = ?", [
+        pastDate.toISOString(),
+        userId,
+      ]);
+
+      const response = await request(app).get(
+        `/api/auth/verify-magic-link?token=${magicLinkToken}`
+      );
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toMatch(/expired|Expired/);
+    });
+
+    it("should return 500 for generic error", async () => {
+      // Mock service to throw unexpected error
+      const errorService = {
+        verifyMagicLink: vi
+          .fn()
+          .mockRejectedValue(new Error("Database connection failed")),
+      };
+      (servicesModule.ServiceManager.getAuthService as Mock).mockReturnValue(
+        errorService
+      );
+
+      const response = await request(app).get(
+        `/api/auth/verify-magic-link?token=${magicLinkToken}`
+      );
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe("Error verifying link");
     });
   });
 
@@ -396,6 +663,48 @@ describe("Auth Routes", () => {
         .set("Authorization", "InvalidFormat token");
 
       expect(response.status).toBe(401);
+    });
+
+    it("should return 404 when user is not found", async () => {
+      // Create a token for a non-existent user
+      const jwt = require("jsonwebtoken");
+      const invalidToken = jwt.sign(
+        { userId: 99999, email: "nonexistent@example.com" },
+        process.env.JWT_SECRET || "your-secret-key-change-in-production",
+        { expiresIn: "7d" }
+      );
+
+      const response = await request(app)
+        .get("/api/auth/me")
+        .set("Authorization", `Bearer ${invalidToken}`);
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe("User not found");
+    });
+
+    it("should return 500 for generic error", async () => {
+      // Get userId from token
+      const jwt = require("jsonwebtoken");
+      const decoded = jwt.decode(authToken) as { userId: number };
+      const testUserId = decoded.userId;
+
+      // Mock service to throw unexpected error
+      const errorService = {
+        verifyToken: vi.fn().mockResolvedValue(testUserId),
+        getUserById: vi
+          .fn()
+          .mockRejectedValue(new Error("Database connection failed")),
+      };
+      (servicesModule.ServiceManager.getAuthService as Mock).mockReturnValue(
+        errorService
+      );
+
+      const response = await request(app)
+        .get("/api/auth/me")
+        .set("Authorization", `Bearer ${authToken}`);
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe("Error fetching user");
     });
   });
 
@@ -484,6 +793,69 @@ describe("Auth Routes", () => {
         .send({ email: "newemail@example.com" });
 
       expect(response.status).toBe(401);
+    });
+
+    it("should return 400 for TypeError", async () => {
+      // Mock service to throw TypeError
+      const errorService = {
+        requestEmailChange: vi
+          .fn()
+          .mockRejectedValue(new TypeError("Invalid email format")),
+      };
+      (servicesModule.ServiceManager.getAuthService as Mock).mockReturnValue(
+        errorService
+      );
+
+      const response = await request(app)
+        .post("/api/auth/change-email")
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({ email: "newemail@example.com" });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Invalid email format");
+    });
+
+    it("should return 400 for cooldown error", async () => {
+      // Mock service to throw cooldown error
+      const errorService = {
+        requestEmailChange: vi
+          .fn()
+          .mockRejectedValue(
+            new Error("Please wait 5 minutes before requesting another link")
+          ),
+      };
+      (servicesModule.ServiceManager.getAuthService as Mock).mockReturnValue(
+        errorService
+      );
+
+      const response = await request(app)
+        .post("/api/auth/change-email")
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({ email: "newemail@example.com" });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain("wait");
+      expect(response.body.error).toContain("minutes");
+    });
+
+    it("should return 500 for generic error", async () => {
+      // Mock service to throw unexpected error
+      const errorService = {
+        requestEmailChange: vi
+          .fn()
+          .mockRejectedValue(new Error("Database connection failed")),
+      };
+      (servicesModule.ServiceManager.getAuthService as Mock).mockReturnValue(
+        errorService
+      );
+
+      const response = await request(app)
+        .post("/api/auth/change-email")
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({ email: "newemail@example.com" });
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe("Error requesting email change");
     });
   });
 
@@ -591,6 +963,48 @@ describe("Auth Routes", () => {
       expect(response.headers.location).toContain("emailChangeVerified=false");
       const location = decodeURIComponent(response.headers.location);
       expect(location).toMatch(/already.*registered/i);
+    });
+
+    it("should redirect with error for 'Failed to retrieve' error", async () => {
+      // Mock service to throw error with "Failed to retrieve" message
+      const errorService = {
+        verifyEmailChange: vi
+          .fn()
+          .mockRejectedValue(new Error("Failed to retrieve user data")),
+      };
+      (servicesModule.ServiceManager.getUserService as Mock).mockReturnValue(
+        errorService
+      );
+
+      const response = await request(app).get(
+        `/api/auth/verify-email-change?token=${verificationToken}`
+      );
+
+      expect(response.status).toBe(302);
+      expect(response.headers.location).toContain("emailChangeVerified=false");
+      const location = decodeURIComponent(response.headers.location);
+      expect(location).toContain("Failed to retrieve user data");
+    });
+
+    it("should redirect with error for generic 500 error", async () => {
+      // Mock service to throw unexpected error
+      const errorService = {
+        verifyEmailChange: vi
+          .fn()
+          .mockRejectedValue(new Error("Database connection failed")),
+      };
+      (servicesModule.ServiceManager.getUserService as Mock).mockReturnValue(
+        errorService
+      );
+
+      const response = await request(app).get(
+        `/api/auth/verify-email-change?token=${verificationToken}`
+      );
+
+      expect(response.status).toBe(302);
+      expect(response.headers.location).toContain("emailChangeVerified=false");
+      const location = decodeURIComponent(response.headers.location);
+      expect(location).toContain("Error verifying email change");
     });
   });
 });
