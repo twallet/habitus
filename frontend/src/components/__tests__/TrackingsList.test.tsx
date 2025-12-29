@@ -366,8 +366,9 @@ describe("TrackingsList", () => {
         // Check for Weekly badge
         const weeklyBadges = screen.getAllByText("Weekly");
         expect(weeklyBadges.length).toBeGreaterThan(0);
-        // Check for weekdays as comma-separated text
-        expect(screen.getByText("Mon, Wed, Fri")).toBeInTheDocument();
+        // Check for weekdays as comma-separated text (appears in both table and card view)
+        const weekdayTexts = screen.getAllByText("Mon, Wed, Fri");
+        expect(weekdayTexts.length).toBeGreaterThan(0);
     });
 
     it("should display frequency for monthly pattern", () => {
@@ -392,9 +393,11 @@ describe("TrackingsList", () => {
         );
 
         // The FrequencyDisplay component shows abbreviated text: "Days 1, 15"
-        // Check for both the badge and detail separately
-        expect(screen.getByText("Monthly")).toBeInTheDocument();
-        expect(screen.getByText("Days 1, 15")).toBeInTheDocument();
+        // Check for both the badge and detail separately (appears in both table and card view)
+        const monthlyBadges = screen.getAllByText("Monthly");
+        expect(monthlyBadges.length).toBeGreaterThan(0);
+        const dayTexts = screen.getAllByText("Days 1, 15");
+        expect(dayTexts.length).toBeGreaterThan(0);
     });
 
     it("should display frequency for yearly pattern", () => {
@@ -420,9 +423,11 @@ describe("TrackingsList", () => {
         );
 
         // The FrequencyDisplay component shows abbreviated text: "Jan 1"
-        // Check for both the badge and detail separately
-        expect(screen.getByText("Yearly")).toBeInTheDocument();
-        expect(screen.getByText("Jan 1")).toBeInTheDocument();
+        // Check for both the badge and detail separately (appears in both table and card view)
+        const yearlyBadges = screen.getAllByText("Yearly");
+        expect(yearlyBadges.length).toBeGreaterThan(0);
+        const dateTexts = screen.getAllByText("Jan 1");
+        expect(dateTexts.length).toBeGreaterThan(0);
     });
 
     it("should display default frequency when days pattern is missing", () => {
@@ -472,12 +477,13 @@ describe("TrackingsList", () => {
             />
         );
 
-        // Check for Weekly badge and weekdays as comma-separated text
+        // Check for Weekly badge and weekdays as comma-separated text (appears in both table and card view)
         const weeklyBadges = screen.getAllByText("Weekly");
         expect(weeklyBadges.length).toBeGreaterThan(0);
-        expect(screen.getByText("Mon, Wed, Fri")).toBeInTheDocument();
+        const weekdayTexts = screen.getAllByText("Mon, Wed, Fri");
+        expect(weekdayTexts.length).toBeGreaterThan(0);
         // Check that frequency cell has title attribute
-        const frequencyCell = screen.getByText("Weekly").closest(".cell-frequency");
+        const frequencyCell = weeklyBadges[0].closest(".cell-frequency");
         expect(frequencyCell).toHaveAttribute("title");
     });
 
@@ -578,10 +584,11 @@ describe("TrackingsList", () => {
         expect(trackingCell?.textContent).toContain("Did I exercise today?");
         const timeElements4 = screen.getAllByText(/09:00 \+1/);
         expect(timeElements4.length).toBeGreaterThan(0);
-        // Check for Weekly badge and weekdays as comma-separated text
+        // Check for Weekly badge and weekdays as comma-separated text (appears in both table and card view)
         const weeklyBadges = screen.getAllByText("Weekly");
         expect(weeklyBadges.length).toBeGreaterThan(0);
-        expect(screen.getByText("Mon, Wed, Fri")).toBeInTheDocument();
+        const weekdayTexts = screen.getAllByText("Mon, Wed, Fri");
+        expect(weekdayTexts.length).toBeGreaterThan(0);
         // Check that notes icon is displayed
         const notesIcons = screen.getAllByText("📝");
         expect(notesIcons.length).toBeGreaterThan(0);
@@ -721,9 +728,11 @@ describe("TrackingsList", () => {
         );
 
         // The FrequencyDisplay component shows abbreviated text: "Last day"
-        // Check for both the badge and detail separately
-        expect(screen.getByText("Monthly")).toBeInTheDocument();
-        expect(screen.getByText("Last day")).toBeInTheDocument();
+        // Check for both the badge and detail separately (appears in both table and card view)
+        const monthlyBadges = screen.getAllByText("Monthly");
+        expect(monthlyBadges.length).toBeGreaterThan(0);
+        const lastDayTexts = screen.getAllByText("Last day");
+        expect(lastDayTexts.length).toBeGreaterThan(0);
     });
 
     it("should format weekday ordinal pattern", () => {
@@ -749,9 +758,11 @@ describe("TrackingsList", () => {
         );
 
         // The FrequencyDisplay component shows "2nd Mon" (abbreviated)
-        // Check for both the badge and detail separately
-        expect(screen.getByText("Monthly")).toBeInTheDocument();
-        expect(screen.getByText("2nd Mon")).toBeInTheDocument();
+        // Check for both the badge and detail separately (appears in both table and card view)
+        const monthlyBadges = screen.getAllByText("Monthly");
+        expect(monthlyBadges.length).toBeGreaterThan(0);
+        const ordinalTexts = screen.getAllByText("2nd Mon");
+        expect(ordinalTexts.length).toBeGreaterThan(0);
     });
 
     it("should format all days of week as Daily", () => {
