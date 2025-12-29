@@ -46,7 +46,8 @@ describe('NotificationsModal', () => {
             <NotificationsModal onClose={mockOnClose} onSave={mockOnSave} />
         );
 
-        const emailCheckbox = screen.getByLabelText(/email/i).closest('label')?.querySelector('input[type="checkbox"]') as HTMLInputElement;
+        const emailLabel = screen.getByText('Email').closest('label');
+        const emailCheckbox = emailLabel?.querySelector('input[type="checkbox"]') as HTMLInputElement;
         expect(emailCheckbox).toBeChecked();
     });
 
@@ -145,8 +146,10 @@ describe('NotificationsModal', () => {
             <NotificationsModal onClose={mockOnClose} onSave={mockOnSave} user={userWithPreferences} />
         );
 
-        const emailCheckbox = screen.getByLabelText(/email/i).closest('label')?.querySelector('input[type="checkbox"]') as HTMLInputElement;
-        const telegramCheckbox = screen.getByLabelText(/telegram/i).closest('label')?.querySelector('input[type="checkbox"]') as HTMLInputElement;
+        const emailLabel = screen.getByText('Email').closest('label');
+        const telegramLabel = screen.getByText('Telegram').closest('label');
+        const emailCheckbox = emailLabel?.querySelector('input[type="checkbox"]') as HTMLInputElement;
+        const telegramCheckbox = telegramLabel?.querySelector('input[type="checkbox"]') as HTMLInputElement;
 
         expect(emailCheckbox).toBeChecked();
         expect(telegramCheckbox).toBeChecked();
@@ -285,7 +288,6 @@ describe('NotificationsModal', () => {
     });
 
     it('should maintain backward compatibility with existing Email/Telegram setup', async () => {
-        const user = userEvent.setup();
         const userWithTelegram: UserData = {
             ...mockUser,
             notification_channels: ['Email', 'Telegram'],
@@ -296,8 +298,10 @@ describe('NotificationsModal', () => {
             <NotificationsModal onClose={mockOnClose} onSave={mockOnSave} user={userWithTelegram} />
         );
 
-        const emailCheckbox = screen.getByLabelText(/email/i).closest('label')?.querySelector('input[type="checkbox"]') as HTMLInputElement;
-        const telegramCheckbox = screen.getByLabelText(/telegram/i).closest('label')?.querySelector('input[type="checkbox"]') as HTMLInputElement;
+        const emailLabel = screen.getByText('Email').closest('label');
+        const telegramLabel = screen.getByText('Telegram').closest('label');
+        const emailCheckbox = emailLabel?.querySelector('input[type="checkbox"]') as HTMLInputElement;
+        const telegramCheckbox = telegramLabel?.querySelector('input[type="checkbox"]') as HTMLInputElement;
 
         expect(emailCheckbox).toBeChecked();
         expect(telegramCheckbox).toBeChecked();

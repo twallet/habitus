@@ -199,16 +199,16 @@ export function NotificationsModal({
                                     className={`channel-option channel-option-${channel.id.toLowerCase()} ${!channel.enabled ? 'disabled' : ''}`}
                                     style={selectedChannels.includes(channel.id) ? { '--channel-color': channel.color } as React.CSSProperties : undefined}
                                 >
+                                    <span className="channel-icon">
+                                        {typeof channel.icon === 'string' ? channel.icon : channel.icon}
+                                    </span>
+                                    <span className="channel-label">{channel.label}</span>
                                     <input
                                         type="checkbox"
                                         checked={selectedChannels.includes(channel.id)}
                                         onChange={() => handleChannelToggle(channel.id)}
                                         disabled={!channel.enabled || isSubmitting}
                                     />
-                                    <span className="channel-icon">
-                                        {typeof channel.icon === 'string' ? channel.icon : channel.icon}
-                                    </span>
-                                    <span className="channel-label">{channel.label}</span>
                                 </label>
                             ))}
                         </div>

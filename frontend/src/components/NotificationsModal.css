@@ -94,11 +94,11 @@
 }
 
 .channel-label {
+  flex: 1;
   font-size: 1rem;
   font-weight: 500;
   color: var(--text-primary);
   user-select: none;
-  flex: 1;
 }
 
 .channel-option.disabled .channel-label {
