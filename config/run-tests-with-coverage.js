@@ -89,7 +89,8 @@ await new Promise((resolve) => {
       process.stderr.write(stderrBuffer);
     }
     vitestExitCode = code || 0;
-    resolve();
+    // Small delay to ensure coverage file is written
+    setTimeout(() => resolve(), 100);
   });
 
   vitestProcess.on("error", (error) => {
@@ -100,11 +101,25 @@ await new Promise((resolve) => {
 });
 
 // Always run the coverage report, regardless of vitest exit code
-// But only if the coverage file exists (tests may have failed before generating coverage)
-const coverageFile = join(coverageDir, "coverage-final.json");
-if (existsSync(coverageFile)) {
-  //console.log("\nGenerating coverage report...\n");
+// Wait a bit longer to ensure coverage file is written
+await new Promise((resolve) => setTimeout(resolve, 500));
 
+// Check for coverage file (may be in different locations)
+const possibleCoverageFiles = [
+  join(coverageDir, "coverage-final.json"),
+  join(coverageDir, "coverage", "coverage-final.json"),
+  join(coverageDir, ".tmp", "coverage-final.json"),
+];
+
+let coverageFile = null;
+for (const file of possibleCoverageFiles) {
+  if (existsSync(file)) {
+    coverageFile = file;
+    break;
+  }
+}
+
+if (coverageFile) {
   try {
     execSync(`node config/coverage-report-low.js "${testResultsFile}"`, {
       cwd: workspaceRoot,
@@ -117,10 +132,20 @@ if (existsSync(coverageFile)) {
     console.error("Error generating coverage report:", reportError.message);
   }
 } else {
-  /*console.log("\n⚠️  Coverage file not found. Skipping coverage report.\n");
-  console.log(
-    "   (This may happen if tests failed before coverage was generated)\n"
-  );*/
+  // Coverage file not found - this can happen if coverage wasn't generated
+  // Still try to show failed test suites if test results exist
+  if (existsSync(testResultsFile)) {
+    try {
+      execSync(`node config/coverage-report-low.js "${testResultsFile}"`, {
+        cwd: workspaceRoot,
+        stdio: "inherit",
+        shell: true,
+        env: { ...process.env, FORCE_COLOR: "0" },
+      });
+    } catch (reportError) {
+      // Silently ignore if it fails
+    }
+  }
 }
 
 // Exit with the vitest code so test failures are still reported
