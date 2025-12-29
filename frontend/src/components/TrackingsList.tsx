@@ -18,6 +18,126 @@ interface TrackingsListProps {
 }
 
 /**
+ * Component for displaying frequency with visual badges and indicators.
+ * @param props - Component props
+ * @param props.frequency - Frequency object to display
+ * @internal
+ */
+function FrequencyDisplay({ frequency }: { frequency?: Frequency }) {
+    if (!frequency || !frequency.type) {
+        return (
+            <span className="frequency-display">
+                <span className="frequency-badge frequency-badge-daily">Daily</span>
+            </span>
+        );
+    }
+
+    switch (frequency.type) {
+        case "daily":
+            return (
+                <span className="frequency-display">
+                    <span className="frequency-badge frequency-badge-daily">Daily</span>
+                </span>
+            );
+
+        case "weekly":
+            if (!frequency.days || frequency.days.length === 0) {
+                return (
+                    <span className="frequency-display">
+                        <span className="frequency-badge frequency-badge-weekly">Weekly</span>
+                    </span>
+                );
+            }
+            const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+            const sortedDays = [...frequency.days].sort((a, b) => a - b);
+
+            if (sortedDays.length === 7) {
+                return (
+                    <span className="frequency-display">
+                        <span className="frequency-badge frequency-badge-daily">Daily</span>
+                    </span>
+                );
+            }
+
+            return (
+                <span className="frequency-display">
+                    <span className="frequency-badge frequency-badge-weekly">Weekly</span>
+                    <span className="frequency-days">
+                        {sortedDays.map((d) => (
+                            <span key={d} className="day-badge">
+                                {dayNames[d]}
+                            </span>
+                        ))}
+                    </span>
+                </span>
+            );
+
+        case "monthly":
+            let monthlyDetail = null;
+            if (frequency.kind === "last_day") {
+                monthlyDetail = "Last day";
+            } else if (frequency.kind === "day_number" && frequency.day_numbers && frequency.day_numbers.length > 0) {
+                if (frequency.day_numbers.length === 1) {
+                    monthlyDetail = `Day ${frequency.day_numbers[0]}`;
+                } else {
+                    monthlyDetail = `Days ${frequency.day_numbers.join(", ")}`;
+                }
+            } else if (frequency.kind === "weekday_ordinal") {
+                const ordinalLabels = ["", "1st", "2nd", "3rd", "4th", "5th"];
+                const weekdayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+                const ordinal = frequency.ordinal || 1;
+                const weekday = frequency.weekday !== undefined ? weekdayNames[frequency.weekday] : "Mon";
+                monthlyDetail = `${ordinalLabels[ordinal]} ${weekday}`;
+            }
+
+            return (
+                <span className="frequency-display">
+                    <span className="frequency-badge frequency-badge-monthly">Monthly</span>
+                    {monthlyDetail && (
+                        <span className="frequency-detail">{monthlyDetail}</span>
+                    )}
+                </span>
+            );
+
+        case "yearly":
+            let yearlyDetail = null;
+            if (frequency.kind === "date" && frequency.month && frequency.day) {
+                const monthNames = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                yearlyDetail = `${monthNames[frequency.month]} ${frequency.day}`;
+            }
+
+            return (
+                <span className="frequency-display">
+                    <span className="frequency-badge frequency-badge-yearly">Yearly</span>
+                    {yearlyDetail && (
+                        <span className="frequency-detail">{yearlyDetail}</span>
+                    )}
+                </span>
+            );
+
+        case "one-time":
+            let dateLabel = "One-time";
+            if (frequency.date) {
+                const date = new Date(frequency.date);
+                if (!isNaN(date.getTime())) {
+                    dateLabel = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                }
+            }
+
+            return (
+                <span className="frequency-display">
+                    <span className="frequency-badge frequency-badge-onetime">1×</span>
+                    <span className="frequency-detail">{dateLabel}</span>
+                </span>
+            );
+
+        default:
+            return <span className="frequency-display">Unknown</span>;
+    }
+}
+
+/**
  * Utility class for formatting tracking data for display.
  * Follows OOP principles by organizing related formatting methods.
  * @internal
@@ -1212,9 +1332,9 @@ export function TrackingsList({
                                     </td>
                                     <td
                                         className="cell-frequency"
-                                        title={getNextReminderTime(tracking.id) ? undefined : "No upcoming reminder"}
+                                        title={TrackingFormatter.formatFullFrequency(tracking.frequency)}
                                     >
-                                        {TrackingFormatter.formatFrequency(tracking.frequency)}
+                                        <FrequencyDisplay frequency={tracking.frequency} />
                                     </td>
                                     <td className="cell-next-reminder">
                                         {TrackingFormatter.formatNextReminderTimeDisplay(getNextReminderTime(tracking.id))}
@@ -1279,7 +1399,7 @@ export function TrackingsList({
                                     <div className="tracking-card-row">
                                         <span className="tracking-card-label">Frequency</span>
                                         <span className="tracking-card-value">
-                                            {TrackingFormatter.formatFrequency(tracking.frequency)}
+                                            <FrequencyDisplay frequency={tracking.frequency} />
                                         </span>
                                     </div>
                                     {nextReminderTime && (

@@ -44,9 +44,10 @@ export class Reminder {
 
   /**
    * Reminder value (Completed or Dismissed).
+   * null when status is PENDING or UPCOMING, required when status is ANSWERED.
    * @public
    */
-  value: ReminderValue;
+  value: ReminderValue | null;
 
   /**
    * Creation timestamp (optional).
@@ -72,7 +73,7 @@ export class Reminder {
     this.scheduled_time = data.scheduled_time;
     this.notes = data.notes;
     this.status = data.status || ReminderStatus.PENDING;
-    this.value = data.value || ReminderValue.DISMISSED;
+    this.value = data.value ?? null;
     this.created_at = data.created_at;
     this.updated_at = data.updated_at;
   }
@@ -80,6 +81,7 @@ export class Reminder {
   /**
    * Validate the reminder instance.
    * Validates all fields according to business rules.
+   * Enforces that value is null for non-answered reminders and required for answered reminders.
    * @returns The validated reminder instance
    * @throws {@link TypeError} If validation fails
    * @public
@@ -92,7 +94,25 @@ export class Reminder {
       this.notes = Reminder.validateNotes(this.notes);
     }
     this.status = Reminder.validateStatus(this.status);
-    this.value = Reminder.validateValue(this.value);
+
+    // Validate value based on status
+    if (this.status === ReminderStatus.ANSWERED) {
+      if (this.value === null || this.value === undefined) {
+        throw new TypeError(
+          "Value must be set (Completed or Dismissed) when status is Answered"
+        );
+      }
+      this.value = Reminder.validateValue(this.value);
+    } else {
+      // For non-answered reminders, value must be null
+      if (this.value !== null && this.value !== undefined) {
+        throw new TypeError(
+          `Value must be null when status is ${this.status}. Value can only be set when status is Answered.`
+        );
+      }
+      this.value = null;
+    }
+
     return this;
   }
 
@@ -230,12 +250,16 @@ export class Reminder {
 
   /**
    * Validates a reminder value.
-   * @param value - The value to validate
+   * @param value - The value to validate (must not be null)
    * @returns The validated reminder value
-   * @throws {@link TypeError} If the value is invalid
+   * @throws {@link TypeError} If the value is invalid or null
    * @public
    */
-  static validateValue(value: string | ReminderValue): ReminderValue {
+  static validateValue(value: string | ReminderValue | null): ReminderValue {
+    if (value === null || value === undefined) {
+      throw new TypeError("Value must be a string (Completed or Dismissed)");
+    }
+
     if (typeof value !== "string") {
       throw new TypeError("Value must be a string");
     }

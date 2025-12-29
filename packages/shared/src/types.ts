@@ -88,7 +88,7 @@ export interface ReminderData {
   scheduled_time: string;
   notes?: string;
   status: ReminderStatus;
-  value?: ReminderValue;
+  value: ReminderValue | null;
   created_at?: string;
   updated_at?: string;
 }

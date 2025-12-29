@@ -114,12 +114,15 @@ A Reminder has a value field that indicates the outcome when it is answered:
 
 - **Completed**: The reminder was completed by the user
 - **Dismissed**: The reminder was dismissed by the user
+- **null**: The reminder has not been answered yet (for Pending and Upcoming reminders)
 
 **Important Rules:**
 
-- The value field defaults to `"Dismissed"` when a reminder is created
+- The value field is `null` when a reminder is created (for Pending and Upcoming reminders)
 - The value is set when the reminder transitions from `Pending` to `Answered`
 - Once set, the value cannot be changed
+- Value must be `null` when status is `Pending` or `Upcoming`
+- Value must be set (Completed or Dismissed) when status is `Answered`
 
 ### Status Transitions
 
@@ -139,7 +142,7 @@ Pending → Upcoming
   - **For recurring trackings:** A new `Upcoming` reminder is automatically created
   - **For one-time trackings:** The next reminder is created if there are more schedule times on the same date. If it's the last reminder, the tracking is automatically archived.
 - Only `Pending` reminders can be snoozed (not `Answered` reminders)
-- The value field defaults to `"Dismissed"` when reminders are created
+- The value field is `null` when reminders are created (for Pending and Upcoming reminders)
 
 ### Available Actions by Status
 
@@ -443,7 +446,7 @@ Any state → [Deletion] (permanent removal from database)
 **Recurring Trackings:**
 
 ```
-Creation → Upcoming (always in the future, value: Dismissed)
+Creation → Upcoming (always in the future, value: null)
     ↓
 Upcoming → Pending (automatic when time passes)
     ↓
@@ -457,7 +460,7 @@ Pending → Upcoming (snoozed, time updated)
 **One-Time Trackings:**
 
 ```
-Creation → Upcoming (earliest time on specified date, value: Dismissed)
+Creation → Upcoming (earliest time on specified date, value: null)
     ↓
 Upcoming → Pending (automatic when time passes)
     ↓

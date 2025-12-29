@@ -205,6 +205,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       user_id: userId,
       scheduled_time: scheduledTime,
       status: status,
+      value: null,
     });
 
     const savedReminder = await reminder.save(this.db);

@@ -58,7 +58,7 @@ async function createTestDatabase(): Promise<Database> {
               scheduled_time DATETIME NOT NULL,
               notes TEXT,
               status TEXT NOT NULL DEFAULT 'Pending' CHECK(status IN ('Pending', 'Answered', 'Upcoming')),
-              value TEXT NOT NULL DEFAULT 'Dismissed' CHECK(value IN ('Completed', 'Dismissed')),
+              value TEXT CHECK(value IN ('Completed', 'Dismissed') OR value IS NULL),
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               FOREIGN KEY (tracking_id) REFERENCES trackings(id) ON DELETE CASCADE,
@@ -146,7 +146,7 @@ describe("Reminder Model", () => {
       const reminder = new Reminder(reminderData);
 
       expect(reminder.id).toBe(1);
-      expect(reminder.value).toBe(ReminderValue.DISMISSED); // Default value
+      expect(reminder.value).toBeNull(); // Default value for non-answered reminders
       expect(reminder.notes).toBeUndefined();
       expect(reminder.status).toBe(ReminderStatus.PENDING);
     });
@@ -192,6 +192,118 @@ describe("Reminder Model", () => {
       });
 
       expect(() => reminder.validate()).toThrow(TypeError);
+    });
+  });
+
+  describe("validate - value and status relationship", () => {
+    it("should set value to null for PENDING status", () => {
+      const reminder = new Reminder({
+        id: 1,
+        tracking_id: trackingId,
+        user_id: userId,
+        scheduled_time: "2024-01-01T10:00:00Z",
+        status: ReminderStatus.PENDING,
+        value: null,
+      } as unknown as ReminderData);
+
+      const validated = reminder.validate();
+
+      expect(validated.value).toBeNull();
+      expect(validated.status).toBe(ReminderStatus.PENDING);
+    });
+
+    it("should set value to null for UPCOMING status", () => {
+      const reminder = new Reminder({
+        id: 1,
+        tracking_id: trackingId,
+        user_id: userId,
+        scheduled_time: "2024-01-01T10:00:00Z",
+        status: ReminderStatus.UPCOMING,
+        value: null,
+      } as unknown as ReminderData);
+
+      const validated = reminder.validate();
+
+      expect(validated.value).toBeNull();
+      expect(validated.status).toBe(ReminderStatus.UPCOMING);
+    });
+
+    it("should require value for ANSWERED status", () => {
+      const reminder = new Reminder({
+        id: 1,
+        tracking_id: trackingId,
+        user_id: userId,
+        scheduled_time: "2024-01-01T10:00:00Z",
+        status: ReminderStatus.ANSWERED,
+        value: ReminderValue.COMPLETED,
+      });
+
+      const validated = reminder.validate();
+
+      expect(validated.value).toBe(ReminderValue.COMPLETED);
+      expect(validated.status).toBe(ReminderStatus.ANSWERED);
+    });
+
+    it("should throw error if value is null when status is ANSWERED", () => {
+      const reminder = new Reminder({
+        id: 1,
+        tracking_id: trackingId,
+        user_id: userId,
+        scheduled_time: "2024-01-01T10:00:00Z",
+        status: ReminderStatus.ANSWERED,
+        value: null,
+      } as unknown as ReminderData);
+
+      expect(() => reminder.validate()).toThrow(TypeError);
+      expect(() => reminder.validate()).toThrow(
+        "Value must be set (Completed or Dismissed) when status is Answered"
+      );
+    });
+
+    it("should throw error if value is set when status is PENDING", () => {
+      const reminder = new Reminder({
+        id: 1,
+        tracking_id: trackingId,
+        user_id: userId,
+        scheduled_time: "2024-01-01T10:00:00Z",
+        status: ReminderStatus.PENDING,
+        value: ReminderValue.COMPLETED,
+      });
+
+      expect(() => reminder.validate()).toThrow(TypeError);
+      expect(() => reminder.validate()).toThrow(
+        "Value must be null when status is Pending"
+      );
+    });
+
+    it("should throw error if value is set when status is UPCOMING", () => {
+      const reminder = new Reminder({
+        id: 1,
+        tracking_id: trackingId,
+        user_id: userId,
+        scheduled_time: "2024-01-01T10:00:00Z",
+        status: ReminderStatus.UPCOMING,
+        value: ReminderValue.DISMISSED,
+      });
+
+      expect(() => reminder.validate()).toThrow(TypeError);
+      expect(() => reminder.validate()).toThrow(
+        "Value must be null when status is Upcoming"
+      );
+    });
+  });
+
+  describe("constructor - default value", () => {
+    it("should set value to null by default for new reminders", () => {
+      const reminder = new Reminder({
+        id: 1,
+        tracking_id: trackingId,
+        user_id: userId,
+        scheduled_time: "2024-01-01T10:00:00Z",
+        status: ReminderStatus.PENDING,
+      });
+
+      expect(reminder.value).toBeNull();
     });
   });
 

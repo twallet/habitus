@@ -95,7 +95,7 @@ async function createTestDatabase(): Promise<Database> {
               scheduled_time DATETIME NOT NULL,
               notes TEXT,
               status TEXT NOT NULL DEFAULT 'Pending' CHECK(status IN ('Pending', 'Answered', 'Upcoming')),
-              value TEXT NOT NULL DEFAULT 'Dismissed' CHECK(value IN ('Completed', 'Dismissed')),
+              value TEXT CHECK(value IN ('Completed', 'Dismissed') OR value IS NULL),
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               FOREIGN KEY (tracking_id) REFERENCES trackings(id) ON DELETE CASCADE,
@@ -141,7 +141,12 @@ describe("Reminders Routes", () => {
 
     const trackingResult = await testDb.run(
       "INSERT INTO trackings (user_id, question, frequency, state) VALUES (?, ?, ?, ?)",
-      [testUserId, "Did I exercise?", JSON.stringify({ type: "daily" }), "Running"]
+      [
+        testUserId,
+        "Did I exercise?",
+        JSON.stringify({ type: "daily" }),
+        "Running",
+      ]
     );
     testTrackingId = trackingResult.lastID;
 

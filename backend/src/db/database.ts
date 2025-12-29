@@ -189,11 +189,15 @@ export class Database {
               scheduled_time DATETIME NOT NULL,
               notes TEXT,
               status TEXT NOT NULL DEFAULT 'Pending' CHECK(status IN ('Pending', 'Answered', 'Upcoming')),
-              value TEXT NOT NULL DEFAULT 'Dismissed' CHECK(value IN ('Completed', 'Dismissed')),
+              value TEXT CHECK(value IN ('Completed', 'Dismissed') OR value IS NULL),
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               FOREIGN KEY (tracking_id) REFERENCES trackings(id) ON DELETE CASCADE,
-              FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+              FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+              CHECK(
+                (status = 'Answered' AND value IS NOT NULL) OR
+                (status != 'Answered' AND value IS NULL)
+              )
             );
             CREATE INDEX IF NOT EXISTS idx_reminders_user_id ON reminders(user_id);
             CREATE INDEX IF NOT EXISTS idx_reminders_tracking_id ON reminders(tracking_id);

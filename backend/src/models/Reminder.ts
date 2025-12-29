@@ -44,9 +44,14 @@ export class Reminder extends BaseReminder {
         values.push(this.status);
       }
 
+      // Handle nullable value
       if (this.value !== undefined) {
-        updates.push("value = ?");
-        values.push(this.value);
+        if (this.value !== null) {
+          updates.push("value = ?");
+          values.push(this.value);
+        } else {
+          updates.push("value = NULL");
+        }
       }
 
       updates.push("updated_at = CURRENT_TIMESTAMP");
@@ -70,7 +75,7 @@ export class Reminder extends BaseReminder {
           this.scheduled_time,
           this.notes || null,
           this.status || ReminderStatus.PENDING,
-          this.value || ReminderValue.DISMISSED,
+          this.value ?? null,
         ]
       );
 
@@ -159,7 +164,7 @@ export class Reminder extends BaseReminder {
       scheduled_time: string;
       notes: string | null;
       status: string;
-      value: string;
+      value: string | null;
       created_at: string;
       updated_at: string;
     }>(
@@ -178,7 +183,7 @@ export class Reminder extends BaseReminder {
       scheduled_time: row.scheduled_time,
       notes: row.notes || undefined,
       status: (row.status as ReminderStatus) || ReminderStatus.PENDING,
-      value: (row.value as ReminderValue) || ReminderValue.DISMISSED,
+      value: (row.value as ReminderValue) || null,
       created_at: row.created_at,
       updated_at: row.updated_at,
     });
@@ -199,7 +204,7 @@ export class Reminder extends BaseReminder {
       scheduled_time: string;
       notes: string | null;
       status: string;
-      value: string;
+      value: string | null;
       created_at: string;
       updated_at: string;
     }>(
@@ -216,7 +221,7 @@ export class Reminder extends BaseReminder {
           scheduled_time: row.scheduled_time,
           notes: row.notes || undefined,
           status: (row.status as ReminderStatus) || ReminderStatus.PENDING,
-          value: (row.value as ReminderValue) || ReminderValue.DISMISSED,
+          value: (row.value as ReminderValue) || null,
           created_at: row.created_at,
           updated_at: row.updated_at,
         })
@@ -231,7 +236,10 @@ export class Reminder extends BaseReminder {
    * @returns Promise resolving to array of Reminder instances (Pending and Upcoming only)
    * @public
    */
-  static async loadActiveByUserId(userId: number, db: Database): Promise<Reminder[]> {
+  static async loadActiveByUserId(
+    userId: number,
+    db: Database
+  ): Promise<Reminder[]> {
     const rows = await db.all<{
       id: number;
       tracking_id: number;
@@ -239,7 +247,7 @@ export class Reminder extends BaseReminder {
       scheduled_time: string;
       notes: string | null;
       status: string;
-      value: string;
+      value: string | null;
       created_at: string;
       updated_at: string;
     }>(
@@ -256,7 +264,7 @@ export class Reminder extends BaseReminder {
           scheduled_time: row.scheduled_time,
           notes: row.notes || undefined,
           status: (row.status as ReminderStatus) || ReminderStatus.PENDING,
-          value: (row.value as ReminderValue) || ReminderValue.DISMISSED,
+          value: (row.value as ReminderValue) || null,
           created_at: row.created_at,
           updated_at: row.updated_at,
         })
@@ -283,7 +291,7 @@ export class Reminder extends BaseReminder {
       scheduled_time: string;
       notes: string | null;
       status: string;
-      value: string;
+      value: string | null;
       created_at: string;
       updated_at: string;
     }>(
@@ -302,7 +310,7 @@ export class Reminder extends BaseReminder {
       scheduled_time: row.scheduled_time,
       notes: row.notes || undefined,
       status: (row.status as ReminderStatus) || ReminderStatus.PENDING,
-      value: (row.value as ReminderValue) || ReminderValue.DISMISSED,
+      value: (row.value as ReminderValue) || null,
       created_at: row.created_at,
       updated_at: row.updated_at,
     });
@@ -328,7 +336,7 @@ export class Reminder extends BaseReminder {
       scheduled_time: string;
       notes: string | null;
       status: string;
-      value: string;
+      value: string | null;
       created_at: string;
       updated_at: string;
     }>(
@@ -347,7 +355,7 @@ export class Reminder extends BaseReminder {
       scheduled_time: row.scheduled_time,
       notes: row.notes || undefined,
       status: (row.status as ReminderStatus) || ReminderStatus.PENDING,
-      value: (row.value as ReminderValue) || ReminderValue.DISMISSED,
+      value: (row.value as ReminderValue) || null,
       created_at: row.created_at,
       updated_at: row.updated_at,
     });
