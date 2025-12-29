@@ -499,6 +499,19 @@ describe("useAuth", () => {
             });
           }
 
+          if (urlString.includes("/api/users/preferences")) {
+            // Mock timezone sync API call
+            return Promise.resolve({
+              ok: true,
+              status: 200,
+              json: async () =>
+                Promise.resolve({
+                  ...mockUser,
+                  timezone: "America/New_York",
+                }),
+            });
+          }
+
           return Promise.resolve({
             ok: false,
             status: 401,
