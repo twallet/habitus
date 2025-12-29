@@ -793,7 +793,7 @@ describe("TrackingService", () => {
         user_id: testUserId,
         scheduled_time: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hour from now
         status: ReminderStatus.UPCOMING,
-        value: ReminderValue.DISMISSED,
+        value: null,
       });
       await existingUpcoming.save(testDb);
 
@@ -899,7 +899,7 @@ describe("TrackingService", () => {
         user_id: testUserId,
         scheduled_time: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
         status: ReminderStatus.UPCOMING,
-        value: ReminderValue.DISMISSED,
+        value: null,
       });
       await existingUpcoming.save(testDb);
 
@@ -956,7 +956,7 @@ describe("TrackingService", () => {
         user_id: testUserId,
         scheduled_time: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
         status: ReminderStatus.UPCOMING,
-        value: ReminderValue.DISMISSED,
+        value: null,
       });
       await existingUpcoming.save(testDb);
 
@@ -967,7 +967,7 @@ describe("TrackingService", () => {
         user_id: testUserId,
         scheduled_time: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
         status: ReminderStatus.PENDING,
-        value: ReminderValue.DISMISSED,
+        value: null,
       });
       await pendingReminder.save(testDb);
 
@@ -1080,7 +1080,7 @@ describe("TrackingService", () => {
         user_id: testUserId,
         scheduled_time: `${dateStr}T09:00:00.000Z`,
         status: ReminderStatus.UPCOMING,
-        value: ReminderValue.DISMISSED,
+        value: null,
       });
       await reminder1.save(testDb);
 
@@ -1091,7 +1091,7 @@ describe("TrackingService", () => {
         user_id: testUserId,
         scheduled_time: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
         status: ReminderStatus.PENDING,
-        value: ReminderValue.DISMISSED,
+        value: null,
       });
       await pendingReminder.save(testDb);
 
@@ -1366,7 +1366,7 @@ describe("TrackingService", () => {
           Date.now() + 24 * 60 * 60 * 1000
         ).toISOString(),
         status: ReminderStatus.PENDING,
-        value: ReminderValue.DISMISSED,
+        value: null,
       });
       await pendingReminder.save(testDb);
 
@@ -1377,7 +1377,7 @@ describe("TrackingService", () => {
         user_id: testUserId,
         scheduled_time: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
         status: ReminderStatus.UPCOMING,
-        value: ReminderValue.DISMISSED,
+        value: null,
       });
       await upcomingReminder.save(testDb);
 
@@ -1454,7 +1454,7 @@ describe("TrackingService", () => {
           Date.now() + 24 * 60 * 60 * 1000
         ).toISOString(),
         status: ReminderStatus.PENDING,
-        value: ReminderValue.DISMISSED,
+        value: null,
       });
       await pendingReminder.save(testDb);
 
@@ -1465,7 +1465,7 @@ describe("TrackingService", () => {
         user_id: testUserId,
         scheduled_time: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
         status: ReminderStatus.UPCOMING,
-        value: ReminderValue.DISMISSED,
+        value: null,
       });
       await upcomingReminder.save(testDb);
 
@@ -1635,7 +1635,7 @@ describe("TrackingService", () => {
           Date.now() + 24 * 60 * 60 * 1000
         ).toISOString(),
         status: ReminderStatus.PENDING,
-        value: ReminderValue.DISMISSED,
+        value: null,
       });
       await pendingReminder.save(testDb);
 
@@ -1646,7 +1646,7 @@ describe("TrackingService", () => {
         user_id: testUserId,
         scheduled_time: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
         status: ReminderStatus.UPCOMING,
-        value: ReminderValue.DISMISSED,
+        value: null,
       });
       await upcomingReminder.save(testDb);
 
