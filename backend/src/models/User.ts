@@ -70,14 +70,14 @@ export class User extends BaseUser {
         );
       }
 
-      if (this.locale !== undefined) {
+      if (this.locale !== undefined || this.locale === null) {
         updates.push("locale = ?");
-        values.push(this.locale || null);
+        values.push(this.locale === null ? null : this.locale || null);
       }
 
-      if (this.timezone !== undefined) {
+      if (this.timezone !== undefined || this.timezone === null) {
         updates.push("timezone = ?");
-        values.push(this.timezone || null);
+        values.push(this.timezone === null ? null : this.timezone || null);
       }
 
       updates.push("updated_at = CURRENT_TIMESTAMP");
@@ -134,12 +134,14 @@ export class User extends BaseUser {
       this.notification_channels = updates.notification_channels;
     }
     if (updates.locale !== undefined) {
-      // Convert null to undefined to clear the field
-      this.locale = updates.locale === null ? undefined : updates.locale;
+      // Keep null as null to allow clearing the field in database
+      // TypeScript allows null assignment here due to the intersection type
+      (this as any).locale = updates.locale;
     }
     if (updates.timezone !== undefined) {
-      // Convert null to undefined to clear the field
-      this.timezone = updates.timezone === null ? undefined : updates.timezone;
+      // Keep null as null to allow clearing the field in database
+      // TypeScript allows null assignment here due to the intersection type
+      (this as any).timezone = updates.timezone;
     }
 
     return this.save(db);
