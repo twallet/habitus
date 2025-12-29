@@ -1208,6 +1208,7 @@ describe("Server Configuration - Integration Tests", () => {
       const getServerUrlMock = mockGetServerUrl;
       const getWorkspaceRootMock = mockGetWorkspaceRoot;
       const getUploadsDirMock = mockGetUploadsDirectory;
+      const isCloudinaryStorageMock = mockIsCloudinaryStorage;
       const usersRouterMock = mockUsersRouter;
       const authRouterMock = mockAuthRouter;
       const trackingsRouterMock = mockTrackingsRouter;
@@ -1274,6 +1275,7 @@ describe("Server Configuration - Integration Tests", () => {
       // Mock upload middleware
       vi.doMock("../middleware/upload.js", () => ({
         getUploadsDirectory: getUploadsDirMock,
+        isCloudinaryStorage: isCloudinaryStorageMock,
       }));
 
       // Mock constants
