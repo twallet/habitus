@@ -173,6 +173,46 @@ async function getAllReminders(db: Database): Promise<any[]> {
 }
 
 /**
+ * Get all reminders for a specific user from database (including Answered reminders).
+ * Used in debug route to show all reminders regardless of status.
+ * @param db - Database instance
+ * @param userId - The user ID
+ * @returns Promise resolving to array of reminder data
+ * @internal
+ */
+async function getAllRemindersByUserId(
+  db: Database,
+  userId: number
+): Promise<any[]> {
+  const rows = await db.all<{
+    id: number;
+    tracking_id: number;
+    user_id: number;
+    scheduled_time: string;
+    notes: string | null;
+    status: string;
+    value: string;
+    created_at: string;
+    updated_at: string;
+  }>(
+    "SELECT id, tracking_id, user_id, scheduled_time, notes, status, value, created_at, updated_at FROM reminders WHERE user_id = ? ORDER BY scheduled_time ASC",
+    [userId]
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    tracking_id: row.tracking_id,
+    user_id: row.user_id,
+    scheduled_time: row.scheduled_time,
+    notes: row.notes || undefined,
+    status: row.status,
+    value: row.value,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  }));
+}
+
+/**
  * GET /api/debug
  * Get formatted debug log output showing all users, trackings and their reminders.
  * All dates are displayed in GMT-3 (Buenos Aires timezone).
@@ -207,8 +247,11 @@ router.get(
         reminders = await getAllReminders(db);
       } else if (userId !== undefined) {
         // Authenticated - get user-specific data
+        // For debug route, we want to show all reminders including Answered ones
+        // So we query the database directly instead of using getAllByUserId which filters them out
         trackings = await trackingService.getAllByUserId(userId);
-        reminders = await reminderService.getAllByUserId(userId);
+        const db = (trackingService as any).db as Database;
+        reminders = await getAllRemindersByUserId(db, userId);
       } else {
         // Production mode without auth - should not happen (middleware should block)
         res.status(401).json({ error: "Authorization token required" });
