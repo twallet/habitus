@@ -21,6 +21,8 @@ const testResultsFile =
 
 // ANSI color codes
 const RED = "\x1b[31m";
+const YELLOW = "\x1b[33m";
+const ORANGE = "\x1b[1;33m"; // Bold yellow (appears orange-like in many terminals, more compatible than 256-color)
 const RESET = "\x1b[0m";
 const supportsColor = process.stdout.isTTY;
 
@@ -63,19 +65,16 @@ try {
   const globalBranches =
     totalBranches > 0 ? (coveredBranches / totalBranches) * 100 : 100;
 
-  // Display global branches coverage
+  // Display global branches coverage (after test summary)
   console.log(
     `\n📊 Global Branches Coverage: ${formatGlobalPercent(
       globalBranches
     )} (${coveredBranches}/${totalBranches})`
   );
 
-  // Display failed test suites
-  displayFailedTestSuites();
-
-  // Display results
+  // Display files with coverage below threshold
   if (filesBelowThreshold.length === 0) {
-    console.log("\n✅ All files meet the 75% branches coverage threshold!\n");
+    console.log("\n✅ All files meet the 75% branches coverage threshold!");
   } else {
     console.log(`\n⚠️  Files with branches coverage below ${THRESHOLD}%:\n`);
     console.log("─".repeat(80));
@@ -89,7 +88,7 @@ try {
       const fileDisplay =
         file.file.length > 58 ? "..." + file.file.slice(-55) : file.file;
 
-      const branchesStat = formatPercent(file.branches);
+      const branchesStat = formatPercentWithColor(file.branches);
 
       console.log(fileDisplay.padEnd(60) + branchesStat);
     }
@@ -99,6 +98,9 @@ try {
       `\nTotal: ${filesBelowThreshold.length} file(s) below branches coverage threshold`
     );
   }
+
+  // Display failed test suites (after coverage report)
+  displayFailedTestSuites();
 } catch (error) {
   if (error.code === "ENOENT") {
     console.error(`\n❌ Coverage file not found: ${coverageFile}`);
@@ -236,14 +238,25 @@ function formatGlobalPercent(percent) {
 }
 
 /**
- * Format percentage with color indicators.
+ * Format percentage with color indicators based on coverage ranges.
  * @param {number} percent - Percentage value
- * @returns {string} Formatted percentage string with ANSI colors if below threshold
+ * @returns {string} Formatted percentage string with ANSI colors
+ * - Red: 0-25%
+ * - Yellow: 25-50%
+ * - Orange: 50-75%
+ * - No color: >=75%
  */
-function formatPercent(percent) {
+function formatPercentWithColor(percent) {
   const value = percent.toFixed(2) + "%";
-  if (percent < THRESHOLD && supportsColor) {
+  if (!supportsColor) {
+    return value;
+  }
+  if (percent < 25) {
     return RED + value + RESET;
+  } else if (percent < 50) {
+    return YELLOW + value + RESET;
+  } else if (percent < 75) {
+    return ORANGE + value + RESET;
   }
   return value;
 }

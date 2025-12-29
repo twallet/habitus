@@ -1,11 +1,10 @@
 /**
  * Wrapper script to run tests with coverage and always show the coverage report.
  * This ensures the coverage report is shown even if tests fail or coverage threshold is not met.
- * Uses execSync with stdio: "inherit" to ensure output is directly visible and capturable.
- * This matches the original working approach that was able to show test outputs.
+ * Uses spawn to filter out "JSON report written to..." messages from Vitest output.
  */
 
-import { execSync } from "child_process";
+import { spawn, execSync } from "child_process";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { mkdirSync, existsSync } from "fs";
@@ -27,22 +26,78 @@ const testResultsFile = join(coverageDir, "test-results.json");
 
 let vitestExitCode = 0;
 
-try {
-  // Run vitest with verbose and JSON reporters
-  // JSON reporter will write to the outputFile automatically
-  execSync(
-    `npx vitest run --config config/vitest.config.ts --coverage --reporter=verbose --reporter=json --outputFile=${testResultsFile}`,
+// Run vitest with verbose and JSON reporters
+// Filter out "JSON report written to..." message
+await new Promise((resolve) => {
+  const vitestProcess = spawn(
+    "npx",
+    [
+      "vitest",
+      "run",
+      "--config",
+      "config/vitest.config.ts",
+      "--coverage",
+      "--reporter=verbose",
+      "--reporter=json",
+      `--outputFile=${testResultsFile}`,
+    ],
     {
       cwd: workspaceRoot,
-      stdio: "inherit", // Direct inheritance - child writes directly to parent's streams
       shell: true, // Required on Windows to find npx in PATH
       env: { ...process.env, FORCE_COLOR: "0" },
+      stdio: ["inherit", "pipe", "pipe"],
     }
   );
-} catch (error) {
-  // execSync throws on non-zero exit, but output was already displayed via stdio: "inherit"
-  vitestExitCode = error.status || 1;
-}
+
+  // Buffer for incomplete lines
+  let stdoutBuffer = "";
+  let stderrBuffer = "";
+
+  // Filter stdout to remove "JSON report written to..." messages
+  vitestProcess.stdout.on("data", (data) => {
+    stdoutBuffer += data.toString();
+    const lines = stdoutBuffer.split("\n");
+    stdoutBuffer = lines.pop() || ""; // Keep incomplete line in buffer
+
+    for (const line of lines) {
+      if (!line.includes("JSON report written to")) {
+        process.stdout.write(line + "\n");
+      }
+    }
+  });
+
+  // Filter stderr to remove "JSON report written to..." messages
+  vitestProcess.stderr.on("data", (data) => {
+    stderrBuffer += data.toString();
+    const lines = stderrBuffer.split("\n");
+    stderrBuffer = lines.pop() || ""; // Keep incomplete line in buffer
+
+    for (const line of lines) {
+      if (!line.includes("JSON report written to")) {
+        process.stderr.write(line + "\n");
+      }
+    }
+  });
+
+  // Flush remaining buffers and handle close
+  vitestProcess.on("close", (code) => {
+    // Flush remaining buffers
+    if (stdoutBuffer && !stdoutBuffer.includes("JSON report written to")) {
+      process.stdout.write(stdoutBuffer);
+    }
+    if (stderrBuffer && !stderrBuffer.includes("JSON report written to")) {
+      process.stderr.write(stderrBuffer);
+    }
+    vitestExitCode = code || 0;
+    resolve();
+  });
+
+  vitestProcess.on("error", (error) => {
+    console.error("Error running vitest:", error.message);
+    vitestExitCode = 1;
+    resolve();
+  });
+});
 
 // Always run the coverage report, regardless of vitest exit code
 // But only if the coverage file exists (tests may have failed before generating coverage)
