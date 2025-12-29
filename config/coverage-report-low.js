@@ -26,14 +26,8 @@ try {
   const coverageData = JSON.parse(readFileSync(coverageFile, "utf-8"));
 
   const filesBelowThreshold = [];
-  let totalStatements = 0;
-  let coveredStatements = 0;
   let totalBranches = 0;
   let coveredBranches = 0;
-  let totalFunctions = 0;
-  let coveredFunctions = 0;
-  let totalLines = 0;
-  let coveredLines = 0;
 
   // Process each file in the coverage data
   for (const [filePath, coverage] of Object.entries(coverageData)) {
@@ -50,14 +44,6 @@ try {
       });
     }
 
-    // Count statements
-    if (coverage.s) {
-      for (const count of Object.values(coverage.s)) {
-        totalStatements++;
-        if (count > 0) coveredStatements++;
-      }
-    }
-
     // Count branches
     if (coverage.b) {
       for (const branchPaths of Object.values(coverage.b)) {
@@ -69,67 +55,20 @@ try {
         }
       }
     }
-
-    // Count functions
-    if (coverage.f) {
-      for (const count of Object.values(coverage.f)) {
-        totalFunctions++;
-        if (count > 0) coveredFunctions++;
-      }
-    }
-
-    // Count lines (from statementMap)
-    if (coverage.statementMap && coverage.s) {
-      const lineSet = new Set();
-      const coveredLineSet = new Set();
-      for (const [stmtId, stmt] of Object.entries(coverage.statementMap)) {
-        if (stmt && typeof stmt.start === "object" && stmt.start.line) {
-          const line = stmt.start.line;
-          const numericStmtId = Number(stmtId);
-          lineSet.add(line);
-          // Check if statement was executed (coverage.s uses numeric keys)
-          if (coverage.s[numericStmtId] > 0) {
-            coveredLineSet.add(line);
-          }
-        }
-      }
-      totalLines += lineSet.size;
-      coveredLines += coveredLineSet.size;
-    }
   }
 
-  // Calculate global percentages
-  const globalStatements =
-    totalStatements > 0 ? (coveredStatements / totalStatements) * 100 : 100;
+  // Calculate global branches percentage
   const globalBranches =
     totalBranches > 0 ? (coveredBranches / totalBranches) * 100 : 100;
-  const globalFunctions =
-    totalFunctions > 0 ? (coveredFunctions / totalFunctions) * 100 : 100;
-  const globalLines = totalLines > 0 ? (coveredLines / totalLines) * 100 : 100;
 
-  // Display global coverage summary
+  // Display global branches coverage
   console.log("\n" + "═".repeat(80));
-  console.log("📊 Global Coverage Summary");
+  console.log("📊 Global Branches Coverage");
   console.log("═".repeat(80));
   console.log(
-    `Statements: ${formatGlobalPercent(
-      globalStatements
-    )} (${coveredStatements}/${totalStatements})`
-  );
-  console.log(
-    `Branches:   ${formatGlobalPercent(
+    `Branches: ${formatGlobalPercent(
       globalBranches
     )} (${coveredBranches}/${totalBranches})`
-  );
-  console.log(
-    `Functions:  ${formatGlobalPercent(
-      globalFunctions
-    )} (${coveredFunctions}/${totalFunctions})`
-  );
-  console.log(
-    `Lines:      ${formatGlobalPercent(
-      globalLines
-    )} (${coveredLines}/${totalLines})`
   );
   console.log("═".repeat(80));
 
@@ -208,38 +147,6 @@ function calculateBranchPercentage(branchMap) {
   }
 
   return Math.round((coveredBranches / totalBranches) * 100 * 100) / 100;
-}
-
-/**
- * Calculate coverage percentage from a coverage map.
- * @param {Object|undefined} coverageMap - Coverage map with numeric keys and execution counts as values
- * @returns {number} Coverage percentage
- */
-function calculateCoveragePercentage(coverageMap) {
-  if (!coverageMap || typeof coverageMap !== "object") {
-    return 0;
-  }
-
-  const entries = Object.values(coverageMap);
-  if (entries.length === 0) {
-    return 100; // No coverage data means 100% (file not executed)
-  }
-
-  let total = 0;
-  let covered = 0;
-
-  for (const count of entries) {
-    total++;
-    if (count > 0) {
-      covered++;
-    }
-  }
-
-  if (total === 0) {
-    return 100; // Nothing to cover
-  }
-
-  return Math.round((covered / total) * 100 * 100) / 100;
 }
 
 /**
