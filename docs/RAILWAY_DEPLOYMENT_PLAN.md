@@ -119,8 +119,8 @@ Deploy Habitus to Railway with:
 **Note:** We'll create the PostgreSQL database service in Railway in Step 3.1 when we set up the project. **Important:** Railway does NOT automatically link the database to your web service. You will need to:
 
 - Create the PostgreSQL service (Step 3.1)
-- Manually link it to your web service (Step 3.1.1) to make `DATABASE_URL` available
-- Copy or reference the `DATABASE_URL` from the database service to your web service
+- Manually link PostgreSQL variables to your web service (Step 3.1.1)
+- Construct `DATABASE_URL` from individual PostgreSQL variables (Step 3.3)
 
 **You can skip this step for now** - We'll do it in Step 3.1 when creating the Railway project.**STOP HERE** - You can proceed to Phase 2 (Code Updates) or wait until Step 3.1 to set up the database.---
 
@@ -377,42 +377,47 @@ npm test
    - Your web service (named after your repo, e.g., `habitus`)
    - Your PostgreSQL database service (e.g., `habitus-db`)
 
-2. **Link the database to the web service:**
+2. **Link `DATABASE_URL` from PostgreSQL service to your web service:**
+
+   Railway provides `DATABASE_URL` directly from the PostgreSQL service. You just need to reference it:
 
    - Click on your **web service** (not the database)
    - Go to the **"Variables"** tab
-   - Scroll down to find the **"Add Variable"** section
-   - Look for a button or option to **"Add Reference"** or **"Connect Database"**
-   - Alternatively, click **"New Variable"** and you should see an option to reference the database
+   - Click **"New Variable"** → **"Add Reference"** (or similar option)
    - Select your PostgreSQL database service (e.g., `habitus-db`)
-   - Railway will automatically add `DATABASE_URL` as a reference variable
+   - Select `DATABASE_URL` from the available variables
+   - Railway will automatically create the reference with the value: `${{habitus-db.DATABASE_URL}}`
+   - Replace `habitus-db` with your actual database service name if different
 
-3. **Alternative method (if above doesn't work):**
+3. **Alternative method (if reference doesn't work):**
 
-   - Click on your **PostgreSQL database service**
-   - Go to the **"Variables"** tab
-   - Find the `DATABASE_URL` variable
-   - Copy the connection string value
-   - Go back to your **web service** → **"Variables"** tab
-   - Click **"New Variable"**
-   - Add: `DATABASE_URL` = [paste the connection string you copied]
+   If Railway doesn't provide `DATABASE_URL` directly, you can construct it from individual PostgreSQL variables:
+
+   - Reference individual variables: `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`
+   - Create `DATABASE_URL` manually:
+     - Variable Name: `DATABASE_URL`
+     - Value: `postgresql://${{POSTGRES_USER}}:${{POSTGRES_PASSWORD}}@${{POSTGRES_HOST}}:${{POSTGRES_PORT}}/${{POSTGRES_DB}}`
 
 4. **Verify the link:**
    - In your web service → "Variables" tab
    - You should see `DATABASE_URL` listed
-   - It should show as a reference (with an icon) or as a regular variable
+   - The value should be: `${{habitus-db.DATABASE_URL}}` (or your database service name)
+   - Railway will automatically resolve this to the actual connection string at runtime
 
 **Important Notes:**
 
 - Railway does NOT automatically link services - you must do this manually
-- The `DATABASE_URL` must be available in your web service's environment variables
-- If you see `DATABASE_URL` in the database service but not in the web service, you need to copy it manually
+- Railway provides `DATABASE_URL` directly from the PostgreSQL service
+- The reference value will be: `${{your-db-service-name.DATABASE_URL}}`
+- Railway automatically resolves this reference to the actual connection string at runtime
+- Replace `your-db-service-name` with your actual PostgreSQL service name (e.g., `habitus-db`)
 
 **Verification:**
 
 - ✅ `DATABASE_URL` appears in your web service's Variables tab
-- ✅ The variable contains a valid PostgreSQL connection string
-- ✅ The connection string format is: `postgresql://user:password@host:port/database`
+- ✅ The value is: `${{habitus-db.DATABASE_URL}}` (or your database service name)
+- ✅ Railway will automatically resolve this to the actual connection string at runtime
+- ✅ The resolved connection string format is: `postgresql://user:password@host:port/database`
 
 **STOP HERE** - Verify `DATABASE_URL` is linked to your web service before proceeding.---
 
@@ -480,14 +485,32 @@ npm test
 
 **Database (Railway PostgreSQL - Manual Link Required):**
 
-- `DATABASE_URL` - **Must be manually linked** from your PostgreSQL service to your web service
-- If you completed Step 3.1.1, `DATABASE_URL` should already be available
-- If not, you need to:
-  1. Go to your PostgreSQL service → "Variables" tab
-  2. Copy the `DATABASE_URL` value
-  3. Go to your web service → "Variables" tab
-  4. Add `DATABASE_URL` = [paste the connection string]
-- The connection string format is: `postgresql://user:password@host:port/database`
+Railway provides `DATABASE_URL` directly from the PostgreSQL service. You just need to reference it in your web service.
+
+**Link `DATABASE_URL` from PostgreSQL service:**
+
+1. Go to your **web service** → "Variables" tab
+2. Click "New Variable" → "Add Reference"
+3. Select your PostgreSQL database service (e.g., `habitus-db`)
+4. Select `DATABASE_URL` from the available variables
+5. Railway will automatically create the reference with value: `${{habitus-db.DATABASE_URL}}`
+   - Replace `habitus-db` with your actual database service name if different
+
+**Alternative: Construct `DATABASE_URL` from individual variables (if reference doesn't work):**
+
+If Railway doesn't provide `DATABASE_URL` directly, you can construct it:
+
+1. Reference individual PostgreSQL variables: `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`
+2. Create `DATABASE_URL` manually:
+   - Variable Name: `DATABASE_URL`
+   - Value: `postgresql://${{POSTGRES_USER}}:${{POSTGRES_PASSWORD}}@${{POSTGRES_HOST}}:${{POSTGRES_PORT}}/${{POSTGRES_DB}}`
+
+**Verification:**
+
+- ✅ `DATABASE_URL` exists in your web service's Variables tab
+- ✅ The value is: `${{habitus-db.DATABASE_URL}}` (or your database service name)
+- ✅ Railway will automatically resolve this to the actual connection string at runtime
+- ✅ The resolved connection string format is: `postgresql://user:password@host:port/database`
 
 **JWT & Auth:**
 
@@ -526,8 +549,10 @@ openssl rand -hex 32
 Copy the output and use it as `JWT_SECRET`.**Important Notes:**
 
 - Railway automatically provides `PORT` environment variable
-- Railway automatically provides `DATABASE_URL` when PostgreSQL service is linked
+- Railway provides individual PostgreSQL variables (`POSTGRES_HOST`, `POSTGRES_PORT`, etc.) that must be manually linked
+- You need to construct `DATABASE_URL` from these variables (see Step 3.1.1 and Step 3.3)
 - Use `${{PORT}}` syntax to reference Railway's PORT in VITE_PORT
+- Use `${{VARIABLE_NAME}}` syntax to reference other Railway variables
 - All secrets are encrypted in Railway
 
 **Verification:**
@@ -812,12 +837,18 @@ The application will **automatically detect** the environment and use the approp
 - Verify PostgreSQL service is created in Railway
 - **Most common issue:** `DATABASE_URL` is not linked to your web service
   - Check if `DATABASE_URL` exists in your web service's Variables tab
-  - If not, manually link it (see Step 3.1.1)
-  - Copy `DATABASE_URL` from PostgreSQL service to web service if needed
+  - If not, reference it from your PostgreSQL service:
+    1. Go to your web service → "Variables" tab
+    2. Click "New Variable" → "Add Reference"
+    3. Select your PostgreSQL database service
+    4. Select `DATABASE_URL`
+    5. The value should be: `${{your-db-service-name.DATABASE_URL}}`
+  - If Railway doesn't provide `DATABASE_URL` directly, construct it from individual PostgreSQL variables
 - Verify PostgreSQL service shows "Active" status in Railway
 - Check Railway logs for database connection errors
 - Ensure both services are in the same Railway project
-- Verify the connection string format is correct: `postgresql://user:password@host:port/database`
+- Verify the `DATABASE_URL` reference format: `${{service-name.DATABASE_URL}}`
+- Railway will automatically resolve the reference to the actual connection string at runtime
 
 **File Upload Errors:**
 
