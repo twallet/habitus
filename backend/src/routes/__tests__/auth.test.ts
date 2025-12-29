@@ -736,7 +736,9 @@ describe("Auth Routes", () => {
         .send({ email: "newemail@example.com" });
 
       expect(response.status).toBe(200);
-      expect(response.body.message).toContain("verification link sent");
+      expect(response.body.message).toContain(
+        "verification link has been sent"
+      );
 
       // Check that email was sent
       expect(emailService.sendEmail).toHaveBeenCalled();
