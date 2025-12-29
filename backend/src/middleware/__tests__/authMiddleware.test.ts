@@ -1,6 +1,10 @@
 import { vi, type Mock, type Mocked } from "vitest";
 import { Request, Response, NextFunction } from "express";
-import { authenticateToken, AuthRequest } from "../authMiddleware.js";
+import {
+  authenticateToken,
+  authenticateTokenOptional,
+  AuthRequest,
+} from "../authMiddleware.js";
 import { ServiceManager } from "../../services/index.js";
 import { Database } from "../../db/database.js";
 import { AuthService } from "../../services/authService.js";
@@ -232,6 +236,287 @@ describe("authMiddleware", () => {
       expect(mockAuthService.verifyToken).toHaveBeenCalledWith(
         "my-secret-token-123"
       );
+    });
+
+    it("should return 401 if Bearer token is empty", async () => {
+      mockReq.headers = {
+        authorization: "Bearer ",
+      } as any;
+      // Empty token should cause verifyToken to fail
+      mockAuthService.verifyToken.mockRejectedValue(
+        new Error("Invalid or expired token")
+      );
+
+      await authenticateToken(
+        mockReq,
+        mockRes as Response,
+        mockNext as unknown as NextFunction
+      );
+
+      expect(mockAuthService.verifyToken).toHaveBeenCalledWith("");
+      expect(mockRes.status).toHaveBeenCalledWith(401);
+      expect(mockRes.json).toHaveBeenCalledWith({
+        error: "Invalid or expired token",
+      });
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+
+    it("should handle token with special characters", async () => {
+      const specialToken = "token.with-special_chars@123";
+      mockReq.headers = {
+        authorization: `Bearer ${specialToken}`,
+      } as any;
+      mockAuthService.verifyToken.mockResolvedValue(1);
+
+      await authenticateToken(
+        mockReq,
+        mockRes as Response,
+        mockNext as unknown as NextFunction
+      );
+
+      expect(mockAuthService.verifyToken).toHaveBeenCalledWith(specialToken);
+      expect(mockReq.userId).toBe(1);
+      expect(mockNext).toHaveBeenCalled();
+    });
+
+    it("should handle error message that includes 'token' substring", async () => {
+      mockReq.headers = {
+        authorization: "Bearer token",
+      } as any;
+      mockAuthService.verifyToken.mockRejectedValue(
+        new Error("Token validation failed: token expired")
+      );
+
+      await authenticateToken(
+        mockReq,
+        mockRes as Response,
+        mockNext as unknown as NextFunction
+      );
+
+      expect(mockRes.status).toHaveBeenCalledWith(401);
+      expect(mockRes.json).toHaveBeenCalledWith({
+        error: "Token validation failed: token expired",
+      });
+    });
+
+    it("should handle non-Error objects thrown", async () => {
+      mockReq.headers = {
+        authorization: "Bearer token",
+      } as any;
+      mockAuthService.verifyToken.mockRejectedValue("String error");
+
+      await authenticateToken(
+        mockReq,
+        mockRes as Response,
+        mockNext as unknown as NextFunction
+      );
+
+      expect(mockRes.status).toHaveBeenCalledWith(500);
+      expect(mockRes.json).toHaveBeenCalledWith({
+        error: "Authentication error",
+      });
+    });
+  });
+
+  describe("authenticateTokenOptional", () => {
+    const originalEnv = process.env.NODE_ENV;
+
+    afterEach(() => {
+      process.env.NODE_ENV = originalEnv;
+    });
+
+    describe("development mode", () => {
+      beforeEach(() => {
+        process.env.NODE_ENV = "development";
+      });
+
+      it("should allow request without token in development", async () => {
+        mockReq.headers = {} as any;
+
+        await authenticateTokenOptional(
+          mockReq,
+          mockRes as Response,
+          mockNext as unknown as NextFunction
+        );
+
+        expect(mockReq.userId).toBeUndefined();
+        expect(mockNext).toHaveBeenCalled();
+        expect(mockRes.status).not.toHaveBeenCalled();
+      });
+
+      it("should authenticate valid token in development", async () => {
+        mockReq.headers = {
+          authorization: "Bearer valid-token",
+        } as any;
+        mockAuthService.verifyToken.mockResolvedValue(1);
+
+        await authenticateTokenOptional(
+          mockReq,
+          mockRes as Response,
+          mockNext as unknown as NextFunction
+        );
+
+        expect(mockAuthService.verifyToken).toHaveBeenCalledWith("valid-token");
+        expect(mockReq.userId).toBe(1);
+        expect(mockUserService.updateLastAccess).toHaveBeenCalledWith(1);
+        expect(mockNext).toHaveBeenCalled();
+        expect(mockRes.status).not.toHaveBeenCalled();
+      });
+
+      it("should allow request with invalid token in development", async () => {
+        mockReq.headers = {
+          authorization: "Bearer invalid-token",
+        } as any;
+        mockAuthService.verifyToken.mockRejectedValue(
+          new Error("Invalid token")
+        );
+
+        await authenticateTokenOptional(
+          mockReq,
+          mockRes as Response,
+          mockNext as unknown as NextFunction
+        );
+
+        expect(mockReq.userId).toBeUndefined();
+        expect(mockNext).toHaveBeenCalled();
+        expect(mockRes.status).not.toHaveBeenCalled();
+      });
+
+      it("should allow request when authorization header does not start with Bearer in development", async () => {
+        mockReq.headers = {
+          authorization: "Invalid format",
+        } as any;
+
+        await authenticateTokenOptional(
+          mockReq,
+          mockRes as Response,
+          mockNext as unknown as NextFunction
+        );
+
+        expect(mockReq.userId).toBeUndefined();
+        expect(mockNext).toHaveBeenCalled();
+        expect(mockRes.status).not.toHaveBeenCalled();
+      });
+
+      it("should not fail request if updateLastAccess fails in development", async () => {
+        mockReq.headers = {
+          authorization: "Bearer valid-token",
+        } as any;
+        mockAuthService.verifyToken.mockResolvedValue(1);
+        mockUserService.updateLastAccess.mockRejectedValue(
+          new Error("Update failed")
+        );
+
+        await authenticateTokenOptional(
+          mockReq,
+          mockRes as Response,
+          mockNext as unknown as NextFunction
+        );
+
+        expect(mockNext).toHaveBeenCalled();
+        expect(mockReq.userId).toBe(1);
+        expect(mockRes.status).not.toHaveBeenCalled();
+      });
+
+      it("should handle empty Bearer token in development", async () => {
+        mockReq.headers = {
+          authorization: "Bearer ",
+        } as any;
+        mockAuthService.verifyToken.mockRejectedValue(
+          new Error("Invalid token")
+        );
+
+        await authenticateTokenOptional(
+          mockReq,
+          mockRes as Response,
+          mockNext as unknown as NextFunction
+        );
+
+        expect(mockReq.userId).toBeUndefined();
+        expect(mockNext).toHaveBeenCalled();
+      });
+    });
+
+    describe("production mode", () => {
+      beforeEach(() => {
+        process.env.NODE_ENV = "production";
+      });
+
+      it("should require authentication in production (delegates to authenticateToken)", async () => {
+        mockReq.headers = {
+          authorization: "Bearer valid-token",
+        } as any;
+        mockAuthService.verifyToken.mockResolvedValue(1);
+
+        await authenticateTokenOptional(
+          mockReq,
+          mockRes as Response,
+          mockNext as unknown as NextFunction
+        );
+
+        // Should behave like authenticateToken in production
+        expect(mockAuthService.verifyToken).toHaveBeenCalledWith("valid-token");
+        expect(mockReq.userId).toBe(1);
+        expect(mockNext).toHaveBeenCalled();
+      });
+
+      it("should return 401 if no token in production", async () => {
+        mockReq.headers = {} as any;
+
+        await authenticateTokenOptional(
+          mockReq,
+          mockRes as Response,
+          mockNext as unknown as NextFunction
+        );
+
+        // Should behave like authenticateToken in production
+        expect(mockRes.status).toHaveBeenCalledWith(401);
+        expect(mockRes.json).toHaveBeenCalledWith({
+          error: "Authorization token required",
+        });
+        expect(mockNext).not.toHaveBeenCalled();
+      });
+
+      it("should return 401 if invalid token in production", async () => {
+        mockReq.headers = {
+          authorization: "Bearer invalid-token",
+        } as any;
+        mockAuthService.verifyToken.mockRejectedValue(
+          new Error("Invalid or expired token")
+        );
+
+        await authenticateTokenOptional(
+          mockReq,
+          mockRes as Response,
+          mockNext as unknown as NextFunction
+        );
+
+        expect(mockRes.status).toHaveBeenCalledWith(401);
+        expect(mockRes.json).toHaveBeenCalledWith({
+          error: "Invalid or expired token",
+        });
+        expect(mockNext).not.toHaveBeenCalled();
+      });
+    });
+
+    describe("test mode", () => {
+      beforeEach(() => {
+        process.env.NODE_ENV = "test";
+      });
+
+      it("should allow request without token in test mode", async () => {
+        mockReq.headers = {} as any;
+
+        await authenticateTokenOptional(
+          mockReq,
+          mockRes as Response,
+          mockNext as unknown as NextFunction
+        );
+
+        expect(mockReq.userId).toBeUndefined();
+        expect(mockNext).toHaveBeenCalled();
+        expect(mockRes.status).not.toHaveBeenCalled();
+      });
     });
   });
 });
