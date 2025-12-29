@@ -268,9 +268,10 @@ class TrackingFormatter {
     /**
      * Format full frequency details for tooltip.
      * @param frequency - Frequency object (optional, defaults to daily)
+     * @param user - User data (optional, for locale/timezone)
      * @returns Detailed frequency string
      */
-    static formatFullFrequency(frequency?: Frequency): string {
+    static formatFullFrequency(frequency?: Frequency, user?: { locale?: string; timezone?: string } | null): string {
         let details = "Frequency: ";
 
         if (!frequency || !frequency.type) {
@@ -327,7 +328,12 @@ class TrackingFormatter {
                 if (frequency.date) {
                     const date = new Date(frequency.date);
                     if (!isNaN(date.getTime())) {
-                        details += `One-time (${date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })})`;
+                        try {
+                            const dateStr = `${frequency.date}T00:00:00Z`;
+                            details += `One-time (${formatUserDate(dateStr, user)})`;
+                        } catch {
+                            details += "One-time";
+                        }
                     } else {
                         details += "One-time";
                     }
@@ -1340,7 +1346,7 @@ export function TrackingsList({
                                     </td>
                                     <td
                                         className="cell-frequency"
-                                        title={TrackingFormatter.formatFullFrequency(tracking.frequency)}
+                                        title={TrackingFormatter.formatFullFrequency(tracking.frequency, user)}
                                     >
                                         <FrequencyDisplay frequency={tracking.frequency} />
                                     </td>

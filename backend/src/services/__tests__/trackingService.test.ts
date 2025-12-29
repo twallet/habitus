@@ -42,6 +42,10 @@ async function createTestDatabase(): Promise<Database> {
               profile_picture_url TEXT,
               magic_link_token TEXT,
               magic_link_expires DATETIME,
+              telegram_chat_id TEXT,
+              notification_channels TEXT,
+              locale TEXT DEFAULT 'en-US',
+              timezone TEXT,
               last_access DATETIME,
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
