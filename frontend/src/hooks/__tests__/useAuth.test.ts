@@ -529,8 +529,14 @@ describe("useAuth", () => {
       const user = await result.current.verifyMagicLink("magic-token");
       expect(user).toEqual(mockUser);
 
+      // After verifyMagicLink, syncLocaleAndTimezoneIfNeeded may update the user with timezone
+      const expectedUser = {
+        ...mockUser,
+        timezone: "America/New_York",
+      };
+
       await waitFor(() => {
-        expect(result.current.user).toEqual(mockUser);
+        expect(result.current.user).toEqual(expectedUser);
         expect(result.current.token).toBe("new-token");
         expect(localStorage.getItem(TOKEN_KEY)).toBe("new-token");
       });
