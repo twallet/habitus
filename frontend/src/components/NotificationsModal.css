@@ -5,32 +5,42 @@
 .notifications-label {
   display: block;
   margin-bottom: 16px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-primary);
-  font-size: 0.95rem;
+  font-size: 1rem;
 }
 
 .notification-channels {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
 }
 
 .channel-option {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid var(--border-color);
+  gap: 14px;
+  padding: 16px;
+  border: 2px solid var(--border-color);
   border-radius: var(--radius);
   cursor: pointer;
   transition: var(--transition);
   background: var(--bg-primary);
+  position: relative;
+  box-shadow: var(--shadow-sm);
 }
 
 .channel-option:hover:not(.disabled) {
   background: var(--bg-secondary);
   border-color: var(--text-secondary);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.channel-option:has(input[type="checkbox"]:checked) {
+  border-color: var(--channel-color, var(--primary-color));
+  background: var(--bg-secondary);
+  box-shadow: 0 0 0 3px rgba(0, 90, 127, 0.1);
 }
 
 .channel-option.disabled {
@@ -40,22 +50,64 @@
 }
 
 .channel-option input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   cursor: pointer;
-  accent-color: #00c8ff;
+  accent-color: var(--channel-color, var(--primary-color));
+  flex-shrink: 0;
 }
 
 .channel-option.disabled input[type="checkbox"] {
   cursor: not-allowed;
 }
 
-.channel-option span {
-  font-size: 0.95rem;
-  color: var(--text-primary);
-  user-select: none;
+.channel-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  font-size: 1.5rem;
+  flex-shrink: 0;
 }
 
-.channel-option.disabled span {
+.channel-icon-svg {
+  width: 24px;
+  height: 24px;
+  color: var(--channel-color, var(--text-primary));
+}
+
+.channel-option-email .channel-icon {
+  color: #005a7f;
+}
+
+.channel-option-calendar .channel-icon {
+  color: #ea4335;
+}
+
+.channel-option-telegram .channel-icon-svg {
+  color: #0088cc;
+}
+
+.channel-option-whatsapp .channel-icon-svg {
+  color: #25d366;
+}
+
+.channel-label {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  user-select: none;
+  flex: 1;
+}
+
+.channel-option.disabled .channel-label {
   color: var(--text-secondary);
+}
+
+.form-help-text {
+  margin-top: 8px;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
 }
