@@ -2066,24 +2066,22 @@ describe("Server Configuration - Integration Tests", () => {
         return;
       }
 
-      // Create API route that throws error - server.ts already has error handler
-      // Use /api prefix to avoid being caught by static file serving
-      // Register route before making request - use async to ensure it's registered
-      capturedApp.get("/api/test-error-dev", async (_req, _res, next) => {
+      // Test error handler by creating a route that throws an error
+      // The error handler should catch it and include the message in dev mode
+      // We need to insert the route before the error handler, so we'll use use() to add it
+      capturedApp.use("/api/test-error-dev", (_req, _res, next) => {
         const error = new Error("Test error message");
         next(error);
       });
 
-      // Wait a bit for route to be registered
-      await new Promise((resolve) => setTimeout(resolve, 50));
-
       const response = await request(capturedApp).get("/api/test-error-dev");
 
+      // Error handler should catch the error
+      // Note: isDevelopment is evaluated at module load time in server.ts
+      // Since we set NODE_ENV before setupAndImportServer, it should be "development"
       expect(response.status).toBe(500);
       expect(response.body.error).toBe("Internal server error");
-      // In development, error message should be included
-      // Note: isDevelopment is set at module load time, so it might be "test" not "development"
-      // But the error handler checks process.env.NODE_ENV !== "production"
+      // In development mode, message should be included
       if (process.env.NODE_ENV !== "production") {
         expect(response.body.message).toBe("Test error message");
       }
@@ -2099,22 +2097,22 @@ describe("Server Configuration - Integration Tests", () => {
         return;
       }
 
-      // Create API route that throws error - server.ts already has error handler
-      // Use /api prefix to avoid being caught by static file serving
-      // Register route before making request - use async to ensure it's registered
-      capturedApp.get("/api/test-error-prod", async (_req, _res, next) => {
+      // Test error handler by creating a route that throws an error
+      // The error handler should catch it but not include the message in prod mode
+      // We need to insert the route before the error handler, so we'll use use() to add it
+      capturedApp.use("/api/test-error-prod", (_req, _res, next) => {
         const error = new Error("Test error message");
         next(error);
       });
 
-      // Wait a bit for route to be registered
-      await new Promise((resolve) => setTimeout(resolve, 50));
-
       const response = await request(capturedApp).get("/api/test-error-prod");
 
+      // Error handler should catch the error
+      // Note: isDevelopment is evaluated at module load time in server.ts
+      // Since we set NODE_ENV to "production" before setupAndImportServer, it should be false
       expect(response.status).toBe(500);
       expect(response.body.error).toBe("Internal server error");
-      // In production, error message should not be included
+      // In production mode, message should not be included
       expect(response.body.message).toBeUndefined();
     });
 
