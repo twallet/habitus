@@ -26,90 +26,87 @@ const ORANGE = "\x1b[1;33m"; // Bold yellow (appears orange-like in many termina
 const RESET = "\x1b[0m";
 const supportsColor = process.stdout.isTTY;
 
-try {
-  const coverageData = JSON.parse(readFileSync(coverageFile, "utf-8"));
+// Try to read and process coverage data if available
+if (existsSync(coverageFile)) {
+  try {
+    const coverageData = JSON.parse(readFileSync(coverageFile, "utf-8"));
 
-  const filesBelowThreshold = [];
-  let totalBranches = 0;
-  let coveredBranches = 0;
+    const filesBelowThreshold = [];
+    let totalBranches = 0;
+    let coveredBranches = 0;
 
-  // Process each file in the coverage data
-  for (const [filePath, coverage] of Object.entries(coverageData)) {
-    if (!coverage || typeof coverage !== "object") continue;
+    // Process each file in the coverage data
+    for (const [filePath, coverage] of Object.entries(coverageData)) {
+      if (!coverage || typeof coverage !== "object") continue;
 
-    // Calculate branches coverage percentage only
-    const branches = calculateBranchPercentage(coverage.b);
+      // Calculate branches coverage percentage only
+      const branches = calculateBranchPercentage(coverage.b);
 
-    // Check if branches coverage is below threshold
-    if (branches < THRESHOLD) {
-      filesBelowThreshold.push({
-        file: filePath,
-        branches,
-      });
-    }
+      // Check if branches coverage is below threshold
+      if (branches < THRESHOLD) {
+        filesBelowThreshold.push({
+          file: filePath,
+          branches,
+        });
+      }
 
-    // Count branches
-    if (coverage.b) {
-      for (const branchPaths of Object.values(coverage.b)) {
-        if (Array.isArray(branchPaths)) {
-          for (const pathCount of branchPaths) {
-            totalBranches++;
-            if (pathCount > 0) coveredBranches++;
+      // Count branches
+      if (coverage.b) {
+        for (const branchPaths of Object.values(coverage.b)) {
+          if (Array.isArray(branchPaths)) {
+            for (const pathCount of branchPaths) {
+              totalBranches++;
+              if (pathCount > 0) coveredBranches++;
+            }
           }
         }
       }
     }
-  }
 
-  // Calculate global branches percentage
-  const globalBranches =
-    totalBranches > 0 ? (coveredBranches / totalBranches) * 100 : 100;
+    // Calculate global branches percentage
+    const globalBranches =
+      totalBranches > 0 ? (coveredBranches / totalBranches) * 100 : 100;
 
-  // Display global branches coverage (after test summary)
-  console.log(
-    `\n📊 Global Branches Coverage: ${formatGlobalPercent(
-      globalBranches
-    )} (${coveredBranches}/${totalBranches})`
-  );
-
-  // Display files with coverage below threshold
-  if (filesBelowThreshold.length === 0) {
-    console.log("\n✅ All files meet the 75% branches coverage threshold!");
-  } else {
-    console.log(`\n⚠️  Files with branches coverage below ${THRESHOLD}%:\n`);
-    console.log("─".repeat(80));
-    console.log("File".padEnd(60) + "Branches");
-    console.log("─".repeat(80));
-
-    // Sort by lowest branches coverage first
-    filesBelowThreshold.sort((a, b) => a.branches - b.branches);
-
-    for (const file of filesBelowThreshold) {
-      const fileDisplay =
-        file.file.length > 58 ? "..." + file.file.slice(-55) : file.file;
-
-      const branchesStat = formatPercentWithColor(file.branches);
-
-      console.log(fileDisplay.padEnd(60) + branchesStat);
-    }
-
-    console.log("─".repeat(80));
+    // Display global branches coverage (after test summary)
     console.log(
-      `\nTotal: ${filesBelowThreshold.length} file(s) below branches coverage threshold`
+      `\n📊 Global Branches Coverage: ${formatGlobalPercent(
+        globalBranches
+      )} (${coveredBranches}/${totalBranches})`
     );
-  }
 
-  // Display failed test suites (after coverage report)
-  displayFailedTestSuites();
-} catch (error) {
-  if (error.code === "ENOENT") {
-    console.error(`\n❌ Coverage file not found: ${coverageFile}`);
-    console.error("Please run tests with coverage first: npm test\n");
-  } else {
-    console.error(`\n❌ Error reading coverage file: ${error.message}\n`);
+    // Display files with coverage below threshold
+    if (filesBelowThreshold.length === 0) {
+      console.log("\n✅ All files meet the 75% branches coverage threshold!");
+    } else {
+      console.log(`\n⚠️  Files with branches coverage below ${THRESHOLD}%:\n`);
+      console.log("─".repeat(80));
+      console.log("File".padEnd(60) + "Branches");
+      console.log("─".repeat(80));
+
+      // Sort by lowest branches coverage first
+      filesBelowThreshold.sort((a, b) => a.branches - b.branches);
+
+      for (const file of filesBelowThreshold) {
+        const fileDisplay =
+          file.file.length > 58 ? "..." + file.file.slice(-55) : file.file;
+
+        const branchesStat = formatPercentWithColor(file.branches);
+
+        console.log(fileDisplay.padEnd(60) + branchesStat);
+      }
+
+      console.log("─".repeat(80));
+      console.log(
+        `\nTotal: ${filesBelowThreshold.length} file(s) below branches coverage threshold`
+      );
+    }
+  } catch (error) {
+    console.error(`\n❌ Error reading coverage file: ${error.message}`);
   }
-  process.exit(1);
 }
+
+// Always display failed test suites (even if coverage file doesn't exist)
+displayFailedTestSuites();
 
 /**
  * Calculate branch coverage percentage from branch map.
