@@ -2141,6 +2141,7 @@ describe("useAuth", () => {
         created_at: "2024-01-01T00:00:00Z",
       };
 
+      let syncCallCount = 0;
       (global.fetch as Mock).mockImplementation(
         (url: string | Request | URL) => {
           const urlString =
@@ -2171,6 +2172,7 @@ describe("useAuth", () => {
           }
 
           if (urlString.includes("/api/users/preferences")) {
+            syncCallCount++;
             // Sync fails
             return Promise.resolve({
               ok: false,
@@ -2193,22 +2195,34 @@ describe("useAuth", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
+      // Call verifyMagicLink and wait for it to complete (including sync attempt)
       const user = await result.current.verifyMagicLink("magic-token");
       expect(user).toEqual(mockUser);
 
-      // localStorage should be set immediately (synchronous operation)
+      // localStorage should be set immediately (synchronous operation before sync)
       expect(localStorage.getItem(TOKEN_KEY)).toBe("new-token");
 
-      // User should still be authenticated even if sync fails
-      // Wait for state updates and sync failure to complete
-      await waitFor(() => {
-        expect(result.current.user).toEqual(mockUser);
-        expect(result.current.token).toBe("new-token");
-        // Verify localStorage is still set (sync failure shouldn't clear it)
-        expect(localStorage.getItem(TOKEN_KEY)).toBe("new-token");
-      });
+      // Wait for state updates and ensure sync has been attempted
+      await waitFor(
+        () => {
+          expect(result.current.user).toEqual(mockUser);
+          expect(result.current.token).toBe("new-token");
+          // Verify sync was attempted (it will fail, but should be called)
+          expect(syncCallCount).toBeGreaterThan(0);
+        },
+        { timeout: 3000 }
+      );
+
+      // Give extra time for sync failure handling to complete
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      // Verify authentication state
       expect(result.current.isAuthenticated).toBe(true);
-      // Verify localStorage is still set after sync failure completes
+      expect(result.current.user).toEqual(mockUser);
+      expect(result.current.token).toBe("new-token");
+
+      // Most importantly: verify localStorage is still set after sync failure
+      // Sync failure should NOT clear localStorage
       expect(localStorage.getItem(TOKEN_KEY)).toBe("new-token");
     });
   });
