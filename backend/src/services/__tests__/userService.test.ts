@@ -1165,6 +1165,11 @@ describe("UserService", () => {
     });
 
     it("should set locale to undefined when empty string is provided", async () => {
+      // First set a locale
+      await testDb.run("UPDATE users SET locale = 'fr-FR' WHERE id = ?", [
+        userId,
+      ]);
+
       const updatedUser = await userService.updateLocaleAndTimezone(userId, "");
 
       expect(updatedUser.locale).toBeUndefined();
