@@ -99,19 +99,38 @@ try {
   }
 
   // Calculate global percentages
-  const globalStatements = totalStatements > 0 ? (coveredStatements / totalStatements) * 100 : 100;
-  const globalBranches = totalBranches > 0 ? (coveredBranches / totalBranches) * 100 : 100;
-  const globalFunctions = totalFunctions > 0 ? (coveredFunctions / totalFunctions) * 100 : 100;
+  const globalStatements =
+    totalStatements > 0 ? (coveredStatements / totalStatements) * 100 : 100;
+  const globalBranches =
+    totalBranches > 0 ? (coveredBranches / totalBranches) * 100 : 100;
+  const globalFunctions =
+    totalFunctions > 0 ? (coveredFunctions / totalFunctions) * 100 : 100;
   const globalLines = totalLines > 0 ? (coveredLines / totalLines) * 100 : 100;
 
   // Display global coverage summary
   console.log("\n" + "═".repeat(80));
   console.log("📊 Global Coverage Summary");
   console.log("═".repeat(80));
-  console.log(`Statements: ${formatGlobalPercent(globalStatements)} (${coveredStatements}/${totalStatements})`);
-  console.log(`Branches:   ${formatGlobalPercent(globalBranches)} (${coveredBranches}/${totalBranches})`);
-  console.log(`Functions:  ${formatGlobalPercent(globalFunctions)} (${coveredFunctions}/${totalFunctions})`);
-  console.log(`Lines:      ${formatGlobalPercent(globalLines)} (${coveredLines}/${totalLines})`);
+  console.log(
+    `Statements: ${formatGlobalPercent(
+      globalStatements
+    )} (${coveredStatements}/${totalStatements})`
+  );
+  console.log(
+    `Branches:   ${formatGlobalPercent(
+      globalBranches
+    )} (${coveredBranches}/${totalBranches})`
+  );
+  console.log(
+    `Functions:  ${formatGlobalPercent(
+      globalFunctions
+    )} (${coveredFunctions}/${totalFunctions})`
+  );
+  console.log(
+    `Lines:      ${formatGlobalPercent(
+      globalLines
+    )} (${coveredLines}/${totalLines})`
+  );
   console.log("═".repeat(80));
 
   // Display results
