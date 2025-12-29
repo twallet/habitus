@@ -8,8 +8,8 @@ const __dirname = dirname(__filename);
 
 console.log("[START] Running SMTP test before starting server...");
 
-// Ejecutar prueba SMTP
-const testProcess = spawn("node", ["dist/test-smtp.js"], {
+// Ejecutar prueba SMTP (el script ya está en dist/, así que las rutas son relativas a dist/)
+const testProcess = spawn("node", ["test-smtp.js"], {
   cwd: __dirname,
   stdio: "inherit",
   shell: false,
@@ -29,7 +29,7 @@ testProcess.on("close", (code) => {
 
   // Iniciar el servidor
   console.log("[START] Starting server...");
-  const serverProcess = spawn("node", ["dist/server.js"], {
+  const serverProcess = spawn("node", ["server.js"], {
     cwd: __dirname,
     stdio: "inherit",
     shell: false,
@@ -55,7 +55,7 @@ testProcess.on("error", (error) => {
   console.warn("[START] Continuing to start server anyway...");
 
   // Iniciar el servidor incluso si la prueba falla
-  const serverProcess = spawn("node", ["dist/server.js"], {
+  const serverProcess = spawn("node", ["server.js"], {
     cwd: __dirname,
     stdio: "inherit",
     shell: false,
