@@ -5,8 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { MainLayout } from '../MainLayout';
 import { useAuth } from '../../../hooks/useAuth';
-import { useTrackings } from '../../../hooks/useTrackings';
-import { useReminders } from '../../../hooks/useReminders';
+import { useCoordinatedEntities } from '../../../hooks/useCoordinatedEntities';
 import { TrackingState, Frequency } from '../../../models/Tracking';
 import { ReminderStatus } from '../../../models/Reminder';
 
@@ -15,12 +14,8 @@ vi.mock('../../../hooks/useAuth', () => ({
     useAuth: vi.fn(),
 }));
 
-vi.mock('../../../hooks/useTrackings', () => ({
-    useTrackings: vi.fn(),
-}));
-
-vi.mock('../../../hooks/useReminders', () => ({
-    useReminders: vi.fn(),
+vi.mock('../../../hooks/useCoordinatedEntities', () => ({
+    useCoordinatedEntities: vi.fn(),
 }));
 
 // Mock getDailyCitation
@@ -29,8 +24,7 @@ vi.mock('../../../utils/citations', () => ({
 }));
 
 const mockUseAuth = useAuth as MockedFunction<typeof useAuth>;
-const mockUseTrackings = useTrackings as MockedFunction<typeof useTrackings>;
-const mockUseReminders = useReminders as MockedFunction<typeof useReminders>;
+const mockUseCoordinatedEntities = useCoordinatedEntities as MockedFunction<typeof useCoordinatedEntities>;
 
 describe('MainLayout', () => {
     const mockUser = {
@@ -46,7 +40,7 @@ describe('MainLayout', () => {
             user_id: 1,
             question: 'Did you exercise?',
             state: TrackingState.RUNNING,
-            frequency: { type: "daily" },
+            frequency: { type: "daily" } as Frequency,
             created_at: '2024-01-01T00:00:00Z',
         },
     ];
@@ -81,19 +75,17 @@ describe('MainLayout', () => {
             deleteUser: vi.fn(),
         });
 
-        mockUseTrackings.mockReturnValue({
+        mockUseCoordinatedEntities.mockReturnValue({
+            isLoading: false, // For backward compatibility
             trackings: mockTrackings,
-            isLoading: false,
+            trackingsLoading: false,
             createTracking: vi.fn(),
             updateTracking: vi.fn(),
             updateTrackingState: vi.fn(),
             deleteTracking: vi.fn(),
             refreshTrackings: vi.fn(),
-        });
-
-        mockUseReminders.mockReturnValue({
             reminders: mockReminders,
-            isLoading: false,
+            remindersLoading: false,
             updateReminder: vi.fn(),
             completeReminder: vi.fn(),
             dismissReminder: vi.fn(),
@@ -101,6 +93,7 @@ describe('MainLayout', () => {
             deleteReminder: vi.fn(),
             refreshReminders: vi.fn(),
             removeRemindersForTracking: vi.fn(),
+            removeRemindersForTrackingByStatus: vi.fn(),
         });
     });
 
@@ -198,9 +191,17 @@ describe('MainLayout', () => {
             },
         ];
 
-        mockUseReminders.mockReturnValue({
+        mockUseCoordinatedEntities.mockReturnValue({
+            isLoading: false, // For backward compatibility
+            trackings: mockTrackings,
+            trackingsLoading: false,
+            createTracking: vi.fn(),
+            updateTracking: vi.fn(),
+            updateTrackingState: vi.fn(),
+            deleteTracking: vi.fn(),
+            refreshTrackings: vi.fn(),
             reminders: pendingReminders,
-            isLoading: false,
+            remindersLoading: false,
             updateReminder: vi.fn(),
             completeReminder: vi.fn(),
             dismissReminder: vi.fn(),
@@ -208,6 +209,7 @@ describe('MainLayout', () => {
             deleteReminder: vi.fn(),
             refreshReminders: vi.fn(),
             removeRemindersForTracking: vi.fn(),
+            removeRemindersForTrackingByStatus: vi.fn(),
         });
 
         renderMainLayout();
@@ -224,7 +226,7 @@ describe('MainLayout', () => {
                 user_id: 1,
                 question: 'Question 1',
                 state: TrackingState.RUNNING,
-                frequency: { type: "daily" },
+                frequency: { type: "daily" } as Frequency,
                 created_at: '2024-01-01T00:00:00Z',
             },
             {
@@ -232,19 +234,30 @@ describe('MainLayout', () => {
                 user_id: 1,
                 question: 'Question 2',
                 state: TrackingState.RUNNING,
-                frequency: { type: "daily" },
+                frequency: { type: "daily" } as Frequency,
                 created_at: '2024-01-01T00:00:00Z',
             },
         ];
 
-        mockUseTrackings.mockReturnValue({
+        mockUseCoordinatedEntities.mockReturnValue({
+            isLoading: false, // For backward compatibility
             trackings: runningTrackings,
-            isLoading: false,
+            trackingsLoading: false,
             createTracking: vi.fn(),
             updateTracking: vi.fn(),
             updateTrackingState: vi.fn(),
             deleteTracking: vi.fn(),
             refreshTrackings: vi.fn(),
+            reminders: mockReminders,
+            remindersLoading: false,
+            updateReminder: vi.fn(),
+            completeReminder: vi.fn(),
+            dismissReminder: vi.fn(),
+            snoozeReminder: vi.fn(),
+            deleteReminder: vi.fn(),
+            refreshReminders: vi.fn(),
+            removeRemindersForTracking: vi.fn(),
+            removeRemindersForTrackingByStatus: vi.fn(),
         });
 
         renderMainLayout();
@@ -515,9 +528,17 @@ describe('MainLayout', () => {
         const mockRemoveRemindersForTracking = vi.fn();
         const mockRefreshReminders = vi.fn().mockResolvedValue(undefined);
 
-        mockUseReminders.mockReturnValue({
+        mockUseCoordinatedEntities.mockReturnValue({
+            isLoading: false, // For backward compatibility
+            trackings: mockTrackings,
+            trackingsLoading: false,
+            createTracking: vi.fn(),
+            updateTracking: vi.fn(),
+            updateTrackingState: vi.fn(),
+            deleteTracking: vi.fn(),
+            refreshTrackings: vi.fn(),
             reminders: mockReminders,
-            isLoading: false,
+            remindersLoading: false,
             updateReminder: vi.fn(),
             completeReminder: vi.fn(),
             dismissReminder: vi.fn(),
@@ -525,6 +546,7 @@ describe('MainLayout', () => {
             deleteReminder: vi.fn(),
             refreshReminders: mockRefreshReminders,
             removeRemindersForTracking: mockRemoveRemindersForTracking,
+            removeRemindersForTrackingByStatus: vi.fn(),
         });
 
         renderMainLayout();
@@ -548,18 +570,29 @@ describe('MainLayout', () => {
             user_id: 1,
             question: 'New question',
             state: TrackingState.RUNNING,
-            frequency: { type: "daily" },
+            frequency: { type: "daily" } as Frequency,
             created_at: '2024-01-01T00:00:00Z',
         }];
 
-        mockUseTrackings.mockReturnValue({
+        mockUseCoordinatedEntities.mockReturnValue({
+            isLoading: false, // For backward compatibility
             trackings: newTrackings,
-            isLoading: false,
+            trackingsLoading: false,
             createTracking: vi.fn(),
             updateTracking: vi.fn(),
             updateTrackingState: vi.fn(),
             deleteTracking: vi.fn(),
             refreshTrackings: vi.fn(),
+            reminders: mockReminders,
+            remindersLoading: false,
+            updateReminder: vi.fn(),
+            completeReminder: vi.fn(),
+            dismissReminder: vi.fn(),
+            snoozeReminder: vi.fn(),
+            deleteReminder: vi.fn(),
+            refreshReminders: vi.fn(),
+            removeRemindersForTracking: vi.fn(),
+            removeRemindersForTrackingByStatus: vi.fn(),
         });
 
         rerender(
@@ -587,9 +620,17 @@ describe('MainLayout', () => {
             notes: undefined,
         }];
 
-        mockUseReminders.mockReturnValue({
+        mockUseCoordinatedEntities.mockReturnValue({
+            isLoading: false, // For backward compatibility
+            trackings: mockTrackings,
+            trackingsLoading: false,
+            createTracking: vi.fn(),
+            updateTracking: vi.fn(),
+            updateTrackingState: vi.fn(),
+            deleteTracking: vi.fn(),
+            refreshTrackings: vi.fn(),
             reminders: newReminders,
-            isLoading: false,
+            remindersLoading: false,
             updateReminder: vi.fn(),
             completeReminder: vi.fn(),
             dismissReminder: vi.fn(),
@@ -597,6 +638,7 @@ describe('MainLayout', () => {
             deleteReminder: vi.fn(),
             refreshReminders: vi.fn(),
             removeRemindersForTracking: vi.fn(),
+            removeRemindersForTrackingByStatus: vi.fn(),
         });
 
         rerender(
@@ -612,16 +654,6 @@ describe('MainLayout', () => {
     it('should refresh trackings when reminders reference missing trackings', async () => {
         const mockRefreshTrackings = vi.fn().mockResolvedValue(undefined);
 
-        mockUseTrackings.mockReturnValue({
-            trackings: mockTrackings,
-            isLoading: false,
-            createTracking: vi.fn(),
-            updateTracking: vi.fn(),
-            updateTrackingState: vi.fn(),
-            deleteTracking: vi.fn(),
-            refreshTrackings: mockRefreshTrackings,
-        });
-
         const remindersWithMissingTracking = [
             {
                 id: 1,
@@ -633,9 +665,17 @@ describe('MainLayout', () => {
             },
         ];
 
-        mockUseReminders.mockReturnValue({
+        mockUseCoordinatedEntities.mockReturnValue({
+            isLoading: false, // For backward compatibility
+            trackings: mockTrackings,
+            trackingsLoading: false,
+            createTracking: vi.fn(),
+            updateTracking: vi.fn(),
+            updateTrackingState: vi.fn(),
+            deleteTracking: vi.fn(),
+            refreshTrackings: mockRefreshTrackings,
             reminders: remindersWithMissingTracking,
-            isLoading: false,
+            remindersLoading: false,
             updateReminder: vi.fn(),
             completeReminder: vi.fn(),
             dismissReminder: vi.fn(),
@@ -643,6 +683,7 @@ describe('MainLayout', () => {
             deleteReminder: vi.fn(),
             refreshReminders: vi.fn(),
             removeRemindersForTracking: vi.fn(),
+            removeRemindersForTrackingByStatus: vi.fn(),
         });
 
         renderMainLayout();
@@ -655,16 +696,6 @@ describe('MainLayout', () => {
     it('should not refresh trackings when trackings are loading', () => {
         const mockRefreshTrackings = vi.fn();
 
-        mockUseTrackings.mockReturnValue({
-            trackings: mockTrackings,
-            isLoading: true, // Loading
-            createTracking: vi.fn(),
-            updateTracking: vi.fn(),
-            updateTrackingState: vi.fn(),
-            deleteTracking: vi.fn(),
-            refreshTrackings: mockRefreshTrackings,
-        });
-
         const remindersWithMissingTracking = [
             {
                 id: 1,
@@ -676,9 +707,17 @@ describe('MainLayout', () => {
             },
         ];
 
-        mockUseReminders.mockReturnValue({
+        mockUseCoordinatedEntities.mockReturnValue({
+            isLoading: false, // For backward compatibility
+            trackings: mockTrackings,
+            trackingsLoading: true, // Loading
+            createTracking: vi.fn(),
+            updateTracking: vi.fn(),
+            updateTrackingState: vi.fn(),
+            deleteTracking: vi.fn(),
+            refreshTrackings: mockRefreshTrackings,
             reminders: remindersWithMissingTracking,
-            isLoading: false,
+            remindersLoading: false,
             updateReminder: vi.fn(),
             completeReminder: vi.fn(),
             dismissReminder: vi.fn(),
@@ -686,6 +725,7 @@ describe('MainLayout', () => {
             deleteReminder: vi.fn(),
             refreshReminders: vi.fn(),
             removeRemindersForTracking: vi.fn(),
+            removeRemindersForTrackingByStatus: vi.fn(),
         });
 
         renderMainLayout();
@@ -723,9 +763,17 @@ describe('MainLayout', () => {
             },
         ];
 
-        mockUseReminders.mockReturnValue({
+        mockUseCoordinatedEntities.mockReturnValue({
+            isLoading: false, // For backward compatibility
+            trackings: mockTrackings,
+            trackingsLoading: false,
+            createTracking: vi.fn(),
+            updateTracking: vi.fn(),
+            updateTrackingState: vi.fn(),
+            deleteTracking: vi.fn(),
+            refreshTrackings: vi.fn(),
             reminders: mixedReminders,
-            isLoading: false,
+            remindersLoading: false,
             updateReminder: vi.fn(),
             completeReminder: vi.fn(),
             dismissReminder: vi.fn(),
@@ -733,6 +781,7 @@ describe('MainLayout', () => {
             deleteReminder: vi.fn(),
             refreshReminders: vi.fn(),
             removeRemindersForTracking: vi.fn(),
+            removeRemindersForTrackingByStatus: vi.fn(),
         });
 
         renderMainLayout();

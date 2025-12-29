@@ -1,8 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { useTrackings } from '../../hooks/useTrackings';
-import { useReminders } from '../../hooks/useReminders';
+import { useCoordinatedEntities } from '../../hooks/useCoordinatedEntities';
 import { TrackingData, TrackingState } from '../../models/Tracking';
 import { ReminderStatus } from '../../models/Reminder';
 import { getDailyCitation } from '../../utils/citations';
@@ -31,18 +30,15 @@ export function MainLayout() {
 
     const dailyCitation = getDailyCitation();
 
-    // Data Hooks
+    // Data Hooks - Using coordinated hook for cross-entity optimistic updates
     const {
         trackings,
-        isLoading: trackingsLoading,
+        trackingsLoading,
         createTracking,
         updateTracking,
         updateTrackingState,
         deleteTracking,
         refreshTrackings,
-    } = useTrackings();
-
-    const {
         reminders,
         refreshReminders,
         removeRemindersForTracking,
@@ -50,8 +46,8 @@ export function MainLayout() {
         completeReminder,
         dismissReminder,
         snoozeReminder,
-        isLoading: remindersLoading
-    } = useReminders();
+        remindersLoading
+    } = useCoordinatedEntities();
 
     // Effects & Memos
     const pendingRemindersCount = useMemo(() => {
@@ -113,9 +109,9 @@ export function MainLayout() {
         frequency: import("../../models/Tracking").Frequency
     ) => {
         try {
+            // createTracking in useCoordinatedEntities already handles reminder refresh
             const result = await createTracking(question, notes, icon, schedules, frequency);
             setShowTrackingForm(false);
-            await refreshReminders();
             setMessage({ text: 'Tracking created successfully', type: 'success' });
             return result;
         } catch (error) {
@@ -133,9 +129,9 @@ export function MainLayout() {
         schedules?: Array<{ hour: number; minutes: number }>
     ) => {
         try {
+            // updateTracking in useCoordinatedEntities already handles reminder refresh
             const result = await updateTracking(trackingId, frequency, question, notes, icon, schedules);
             setEditingTracking(null);
-            await refreshReminders();
             setMessage({ text: 'Tracking updated successfully', type: 'success' });
             return result;
         } catch (error) {
@@ -200,8 +196,8 @@ export function MainLayout() {
         createTracking: handleCreateTracking,
         updateTracking: handleUpdateTracking,
         updateTrackingState: async (id, state) => {
+            // updateTrackingState in useCoordinatedEntities already handles reminder refresh
             const result = await updateTrackingState(id, state);
-            await refreshReminders();
             setMessage({ text: 'Tracking updated', type: 'success' });
             return result;
         },

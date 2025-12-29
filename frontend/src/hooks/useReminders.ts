@@ -518,6 +518,25 @@ export function useReminders() {
     );
   }, []);
 
+  /**
+   * Optimistically remove reminders for a tracking that match specific statuses.
+   * This provides immediate UI feedback when tracking state changes affect reminders.
+   * @param trackingId - The tracking ID whose reminders should be filtered
+   * @param statusesToRemove - Array of reminder statuses to remove
+   * @public
+   */
+  const removeRemindersForTrackingByStatus = useCallback(
+    (trackingId: number, statusesToRemove: ReminderStatus[]) => {
+      const statusSet = new Set(statusesToRemove);
+      setReminders((prevReminders) =>
+        prevReminders.filter(
+          (r) => !(r.tracking_id === trackingId && statusSet.has(r.status))
+        )
+      );
+    },
+    []
+  );
+
   return {
     reminders,
     isLoading,
@@ -528,5 +547,6 @@ export function useReminders() {
     deleteReminder,
     refreshReminders,
     removeRemindersForTracking,
+    removeRemindersForTrackingByStatus,
   };
 }
