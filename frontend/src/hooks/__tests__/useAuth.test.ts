@@ -2200,12 +2200,15 @@ describe("useAuth", () => {
       expect(localStorage.getItem(TOKEN_KEY)).toBe("new-token");
 
       // User should still be authenticated even if sync fails
+      // Wait for state updates and sync failure to complete
       await waitFor(() => {
         expect(result.current.user).toEqual(mockUser);
         expect(result.current.token).toBe("new-token");
+        // Verify localStorage is still set (sync failure shouldn't clear it)
+        expect(localStorage.getItem(TOKEN_KEY)).toBe("new-token");
       });
       expect(result.current.isAuthenticated).toBe(true);
-      // Verify localStorage is still set after sync failure
+      // Verify localStorage is still set after sync failure completes
       expect(localStorage.getItem(TOKEN_KEY)).toBe("new-token");
     });
   });
