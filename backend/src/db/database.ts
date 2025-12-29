@@ -229,6 +229,17 @@ CREATE INDEX IF NOT EXISTS idx_reminders_status ON reminders(status);
 `;
 
 /**
+ * Convert SQLite placeholders (?) to PostgreSQL placeholders ($1, $2, etc.).
+ * @param sql - SQL query string with SQLite placeholders
+ * @returns SQL query string with PostgreSQL placeholders
+ * @private
+ */
+function convertPlaceholdersToPostgreSQL(sql: string): string {
+  let paramIndex = 1;
+  return sql.replace(/\?/g, () => `$${paramIndex++}`);
+}
+
+/**
  * Database class for managing database connections and operations.
  * Supports both SQLite (development) and PostgreSQL (production).
  * Automatically detects database type based on DATABASE_URL environment variable.
@@ -509,14 +520,17 @@ export class Database {
       const isInsert = sqlUpper.startsWith("INSERT");
       const hasReturning = sqlUpper.includes("RETURNING");
 
+      // Convert SQLite placeholders (?) to PostgreSQL placeholders ($1, $2, etc.)
+      let convertedSql = convertPlaceholdersToPostgreSQL(sql);
+
       // For INSERT statements, automatically add RETURNING id if not present
-      let finalSql = sql;
+      let finalSql = convertedSql;
       if (isInsert && !hasReturning) {
         // Add RETURNING id before any semicolon or at the end
-        if (sql.trim().endsWith(";")) {
-          finalSql = sql.trim().slice(0, -1) + " RETURNING id;";
+        if (convertedSql.trim().endsWith(";")) {
+          finalSql = convertedSql.trim().slice(0, -1) + " RETURNING id;";
         } else {
-          finalSql = sql.trim() + " RETURNING id";
+          finalSql = convertedSql.trim() + " RETURNING id";
         }
       }
 
@@ -615,7 +629,9 @@ export class Database {
     }
 
     try {
-      const result = await this.pgPool.query(sql, params);
+      // Convert SQLite placeholders (?) to PostgreSQL placeholders ($1, $2, etc.)
+      const convertedSql = convertPlaceholdersToPostgreSQL(sql);
+      const result = await this.pgPool.query(convertedSql, params);
       const found = result.rows.length > 0 ? "found" : "not found";
       console.log(
         `[${new Date().toISOString()}] DATABASE | Query executed successfully, row ${found}`
@@ -694,7 +710,9 @@ export class Database {
     }
 
     try {
-      const result = await this.pgPool.query(sql, params);
+      // Convert SQLite placeholders (?) to PostgreSQL placeholders ($1, $2, etc.)
+      const convertedSql = convertPlaceholdersToPostgreSQL(sql);
+      const result = await this.pgPool.query(convertedSql, params);
       console.log(
         `[${new Date().toISOString()}] DATABASE | Query executed successfully, returned ${
           result.rows.length

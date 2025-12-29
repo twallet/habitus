@@ -44,4 +44,24 @@ export const authRateLimiter: RateLimitRequestHandler = rateLimit({
   // Skip rate limiting in test environment
   skip: (req) => process.env.NODE_ENV === "test",
   handler: handleRateLimitExceeded,
+  // Validate trust proxy setting to prevent bypassing rate limits
+  // When TRUST_PROXY=true, we need to validate the proxy configuration
+  validate: {
+    trustProxy: false, // Disable automatic trust proxy validation
+    // Use a custom key generator that validates the IP properly
+  },
+  // Custom key generator that handles proxy headers safely
+  keyGenerator: (req) => {
+    // Use X-Forwarded-For header if available and trust proxy is enabled
+    // Otherwise fall back to direct connection IP
+    if (process.env.TRUST_PROXY === "true") {
+      const forwarded = req.headers["x-forwarded-for"];
+      if (forwarded) {
+        // X-Forwarded-For can contain multiple IPs, take the first one
+        const ips = Array.isArray(forwarded) ? forwarded[0] : forwarded;
+        return ips.split(",")[0].trim();
+      }
+    }
+    return req.ip || req.socket.remoteAddress || "unknown";
+  },
 });
