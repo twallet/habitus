@@ -265,6 +265,8 @@ router.get(
             `ProfilePicture=${user.profile_picture_url || "null"}`,
             `NotificationChannels=[${notificationChannelsStr}]`,
             `TelegramChatID=${telegramChatIdStr}`,
+            `Locale=${user.locale || "null"}`,
+            `Timezone=${user.timezone || "null"}`,
             `LastAccess=${formatDateGMT3(user.last_access)}`,
             `Created=${formatDateGMT3(user.created_at)}`,
           ];

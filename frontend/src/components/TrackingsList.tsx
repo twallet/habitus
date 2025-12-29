@@ -204,9 +204,10 @@ class TrackingFormatter {
     /**
      * Format frequency to readable string.
      * @param frequency - Frequency object (optional, defaults to daily)
+     * @param user - User data (optional, for locale/timezone)
      * @returns Formatted frequency string
      */
-    static formatFrequency(frequency?: Frequency): string {
+    static formatFrequency(frequency?: Frequency, user?: { locale?: string; timezone?: string } | null): string {
         if (!frequency || !frequency.type) {
             return "Daily";
         }
@@ -441,13 +442,14 @@ class TrackingFilter {
      * Filter tracking by frequency display.
      * @param tracking - Tracking data to filter
      * @param filterValue - Filter text value
+     * @param user - User data (optional, for locale/timezone)
      * @returns True if tracking matches filter
      */
-    static filterByFrequency(tracking: TrackingData, filterValue: string): boolean {
+    static filterByFrequency(tracking: TrackingData, filterValue: string, user?: { locale?: string; timezone?: string } | null): boolean {
         if (!filterValue.trim()) {
             return true;
         }
-        const frequencyDisplay = TrackingFormatter.formatFrequency(tracking.frequency);
+        const frequencyDisplay = TrackingFormatter.formatFrequency(tracking.frequency, user);
         return frequencyDisplay.toLowerCase().includes(filterValue.toLowerCase());
     }
 
@@ -469,14 +471,15 @@ class TrackingFilter {
      * Apply all active filters to trackings array.
      * @param trackings - Array of tracking data to filter
      * @param filters - Filter state object
+     * @param user - User data (optional, for locale/timezone)
      * @returns Filtered array of trackings
      */
-    static applyFilters(trackings: TrackingData[], filters: FilterState): TrackingData[] {
+    static applyFilters(trackings: TrackingData[], filters: FilterState, user?: { locale?: string; timezone?: string } | null): TrackingData[] {
         return trackings.filter((tracking) => {
             return (
                 TrackingFilter.filterByTracking(tracking, filters.tracking) &&
                 TrackingFilter.filterByTimes(tracking, filters.times) &&
-                TrackingFilter.filterByFrequency(tracking, filters.frequency) &&
+                TrackingFilter.filterByFrequency(tracking, filters.frequency, user) &&
                 TrackingFilter.filterByStatus(tracking, filters.status)
             );
         });
@@ -524,11 +527,12 @@ class TrackingSorter {
      * Compare two trackings by frequency display string.
      * @param a - First tracking
      * @param b - Second tracking
+     * @param user - User data (optional, for locale/timezone)
      * @returns Comparison result (-1, 0, or 1)
      */
-    static compareFrequency(a: TrackingData, b: TrackingData): number {
-        const freqA = TrackingFormatter.formatFrequency(a.frequency);
-        const freqB = TrackingFormatter.formatFrequency(b.frequency);
+    static compareFrequency(a: TrackingData, b: TrackingData, user?: { locale?: string; timezone?: string } | null): number {
+        const freqA = TrackingFormatter.formatFrequency(a.frequency, user);
+        const freqB = TrackingFormatter.formatFrequency(b.frequency, user);
         return freqA.localeCompare(freqB);
     }
 
@@ -576,13 +580,15 @@ class TrackingSorter {
      * @param column - Column name to sort by (or null for no sorting)
      * @param direction - Sort direction ('asc', 'desc', or null)
      * @param getNextReminderTime - Optional function to get next reminder time (required for 'next-reminder' column)
+     * @param user - User data (optional, for locale/timezone)
      * @returns Sorted array of trackings
      */
     static sortTrackings(
         trackings: TrackingData[],
         column: string | null,
         direction: 'asc' | 'desc' | null,
-        getNextReminderTime?: (trackingId: number) => string | null
+        getNextReminderTime?: (trackingId: number) => string | null,
+        user?: { locale?: string; timezone?: string } | null
     ): TrackingData[] {
         if (!column || !direction) {
             return [...trackings];
@@ -599,7 +605,7 @@ class TrackingSorter {
                 compareFn = TrackingSorter.compareTimes;
                 break;
             case 'frequency':
-                compareFn = TrackingSorter.compareFrequency;
+                compareFn = (a, b) => TrackingSorter.compareFrequency(a, b, user);
                 break;
             case 'next-reminder':
                 if (!getNextReminderTime) {
@@ -847,8 +853,8 @@ export function TrackingsList({
     const visibleTrackings = trackings;
 
     // Apply filters and sorting
-    const filteredTrackings = TrackingFilter.applyFilters(visibleTrackings, filterState);
-    const filteredAndSortedTrackings = TrackingSorter.sortTrackings(filteredTrackings, sortColumn, sortDirection, getNextReminderTime);
+    const filteredTrackings = TrackingFilter.applyFilters(visibleTrackings, filterState, user);
+    const filteredAndSortedTrackings = TrackingSorter.sortTrackings(filteredTrackings, sortColumn, sortDirection, getNextReminderTime, user);
 
     /**
      * Handle filter change.
