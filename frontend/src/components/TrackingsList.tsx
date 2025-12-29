@@ -4,6 +4,7 @@ import { useTrackings } from "../hooks/useTrackings";
 import { useReminders } from "../hooks/useReminders";
 import { useAuth } from "../hooks/useAuth";
 import { ReminderStatus } from "../models/Reminder";
+import { UserData } from "../models/User";
 import { DeleteTrackingConfirmationModal } from "./DeleteTrackingConfirmationModal";
 import { formatUserDate, formatUserDateTime } from "../utils/dateFormatting";
 import { DateUtils } from "@habitus/shared/utils";
@@ -207,7 +208,7 @@ class TrackingFormatter {
      * @param user - User data (optional, for locale/timezone)
      * @returns Formatted frequency string
      */
-    static formatFrequency(frequency?: Frequency, user?: { locale?: string; timezone?: string } | null): string {
+    static formatFrequency(frequency?: Frequency, user?: UserData | null): string {
         if (!frequency || !frequency.type) {
             return "Daily";
         }
@@ -285,7 +286,7 @@ class TrackingFormatter {
      * @param user - User data (optional, for locale/timezone)
      * @returns Detailed frequency string
      */
-    static formatFullFrequency(frequency?: Frequency, user?: { locale?: string; timezone?: string } | null): string {
+    static formatFullFrequency(frequency?: Frequency, user?: UserData | null): string {
         let details = "Frequency: ";
 
         if (!frequency || !frequency.type) {
@@ -385,7 +386,7 @@ class TrackingFormatter {
      * @param user - User data (optional, for locale/timezone)
      * @returns Formatted reminder time string for display
      */
-    static formatNextReminderTimeDisplay(nextReminderTime: string | null, user?: { locale?: string; timezone?: string } | null): string {
+    static formatNextReminderTimeDisplay(nextReminderTime: string | null, user?: UserData | null): string {
         if (!nextReminderTime) {
             return "—";
         }
@@ -445,7 +446,7 @@ class TrackingFilter {
      * @param user - User data (optional, for locale/timezone)
      * @returns True if tracking matches filter
      */
-    static filterByFrequency(tracking: TrackingData, filterValue: string, user?: { locale?: string; timezone?: string } | null): boolean {
+    static filterByFrequency(tracking: TrackingData, filterValue: string, user?: UserData | null): boolean {
         if (!filterValue.trim()) {
             return true;
         }
@@ -474,7 +475,7 @@ class TrackingFilter {
      * @param user - User data (optional, for locale/timezone)
      * @returns Filtered array of trackings
      */
-    static applyFilters(trackings: TrackingData[], filters: FilterState, user?: { locale?: string; timezone?: string } | null): TrackingData[] {
+    static applyFilters(trackings: TrackingData[], filters: FilterState, user?: UserData | null): TrackingData[] {
         return trackings.filter((tracking) => {
             return (
                 TrackingFilter.filterByTracking(tracking, filters.tracking) &&
@@ -530,7 +531,7 @@ class TrackingSorter {
      * @param user - User data (optional, for locale/timezone)
      * @returns Comparison result (-1, 0, or 1)
      */
-    static compareFrequency(a: TrackingData, b: TrackingData, user?: { locale?: string; timezone?: string } | null): number {
+    static compareFrequency(a: TrackingData, b: TrackingData, user?: UserData | null): number {
         const freqA = TrackingFormatter.formatFrequency(a.frequency, user);
         const freqB = TrackingFormatter.formatFrequency(b.frequency, user);
         return freqA.localeCompare(freqB);
@@ -588,7 +589,7 @@ class TrackingSorter {
         column: string | null,
         direction: 'asc' | 'desc' | null,
         getNextReminderTime?: (trackingId: number) => string | null,
-        user?: { locale?: string; timezone?: string } | null
+        user?: UserData | null
     ): TrackingData[] {
         if (!column || !direction) {
             return [...trackings];
