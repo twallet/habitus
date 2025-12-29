@@ -613,6 +613,7 @@ describe("ReminderService", () => {
         user_id: testUserId,
         scheduled_time: upcomingTime,
         status: ReminderStatus.UPCOMING,
+        value: null,
       });
       await upcomingReminder.save(testDb);
       const upcomingReminderId = upcomingReminder.id;
@@ -770,6 +771,7 @@ describe("ReminderService", () => {
         user_id: testUserId,
         scheduled_time: upcomingTime,
         status: ReminderStatus.UPCOMING,
+        value: null,
       });
       await upcomingReminder.save(testDb);
 
@@ -813,6 +815,7 @@ describe("ReminderService", () => {
         user_id: testUserId,
         scheduled_time: upcomingTime,
         status: ReminderStatus.UPCOMING,
+        value: null,
       });
       await upcomingReminder.save(testDb);
 

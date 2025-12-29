@@ -141,6 +141,7 @@ describe("Reminder Model", () => {
         user_id: userId,
         scheduled_time: "2024-01-01T10:00:00Z",
         status: ReminderStatus.PENDING,
+        value: null,
       };
 
       const reminder = new Reminder(reminderData);
@@ -177,6 +178,7 @@ describe("Reminder Model", () => {
         user_id: userId,
         scheduled_time: "",
         status: ReminderStatus.PENDING,
+        value: null,
       });
 
       expect(() => reminder.validate()).toThrow(TypeError);
@@ -189,6 +191,7 @@ describe("Reminder Model", () => {
         user_id: userId,
         scheduled_time: "2024-01-01T10:00:00Z",
         status: "Invalid" as ReminderStatus,
+        value: null,
       });
 
       expect(() => reminder.validate()).toThrow(TypeError);
@@ -301,6 +304,7 @@ describe("Reminder Model", () => {
         user_id: userId,
         scheduled_time: "2024-01-01T10:00:00Z",
         status: ReminderStatus.PENDING,
+        value: null,
       });
 
       expect(reminder.value).toBeNull();
@@ -315,6 +319,7 @@ describe("Reminder Model", () => {
         user_id: userId,
         scheduled_time: "2024-01-01T10:00:00Z",
         status: ReminderStatus.PENDING,
+        value: null,
       });
 
       const saved = await reminder.save(db);
@@ -326,8 +331,14 @@ describe("Reminder Model", () => {
 
     it("should update existing reminder when id is set", async () => {
       const result = await db.run(
-        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status) VALUES (?, ?, ?, ?)",
-        [trackingId, userId, "2024-01-01T10:00:00Z", ReminderStatus.PENDING]
+        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status, value) VALUES (?, ?, ?, ?, ?)",
+        [
+          trackingId,
+          userId,
+          "2024-01-01T10:00:00Z",
+          ReminderStatus.PENDING,
+          null,
+        ]
       );
       const reminderId = result.lastID;
 
@@ -381,12 +392,24 @@ describe("Reminder Model", () => {
   describe("loadByUserId", () => {
     it("should load all reminders for a user", async () => {
       await db.run(
-        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status) VALUES (?, ?, ?, ?)",
-        [trackingId, userId, "2024-01-01T10:00:00Z", ReminderStatus.PENDING]
+        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status, value) VALUES (?, ?, ?, ?, ?)",
+        [
+          trackingId,
+          userId,
+          "2024-01-01T10:00:00Z",
+          ReminderStatus.PENDING,
+          null,
+        ]
       );
       await db.run(
-        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status) VALUES (?, ?, ?, ?)",
-        [trackingId, userId, "2024-01-02T10:00:00Z", ReminderStatus.PENDING]
+        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status, value) VALUES (?, ?, ?, ?, ?)",
+        [
+          trackingId,
+          userId,
+          "2024-01-02T10:00:00Z",
+          ReminderStatus.PENDING,
+          null,
+        ]
       );
 
       const reminders = await Reminder.loadByUserId(userId, db);
@@ -400,12 +423,24 @@ describe("Reminder Model", () => {
   describe("loadActiveByUserId", () => {
     it("should load only active reminders (excludes Answered)", async () => {
       await db.run(
-        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status) VALUES (?, ?, ?, ?)",
-        [trackingId, userId, "2024-01-01T10:00:00Z", ReminderStatus.PENDING]
+        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status, value) VALUES (?, ?, ?, ?, ?)",
+        [
+          trackingId,
+          userId,
+          "2024-01-01T10:00:00Z",
+          ReminderStatus.PENDING,
+          null,
+        ]
       );
       await db.run(
-        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status) VALUES (?, ?, ?, ?)",
-        [trackingId, userId, "2024-01-02T10:00:00Z", ReminderStatus.UPCOMING]
+        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status, value) VALUES (?, ?, ?, ?, ?)",
+        [
+          trackingId,
+          userId,
+          "2024-01-02T10:00:00Z",
+          ReminderStatus.UPCOMING,
+          null,
+        ]
       );
       await db.run(
         "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status, value) VALUES (?, ?, ?, ?, ?)",
@@ -432,8 +467,14 @@ describe("Reminder Model", () => {
   describe("loadByTrackingId", () => {
     it("should load reminder by tracking ID", async () => {
       await db.run(
-        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status) VALUES (?, ?, ?, ?)",
-        [trackingId, userId, "2024-01-01T10:00:00Z", ReminderStatus.PENDING]
+        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status, value) VALUES (?, ?, ?, ?, ?)",
+        [
+          trackingId,
+          userId,
+          "2024-01-01T10:00:00Z",
+          ReminderStatus.PENDING,
+          null,
+        ]
       );
 
       const reminder = await Reminder.loadByTrackingId(trackingId, userId, db);
@@ -467,8 +508,14 @@ describe("Reminder Model", () => {
   describe("delete", () => {
     it("should delete reminder", async () => {
       const result = await db.run(
-        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status) VALUES (?, ?, ?, ?)",
-        [trackingId, userId, "2024-01-01T10:00:00Z", ReminderStatus.PENDING]
+        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status, value) VALUES (?, ?, ?, ?, ?)",
+        [
+          trackingId,
+          userId,
+          "2024-01-01T10:00:00Z",
+          ReminderStatus.PENDING,
+          null,
+        ]
       );
       const reminderId = result.lastID;
 
@@ -488,6 +535,7 @@ describe("Reminder Model", () => {
         user_id: userId,
         scheduled_time: "2024-01-01T10:00:00Z",
         status: ReminderStatus.PENDING,
+        value: null,
       });
 
       await expect(reminder.delete(db)).rejects.toThrow("Reminder not found");
