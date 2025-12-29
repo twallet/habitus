@@ -70,14 +70,14 @@ export class User extends BaseUser {
         );
       }
 
-      if (this.locale !== undefined || this.locale === null) {
+      if (this.locale !== undefined) {
         updates.push("locale = ?");
-        values.push(this.locale === null ? null : this.locale || null);
+        values.push(this.locale || null);
       }
 
-      if (this.timezone !== undefined || this.timezone === null) {
+      if (this.timezone !== undefined) {
         updates.push("timezone = ?");
-        values.push(this.timezone === null ? null : this.timezone || null);
+        values.push(this.timezone || null);
       }
 
       updates.push("updated_at = CURRENT_TIMESTAMP");

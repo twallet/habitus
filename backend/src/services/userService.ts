@@ -361,17 +361,19 @@ export class UserService {
     }
 
     // Build update object
-    const updates: Partial<UserData> & {
+    // Use type assertion to allow null values for clearing fields
+    const updates = {} as Partial<UserData> & {
       locale?: string | null;
       timezone?: string | null;
-    } = {};
+    };
     if (locale !== undefined) {
       // Convert empty string to null to explicitly clear the field
-      updates.locale = locale === "" ? null : locale || undefined;
+      (updates as any).locale = locale === "" ? null : locale || undefined;
     }
     if (timezone !== undefined) {
       // Convert empty string to null to explicitly clear the field
-      updates.timezone = timezone === "" ? null : timezone || undefined;
+      (updates as any).timezone =
+        timezone === "" ? null : timezone || undefined;
     }
 
     if (Object.keys(updates).length === 0) {
