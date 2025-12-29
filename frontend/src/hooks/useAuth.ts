@@ -22,38 +22,45 @@ export function useAuth() {
   const [apiClient] = useState(() => new ApiClient());
 
   /**
-   * Sync user's timezone from browser to database if not already set.
+   * Sync user's locale and timezone from browser to database if not already set.
    * @param currentUser - Current user data
    * @internal
    */
-  const syncTimezoneIfNeeded = useCallback(
+  const syncLocaleAndTimezoneIfNeeded = useCallback(
     async (currentUser: UserData) => {
       if (!currentUser || !token) {
         return;
       }
 
+      const detectedLocale = DateUtils.getDefaultLocale();
       const detectedTimezone = DateUtils.getDefaultTimezone();
 
-      // Only update if timezone is not set or different from detected timezone
-      if (!currentUser.timezone || currentUser.timezone !== detectedTimezone) {
+      // Check if locale or timezone needs to be updated
+      const needsLocaleUpdate =
+        !currentUser.locale || currentUser.locale !== detectedLocale;
+      const needsTimezoneUpdate =
+        !currentUser.timezone || currentUser.timezone !== detectedTimezone;
+
+      // Only update if locale or timezone is not set or different from detected values
+      if (needsLocaleUpdate || needsTimezoneUpdate) {
         try {
           console.log(
-            `[${new Date().toISOString()}] FRONTEND_AUTH | Syncing timezone: ${detectedTimezone} for user ID: ${
+            `[${new Date().toISOString()}] FRONTEND_AUTH | Syncing locale/timezone: locale=${detectedLocale}, timezone=${detectedTimezone} for user ID: ${
               currentUser.id
             }`
           );
           const updatedUser = await apiClient.updateUserPreferences(
-            undefined,
-            detectedTimezone
+            needsLocaleUpdate ? detectedLocale : undefined,
+            needsTimezoneUpdate ? detectedTimezone : undefined
           );
           setUser(updatedUser);
           console.log(
-            `[${new Date().toISOString()}] FRONTEND_AUTH | Timezone synced successfully: ${detectedTimezone}`
+            `[${new Date().toISOString()}] FRONTEND_AUTH | Locale/timezone synced successfully: locale=${detectedLocale}, timezone=${detectedTimezone}`
           );
         } catch (error) {
           // Log error but don't fail authentication
           console.warn(
-            `[${new Date().toISOString()}] FRONTEND_AUTH | Failed to sync timezone:`,
+            `[${new Date().toISOString()}] FRONTEND_AUTH | Failed to sync locale/timezone:`,
             error
           );
         }
@@ -87,8 +94,8 @@ export function useAuth() {
           );
           setUser(userData);
           setToken(storedToken);
-          // Sync timezone if needed
-          await syncTimezoneIfNeeded(userData);
+          // Sync locale and timezone if needed
+          await syncLocaleAndTimezoneIfNeeded(userData);
         } catch (error) {
           // Token is invalid, remove it
           console.warn(
@@ -106,7 +113,7 @@ export function useAuth() {
     };
 
     loadAuth();
-  }, [apiClient, syncTimezoneIfNeeded]);
+  }, [apiClient, syncLocaleAndTimezoneIfNeeded]);
 
   /**
    * Request registration magic link (passwordless).
@@ -205,12 +212,12 @@ export function useAuth() {
       apiClient.setToken(data.token);
       localStorage.setItem(TOKEN_KEY, data.token);
 
-      // Sync timezone if needed
-      await syncTimezoneIfNeeded(data.user);
+      // Sync locale and timezone if needed
+      await syncLocaleAndTimezoneIfNeeded(data.user);
 
       return data.user;
     },
-    [apiClient, syncTimezoneIfNeeded]
+    [apiClient, syncLocaleAndTimezoneIfNeeded]
   );
 
   /**
@@ -255,8 +262,8 @@ export function useAuth() {
       setUser(userData);
       setToken(callbackToken);
       localStorage.setItem(TOKEN_KEY, callbackToken);
-      // Sync timezone if needed
-      await syncTimezoneIfNeeded(userData);
+      // Sync locale and timezone if needed
+      await syncLocaleAndTimezoneIfNeeded(userData);
     } catch (error) {
       console.error(
         `[${new Date().toISOString()}] FRONTEND_AUTH | Error setting token from callback:`,
