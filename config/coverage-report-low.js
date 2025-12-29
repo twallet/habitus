@@ -163,37 +163,36 @@ function displayFailedTestSuites() {
     const testResults = JSON.parse(testResultsData);
     const failedFiles = new Map(); // Map<filePath, numFailed>
 
-    // Vitest JSON reporter can output different formats
-    // Handle array format or object with testFiles property
-    const testFiles = Array.isArray(testResults)
-      ? testResults
-      : testResults?.testFiles || testResults?.files || [];
+    // Vitest JSON reporter format: object with testResults array
+    // Each test suite has: name (file path), status, assertionResults (array of tests)
+    const testSuites = testResults?.testResults || [];
 
     // Process test results to find failed test files
-    for (const testFile of testFiles) {
-      const numFailed =
-        testFile.numFailedTests ||
-        testFile.numFailingTests ||
-        testFile.tasks?.filter((t) => t.result?.state === "fail").length ||
-        0;
+    for (const testSuite of testSuites) {
+      // Check if the suite has failures
+      if (testSuite.status === "failed") {
+        // Count failed tests in assertionResults
+        const numFailed = testSuite.assertionResults
+          ? testSuite.assertionResults.filter(
+              (test) => test.status === "failed"
+            ).length
+          : 0;
 
-      if (numFailed > 0) {
-        // Extract relative path from workspace root
-        const filePath =
-          testFile.file ||
-          testFile.filepath ||
-          testFile.name ||
-          testFile.path ||
-          "";
-        if (filePath) {
-          const normalizedWorkspace = workspaceRoot.replace(/\\/g, "/");
-          const normalizedPath = filePath.replace(/\\/g, "/");
-          let relativePath = normalizedPath;
-          if (normalizedPath.startsWith(normalizedWorkspace)) {
-            relativePath = normalizedPath.slice(normalizedWorkspace.length + 1);
-          }
-          if (relativePath) {
-            failedFiles.set(relativePath, numFailed);
+        if (numFailed > 0) {
+          // Extract relative path from workspace root
+          const filePath = testSuite.name || "";
+          if (filePath) {
+            const normalizedWorkspace = workspaceRoot.replace(/\\/g, "/");
+            const normalizedPath = filePath.replace(/\\/g, "/");
+            let relativePath = normalizedPath;
+            if (normalizedPath.startsWith(normalizedWorkspace)) {
+              relativePath = normalizedPath.slice(
+                normalizedWorkspace.length + 1
+              );
+            }
+            if (relativePath) {
+              failedFiles.set(relativePath, numFailed);
+            }
           }
         }
       }
