@@ -124,8 +124,8 @@ export function ChangeEmailModal({
                             A verification link has been sent to <strong>{newEmail.trim()}</strong>.
                         </p>
                         <p className="change-email-help">
-                            Please check your email and click the link to verify your new email address.
-                            Your email will be updated after verification.
+                            Please check your email inbox (and spam folder if needed) and click the verification link to complete the email change.
+                            The link will expire in 15 minutes. Your email address will be updated immediately after you click the link.
                         </p>
                         <button
                             type="button"

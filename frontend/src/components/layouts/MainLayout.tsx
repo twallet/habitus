@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useCoordinatedEntities } from '../../hooks/useCoordinatedEntities';
 import { TrackingData, TrackingState } from '../../models/Tracking';
@@ -18,6 +18,7 @@ import { OutletContextType } from '../../context/AppContext';
 
 export function MainLayout() {
     const { isAuthenticated, isLoading, user, logout, updateProfile, updateNotificationPreferences, deleteUser, requestEmailChange } = useAuth();
+    const [searchParams, setSearchParams] = useSearchParams();
 
     // State
     const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -97,6 +98,31 @@ export function MainLayout() {
         }
     }, [reminders, trackings, trackingsLoading, refreshTrackings]);
 
+    // Handle email change verification redirect
+    useEffect(() => {
+        const emailChangeVerified = searchParams.get('emailChangeVerified');
+        const error = searchParams.get('error');
+
+        if (emailChangeVerified === 'true') {
+            setMessage({
+                text: 'Email address changed successfully! Your new email is now active.',
+                type: 'success'
+            });
+            // Remove query parameters from URL
+            setSearchParams({}, { replace: true });
+        } else if (emailChangeVerified === 'false') {
+            const errorMessage = error
+                ? decodeURIComponent(error)
+                : 'Email change verification failed. Please try requesting a new verification link.';
+            setMessage({
+                text: errorMessage,
+                type: 'error'
+            });
+            // Remove query parameters from URL
+            setSearchParams({}, { replace: true });
+        }
+    }, [searchParams, setSearchParams]);
+
 
     // Handlers
     const handleHideMessage = () => setMessage(null);
@@ -164,7 +190,7 @@ export function MainLayout() {
         try {
             await requestEmailChange(newEmail);
             setShowChangeEmail(false);
-            setMessage({ text: 'Confirmation email sent', type: 'success' });
+            setMessage({ text: `Verification email sent to ${newEmail}. Please check your inbox to complete the email change.`, type: 'success' });
         } catch (error) {
             setMessage({ text: error instanceof Error ? error.message : 'Error changing email', type: 'error' });
         }

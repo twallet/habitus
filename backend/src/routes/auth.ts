@@ -212,7 +212,7 @@ router.post(
 
       res.json({
         message:
-          "Email change verification link sent to your new email. Please check your inbox.",
+          "A verification link has been sent to your new email address. Please check your inbox and click the link to complete the email change. The link will expire in 15 minutes.",
       });
     } catch (error) {
       if (error instanceof TypeError) {
