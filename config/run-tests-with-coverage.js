@@ -15,6 +15,9 @@ const workspaceRoot = join(__dirname, "..");
 
 // Ensure coverage directories exist
 const coverageDir = join(workspaceRoot, "coverage");
+if (!existsSync(coverageDir)) {
+  mkdirSync(coverageDir, { recursive: true });
+}
 const coverageTmpDir = join(coverageDir, ".tmp");
 if (!existsSync(coverageTmpDir)) {
   mkdirSync(coverageTmpDir, { recursive: true });
