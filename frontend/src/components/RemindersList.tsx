@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } fr
 import { createPortal } from "react-dom";
 import { ReminderData, ReminderStatus } from "../models/Reminder";
 import { TrackingData } from "../models/Tracking";
+import { UserData } from "../models/User";
 import { useReminders } from "../hooks/useReminders";
 import { useTrackings } from "../hooks/useTrackings";
 import { useAuth } from "../hooks/useAuth";
@@ -74,9 +75,10 @@ class ReminderFilter {
      * Filter reminder by time display (case-insensitive contains).
      * @param reminder - Reminder data to filter
      * @param filterValue - Filter text value
+     * @param user - User data (optional, for locale/timezone)
      * @returns True if reminder matches filter
      */
-    static filterByTime(reminder: ReminderData, filterValue: string): boolean {
+    static filterByTime(reminder: ReminderData, filterValue: string, user?: UserData | null): boolean {
         if (!filterValue.trim()) {
             return true;
         }
@@ -123,12 +125,13 @@ class ReminderFilter {
      * @param reminders - Array of reminder data to filter
      * @param filters - Filter state object
      * @param getTracking - Function to get tracking data
+     * @param user - User data (optional, for locale/timezone)
      * @returns Filtered array of reminders
      */
-    static applyFilters(reminders: ReminderData[], filters: FilterState, getTracking: (id: number) => TrackingData | undefined): ReminderData[] {
+    static applyFilters(reminders: ReminderData[], filters: FilterState, getTracking: (id: number) => TrackingData | undefined, user?: UserData | null): ReminderData[] {
         return reminders.filter((reminder) => {
             return (
-                ReminderFilter.filterByTime(reminder, filters.time) &&
+                ReminderFilter.filterByTime(reminder, filters.time, user) &&
                 ReminderFilter.filterByTracking(reminder, filters.tracking, getTracking) &&
                 ReminderFilter.filterByNotes(reminder, filters.notes)
             );
@@ -250,7 +253,7 @@ export class ReminderFormatter {
      * @param user - User data (optional, for locale/timezone)
      * @returns Formatted date and time string
      */
-    static formatDateTime(dateTime: string, user?: { locale?: string; timezone?: string } | null): string {
+    static formatDateTime(dateTime: string, user?: UserData | null): string {
         return formatUserDateTime(dateTime, user);
     }
 
@@ -429,7 +432,7 @@ export function RemindersList({
     });
 
     // Apply filters and sorting
-    const filteredReminders = ReminderFilter.applyFilters(remindersWithValidTrackings, filterState, getTracking);
+    const filteredReminders = ReminderFilter.applyFilters(remindersWithValidTrackings, filterState, getTracking, user);
     const filteredAndSortedReminders = ReminderSorter.sortReminders(filteredReminders, sortColumn, sortDirection, getTracking);
 
     // Find the next upcoming reminder (PENDING with future time or UPCOMING status)
