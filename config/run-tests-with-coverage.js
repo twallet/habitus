@@ -21,20 +21,24 @@ if (!existsSync(coverageTmpDir)) {
   mkdirSync(coverageTmpDir, { recursive: true });
 }
 
+const testResultsFile = join(coverageDir, "test-results.json");
+
 //console.log("Running tests with coverage...\n");
 
 let vitestExitCode = 0;
 
 try {
-  // Use execSync with stdio: "inherit" - this is the key difference!
-  // When using "inherit", the child process writes directly to the parent's stdout/stderr,
-  // which the terminal tool can capture. This is what worked before.
-  execSync("npx vitest run --config config/vitest.config.ts --coverage", {
-    cwd: workspaceRoot,
-    stdio: "inherit", // Direct inheritance - child writes directly to parent's streams
-    shell: true, // Required on Windows to find npx in PATH
-    env: { ...process.env, FORCE_COLOR: "0" },
-  });
+  // Run vitest with verbose and JSON reporters
+  // JSON reporter will write to the outputFile automatically
+  execSync(
+    `npx vitest run --config config/vitest.config.ts --coverage --reporter=verbose --reporter=json --outputFile=${testResultsFile}`,
+    {
+      cwd: workspaceRoot,
+      stdio: "inherit", // Direct inheritance - child writes directly to parent's streams
+      shell: true, // Required on Windows to find npx in PATH
+      env: { ...process.env, FORCE_COLOR: "0" },
+    }
+  );
 } catch (error) {
   // execSync throws on non-zero exit, but output was already displayed via stdio: "inherit"
   vitestExitCode = error.status || 1;
@@ -47,7 +51,7 @@ if (existsSync(coverageFile)) {
   //console.log("\nGenerating coverage report...\n");
 
   try {
-    execSync("node config/coverage-report-low.js", {
+    execSync(`node config/coverage-report-low.js "${testResultsFile}"`, {
       cwd: workspaceRoot,
       stdio: "inherit", // Direct inheritance for visibility
       shell: true,

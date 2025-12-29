@@ -3,7 +3,7 @@
  * Reads the coverage JSON file and filters files that don't meet the branches coverage threshold.
  */
 
-import { readFileSync } from "fs";
+import { readFileSync, existsSync } from "fs";
 import { join, dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 
@@ -16,6 +16,8 @@ const coverageDir = join(workspaceRoot, "coverage");
 
 const THRESHOLD = 75;
 const coverageFile = join(coverageDir, "coverage-final.json");
+const testResultsFile =
+  process.argv[2] || join(coverageDir, "test-results.json");
 
 // ANSI color codes
 const RED = "\x1b[31m";
@@ -62,15 +64,14 @@ try {
     totalBranches > 0 ? (coveredBranches / totalBranches) * 100 : 100;
 
   // Display global branches coverage
-  console.log("\n" + "═".repeat(80));
-  console.log("📊 Global Branches Coverage");
-  console.log("═".repeat(80));
   console.log(
-    `Branches: ${formatGlobalPercent(
+    `\n📊 Global Branches Coverage: ${formatGlobalPercent(
       globalBranches
     )} (${coveredBranches}/${totalBranches})`
   );
-  console.log("═".repeat(80));
+
+  // Display failed test suites
+  displayFailedTestSuites();
 
   // Display results
   if (filesBelowThreshold.length === 0) {
@@ -147,6 +148,68 @@ function calculateBranchPercentage(branchMap) {
   }
 
   return Math.round((coveredBranches / totalBranches) * 100 * 100) / 100;
+}
+
+/**
+ * Display failed test suites from test results JSON file.
+ */
+function displayFailedTestSuites() {
+  if (!existsSync(testResultsFile)) {
+    return; // No test results file available
+  }
+
+  try {
+    const testResultsData = readFileSync(testResultsFile, "utf-8");
+    const testResults = JSON.parse(testResultsData);
+    const failedFiles = new Set();
+
+    // Vitest JSON reporter can output different formats
+    // Handle array format or object with testFiles property
+    const testFiles = Array.isArray(testResults)
+      ? testResults
+      : testResults?.testFiles || testResults?.files || [];
+
+    // Process test results to find failed test files
+    for (const testFile of testFiles) {
+      const numFailed =
+        testFile.numFailedTests ||
+        testFile.numFailingTests ||
+        testFile.tasks?.filter((t) => t.result?.state === "fail").length ||
+        0;
+
+      if (numFailed > 0) {
+        // Extract relative path from workspace root
+        const filePath =
+          testFile.file ||
+          testFile.filepath ||
+          testFile.name ||
+          testFile.path ||
+          "";
+        if (filePath) {
+          const normalizedWorkspace = workspaceRoot.replace(/\\/g, "/");
+          const normalizedPath = filePath.replace(/\\/g, "/");
+          let relativePath = normalizedPath;
+          if (normalizedPath.startsWith(normalizedWorkspace)) {
+            relativePath = normalizedPath.slice(normalizedWorkspace.length + 1);
+          }
+          if (relativePath) {
+            failedFiles.add(relativePath);
+          }
+        }
+      }
+    }
+
+    if (failedFiles.size > 0) {
+      console.log(`\n❌ Failed Test Suites (${failedFiles.size}):`);
+      const sortedFiles = Array.from(failedFiles).sort();
+      for (const file of sortedFiles) {
+        const displayPath = file.length > 75 ? "..." + file.slice(-72) : file;
+        console.log(`   ${displayPath}`);
+      }
+    }
+  } catch (error) {
+    // Silently ignore errors reading test results
+  }
 }
 
 /**
