@@ -7,6 +7,7 @@ import { ReminderData, ReminderStatus, ReminderValue } from "../../models/Remind
 import { TrackingData } from "../../models/Tracking";
 import * as useRemindersModule from "../../hooks/useReminders";
 import * as useTrackingsModule from "../../hooks/useTrackings";
+import * as useAuthModule from "../../hooks/useAuth";
 
 // Mock the hooks
 vi.mock("../../hooks/useReminders", () => ({
@@ -15,6 +16,10 @@ vi.mock("../../hooks/useReminders", () => ({
 
 vi.mock("../../hooks/useTrackings", () => ({
     useTrackings: vi.fn(),
+}));
+
+vi.mock("../../hooks/useAuth", () => ({
+    useAuth: vi.fn(),
 }));
 
 describe("RemindersList", () => {
@@ -46,6 +51,9 @@ describe("RemindersList", () => {
         });
         (useTrackingsModule.useTrackings as any).mockReturnValue({
             trackings: [],
+        });
+        (useAuthModule.useAuth as any).mockReturnValue({
+            user: null,
         });
     });
 
