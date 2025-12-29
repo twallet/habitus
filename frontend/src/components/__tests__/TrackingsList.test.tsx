@@ -3,7 +3,7 @@ import { vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { TrackingsList } from "../TrackingsList";
-import { TrackingData, Frequency, TrackingState } from "../../models/Tracking";
+import { TrackingData, TrackingState } from "../../models/Tracking";
 import { ReminderData, ReminderStatus, ReminderValue } from "../../models/Reminder";
 import * as useTrackingsModule from "../../hooks/useTrackings";
 import * as useRemindersModule from "../../hooks/useReminders";
@@ -76,11 +76,13 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise today?",
+                frequency: { type: "daily" },
             },
             {
                 id: 2,
                 user_id: 1,
                 question: "Did I meditate?",
+                frequency: { type: "daily" },
             },
         ];
 
@@ -103,6 +105,7 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
+                frequency: { type: "daily" },
             },
         ];
 
@@ -128,6 +131,7 @@ describe("TrackingsList", () => {
                 user_id: 1,
                 question: "Did I exercise?",
                 icon: "💪",
+                frequency: { type: "daily" },
             },
         ];
 
@@ -153,6 +157,7 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
+                frequency: { type: "daily" },
             },
         ];
 
@@ -176,6 +181,7 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
+                frequency: { type: "daily" },
                 schedules: [
                     { id: 1, tracking_id: 1, hour: 9, minutes: 0 },
                 ],
@@ -199,6 +205,7 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
+                frequency: { type: "daily" },
                 schedules: [
                     { id: 1, tracking_id: 1, hour: 9, minutes: 0 },
                     { id: 2, tracking_id: 1, hour: 14, minutes: 30 },
@@ -224,6 +231,7 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
+                frequency: { type: "daily" },
                 schedules: [
                     { id: 1, tracking_id: 1, hour: 9, minutes: 0 },
                     { id: 2, tracking_id: 1, hour: 14, minutes: 30 },
@@ -251,6 +259,7 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: longQuestion,
+                frequency: { type: "daily" },
             },
         ];
 
@@ -273,6 +282,7 @@ describe("TrackingsList", () => {
                 user_id: 1,
                 question: longQuestion,
                 icon: "💪",
+                frequency: { type: "daily" },
             },
         ];
 
@@ -297,6 +307,7 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: longQuestion,
+                frequency: { type: "daily" },
             },
         ];
 
@@ -418,6 +429,7 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
+                frequency: { type: "daily" },
             },
         ];
 
@@ -475,6 +487,7 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
+                frequency: { type: "daily" },
             },
         ];
 
@@ -585,6 +598,7 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
+                frequency: { type: "daily" },
                 notes: "Some exercise notes",
             },
         ];
@@ -610,17 +624,20 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
+                frequency: { type: "daily" },
             },
             {
                 id: 2,
                 user_id: 1,
                 question: "Did I meditate?",
+                frequency: { type: "daily" },
                 notes: "",
             },
             {
                 id: 3,
                 user_id: 1,
                 question: "Did I read?",
+                frequency: { type: "daily" },
                 notes: "   ", // Only whitespace
             },
         ];
@@ -645,6 +662,7 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
+                frequency: { type: "daily" },
             },
         ];
 
@@ -766,6 +784,7 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
+                frequency: { type: "daily" },
                 state: TrackingState.ARCHIVED,
             },
         ];
@@ -797,6 +816,7 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
+                frequency: { type: "daily" },
                 state: TrackingState.PAUSED,
             },
         ];
@@ -827,6 +847,7 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
+                frequency: { type: "daily" },
                 state: TrackingState.ARCHIVED,
             },
         ];
@@ -876,6 +897,7 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
+                frequency: { type: "daily" },
                 state: TrackingState.ARCHIVED,
             },
         ];
@@ -912,6 +934,7 @@ describe("TrackingsList", () => {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
+                frequency: { type: "daily" },
                 state: TrackingState.RUNNING,
             },
             {
@@ -919,6 +942,7 @@ describe("TrackingsList", () => {
                 user_id: 1,
                 question: "Did I meditate?",
                 state: TrackingState.PAUSED,
+                frequency: { type: "daily" },
             },
         ];
 
@@ -984,6 +1008,7 @@ describe("TrackingsList", () => {
                     user_id: 1,
                     question: "Test question",
                     state: TrackingState.RUNNING,
+                    frequency: { type: "daily" },
                 },
             ];
 
@@ -1010,6 +1035,7 @@ describe("TrackingsList", () => {
                     user_id: 1,
                     question: "Test question",
                     state: TrackingState.RUNNING,
+                    frequency: { type: "daily" },
                 },
             ];
 
@@ -1038,6 +1064,7 @@ describe("TrackingsList", () => {
                     user_id: 1,
                     question: "Test question",
                     state: TrackingState.RUNNING,
+                    frequency: { type: "daily" },
                 },
             ];
 
@@ -1067,24 +1094,24 @@ describe("TrackingsList", () => {
                 user_id: 1,
                 question: "Did I exercise today?",
                 state: TrackingState.RUNNING,
-                schedules: [{ id: 1, tracking_id: 1, hour: 8, minutes: 0 }],
                 frequency: { type: "daily" },
+                schedules: [{ id: 1, tracking_id: 1, hour: 8, minutes: 0 }],
             },
             {
                 id: 2,
                 user_id: 1,
                 question: "Did I meditate?",
                 state: TrackingState.PAUSED,
-                schedules: [{ id: 2, tracking_id: 2, hour: 9, minutes: 30 }],
                 frequency: { type: "weekly", days: [1, 3, 5] },
+                schedules: [{ id: 2, tracking_id: 2, hour: 9, minutes: 30 }],
             },
             {
                 id: 3,
                 user_id: 1,
                 question: "Did I read a book?",
                 state: TrackingState.ARCHIVED,
-                schedules: [{ id: 3, tracking_id: 3, hour: 20, minutes: 0 }],
                 frequency: { type: "daily" },
+                schedules: [{ id: 3, tracking_id: 3, hour: 20, minutes: 0 }],
             },
         ];
 
@@ -1241,6 +1268,7 @@ describe("TrackingsList", () => {
                 user_id: 1,
                 question: "Zebra question",
                 state: TrackingState.ARCHIVED,
+                frequency: { type: "daily" },
                 schedules: [{ id: 1, tracking_id: 1, hour: 10, minutes: 0 }],
             },
             {
@@ -1248,6 +1276,7 @@ describe("TrackingsList", () => {
                 user_id: 1,
                 question: "Apple question",
                 state: TrackingState.RUNNING,
+                frequency: { type: "daily" },
                 schedules: [{ id: 2, tracking_id: 2, hour: 8, minutes: 0 }],
             },
             {
@@ -1255,6 +1284,7 @@ describe("TrackingsList", () => {
                 user_id: 1,
                 question: "Banana question",
                 state: TrackingState.PAUSED,
+                frequency: { type: "daily" },
                 schedules: [{ id: 3, tracking_id: 3, hour: 9, minutes: 30 }],
             },
         ];
@@ -1404,18 +1434,21 @@ describe("TrackingsList", () => {
                 user_id: 1,
                 question: "Alpha exercise",
                 state: TrackingState.RUNNING,
+                frequency: { type: "daily" },
             },
             {
                 id: 2,
                 user_id: 1,
                 question: "Beta exercise",
                 state: TrackingState.RUNNING,
+                frequency: { type: "daily" },
             },
             {
                 id: 3,
                 user_id: 1,
                 question: "Gamma meditation",
                 state: TrackingState.RUNNING,
+                frequency: { type: "daily" },
             },
         ];
 
@@ -1465,6 +1498,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         question: "Did I exercise?",
                         state: TrackingState.RUNNING,
+                        frequency: { type: "daily" },
                     },
                 ];
 
@@ -1539,6 +1573,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         question: "Did I exercise?",
                         state: TrackingState.RUNNING,
+                        frequency: { type: "daily" },
                     },
                 ];
 
@@ -1614,6 +1649,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         question: "Did I exercise?",
                         state: TrackingState.RUNNING,
+                        frequency: { type: "daily" },
                     },
                 ];
 
@@ -1698,6 +1734,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         question: "Did I exercise?",
                         state: TrackingState.RUNNING,
+                        frequency: { type: "daily" },
                     },
                 ];
 
@@ -1719,6 +1756,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         question: "Did I exercise?",
                         state: TrackingState.RUNNING,
+                        frequency: { type: "daily" },
                         schedules: [{ id: 1, tracking_id: 1, hour: 9, minutes: 0 }],
                     },
                 ];
@@ -1742,6 +1780,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         question: "Did I exercise?",
                         state: TrackingState.RUNNING,
+                        frequency: { type: "daily" },
                         schedules: [{ id: 1, tracking_id: 1, hour: 10, minutes: 30 }],
                         updated_at: new Date().toISOString(),
                     },
@@ -1817,6 +1856,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         question: "Did I exercise?",
                         state: TrackingState.RUNNING,
+                        frequency: { type: "daily" },
                     },
                 ];
 
@@ -1862,6 +1902,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         question: "Did I exercise?",
                         state: TrackingState.PAUSED,
+                        frequency: { type: "daily" },
                     },
                 ];
 
@@ -1884,6 +1925,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         question: "Did I exercise?",
                         state: TrackingState.RUNNING,
+                        frequency: { type: "daily" },
                     },
                 ];
 
@@ -1905,6 +1947,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         question: "Did I exercise?",
                         state: TrackingState.RUNNING,
+                        frequency: { type: "daily" },
                     },
                 ];
 
@@ -1927,6 +1970,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         question: "Did I exercise?",
                         state: TrackingState.PAUSED,
+                        frequency: { type: "daily" },
                     },
                 ];
 
@@ -1948,6 +1992,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         question: "Did I exercise?",
                         state: TrackingState.PAUSED,
+                        frequency: { type: "daily" },
                     },
                 ];
 
@@ -1979,6 +2024,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         question: "Did I exercise?",
                         state: TrackingState.RUNNING,
+                        frequency: { type: "daily" },
                     },
                 ];
 
@@ -2022,6 +2068,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         question: "Did I exercise?",
                         state: TrackingState.ARCHIVED,
+                        frequency: { type: "daily" },
                     },
                 ];
 
@@ -2055,6 +2102,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         question: "Did I exercise?",
                         state: TrackingState.RUNNING,
+                        frequency: { type: "daily" },
                     },
                 ];
 
@@ -2107,6 +2155,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         question: "Did I exercise?",
                         state: TrackingState.RUNNING,
+                        frequency: { type: "daily" },
                     },
                 ];
 
@@ -2159,6 +2208,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         question: "Did I exercise?",
                         state: TrackingState.RUNNING,
+                        frequency: { type: "daily" },
                     },
                 ];
 
@@ -2211,6 +2261,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         question: "Did I exercise?",
                         state: TrackingState.RUNNING,
+                        frequency: { type: "daily" },
                     },
                 ];
 
@@ -2253,6 +2304,7 @@ describe("TrackingsList", () => {
                         user_id: 1,
                         question: "Did I exercise?",
                         state: TrackingState.RUNNING,
+                        frequency: { type: "daily" },
                     },
                 ];
 
