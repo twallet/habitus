@@ -36,6 +36,7 @@ vi.mock("../../middleware/upload.js", () => ({
     next();
   }),
   getUploadsDirectory: vi.fn(() => "/test/uploads"),
+  isCloudinaryStorage: vi.fn(() => false),
 }));
 
 /**

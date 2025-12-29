@@ -20,7 +20,10 @@ import authRouter from "./routes/auth.js";
 import trackingsRouter from "./routes/trackings.js";
 import remindersRouter from "./routes/reminders.js";
 import debugRouter from "./routes/debug/debug.js";
-import { getUploadsDirectory } from "./middleware/upload.js";
+import {
+  getUploadsDirectory,
+  isCloudinaryStorage,
+} from "./middleware/upload.js";
 import { ServerConfig } from "./setup/constants.js";
 import { PathConfig } from "./config/paths.js";
 
@@ -110,9 +113,12 @@ if (isDevelopment) {
 app.use(express.json());
 
 /**
- * Serve uploaded files statically.
+ * Serve uploaded files statically (local storage only).
+ * When using Cloudinary, files are served from Cloudinary CDN, so this route is not needed.
  */
-app.use("/uploads", express.static(getUploadsDirectory()));
+if (!isCloudinaryStorage()) {
+  app.use("/uploads", express.static(getUploadsDirectory()));
+}
 
 /**
  * API routes.

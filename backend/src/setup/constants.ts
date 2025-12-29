@@ -14,22 +14,24 @@ export class ServerConfig {
 
   /**
    * Get server port from environment variable (lazy loading with caching).
+   * Checks for PORT first (Railway/production standard), then falls back to VITE_PORT (development).
    * @returns Server port number
-   * @throws Error if VITE_PORT is not set or invalid
+   * @throws Error if neither PORT nor VITE_PORT is set or invalid
    * @public
    */
   static getPort(): number {
     if (this.cachedPort === null) {
-      const port = process.env.VITE_PORT;
+      // Check PORT first (Railway/production standard), then fallback to VITE_PORT (development)
+      const port = process.env.PORT || process.env.VITE_PORT;
       if (!port) {
         throw new Error(
-          "VITE_PORT environment variable is required. Please set it in your .env file."
+          "PORT or VITE_PORT environment variable is required. Please set it in your .env file or environment."
         );
       }
       const parsedPort = parseInt(port, 10);
       if (isNaN(parsedPort) || parsedPort <= 0) {
         throw new Error(
-          `Invalid VITE_PORT value: ${port}. VITE_PORT must be a positive number.`
+          `Invalid port value: ${port}. Port must be a positive number.`
         );
       }
       this.cachedPort = parsedPort;

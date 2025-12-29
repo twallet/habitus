@@ -1,6 +1,9 @@
 import { Router, Request, Response } from "express";
 import { ServiceManager } from "../services/index.js";
-import { uploadProfilePicture } from "../middleware/upload.js";
+import {
+  uploadProfilePicture,
+  isCloudinaryStorage,
+} from "../middleware/upload.js";
 import { authRateLimiter } from "../middleware/rateLimiter.js";
 import { authenticateToken } from "../middleware/authMiddleware.js";
 import { AuthRequest } from "../middleware/authMiddleware.js";
@@ -44,9 +47,20 @@ router.post(
       // Build profile picture URL if file was uploaded
       let profilePictureUrl: string | undefined;
       if (file) {
-        profilePictureUrl = `${ServerConfig.getServerUrl()}:${ServerConfig.getPort()}/uploads/${
-          file.filename
-        }`;
+        // Check if it's a Cloudinary URL (starts with https://res.cloudinary.com)
+        // or if cloudinaryUrl property exists (set by upload middleware)
+        if (
+          file.filename.startsWith("https://res.cloudinary.com") ||
+          (file as any).cloudinaryUrl
+        ) {
+          // Use Cloudinary URL directly
+          profilePictureUrl = (file as any).cloudinaryUrl || file.filename;
+        } else {
+          // Use local file URL
+          profilePictureUrl = `${ServerConfig.getServerUrl()}:${ServerConfig.getPort()}/uploads/${
+            file.filename
+          }`;
+        }
       }
 
       await getAuthServiceInstance().requestRegisterMagicLink(

@@ -56,32 +56,51 @@ describe("Constants", () => {
   });
 
   describe("getPort", () => {
-    it("should return port number from VITE_PORT environment variable", () => {
+    it("should return port number from PORT environment variable (Railway/production)", () => {
+      process.env.PORT = "8080";
+      delete process.env.VITE_PORT;
+      const port = ServerConfig.getPort();
+      expect(port).toBe(8080);
+    });
+
+    it("should return port number from VITE_PORT environment variable (development)", () => {
+      delete process.env.PORT;
       process.env.VITE_PORT = "3005";
       const port = ServerConfig.getPort();
       expect(port).toBe(3005);
     });
 
-    it("should throw error when VITE_PORT is not set", () => {
+    it("should prioritize PORT over VITE_PORT when both are set", () => {
+      process.env.PORT = "8080";
+      process.env.VITE_PORT = "3005";
+      const port = ServerConfig.getPort();
+      expect(port).toBe(8080);
+    });
+
+    it("should throw error when PORT and VITE_PORT are not set", () => {
+      delete process.env.PORT;
       delete process.env.VITE_PORT;
       expect(() => ServerConfig.getPort()).toThrow(
-        "VITE_PORT environment variable is required"
+        /PORT or VITE_PORT environment variable is required/
       );
     });
 
     it("should throw error when VITE_PORT is invalid (not a number)", () => {
+      delete process.env.PORT;
       process.env.VITE_PORT = "not-a-number";
-      expect(() => ServerConfig.getPort()).toThrow(/Invalid VITE_PORT value/);
+      expect(() => ServerConfig.getPort()).toThrow(/Invalid port value/);
     });
 
     it("should throw error when VITE_PORT is zero", () => {
+      delete process.env.PORT;
       process.env.VITE_PORT = "0";
-      expect(() => ServerConfig.getPort()).toThrow(/Invalid VITE_PORT value/);
+      expect(() => ServerConfig.getPort()).toThrow(/Invalid port value/);
     });
 
     it("should throw error when VITE_PORT is negative", () => {
+      delete process.env.PORT;
       process.env.VITE_PORT = "-1";
-      expect(() => ServerConfig.getPort()).toThrow(/Invalid VITE_PORT value/);
+      expect(() => ServerConfig.getPort()).toThrow(/Invalid port value/);
     });
   });
 

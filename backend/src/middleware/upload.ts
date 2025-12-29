@@ -1,11 +1,39 @@
 import fs from "fs";
 import multer from "multer";
 import path from "path";
+import { v2 as cloudinary } from "cloudinary";
 import { PathConfig } from "../config/paths.js";
 import { Request, Response, NextFunction } from "express";
 
 /**
+ * Storage type enum.
+ * @private
+ */
+enum StorageType {
+  LOCAL = "local",
+  CLOUDINARY = "cloudinary",
+}
+
+/**
+ * Get storage type based on environment variables.
+ * Checks for Cloudinary credentials, falls back to local storage.
+ * @returns Storage type
+ * @private
+ */
+function getStorageType(): StorageType {
+  if (
+    process.env.CLOUDINARY_CLOUD_NAME &&
+    process.env.CLOUDINARY_API_KEY &&
+    process.env.CLOUDINARY_API_SECRET
+  ) {
+    return StorageType.CLOUDINARY;
+  }
+  return StorageType.LOCAL;
+}
+
+/**
  * Upload configuration class for managing file uploads.
+ * Supports both local filesystem (development) and Cloudinary (production).
  * Encapsulates multer configuration and provides instance methods for upload operations.
  * @public
  */
@@ -13,6 +41,7 @@ export class UploadConfig {
   private readonly uploadsDir: string;
   private readonly maxFileSize: number;
   private readonly allowedMimeTypes: readonly string[];
+  private readonly storageType: StorageType;
   private multerInstance: multer.Multer | null = null;
 
   /**
@@ -29,8 +58,18 @@ export class UploadConfig {
       "image/gif",
       "image/webp",
     ] as const;
+    this.storageType = getStorageType();
 
-    // Use the same directory as the database (data folder)
+    // Initialize Cloudinary if using Cloudinary storage
+    if (this.storageType === StorageType.CLOUDINARY) {
+      cloudinary.config({
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME!,
+        api_key: process.env.CLOUDINARY_API_KEY!,
+        api_secret: process.env.CLOUDINARY_API_SECRET!,
+      });
+    }
+
+    // Use the same directory as the database (data folder) for local storage
     // This ensures uploads are stored in the same location as the database
     // Use the same path resolution logic as the database to ensure consistency
     let dataDir: string;
@@ -53,19 +92,30 @@ export class UploadConfig {
     }
     this.uploadsDir = path.join(dataDir, "uploads");
 
-    // Ensure uploads directory exists
-    if (!fs.existsSync(this.uploadsDir)) {
-      fs.mkdirSync(this.uploadsDir, { recursive: true });
+    // Ensure uploads directory exists (only for local storage)
+    if (this.storageType === StorageType.LOCAL) {
+      if (!fs.existsSync(this.uploadsDir)) {
+        fs.mkdirSync(this.uploadsDir, { recursive: true });
+      }
     }
   }
 
   /**
-   * Get the uploads directory path.
+   * Get the uploads directory path (for local storage only).
    * @returns The uploads directory path
    * @public
    */
   getUploadsDirectory(): string {
     return this.uploadsDir;
+  }
+
+  /**
+   * Get storage type.
+   * @returns Storage type (local or cloudinary)
+   * @public
+   */
+  getStorageType(): StorageType {
+    return this.storageType;
   }
 
   /**
@@ -83,7 +133,7 @@ export class UploadConfig {
 
   /**
    * Configure multer storage.
-   * @returns Multer disk storage configuration
+   * @returns Multer disk storage configuration (for local storage)
    * @private
    */
   private createStorage(): multer.StorageEngine {
@@ -143,7 +193,7 @@ export class UploadConfig {
   }
 
   /**
-   * Get multer instance for profile picture uploads.
+   * Get multer instance for profile picture uploads (local storage).
    * @returns Multer instance configured for single file upload
    * @public
    */
@@ -161,13 +211,71 @@ export class UploadConfig {
   }
 
   /**
-   * Get middleware for profile picture uploads.
+   * Get middleware for profile picture uploads (local storage).
    * Single file upload with field name "profilePicture".
    * @returns Express middleware function
    * @public
    */
   getProfilePictureMiddleware(): ReturnType<multer.Multer["single"]> {
     return this.getMulterInstance().single("profilePicture");
+  }
+
+  /**
+   * Upload file to Cloudinary.
+   * @param fileBuffer - File buffer
+   * @param originalName - Original filename
+   * @param mimetype - File MIME type
+   * @returns Promise resolving to Cloudinary upload result with secure URL
+   * @public
+   */
+  async uploadToCloudinary(
+    fileBuffer: Buffer,
+    originalName: string,
+    mimetype: string
+  ): Promise<{ url: string; publicId: string }> {
+    if (this.storageType !== StorageType.CLOUDINARY) {
+      throw new Error("Cloudinary is not configured");
+    }
+
+    return new Promise((resolve, reject) => {
+      const uploadOptions = {
+        folder: "habitus/profile-pictures",
+        resource_type: "image" as const,
+        allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
+      };
+
+      const uploadStream = cloudinary.uploader.upload_stream(
+        uploadOptions,
+        (error: Error | undefined, result: any) => {
+          if (error) {
+            console.error(
+              `[${new Date().toISOString()}] UPLOAD | Cloudinary upload failed:`,
+              error
+            );
+            reject(error);
+            return;
+          }
+
+          if (!result || !result.secure_url) {
+            reject(new Error("Cloudinary upload failed: No URL returned"));
+            return;
+          }
+
+          console.log(
+            `[${new Date().toISOString()}] UPLOAD | File uploaded to Cloudinary: ${
+              result.secure_url
+            }`
+          );
+
+          resolve({
+            url: result.secure_url,
+            publicId: result.public_id,
+          });
+        }
+      );
+
+      uploadStream.end(fileBuffer);
+    });
   }
 }
 
@@ -190,30 +298,98 @@ function getUploadConfig(): UploadConfig {
 
 /**
  * Multer middleware for profile picture uploads.
+ * Supports both local storage (development) and Cloudinary (production).
  * Single file upload with field name "profilePicture".
  * Max file size: 5MB
  * This is a lazy getter that creates the middleware on first access.
  * @public
  */
-export const uploadProfilePicture = (() => {
-  let middleware: ReturnType<multer.Multer["single"]> | null = null;
-  return (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) => {
-    if (!middleware) {
-      middleware = getUploadConfig().getProfilePictureMiddleware();
-    }
-    return middleware(req, res, next);
-  };
-})();
+export const uploadProfilePicture = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
+  const config = getUploadConfig();
+  const storageType = config.getStorageType();
+
+  if (storageType === StorageType.CLOUDINARY) {
+    // Use Cloudinary upload
+    const multerMemory = multer({
+      storage: multer.memoryStorage(),
+      fileFilter: (req, file, cb) => {
+        const allowedMimeTypes = [
+          "image/jpeg",
+          "image/jpg",
+          "image/png",
+          "image/gif",
+          "image/webp",
+        ] as const;
+
+        if (allowedMimeTypes.includes(file.mimetype as any)) {
+          cb(null, true);
+        } else {
+          cb(new Error("Only image files are allowed (JPEG, PNG, GIF, WebP)"));
+        }
+      },
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB
+      },
+    });
+
+    multerMemory.single("profilePicture")(req, res, async (err) => {
+      if (err) {
+        return next(err);
+      }
+
+      const file = req.file;
+      if (!file) {
+        return next();
+      }
+
+      try {
+        // Upload to Cloudinary
+        const result = await config.uploadToCloudinary(
+          file.buffer,
+          file.originalname,
+          file.mimetype
+        );
+
+        // Create a mock file object with Cloudinary URL
+        // This maintains compatibility with existing code that expects req.file
+        (req.file as any).filename = result.url;
+        (req.file as any).cloudinaryUrl = result.url;
+        (req.file as any).cloudinaryPublicId = result.publicId;
+
+        next();
+      } catch (error) {
+        console.error(
+          `[${new Date().toISOString()}] UPLOAD | Error uploading to Cloudinary:`,
+          error
+        );
+        next(error);
+      }
+    });
+  } else {
+    // Use local storage (development)
+    const middleware = config.getProfilePictureMiddleware();
+    middleware(req, res, next);
+  }
+};
 
 /**
  * Get the uploads directory path.
- * @returns The uploads directory path
+ * @returns The uploads directory path (for local storage only)
  * @public
  */
 export function getUploadsDirectory(): string {
   return getUploadConfig().getUploadsDirectory();
+}
+
+/**
+ * Check if Cloudinary is being used for storage.
+ * @returns True if Cloudinary is configured, false otherwise
+ * @public
+ */
+export function isCloudinaryStorage(): boolean {
+  return getUploadConfig().getStorageType() === StorageType.CLOUDINARY;
 }

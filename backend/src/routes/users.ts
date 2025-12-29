@@ -7,6 +7,7 @@ import {
 import {
   uploadProfilePicture,
   getUploadsDirectory,
+  isCloudinaryStorage,
 } from "../middleware/upload.js";
 import { ServerConfig } from "../setup/constants.js";
 import fs from "fs";
@@ -56,8 +57,8 @@ router.put(
       const userId = req.userId!;
       const { name, removeProfilePicture } = req.body;
 
-      // Store uploaded file path for cleanup in case of error
-      if (file) {
+      // Store uploaded file path for cleanup in case of error (local storage only)
+      if (file && !isCloudinaryStorage()) {
         const uploadsDir = getUploadsDirectory();
         uploadedFilePath = path.join(uploadsDir, file.filename);
       }
@@ -68,9 +69,20 @@ router.put(
         // Explicitly set to null to indicate removal
         profilePictureUrl = null;
       } else if (file) {
-        profilePictureUrl = `${ServerConfig.getServerUrl()}:${ServerConfig.getPort()}/uploads/${
-          file.filename
-        }`;
+        // Check if it's a Cloudinary URL (starts with https://res.cloudinary.com)
+        // or if cloudinaryUrl property exists (set by upload middleware)
+        if (
+          file.filename.startsWith("https://res.cloudinary.com") ||
+          (file as any).cloudinaryUrl
+        ) {
+          // Use Cloudinary URL directly
+          profilePictureUrl = (file as any).cloudinaryUrl || file.filename;
+        } else {
+          // Use local file URL
+          profilePictureUrl = `${ServerConfig.getServerUrl()}:${ServerConfig.getPort()}/uploads/${
+            file.filename
+          }`;
+        }
       }
       // If neither file nor removeProfilePicture, profilePictureUrl remains undefined (no change)
 

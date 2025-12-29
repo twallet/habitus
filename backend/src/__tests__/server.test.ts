@@ -60,8 +60,10 @@ vi.mock("../routes/reminders.js", () => ({
 
 // Mock upload middleware
 const mockGetUploadsDirectory = vi.fn(() => "/test/uploads");
+const mockIsCloudinaryStorage = vi.fn(() => false);
 vi.mock("../middleware/upload.js", () => ({
-  getUploadsDirectory: mockGetUploadsDirectory,
+  getUploadsDirectory: vi.fn(() => "/test/uploads"),
+  isCloudinaryStorage: vi.fn(() => false),
 }));
 
 // Mock constants
