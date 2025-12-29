@@ -24,6 +24,7 @@ describe("ReminderAnswerModal", () => {
         user_id: 1,
         question: "Did I exercise?",
         icon: "💪",
+        frequency: { type: "daily" },
     };
 
     beforeEach(() => {

@@ -36,6 +36,7 @@ describe('VerifyMagicLinkPage', () => {
         setTokenFromCallback: vi.fn(),
         updateProfile: vi.fn(),
         updateNotificationPreferences: vi.fn(),
+        updateUserPreferences: vi.fn(),
         deleteUser: vi.fn(),
     });
 

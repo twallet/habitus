@@ -58,6 +58,7 @@ describe('Authenticated Routing', () => {
             deleteReminder: vi.fn(),
             refreshReminders: vi.fn(),
             removeRemindersForTracking: vi.fn(),
+            removeRemindersForTrackingByStatus: vi.fn(),
         });
     });
 
@@ -75,6 +76,7 @@ describe('Authenticated Routing', () => {
             setTokenFromCallback: vi.fn(),
             updateProfile: vi.fn(),
             updateNotificationPreferences: vi.fn(),
+            updateUserPreferences: vi.fn(),
             deleteUser: vi.fn(),
         });
 

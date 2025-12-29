@@ -66,7 +66,7 @@ describe("useCoordinatedEntities", () => {
           question: "Test tracking",
           state: TrackingState.RUNNING,
           frequency: { type: "daily" },
-          schedules: [{ hour: 9, minutes: 0 }],
+          schedules: [{ id: 1, tracking_id: 1, hour: 9, minutes: 0 }],
         },
       ];
 
@@ -152,11 +152,11 @@ describe("useCoordinatedEntities", () => {
         question: "New tracking",
         state: TrackingState.RUNNING,
         frequency: { type: "daily" },
-        schedules: [{ hour: 9, minutes: 0 }],
+        schedules: [{ id: 1, tracking_id: 1, hour: 9, minutes: 0 }],
       };
 
       const frequency: Frequency = { type: "daily" };
-      const schedules = [{ hour: 9, minutes: 0 }];
+      const schedules = [{ id: 1, tracking_id: 1, hour: 9, minutes: 0 }];
 
       mockTrackingsHook.createTracking = vi
         .fn()
@@ -189,7 +189,7 @@ describe("useCoordinatedEntities", () => {
     it("should refresh reminders on error", async () => {
       const error = new Error("Failed to create tracking");
       const frequency: Frequency = { type: "daily" };
-      const schedules = [{ hour: 9, minutes: 0 }];
+      const schedules = [{ id: 1, tracking_id: 1, hour: 9, minutes: 0 }];
 
       mockTrackingsHook.createTracking = vi.fn().mockRejectedValue(error);
       mockRemindersHook.refreshReminders = vi.fn().mockResolvedValue(undefined);
@@ -220,11 +220,11 @@ describe("useCoordinatedEntities", () => {
         user_id: 1,
         question: "Updated tracking",
         state: TrackingState.RUNNING,
-        frequency: { type: "weekly" },
-        schedules: [{ hour: 10, minutes: 30 }],
+        frequency: { type: "weekly", days: [1] },
+        schedules: [{ id: 1, tracking_id: 1, hour: 10, minutes: 30 }],
       };
 
-      const frequency: Frequency = { type: "weekly" };
+      const frequency: Frequency = { type: "weekly", days: [1] };
 
       mockTrackingsHook.updateTracking = vi
         .fn()
@@ -281,7 +281,7 @@ describe("useCoordinatedEntities", () => {
         question: "Test tracking",
         state: TrackingState.PAUSED,
         frequency: { type: "daily" },
-        schedules: [{ hour: 9, minutes: 0 }],
+        schedules: [{ id: 1, tracking_id: 1, hour: 9, minutes: 0 }],
       };
 
       mockTrackingsHook.updateTrackingState = vi
@@ -313,7 +313,7 @@ describe("useCoordinatedEntities", () => {
         question: "Test tracking",
         state: TrackingState.ARCHIVED,
         frequency: { type: "daily" },
-        schedules: [{ hour: 9, minutes: 0 }],
+        schedules: [{ id: 1, tracking_id: 1, hour: 9, minutes: 0 }],
       };
 
       mockTrackingsHook.updateTrackingState = vi
@@ -348,7 +348,7 @@ describe("useCoordinatedEntities", () => {
         question: "Test tracking",
         state: TrackingState.RUNNING,
         frequency: { type: "daily" },
-        schedules: [{ hour: 9, minutes: 0 }],
+        schedules: [{ id: 1, tracking_id: 1, hour: 9, minutes: 0 }],
       };
 
       mockTrackingsHook.updateTrackingState = vi

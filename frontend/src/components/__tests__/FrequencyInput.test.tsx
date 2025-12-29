@@ -194,6 +194,7 @@ describe("FrequencyInput", () => {
     it("should be disabled when disabled prop is true", () => {
         render(
             <FrequencyInput
+                value={{ type: "daily" }}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
                 disabled={true}
@@ -405,6 +406,7 @@ describe("FrequencyInput", () => {
         const user = userEvent.setup();
         render(
             <FrequencyInput
+                value={{ type: "daily" }}
                 onChange={mockOnChange}
             />
         );
@@ -420,6 +422,7 @@ describe("FrequencyInput", () => {
     it("should not display error when error prop is null", () => {
         render(
             <FrequencyInput
+                value={{ type: "daily" }}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
                 error={null}
@@ -447,6 +450,7 @@ describe("FrequencyInput", () => {
         const mockOnFrequencyChange = vi.fn();
         render(
             <FrequencyInput
+                value={{ type: "daily" }}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
                 onFrequencyChange={mockOnFrequencyChange}
@@ -466,6 +470,7 @@ describe("FrequencyInput", () => {
         const mockOnFrequencyChange = vi.fn();
         render(
             <FrequencyInput
+                value={{ type: "daily" }}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
                 onFrequencyChange={mockOnFrequencyChange}
@@ -483,6 +488,7 @@ describe("FrequencyInput", () => {
     it("should sync preset with controlled frequency prop", async () => {
         const { rerender } = render(
             <FrequencyInput
+                value={{ type: "weekly", days: [1] }}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
                 frequency="weekly"
@@ -495,6 +501,7 @@ describe("FrequencyInput", () => {
         // Change controlled frequency
         rerender(
             <FrequencyInput
+                value={{ type: "monthly", day: 1 }}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
                 frequency="monthly"
@@ -644,6 +651,7 @@ describe("FrequencyInput", () => {
     it("should hide frequency selector when hideFrequencySelector is true", () => {
         render(
             <FrequencyInput
+                value={{ type: "daily" }}
                 onChange={mockOnChange}
                 onErrorChange={mockOnErrorChange}
                 hideFrequencySelector={true}

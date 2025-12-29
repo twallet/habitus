@@ -29,6 +29,8 @@ describe('ProfilePage', () => {
             logout: vi.fn(),
             setTokenFromCallback: vi.fn(),
             updateProfile: vi.fn(),
+            updateNotificationPreferences: vi.fn(),
+            updateUserPreferences: vi.fn(),
             deleteUser: vi.fn(),
         });
 
@@ -56,6 +58,8 @@ describe('ProfilePage', () => {
             logout: vi.fn(),
             setTokenFromCallback: vi.fn(),
             updateProfile: vi.fn(),
+            updateNotificationPreferences: vi.fn(),
+            updateUserPreferences: vi.fn(),
             deleteUser: vi.fn(),
         });
 
@@ -89,6 +93,8 @@ describe('ProfilePage', () => {
             logout: vi.fn(),
             setTokenFromCallback: vi.fn(),
             updateProfile: vi.fn(),
+            updateNotificationPreferences: vi.fn(),
+            updateUserPreferences: vi.fn(),
             deleteUser: vi.fn(),
         });
 

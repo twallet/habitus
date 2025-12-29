@@ -37,7 +37,7 @@ export function EditTrackingModal({
     const [schedules, setSchedules] = useState<
         Array<{ hour: number; minutes: number }>
     >(
-        tracking.schedules?.map((s) => ({
+        tracking.schedules?.map((s: { hour: number; minutes: number }) => ({
             hour: s.hour,
             minutes: s.minutes,
         })) || []
