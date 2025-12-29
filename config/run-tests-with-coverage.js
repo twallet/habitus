@@ -102,15 +102,18 @@ await new Promise((resolve) => {
 
 // Always run the coverage report, regardless of vitest exit code
 // Wait a bit longer to ensure coverage file is written
-await new Promise((resolve) => setTimeout(resolve, 500));
+await new Promise((resolve) => setTimeout(resolve, 1000));
 
 // Check for coverage file (may be in different locations)
+// Vitest v8 coverage provider writes to coverage/coverage-final.json
 const possibleCoverageFiles = [
   join(coverageDir, "coverage-final.json"),
   join(coverageDir, "coverage", "coverage-final.json"),
   join(coverageDir, ".tmp", "coverage-final.json"),
+  join(coverageDir, ".tmp", "v8", "coverage-final.json"),
 ];
 
+// Also check if there's a nested structure
 let coverageFile = null;
 for (const file of possibleCoverageFiles) {
   if (existsSync(file)) {
@@ -119,31 +122,50 @@ for (const file of possibleCoverageFiles) {
   }
 }
 
-if (coverageFile) {
+// If still not found, search recursively
+if (!coverageFile) {
+  const { readdirSync, statSync } = await import("fs");
+  function findCoverageFile(dir) {
+    try {
+      const entries = readdirSync(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        const fullPath = join(dir, entry.name);
+        if (entry.isFile() && entry.name === "coverage-final.json") {
+          return fullPath;
+        }
+        if (entry.isDirectory() && !entry.name.startsWith(".")) {
+          const found = findCoverageFile(fullPath);
+          if (found) return found;
+        }
+      }
+    } catch (err) {
+      // Ignore errors
+    }
+    return null;
+  }
+  coverageFile = findCoverageFile(coverageDir);
+}
+
+// Always run the coverage report script (it will handle missing coverage file gracefully)
+if (existsSync(testResultsFile)) {
   try {
+    // Pass both test results file and coverage file (if found) as environment variables
+    const env = {
+      ...process.env,
+      FORCE_COLOR: "0",
+      COVERAGE_FILE: coverageFile || "",
+    };
     execSync(`node config/coverage-report-low.js "${testResultsFile}"`, {
       cwd: workspaceRoot,
-      stdio: "inherit", // Direct inheritance for visibility
+      stdio: "inherit",
       shell: true,
-      env: { ...process.env, FORCE_COLOR: "0" },
+      env,
     });
   } catch (reportError) {
     // Coverage report errors shouldn't fail the test run
-    console.error("Error generating coverage report:", reportError.message);
-  }
-} else {
-  // Coverage file not found - this can happen if coverage wasn't generated
-  // Still try to show failed test suites if test results exist
-  if (existsSync(testResultsFile)) {
-    try {
-      execSync(`node config/coverage-report-low.js "${testResultsFile}"`, {
-        cwd: workspaceRoot,
-        stdio: "inherit",
-        shell: true,
-        env: { ...process.env, FORCE_COLOR: "0" },
-      });
-    } catch (reportError) {
-      // Silently ignore if it fails
+    // Only log if it's a real error, not just missing coverage
+    if (!reportError.message.includes("Coverage file not found")) {
+      console.error("Error generating coverage report:", reportError.message);
     }
   }
 }

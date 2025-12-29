@@ -3,7 +3,7 @@
  * Reads the coverage JSON file and filters files that don't meet the branches coverage threshold.
  */
 
-import { readFileSync, existsSync } from "fs";
+import { readFileSync, existsSync, readdirSync, statSync } from "fs";
 import { join, dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 
@@ -15,7 +15,58 @@ const workspaceRoot = resolve(__dirname, "..");
 const coverageDir = join(workspaceRoot, "coverage");
 
 const THRESHOLD = 75;
-const coverageFile = join(coverageDir, "coverage-final.json");
+
+// Find coverage file in various possible locations
+function findCoverageFile() {
+  const possibleLocations = [
+    join(coverageDir, "coverage-final.json"),
+    join(coverageDir, "coverage", "coverage-final.json"),
+    join(coverageDir, ".tmp", "coverage-final.json"),
+    join(coverageDir, ".tmp", "v8", "coverage-final.json"),
+  ];
+
+  // Check known locations first
+  for (const location of possibleLocations) {
+    if (existsSync(location)) {
+      return location;
+    }
+  }
+
+  // Search recursively if not found
+  function searchRecursive(dir, depth = 0) {
+    if (depth > 3) return null; // Limit recursion depth
+    try {
+      const entries = readdirSync(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        const fullPath = join(dir, entry.name);
+        if (entry.isFile() && entry.name === "coverage-final.json") {
+          return fullPath;
+        }
+        if (
+          entry.isDirectory() &&
+          !entry.name.startsWith(".") &&
+          entry.name !== "node_modules"
+        ) {
+          const found = searchRecursive(fullPath, depth + 1);
+          if (found) return found;
+        }
+      }
+    } catch (err) {
+      // Ignore errors
+    }
+    return null;
+  }
+
+  return searchRecursive(coverageDir);
+}
+
+// Check if coverage file path was provided via environment variable
+const coverageFileFromEnv = process.env.COVERAGE_FILE;
+let coverageFile =
+  coverageFileFromEnv && existsSync(coverageFileFromEnv)
+    ? coverageFileFromEnv
+    : findCoverageFile();
+
 const testResultsFile =
   process.argv[2] || join(coverageDir, "test-results.json");
 
@@ -27,7 +78,7 @@ const RESET = "\x1b[0m";
 const supportsColor = process.stdout.isTTY;
 
 // Try to read and process coverage data if available
-if (existsSync(coverageFile)) {
+if (coverageFile && existsSync(coverageFile)) {
   try {
     const coverageData = JSON.parse(readFileSync(coverageFile, "utf-8"));
 
