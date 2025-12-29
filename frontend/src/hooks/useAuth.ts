@@ -24,11 +24,13 @@ export function useAuth() {
   /**
    * Sync user's locale and timezone from browser to database if not already set.
    * @param currentUser - Current user data
+   * @param currentToken - Current authentication token (optional, falls back to state token)
    * @internal
    */
   const syncLocaleAndTimezoneIfNeeded = useCallback(
-    async (currentUser: UserData) => {
-      if (!currentUser || !token) {
+    async (currentUser: UserData, currentToken?: string | null) => {
+      const tokenToUse = currentToken !== undefined ? currentToken : token;
+      if (!currentUser || !tokenToUse) {
         return;
       }
 
@@ -49,6 +51,8 @@ export function useAuth() {
               currentUser.id
             }`
           );
+          // Ensure token is set in API client for this call
+          apiClient.setToken(tokenToUse);
           const updatedUser = await apiClient.updateUserPreferences(
             needsLocaleUpdate ? detectedLocale : undefined,
             needsTimezoneUpdate ? detectedTimezone : undefined
@@ -207,13 +211,16 @@ export function useAuth() {
       console.log(
         `[${new Date().toISOString()}] FRONTEND_AUTH | Storing JWT token in localStorage`
       );
+      // Set token in localStorage first (synchronous operation)
+      localStorage.setItem(TOKEN_KEY, data.token);
+
+      // Update state and API client
       setUser(data.user);
       setToken(data.token);
       apiClient.setToken(data.token);
-      localStorage.setItem(TOKEN_KEY, data.token);
 
-      // Sync locale and timezone if needed
-      await syncLocaleAndTimezoneIfNeeded(data.user);
+      // Sync locale and timezone if needed (pass token explicitly since state hasn't updated yet)
+      await syncLocaleAndTimezoneIfNeeded(data.user, data.token);
 
       return data.user;
     },
@@ -259,11 +266,15 @@ export function useAuth() {
           userData.email
         } (ID: ${userData.id})`
       );
+      // Set token in localStorage first (synchronous operation)
+      localStorage.setItem(TOKEN_KEY, callbackToken);
+
+      // Update state
       setUser(userData);
       setToken(callbackToken);
-      localStorage.setItem(TOKEN_KEY, callbackToken);
-      // Sync locale and timezone if needed
-      await syncLocaleAndTimezoneIfNeeded(userData);
+
+      // Sync locale and timezone if needed (pass token explicitly since state hasn't updated yet)
+      await syncLocaleAndTimezoneIfNeeded(userData, callbackToken);
     } catch (error) {
       console.error(
         `[${new Date().toISOString()}] FRONTEND_AUTH | Error setting token from callback:`,
