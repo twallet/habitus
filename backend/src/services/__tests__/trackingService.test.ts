@@ -1723,7 +1723,7 @@ describe("TrackingService", () => {
           Date.now() + 24 * 60 * 60 * 1000
         ).toISOString(),
         status: ReminderStatus.PENDING,
-        value: ReminderValue.DISMISSED,
+        value: null,
       });
       await pendingReminder.save(testDb);
 
