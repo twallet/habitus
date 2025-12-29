@@ -531,10 +531,10 @@ describe("useAuth", () => {
 
       await waitFor(() => {
         expect(result.current.user).toEqual(mockUser);
+        expect(result.current.token).toBe("new-token");
+        expect(localStorage.getItem(TOKEN_KEY)).toBe("new-token");
       });
-      expect(result.current.token).toBe("new-token");
       expect(result.current.isAuthenticated).toBe(true);
-      expect(localStorage.getItem(TOKEN_KEY)).toBe("new-token");
       expect(global.fetch).toHaveBeenCalledWith(
         `${API_ENDPOINTS.auth.verifyMagicLink}?token=magic-token`,
         expect.objectContaining({
