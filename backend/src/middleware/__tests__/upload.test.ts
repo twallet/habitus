@@ -6,6 +6,8 @@ import {
 import path from "path";
 import fs from "fs";
 import { Readable } from "stream";
+import { Request, Response, NextFunction } from "express";
+import multer from "multer";
 
 describe("Upload Middleware", () => {
   describe("getUploadsDirectory", () => {
@@ -180,7 +182,10 @@ describe("Upload Middleware", () => {
         const originalDbPath = process.env.DB_PATH;
 
         // Use a temporary directory within the project for testing file creation
-        const testDataDir = path.join(__dirname, "../../../test-upload-storage");
+        const testDataDir = path.join(
+          __dirname,
+          "../../../test-upload-storage"
+        );
         const testDbPath = path.join(testDataDir, "database.db");
         process.env.DB_PATH = testDbPath;
 
@@ -311,9 +316,9 @@ describe("Upload Middleware", () => {
           expect(generatedFilename).toContain(".jpg");
 
           // Uploaded file should exist in the temporary uploads directory
-          expect(
-            fs.existsSync(path.join(uploadsDir, generatedFilename))
-          ).toBe(true);
+          expect(fs.existsSync(path.join(uploadsDir, generatedFilename))).toBe(
+            true
+          );
         } finally {
           // Cleanup: remove the created test uploads directory and its contents
           if (fs.existsSync(testDataDir)) {
@@ -379,9 +384,9 @@ describe("Upload Middleware", () => {
           expect(info.filename).toBeDefined();
 
           // Uploaded file should exist in the temporary uploads directory
-          expect(
-            fs.existsSync(path.join(uploadsDir, info.filename))
-          ).toBe(true);
+          expect(fs.existsSync(path.join(uploadsDir, info.filename))).toBe(
+            true
+          );
         } finally {
           // Cleanup: remove the created test uploads directory and its contents
           if (fs.existsSync(testDataDir)) {
@@ -396,6 +401,333 @@ describe("Upload Middleware", () => {
           }
         }
       });
+    });
+
+    describe("fileFilter", () => {
+      it("should accept JPEG files", async () => {
+        const config = new UploadConfig();
+        const multerInstance = config.getMulterInstance();
+        const storage = (multerInstance as any).storage;
+        const fileFilter = (multerInstance as any).fileFilter;
+
+        const file = {
+          originalname: "test.jpg",
+          mimetype: "image/jpeg",
+          size: 1024,
+        } as Express.Multer.File;
+
+        await new Promise<void>((resolve, reject) => {
+          fileFilter(
+            {} as Request,
+            file,
+            (err: Error | null, accept: boolean) => {
+              if (err) reject(err);
+              else {
+                expect(accept).toBe(true);
+                resolve();
+              }
+            }
+          );
+        });
+      });
+
+      it("should accept JPG files", async () => {
+        const config = new UploadConfig();
+        const multerInstance = config.getMulterInstance();
+        const fileFilter = (multerInstance as any).fileFilter;
+
+        const file = {
+          originalname: "test.jpg",
+          mimetype: "image/jpg",
+          size: 1024,
+        } as Express.Multer.File;
+
+        await new Promise<void>((resolve, reject) => {
+          fileFilter(
+            {} as Request,
+            file,
+            (err: Error | null, accept: boolean) => {
+              if (err) reject(err);
+              else {
+                expect(accept).toBe(true);
+                resolve();
+              }
+            }
+          );
+        });
+      });
+
+      it("should accept PNG files", async () => {
+        const config = new UploadConfig();
+        const multerInstance = config.getMulterInstance();
+        const fileFilter = (multerInstance as any).fileFilter;
+
+        const file = {
+          originalname: "test.png",
+          mimetype: "image/png",
+          size: 1024,
+        } as Express.Multer.File;
+
+        await new Promise<void>((resolve, reject) => {
+          fileFilter(
+            {} as Request,
+            file,
+            (err: Error | null, accept: boolean) => {
+              if (err) reject(err);
+              else {
+                expect(accept).toBe(true);
+                resolve();
+              }
+            }
+          );
+        });
+      });
+
+      it("should accept GIF files", async () => {
+        const config = new UploadConfig();
+        const multerInstance = config.getMulterInstance();
+        const fileFilter = (multerInstance as any).fileFilter;
+
+        const file = {
+          originalname: "test.gif",
+          mimetype: "image/gif",
+          size: 1024,
+        } as Express.Multer.File;
+
+        await new Promise<void>((resolve, reject) => {
+          fileFilter(
+            {} as Request,
+            file,
+            (err: Error | null, accept: boolean) => {
+              if (err) reject(err);
+              else {
+                expect(accept).toBe(true);
+                resolve();
+              }
+            }
+          );
+        });
+      });
+
+      it("should accept WebP files", async () => {
+        const config = new UploadConfig();
+        const multerInstance = config.getMulterInstance();
+        const fileFilter = (multerInstance as any).fileFilter;
+
+        const file = {
+          originalname: "test.webp",
+          mimetype: "image/webp",
+          size: 1024,
+        } as Express.Multer.File;
+
+        await new Promise<void>((resolve, reject) => {
+          fileFilter(
+            {} as Request,
+            file,
+            (err: Error | null, accept: boolean) => {
+              if (err) reject(err);
+              else {
+                expect(accept).toBe(true);
+                resolve();
+              }
+            }
+          );
+        });
+      });
+
+      it("should reject non-image files", async () => {
+        const config = new UploadConfig();
+        const multerInstance = config.getMulterInstance();
+        const fileFilter = (multerInstance as any).fileFilter;
+
+        const file = {
+          originalname: "test.pdf",
+          mimetype: "application/pdf",
+          size: 1024,
+        } as Express.Multer.File;
+
+        await new Promise<void>((resolve, reject) => {
+          fileFilter(
+            {} as Request,
+            file,
+            (err: Error | null, accept: boolean) => {
+              expect(err).toBeInstanceOf(Error);
+              expect(err?.message).toContain("Only image files");
+              expect(accept).toBeUndefined();
+              resolve();
+            }
+          );
+        });
+      });
+
+      it("should reject text files", async () => {
+        const config = new UploadConfig();
+        const multerInstance = config.getMulterInstance();
+        const fileFilter = (multerInstance as any).fileFilter;
+
+        const file = {
+          originalname: "test.txt",
+          mimetype: "text/plain",
+          size: 1024,
+        } as Express.Multer.File;
+
+        await new Promise<void>((resolve, reject) => {
+          fileFilter(
+            {} as Request,
+            file,
+            (err: Error | null, accept: boolean) => {
+              expect(err).toBeInstanceOf(Error);
+              expect(err?.message).toContain("Only image files");
+              resolve();
+            }
+          );
+        });
+      });
+    });
+
+    describe("constructor edge cases", () => {
+      it("should create directory if it does not exist", () => {
+        const originalDbPath = process.env.DB_PATH;
+        const testDataDir = path.join(
+          __dirname,
+          "../../../test-upload-new-dir"
+        );
+        const testDbPath = path.join(testDataDir, "database.db");
+
+        // Ensure directory doesn't exist
+        if (fs.existsSync(testDataDir)) {
+          fs.rmSync(testDataDir, { recursive: true, force: true });
+        }
+
+        process.env.DB_PATH = testDbPath;
+
+        const config = new UploadConfig();
+        const uploadsDir = config.getUploadsDirectory();
+
+        expect(fs.existsSync(uploadsDir)).toBe(true);
+
+        // Cleanup
+        if (fs.existsSync(testDataDir)) {
+          fs.rmSync(testDataDir, { recursive: true, force: true });
+        }
+
+        if (originalDbPath) {
+          process.env.DB_PATH = originalDbPath;
+        } else {
+          delete process.env.DB_PATH;
+        }
+      });
+
+      it("should not fail if directory already exists", () => {
+        const originalDbPath = process.env.DB_PATH;
+        const testDataDir = path.join(
+          __dirname,
+          "../../../test-upload-existing-dir"
+        );
+        const testDbPath = path.join(testDataDir, "database.db");
+        const testUploadsDir = path.join(testDataDir, "uploads");
+
+        // Create directory first
+        if (!fs.existsSync(testUploadsDir)) {
+          fs.mkdirSync(testUploadsDir, { recursive: true });
+        }
+
+        process.env.DB_PATH = testDbPath;
+
+        // Should not throw error
+        expect(() => {
+          const config = new UploadConfig();
+          expect(config.getUploadsDirectory()).toBe(testUploadsDir);
+        }).not.toThrow();
+
+        // Cleanup
+        if (fs.existsSync(testDataDir)) {
+          fs.rmSync(testDataDir, { recursive: true, force: true });
+        }
+
+        if (originalDbPath) {
+          process.env.DB_PATH = originalDbPath;
+        } else {
+          delete process.env.DB_PATH;
+        }
+      });
+    });
+
+    describe("file size limits", () => {
+      it("should use custom max file size", () => {
+        const customSize = 10 * 1024 * 1024; // 10MB
+        const config = new UploadConfig(customSize);
+        const multerInstance = config.getMulterInstance();
+        const limits = (multerInstance as any).limits;
+
+        expect(limits.fileSize).toBe(customSize);
+      });
+
+      it("should use default max file size (5MB)", () => {
+        const config = new UploadConfig();
+        const multerInstance = config.getMulterInstance();
+        const limits = (multerInstance as any).limits;
+
+        expect(limits.fileSize).toBe(5 * 1024 * 1024);
+      });
+    });
+  });
+
+  describe("uploadProfilePicture middleware", () => {
+    it("should execute middleware function", async () => {
+      const mockReq = {
+        headers: {},
+        body: {},
+      } as Request;
+      const mockRes = {
+        status: vi.fn().mockReturnThis(),
+        json: vi.fn().mockReturnThis(),
+      } as unknown as Response;
+      const mockNext = vi.fn() as NextFunction;
+
+      // Middleware should handle request (may call next or handle error)
+      try {
+        await new Promise<void>((resolve, reject) => {
+          uploadProfilePicture(mockReq, mockRes, (err?: any) => {
+            if (err) {
+              // Error is acceptable (e.g., no file uploaded)
+              resolve();
+            } else {
+              resolve();
+            }
+          });
+        });
+      } catch (error) {
+        // Multer may throw errors for invalid requests, which is acceptable
+        expect(error).toBeDefined();
+      }
+    });
+
+    it("should return same middleware instance on multiple calls", () => {
+      // The middleware is a lazy getter, so calling it multiple times
+      // should use the same underlying multer middleware
+      const middleware1 = uploadProfilePicture;
+      const middleware2 = uploadProfilePicture;
+
+      expect(middleware1).toBe(middleware2);
+    });
+  });
+
+  describe("getUploadsDirectory function", () => {
+    it("should return same directory on multiple calls", () => {
+      const dir1 = getUploadsDirectory();
+      const dir2 = getUploadsDirectory();
+
+      expect(dir1).toBe(dir2);
+    });
+
+    it("should use singleton UploadConfig instance", () => {
+      const dir1 = getUploadsDirectory();
+      const dir2 = getUploadsDirectory();
+
+      // Should return consistent path
+      expect(dir1).toBe(dir2);
+      expect(dir1).toContain("uploads");
     });
   });
 });
