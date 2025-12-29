@@ -35,6 +35,7 @@ describe("RemindersList", () => {
         user_id: 1,
         question: "Did I exercise?",
         icon: "💪",
+        frequency: { type: "daily" },
     };
 
     beforeEach(() => {
@@ -290,6 +291,7 @@ describe("RemindersList", () => {
             id: 2,
             user_id: 1,
             question: "Did I meditate?",
+            frequency: { type: "daily" },
         };
 
         const reminders: ReminderData[] = [
@@ -498,6 +500,7 @@ describe("RemindersList", () => {
             id: 2,
             user_id: 1,
             question: "Did I meditate?",
+            frequency: { type: "daily" },
         };
 
         const reminders: ReminderData[] = [
