@@ -7,20 +7,23 @@ import './App.css';
  * Component that updates the document title based on environment and current route.
  * @internal
  */
-function TitleUpdater() {
+export function TitleUpdater() {
   const location = useLocation();
   const isAdminPage = location.pathname === '/admin';
 
   useEffect(() => {
     // Set window title based on environment and page
+    // Check globalThis first for test compatibility, then fall back to import.meta.env
+    const isDev = (globalThis as any).import?.meta?.env?.DEV ?? import.meta.env.DEV;
+
     if (isAdminPage) {
-      if (import.meta.env.DEV) {
+      if (isDev) {
         document.title = 'Habitus [DEV-ADMIN]';
       } else {
         document.title = 'Habitus [PROD-ADMIN]';
       }
     } else {
-      if (import.meta.env.DEV) {
+      if (isDev) {
         document.title = 'Habitus [DEV]';
       } else {
         document.title = 'Habitus';
