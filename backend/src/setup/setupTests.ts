@@ -54,6 +54,11 @@ if (!process.env.MAGIC_LINK_EXPIRY_MINUTES) {
 if (!process.env.MAGIC_LINK_COOLDOWN_MINUTES) {
   process.env.MAGIC_LINK_COOLDOWN_MINUTES = "5";
 }
+// Set ADMIN_EMAIL for admin middleware tests
+// This must be set before adminMiddleware module is imported so the singleton has the correct value
+if (!process.env.ADMIN_EMAIL) {
+  process.env.ADMIN_EMAIL = "admin@example.com";
+}
 // Set DB_PATH for tests to use a test-specific location (can be overridden in individual tests)
 // Use absolute path to avoid issues with different working directories
 if (!process.env.DB_PATH) {

@@ -182,14 +182,19 @@ describe("Admin Routes", () => {
 
   describe("GET /api/admin", () => {
     it("should return admin log with empty data when no data exists", async () => {
+      // Delete the admin user created in beforeEach to test empty database
+      await testDb.run("DELETE FROM users WHERE id = ?", [adminUserId]);
+
       const response = await request(app)
         .get("/api/admin")
         .set("Authorization", "Bearer admin-token");
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty("log");
-      expect(response.body.log).toContain("No users found");
-      expect(response.body.log).toContain("No trackings found");
+      expect(response.body.log).toContain("No users found in the database.");
+      expect(response.body.log).toContain(
+        "No trackings found in the database."
+      );
     });
 
     it("should return admin log with users data", async () => {

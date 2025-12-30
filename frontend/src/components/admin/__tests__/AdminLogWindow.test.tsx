@@ -148,12 +148,14 @@ describe('AdminLogWindow', () => {
             }), 100))
         );
 
-        render(<AdminLogWindow />);
+        const { container } = render(<AdminLogWindow />);
 
-        expect(screen.getByText('Loading...')).toBeInTheDocument();
+        // Check that loading state appears in the content area
+        const logContent = container.querySelector('.admin-log-text');
+        expect(logContent).toHaveTextContent('Loading...');
 
         await waitFor(() => {
-            expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+            expect(logContent).not.toHaveTextContent('Loading...');
         });
     });
 

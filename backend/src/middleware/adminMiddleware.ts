@@ -33,7 +33,7 @@ export class AdminMiddleware {
     next: NextFunction
   ): Promise<void> {
     // First authenticate the token
-    authenticateToken(req, res, async () => {
+    await authenticateToken(req, res, async () => {
       try {
         if (!this.adminEmail) {
           console.error(

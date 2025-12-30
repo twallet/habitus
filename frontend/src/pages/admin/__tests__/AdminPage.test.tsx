@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { vi, type MockedFunction } from 'vitest';
+import { vi, type MockedFunction, type Mock } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
