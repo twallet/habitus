@@ -12,6 +12,7 @@ export interface SmtpConfig {
   user: string;
   pass: string;
   frontendUrl: string;
+  fromEmail?: string; // Optional: email address to use as sender (from). If not provided, uses user.
 }
 
 /**
@@ -35,6 +36,10 @@ export class EmailService {
         config?.user !== undefined ? config.user : process.env.SMTP_USER || "",
       pass:
         config?.pass !== undefined ? config.pass : process.env.SMTP_PASS || "",
+      fromEmail:
+        config?.fromEmail !== undefined
+          ? config.fromEmail
+          : process.env.SMTP_FROM_EMAIL || undefined,
       frontendUrl:
         config?.frontendUrl ||
         (() => {
@@ -76,21 +81,31 @@ export class EmailService {
     }
 
     if (!this.transporter) {
+      const isSecure = this.config.port === 465;
       this.transporter = nodemailer.createTransport({
         host: this.config.host,
         port: this.config.port,
-        secure: this.config.port === 465,
-        auth: {
-          user: this.config.user,
-          pass: this.config.pass,
-        },
+        secure: isSecure, // true for 465, false for other ports
+        // For port 587, use STARTTLS
+        requireTLS: !isSecure && this.config.port === 587,
         // Increase timeouts to handle slow SMTP servers
         connectionTimeout: 30000, // 30 seconds to establish connection
         greetingTimeout: 30000, // 30 seconds to receive greeting
         socketTimeout: 60000, // 60 seconds for socket operations
+        // Additional options for better connection handling
+        tls: {
+          // Do not fail on invalid certificates (some SMTP servers have self-signed certs)
+          rejectUnauthorized: false,
+          // Allow legacy TLS versions if needed
+          minVersion: "TLSv1",
+        },
         // Enable debug logging in development
         debug: process.env.NODE_ENV !== "production",
         logger: process.env.NODE_ENV !== "production",
+        auth: {
+          user: this.config.user,
+          pass: this.config.pass,
+        },
       });
     }
 
@@ -152,7 +167,7 @@ export class EmailService {
         }
 
         const info = await mailTransporter.sendMail({
-          from: this.config.user,
+          from: this.config.fromEmail || this.config.user,
           to: email,
           subject,
           text,
@@ -431,7 +446,7 @@ export class EmailService {
       );
 
       const info = await mailTransporter.sendMail({
-        from: this.config.user,
+        from: this.config.fromEmail || this.config.user,
         to: email,
         subject,
         text,

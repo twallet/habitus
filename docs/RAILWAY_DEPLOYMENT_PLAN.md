@@ -521,10 +521,32 @@ If Railway doesn't provide `DATABASE_URL` directly, you can construct it:
 
 **Email (SMTP):**
 
-- Variable Name: `SMTP_HOST` → Value: [Your SMTP host, e.g., `smtp.gmail.com`]
-- Variable Name: `SMTP_PORT` → Value: `587` (or your SMTP port)
+You can use any SMTP provider. Here are recommended options:
+
+**Option 1: Brevo (Recommended - Free tier: 300 emails/day)**
+
+1. Sign up at https://www.brevo.com (free account)
+2. Go to Settings → SMTP & API → SMTP
+3. Create an SMTP key (not your account password)
+4. Configure in Railway:
+   - Variable Name: `SMTP_HOST` → Value: `smtp-relay.brevo.com`
+   - Variable Name: `SMTP_PORT` → Value: `587`
+   - Variable Name: `SMTP_USER` → Value: [Your Brevo account email]
+   - Variable Name: `SMTP_PASS` → Value: [Your SMTP key from Brevo]
+
+**Option 2: Gmail (Free - requires app password)**
+
+- Variable Name: `SMTP_HOST` → Value: `smtp.gmail.com`
+- Variable Name: `SMTP_PORT` → Value: `587`
+- Variable Name: `SMTP_USER` → Value: [Your Gmail address]
+- Variable Name: `SMTP_PASS` → Value: [Gmail app password - generate at https://myaccount.google.com/apppasswords]
+
+**Option 3: Custom SMTP Server**
+
+- Variable Name: `SMTP_HOST` → Value: [Your SMTP host]
+- Variable Name: `SMTP_PORT` → Value: `587` (or `465` for SSL)
 - Variable Name: `SMTP_USER` → Value: [Your SMTP username/email]
-- Variable Name: `SMTP_PASS` → Value: [Your SMTP password/app password]
+- Variable Name: `SMTP_PASS` → Value: [Your SMTP password]
 
 **Cloudinary:**
 
