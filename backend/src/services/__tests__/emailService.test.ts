@@ -76,10 +76,13 @@ describe("EmailService", () => {
   describe("sendMagicLink", () => {
     beforeEach(() => {
       emailService = new EmailService({
+        brevoApiKey: "", // Explicitly disable Brevo API to use SMTP (empty string becomes null internally)
         host: "smtp.test.com",
         port: 587,
         user: "test@test.com",
         pass: "testpass",
+        fromEmail: "test@test.com", // Explicitly set to override environment variables
+        fromName: "", // Explicitly disable fromName (empty string prevents using env var)
         frontendUrl: "http://test.com",
       });
     });
@@ -125,6 +128,7 @@ describe("EmailService", () => {
       // Create a new EmailService with empty credentials
       // This should cause getTransporter() to throw before creating the transporter
       const serviceWithEmptyCreds = new EmailService({
+        brevoApiKey: "", // Explicitly disable Brevo API to use SMTP (empty string becomes null internally)
         host: "smtp.test.com",
         port: 587,
         user: "",
@@ -188,10 +192,13 @@ describe("EmailService", () => {
 
     it("should use secure connection for port 465", async () => {
       emailService = new EmailService({
+        brevoApiKey: "", // Explicitly disable Brevo API to use SMTP (empty string becomes null internally)
         host: "smtp.test.com",
         port: 465,
         user: "test@test.com",
         pass: "testpass",
+        fromEmail: "test@test.com", // Explicitly set to override environment variables
+        fromName: "", // Explicitly disable fromName (empty string prevents using env var)
         frontendUrl: "http://test.com",
       });
 
@@ -227,10 +234,13 @@ describe("EmailService", () => {
   describe("sendEmail", () => {
     beforeEach(() => {
       emailService = new EmailService({
+        brevoApiKey: "", // Explicitly disable Brevo API to use SMTP (empty string becomes null internally)
         host: "smtp.test.com",
         port: 587,
         user: "test@test.com",
         pass: "testpass",
+        fromEmail: "test@test.com", // Explicitly set to override environment variables
+        fromName: "", // Explicitly disable fromName (empty string prevents using env var)
         frontendUrl: "http://test.com",
       });
     });
@@ -309,6 +319,7 @@ describe("EmailService", () => {
       // Create a new EmailService with empty credentials
       // This should cause getTransporter() to throw before creating the transporter
       const serviceWithEmptyCreds = new EmailService({
+        brevoApiKey: "", // Explicitly disable Brevo API to use SMTP (empty string becomes null internally)
         host: "smtp.test.com",
         port: 587,
         user: "",
@@ -357,10 +368,13 @@ describe("EmailService", () => {
   describe("sendReminderEmail", () => {
     beforeEach(() => {
       emailService = new EmailService({
+        brevoApiKey: "", // Explicitly disable Brevo API to use SMTP (empty string becomes null internally)
         host: "smtp.test.com",
         port: 587,
         user: "test@test.com",
         pass: "testpass",
+        fromEmail: "test@test.com", // Explicitly set to override environment variables
+        fromName: "", // Explicitly disable fromName (empty string prevents using env var)
         frontendUrl: "http://test.com",
       });
     });
@@ -504,6 +518,7 @@ describe("EmailService", () => {
 
     it("should throw error when SMTP credentials are missing", async () => {
       const serviceWithEmptyCreds = new EmailService({
+        brevoApiKey: "", // Explicitly disable Brevo API to use SMTP (empty string becomes null internally)
         host: "smtp.test.com",
         port: 587,
         user: "",
@@ -613,14 +628,25 @@ describe("EmailService", () => {
     });
 
     it("should throw error if BREVO_API_KEY is set but SMTP_FROM_EMAIL is missing", async () => {
+      // Mock fetch to avoid actual network call (error should be thrown before fetch)
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({ messageId: "brevo-message-id" }),
+      } as Response);
+
       emailService = new EmailService({
         brevoApiKey: "test-api-key",
+        fromEmail: "", // Explicitly set to empty string to test missing fromEmail
+        user: "", // Explicitly set to empty to ensure fromAddress is not set
         frontendUrl: "http://test.com",
       });
 
       await expect(
         emailService.sendMagicLink("user@example.com", "test-token", true)
       ).rejects.toThrow(/Sender email not configured/);
+
+      // Fetch should not be called because error is thrown before
+      expect(mockFetch).not.toHaveBeenCalled();
     });
 
     it("should throw error if Brevo API returns error", async () => {
@@ -646,6 +672,7 @@ describe("EmailService", () => {
 
     it("should use SMTP when BREVO_API_KEY is not set", async () => {
       emailService = new EmailService({
+        brevoApiKey: "", // Explicitly disable Brevo API to use SMTP (empty string becomes null internally)
         host: "smtp.test.com",
         port: 587,
         user: "test@test.com",
