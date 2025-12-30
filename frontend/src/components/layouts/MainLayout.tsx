@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Navigate, Outlet, useSearchParams } from 'react-router-dom';
+import { Navigate, Outlet, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useCoordinatedEntities } from '../../hooks/useCoordinatedEntities';
 import { TrackingData, TrackingState } from '../../models/Tracking';
@@ -19,6 +19,8 @@ import { OutletContextType } from '../../context/AppContext';
 export function MainLayout() {
     const { isAuthenticated, isLoading, user, logout, updateProfile, updateNotificationPreferences, deleteUser, requestEmailChange } = useAuth();
     const [searchParams, setSearchParams] = useSearchParams();
+    const location = useLocation();
+    const isAdminPage = location.pathname === '/admin';
 
     // State
     const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -251,28 +253,30 @@ export function MainLayout() {
                                 style={{ height: '1em', width: 'auto', verticalAlign: 'baseline', marginRight: '0.4em', display: 'inline-block' }}
                                 title={dailyCitation}
                             />
-                            Habitus
+                            {isAdminPage ? 'Habitus Admin Panel' : 'Habitus'}
                         </h1>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '16px' }}>
-                        <button
-                            type="button"
-                            className="fab"
-                            onClick={() => setShowTrackingForm(true)}
-                            aria-label="Create tracking"
-                            title="Create tracking"
-                        >
-                            +
-                        </button>
-                        <UserMenu
-                            user={user}
-                            onEditProfile={() => setShowEditProfile(true)}
-                            onChangeEmail={() => setShowChangeEmail(true)}
-                            onNotifications={() => setShowNotifications(true)}
-                            onLogout={handleLogout}
-                            onDeleteUser={() => setShowDeleteConfirmation(true)}
-                        />
-                    </div>
+                    {!isAdminPage && (
+                        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '16px' }}>
+                            <button
+                                type="button"
+                                className="fab"
+                                onClick={() => setShowTrackingForm(true)}
+                                aria-label="Create tracking"
+                                title="Create tracking"
+                            >
+                                +
+                            </button>
+                            <UserMenu
+                                user={user}
+                                onEditProfile={() => setShowEditProfile(true)}
+                                onChangeEmail={() => setShowChangeEmail(true)}
+                                onNotifications={() => setShowNotifications(true)}
+                                onLogout={handleLogout}
+                                onDeleteUser={() => setShowDeleteConfirmation(true)}
+                            />
+                        </div>
+                    )}
                 </header>
 
                 <main>
@@ -284,15 +288,22 @@ export function MainLayout() {
                         />
                     )}
 
-                    <div className="tabs-container">
-                        <Navigation
-                            runningTrackingsCount={runningTrackingsCount}
-                            pendingRemindersCount={pendingRemindersCount}
-                        />
+                    {!isAdminPage && (
+                        <div className="tabs-container">
+                            <Navigation
+                                runningTrackingsCount={runningTrackingsCount}
+                                pendingRemindersCount={pendingRemindersCount}
+                            />
+                            <div className="tabs-content">
+                                <Outlet context={contextValue} />
+                            </div>
+                        </div>
+                    )}
+                    {isAdminPage && (
                         <div className="tabs-content">
                             <Outlet context={contextValue} />
                         </div>
-                    </div>
+                    )}
                 </main>
 
                 {showEditProfile && (

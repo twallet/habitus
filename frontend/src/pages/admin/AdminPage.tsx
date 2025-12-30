@@ -66,8 +66,7 @@ export function AdminPage() {
 
     return (
         <div className="admin-page" style={{ padding: '20px', minHeight: '100vh', backgroundColor: '#1e1e1e' }}>
-            <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h1 style={{ color: '#fff', margin: 0 }}>Admin Panel</h1>
+            <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
                 <button
                     onClick={handleClearDatabase}
                     disabled={isClearing}

@@ -97,7 +97,7 @@ describe('AdminPage', () => {
         );
 
         // Navigate component will redirect, so admin content should not be visible
-        expect(screen.queryByText('Admin Panel')).not.toBeInTheDocument();
+        expect(screen.queryByText('Clear All Data')).not.toBeInTheDocument();
     });
 
     it('should render admin panel when authenticated', () => {
@@ -114,7 +114,6 @@ describe('AdminPage', () => {
             </MemoryRouter>
         );
 
-        expect(screen.getByText('Admin Panel')).toBeInTheDocument();
         expect(screen.getByText('Clear All Data')).toBeInTheDocument();
         expect(screen.getByTestId('admin-log-window')).toBeInTheDocument();
     });
