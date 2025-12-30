@@ -15,25 +15,29 @@ describe('App', () => {
 
 describe('TitleUpdater', () => {
     const originalTitle = document.title;
-    const originalImportMetaEnv = (globalThis as any).import?.meta?.env;
+    let originalDevValue: boolean | undefined;
 
     beforeEach(() => {
         document.title = '';
         vi.clearAllMocks();
+        // Store original DEV value
+        originalDevValue = (globalThis as any).import?.meta?.env?.DEV;
     });
 
     afterEach(() => {
         document.title = originalTitle;
-        // Restore original import.meta.env
-        if (originalImportMetaEnv && (globalThis as any).import?.meta) {
-            (globalThis as any).import.meta.env = originalImportMetaEnv;
+        // Restore original DEV value
+        const env = (globalThis as any).import?.meta?.env;
+        if (env && originalDevValue !== undefined) {
+            env.DEV = originalDevValue;
         }
     });
 
     it('should set title to "Habitus [DEV]" in development environment on non-admin page', () => {
         // Mock DEV environment via globalThis (since import.meta.env is replaced at build time)
-        if ((globalThis as any).import?.meta?.env) {
-            (globalThis as any).import.meta.env.DEV = true;
+        const env = (globalThis as any).import?.meta?.env;
+        if (env) {
+            env.DEV = true;
         }
 
         const { unmount } = render(
@@ -48,8 +52,9 @@ describe('TitleUpdater', () => {
 
     it('should set title to "Habitus [DEV-ADMIN]" in development environment on admin page', () => {
         // Mock DEV environment
-        if ((globalThis as any).import?.meta?.env) {
-            (globalThis as any).import.meta.env.DEV = true;
+        const env = (globalThis as any).import?.meta?.env;
+        if (env) {
+            env.DEV = true;
         }
 
         const { unmount } = render(
@@ -64,8 +69,9 @@ describe('TitleUpdater', () => {
 
     it('should set title to "Habitus" in production environment on non-admin page', () => {
         // Mock PROD environment
-        if ((globalThis as any).import?.meta?.env) {
-            (globalThis as any).import.meta.env.DEV = false;
+        const env = (globalThis as any).import?.meta?.env;
+        if (env) {
+            env.DEV = false;
         }
 
         const { unmount } = render(
@@ -80,8 +86,9 @@ describe('TitleUpdater', () => {
 
     it('should set title to "Habitus [PROD-ADMIN]" in production environment on admin page', () => {
         // Mock PROD environment
-        if ((globalThis as any).import?.meta?.env) {
-            (globalThis as any).import.meta.env.DEV = false;
+        const env = (globalThis as any).import?.meta?.env;
+        if (env) {
+            env.DEV = false;
         }
 
         const { unmount } = render(
@@ -96,8 +103,9 @@ describe('TitleUpdater', () => {
 
     it('should handle different routes correctly', () => {
         // Mock DEV environment
-        if ((globalThis as any).import?.meta?.env) {
-            (globalThis as any).import.meta.env.DEV = true;
+        const env = (globalThis as any).import?.meta?.env;
+        if (env) {
+            env.DEV = true;
         }
 
         const routes = ['/trackings', '/reminders', '/profile'];
