@@ -78,7 +78,7 @@ export function MainLayout() {
         return () => window.removeEventListener("trackingDeleted", handleTrackingDeleted);
     }, [removeRemindersForTracking, refreshReminders]);
 
-    // Dispatch events for debug log window auto-refresh (when /debug page is open)
+    // Dispatch events for admin panel auto-refresh (when /admin page is open)
     useEffect(() => {
         window.dispatchEvent(new CustomEvent('trackingsChanged'));
     }, [trackings]);

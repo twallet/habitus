@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { DebugLogWindow } from '../../components/debug/DebugLogWindow';
+import { AdminLogWindow } from '../../components/admin/AdminLogWindow';
 import { useAuth } from '../../hooks/useAuth';
 import { Navigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../config/api';
 
 /**
- * Admin page component that displays admin tools and debug information.
- * Requires authentication and admin access.
+ * Admin page component that displays admin tools and application data.
+ * Requires authentication and admin access (email must match ADMIN_EMAIL).
  * @public
  */
 export function AdminPage() {
@@ -96,7 +96,7 @@ export function AdminPage() {
                     Error: {clearError}
                 </div>
             )}
-            <DebugLogWindow endpoint="/api/admin" listenToChanges={false} />
+            <AdminLogWindow endpoint="/api/admin" listenToChanges={false} />
         </div>
     );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { API_BASE_URL } from '../../config/api';
-import './DebugLogWindow.css';
+import './AdminLogWindow.css';
 
 /**
  * Converts ANSI color codes to HTML spans with CSS colors.
@@ -46,37 +46,37 @@ function ansiToHtml(text: string): string {
 }
 
 /**
- * Props for DebugLogWindow component.
+ * Props for AdminLogWindow component.
  * @public
  */
-export interface DebugLogWindowProps {
+export interface AdminLogWindowProps {
     /**
-     * Custom API endpoint to fetch log from. Defaults to '/api/debug'.
+     * Custom API endpoint to fetch log from. Defaults to '/api/admin'.
      */
     endpoint?: string;
     /**
-     * Whether to listen for change events. Defaults to true.
+     * Whether to listen for change events. Defaults to false.
      */
     listenToChanges?: boolean;
 }
 
 /**
- * Debug log window component that displays trackings and reminders debug information.
- * Automatically refreshes when trackings or reminders change.
+ * Admin log window component that displays admin information.
+ * Shows formatted log output from the admin API endpoint.
  * @param props - Component props
  * @public
  */
-export function DebugLogWindow({ endpoint = '/api/debug', listenToChanges = true }: DebugLogWindowProps = {}) {
+export function AdminLogWindow({ endpoint = '/api/admin', listenToChanges = false }: AdminLogWindowProps = {}) {
     const [logContent, setLogContent] = useState<string>('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const logRef = useRef<HTMLDivElement>(null);
 
     /**
-     * Fetch debug log from API.
+     * Fetch admin log from API.
      * @internal
      */
-    const fetchDebugLog = useCallback(async () => {
+    const fetchAdminLog = useCallback(async () => {
         setIsLoading(true);
         setError(null);
 
@@ -103,14 +103,14 @@ export function DebugLogWindow({ endpoint = '/api/debug', listenToChanges = true
                 } catch {
                     errorData = { error: errorText || `HTTP ${response.status}: ${response.statusText}` };
                 }
-                setError(errorData.error || `Failed to fetch debug log: ${response.status} ${response.statusText}`);
+                setError(errorData.error || `Failed to fetch admin log: ${response.status} ${response.statusText}`);
                 setLogContent('');
             }
         } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Failed to fetch debug log';
+            const errorMessage = err instanceof Error ? err.message : 'Failed to fetch admin log';
             setError(errorMessage);
             setLogContent('');
-            console.error('[DebugLogWindow] Error fetching debug log:', err);
+            console.error('[AdminLogWindow] Error fetching admin log:', err);
         } finally {
             setIsLoading(false);
         }
@@ -121,8 +121,8 @@ export function DebugLogWindow({ endpoint = '/api/debug', listenToChanges = true
      * @internal
      */
     useEffect(() => {
-        console.log('[DebugLogWindow] Component mounted, fetching debug log');
-        fetchDebugLog();
+        console.log('[AdminLogWindow] Component mounted, fetching admin log');
+        fetchAdminLog();
 
         if (!listenToChanges) {
             return;
@@ -130,11 +130,11 @@ export function DebugLogWindow({ endpoint = '/api/debug', listenToChanges = true
 
         // Listen for custom events when trackings or reminders change
         const handleTrackingChange = () => {
-            fetchDebugLog();
+            fetchAdminLog();
         };
 
         const handleReminderChange = () => {
-            fetchDebugLog();
+            fetchAdminLog();
         };
 
         // Listen for tracking and reminder change events
@@ -147,7 +147,7 @@ export function DebugLogWindow({ endpoint = '/api/debug', listenToChanges = true
             window.removeEventListener('remindersChanged', handleReminderChange);
             window.removeEventListener('trackingDeleted', handleTrackingChange);
         };
-    }, [fetchDebugLog, listenToChanges]);
+    }, [fetchAdminLog, listenToChanges]);
 
     /**
      * Auto-scroll to bottom when content changes.
@@ -160,27 +160,27 @@ export function DebugLogWindow({ endpoint = '/api/debug', listenToChanges = true
     }, [logContent]);
 
     return (
-        <div className="debug-log-window">
-            <div className="debug-log-header">
-                <h3>Debug Log</h3>
+        <div className="admin-log-window">
+            <div className="admin-log-header">
+                <h3>Admin Log</h3>
                 <button
                     type="button"
-                    className="debug-log-refresh"
-                    onClick={fetchDebugLog}
+                    className="admin-log-refresh"
+                    onClick={fetchAdminLog}
                     disabled={isLoading}
-                    aria-label="Refresh debug log"
+                    aria-label="Refresh admin log"
                 >
                     {isLoading ? 'Loading...' : 'Refresh'}
                 </button>
             </div>
-            <div className="debug-log-content">
+            <div className="admin-log-content">
                 {error ? (
-                    <div className="debug-log-error">
+                    <div className="admin-log-error">
                         <strong>Error:</strong> {error}
                         <br />
                         <button
                             type="button"
-                            onClick={fetchDebugLog}
+                            onClick={fetchAdminLog}
                             style={{
                                 marginTop: '8px',
                                 padding: '4px 8px',
@@ -197,13 +197,13 @@ export function DebugLogWindow({ endpoint = '/api/debug', listenToChanges = true
                 ) : (
                     <div
                         ref={logRef}
-                        className="debug-log-text"
+                        className="admin-log-text"
                         dangerouslySetInnerHTML={{
                             __html: logContent
                                 ? ansiToHtml(logContent)
                                 : isLoading
                                     ? 'Loading...'
-                                    : 'Click Refresh to load debug log',
+                                    : 'Click Refresh to load admin log',
                         }}
                     />
                 )}

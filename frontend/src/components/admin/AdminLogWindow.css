@@ -1,0 +1,73 @@
+.admin-log-window {
+  width: 100%;
+  background: #1e1e1e;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.admin-log-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: #252526;
+  border-bottom: 1px solid #3e3e42;
+}
+
+.admin-log-header h3 {
+  margin: 0;
+  color: #d4d4d4;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.admin-log-refresh {
+  padding: 6px 12px;
+  background: #0e639c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.admin-log-refresh:hover:not(:disabled) {
+  background: #1177bb;
+}
+
+.admin-log-refresh:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-log-content {
+  padding: 20px;
+  max-height: 600px;
+  overflow-y: auto;
+  background: #1e1e1e;
+}
+
+.admin-log-text {
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #d4d4d4;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.admin-log-error {
+  padding: 16px;
+  background: #dc3545;
+  color: white;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.admin-log-error strong {
+  display: block;
+  margin-bottom: 8px;
+}
