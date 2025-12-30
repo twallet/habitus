@@ -528,11 +528,14 @@ You can use any SMTP provider. Here are recommended options:
 1. Sign up at https://www.brevo.com (free account)
 2. Go to Settings → SMTP & API → SMTP
 3. Create an SMTP key (not your account password)
-4. Configure in Railway:
+4. Verify your sender email/domain in Brevo (Settings → Senders)
+5. Configure in Railway:
    - Variable Name: `SMTP_HOST` → Value: `smtp-relay.brevo.com`
    - Variable Name: `SMTP_PORT` → Value: `587`
-   - Variable Name: `SMTP_USER` → Value: [Your Brevo account email]
+   - Variable Name: `SMTP_USER` → Value: [Your Brevo SMTP identifier, e.g., `9ddfce001@smtp-brevo.com` OR your Brevo account email]
    - Variable Name: `SMTP_PASS` → Value: [Your SMTP key from Brevo]
+   - Variable Name: `SMTP_FROM_EMAIL` → Value: [Verified sender email, e.g., `habitus@nextstepslab.com`] (optional - if not set, uses SMTP_USER)
+   - Variable Name: `SMTP_FROM_NAME` → Value: `🌱 Habitus` (optional - display name for sender)
 
 **Option 2: Gmail (Free - requires app password)**
 

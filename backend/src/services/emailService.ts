@@ -13,6 +13,7 @@ export interface SmtpConfig {
   pass: string;
   frontendUrl: string;
   fromEmail?: string; // Optional: email address to use as sender (from). If not provided, uses user.
+  fromName?: string; // Optional: display name for the sender (e.g., "🌱 Habitus"). If provided, from will be "Name <email>"
 }
 
 /**
@@ -40,6 +41,10 @@ export class EmailService {
         config?.fromEmail !== undefined
           ? config.fromEmail
           : process.env.SMTP_FROM_EMAIL || undefined,
+      fromName:
+        config?.fromName !== undefined
+          ? config.fromName
+          : process.env.SMTP_FROM_NAME || undefined,
       frontendUrl:
         config?.frontendUrl ||
         (() => {
@@ -166,8 +171,14 @@ export class EmailService {
           );
         }
 
+        // Format from address with optional name
+        const fromAddress = this.config.fromEmail || this.config.user;
+        const from = this.config.fromName
+          ? `${this.config.fromName} <${fromAddress}>`
+          : fromAddress;
+
         const info = await mailTransporter.sendMail({
-          from: this.config.fromEmail || this.config.user,
+          from,
           to: email,
           subject,
           text,
@@ -445,8 +456,14 @@ export class EmailService {
         }:${this.config.port})`
       );
 
+      // Format from address with optional name
+      const fromAddress = this.config.fromEmail || this.config.user;
+      const from = this.config.fromName
+        ? `${this.config.fromName} <${fromAddress}>`
+        : fromAddress;
+
       const info = await mailTransporter.sendMail({
-        from: this.config.fromEmail || this.config.user,
+        from,
         to: email,
         subject,
         text,
