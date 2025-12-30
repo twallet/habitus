@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { API_BASE_URL } from '../../config/api';
 import './DebugLogWindow.css';
 
@@ -46,11 +46,27 @@ function ansiToHtml(text: string): string {
 }
 
 /**
- * Debug log window component that displays trackings and reminders debug information.
- * Automatically refreshes when trackings or reminders change.
+ * Props for DebugLogWindow component.
  * @public
  */
-export function DebugLogWindow() {
+export interface DebugLogWindowProps {
+    /**
+     * Custom API endpoint to fetch log from. Defaults to '/api/debug'.
+     */
+    endpoint?: string;
+    /**
+     * Whether to listen for change events. Defaults to true.
+     */
+    listenToChanges?: boolean;
+}
+
+/**
+ * Debug log window component that displays trackings and reminders debug information.
+ * Automatically refreshes when trackings or reminders change.
+ * @param props - Component props
+ * @public
+ */
+export function DebugLogWindow({ endpoint = '/api/debug', listenToChanges = true }: DebugLogWindowProps = {}) {
     const [logContent, setLogContent] = useState<string>('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -60,13 +76,13 @@ export function DebugLogWindow() {
      * Fetch debug log from API.
      * @internal
      */
-    const fetchDebugLog = async () => {
+    const fetchDebugLog = useCallback(async () => {
         setIsLoading(true);
         setError(null);
 
         try {
             const token = localStorage.getItem('habitus_token');
-            const url = `${API_BASE_URL}/api/debug`;
+            const url = `${API_BASE_URL}${endpoint}`;
             const headers: Record<string, string> = {};
 
             if (token) {
@@ -98,7 +114,7 @@ export function DebugLogWindow() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [endpoint]);
 
     /**
      * Initial fetch and setup refresh listener.
@@ -107,6 +123,10 @@ export function DebugLogWindow() {
     useEffect(() => {
         console.log('[DebugLogWindow] Component mounted, fetching debug log');
         fetchDebugLog();
+
+        if (!listenToChanges) {
+            return;
+        }
 
         // Listen for custom events when trackings or reminders change
         const handleTrackingChange = () => {
@@ -127,7 +147,7 @@ export function DebugLogWindow() {
             window.removeEventListener('remindersChanged', handleReminderChange);
             window.removeEventListener('trackingDeleted', handleTrackingChange);
         };
-    }, []);
+    }, [fetchDebugLog, listenToChanges]);
 
     /**
      * Auto-scroll to bottom when content changes.

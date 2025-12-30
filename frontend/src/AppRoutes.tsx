@@ -12,6 +12,7 @@ const TrackingsPage = lazy(() => import('./pages/TrackingsPage').then(m => ({ de
 const RemindersPage = lazy(() => import('./pages/RemindersPage').then(m => ({ default: m.RemindersPage })));
 const ProfilePage = lazy(() => import('./pages/ProfilePage').then(m => ({ default: m.ProfilePage })));
 const DevOnlyDebugPage = lazy(() => import('./pages/debug/DevOnlyDebugPage').then(m => ({ default: m.DevOnlyDebugPage })));
+const AdminPage = lazy(() => import('./pages/admin/AdminPage').then(m => ({ default: m.AdminPage })));
 
 /**
  * Defines the application route structure with lazy-loaded components.
@@ -36,6 +37,7 @@ export function AppRoutes() {
                     <Route path="/trackings" element={<TrackingsPage />} />
                     <Route path="/reminders" element={<RemindersPage />} />
                     <Route path="/profile" element={<ProfilePage />} />
+                    <Route path="/admin" element={<AdminPage />} />
                 </Route>
 
                 {/* Standalone Route - Debug Page (dev only, no auth required) */}
