@@ -13,6 +13,7 @@ describe("EmailService", () => {
     vi.clearAllMocks();
     mockTransporter = {
       sendMail: vi.fn().mockResolvedValue({ messageId: "test-message-id" }),
+      close: vi.fn().mockResolvedValue(undefined),
     };
     (nodemailer.createTransport as Mock).mockReturnValue(mockTransporter);
   });
@@ -144,31 +145,45 @@ describe("EmailService", () => {
       const error: any = new Error("Authentication failed");
       error.code = "EAUTH";
       error.responseCode = 534;
-      mockTransporter.sendMail.mockRejectedValueOnce(error);
+      // Mock will be called 3 times (retry attempts)
+      mockTransporter.sendMail.mockRejectedValue(error);
 
       await expect(
         emailService.sendMagicLink("user@example.com", "test-token", true)
       ).rejects.toThrow(/Application-specific password required/);
+
+      // Should have attempted 3 times
+      expect(mockTransporter.sendMail).toHaveBeenCalledTimes(3);
     });
 
     it("should throw error for other EAUTH errors", async () => {
       const error: any = new Error("Invalid credentials");
       error.code = "EAUTH";
       error.response = "Invalid login";
-      mockTransporter.sendMail.mockRejectedValueOnce(error);
+      // Mock will be called 3 times (retry attempts)
+      mockTransporter.sendMail.mockRejectedValue(error);
 
       await expect(
         emailService.sendMagicLink("user@example.com", "test-token", true)
       ).rejects.toThrow(/SMTP authentication failed/);
+
+      // Should have attempted 3 times
+      expect(mockTransporter.sendMail).toHaveBeenCalledTimes(3);
     });
 
     it("should throw error for generic email sending failures", async () => {
       const error = new Error("Network error");
-      mockTransporter.sendMail.mockRejectedValueOnce(error);
+      // Mock will be called 3 times (retry attempts)
+      mockTransporter.sendMail.mockRejectedValue(error);
 
       await expect(
         emailService.sendMagicLink("user@example.com", "test-token", true)
-      ).rejects.toThrow(/Failed to send registration link email/);
+      ).rejects.toThrow(
+        /Failed to send registration link email after 3 attempts/
+      );
+
+      // Should have attempted 3 times
+      expect(mockTransporter.sendMail).toHaveBeenCalledTimes(3);
     });
 
     it("should use secure connection for port 465", async () => {
@@ -190,7 +205,7 @@ describe("EmailService", () => {
       );
     });
 
-    it("should reuse transporter instance", async () => {
+    it("should create new transporter for each send (due to retry mechanism)", async () => {
       await emailService.sendMagicLink(
         "user@example.com",
         "test-token-1",
@@ -202,7 +217,9 @@ describe("EmailService", () => {
         false
       );
 
-      expect(nodemailer.createTransport).toHaveBeenCalledTimes(1);
+      // Each send creates a new transporter (closes old one and creates new)
+      // But since both succeed on first try, transporter is created once per send
+      expect(nodemailer.createTransport).toHaveBeenCalledTimes(2);
       expect(mockTransporter.sendMail).toHaveBeenCalledTimes(2);
     });
   });
@@ -319,6 +336,7 @@ describe("EmailService", () => {
       const error: any = new Error("Invalid credentials");
       error.code = "EAUTH";
       error.response = "Invalid login";
+      // sendEmail doesn't have retry, so only one attempt
       mockTransporter.sendMail.mockRejectedValueOnce(error);
 
       await expect(
