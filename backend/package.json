@@ -6,11 +6,9 @@
     "dev": "nodemon",
     "build": "tsc",
     "start": "node dist/server.js",
-    "start:with-smtp-test": "node dist/start-with-smtp-test.js",
     "test": "vitest run --config ../config/vitest.config.ts --coverage",
     "test:watch": "vitest --config ../config/vitest.config.ts",
-    "test:coverage": "vitest run --config ../config/vitest.config.ts --coverage",
-    "test:smtp": "tsx src/test-smtp.ts"
+    "test:coverage": "vitest run --config ../config/vitest.config.ts --coverage"
   },
   "dependencies": {
     "@habitus/shared": "^1.0.0",
