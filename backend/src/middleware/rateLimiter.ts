@@ -25,6 +25,20 @@ export function handleRateLimitExceeded(req: Request, res: Response): void {
 }
 
 /**
+ * Generates a rate limit key from the request IP address.
+ * Handles IPv6 addresses and fallback scenarios.
+ *
+ * @param req - Express request object
+ * @returns Normalized IP key for rate limiting
+ * @public
+ */
+export function generateRateLimitKey(req: Request): string {
+  const ip = req.ip || req.socket?.remoteAddress || "unknown";
+  // Use ipKeyGenerator helper to properly handle IPv6 addresses
+  return ipKeyGenerator(ip);
+}
+
+/**
  * Rate limiter for authentication endpoints (login and register).
  * Prevents abuse by limiting the number of requests per IP address.
  * Includes logging for rate limit violations.
@@ -50,9 +64,5 @@ export const authRateLimiter: RateLimitRequestHandler = rateLimit({
   // Use the built-in ipKeyGenerator helper which properly handles IPv6 and proxy headers
   // This is required when TRUST_PROXY=true to prevent IPv6 bypass issues
   // ipKeyGenerator takes the IP string and returns a normalized key
-  keyGenerator: (req) => {
-    const ip = req.ip || req.socket.remoteAddress || "unknown";
-    // Use ipKeyGenerator helper to properly handle IPv6 addresses
-    return ipKeyGenerator(ip);
-  },
+  keyGenerator: generateRateLimitKey,
 });

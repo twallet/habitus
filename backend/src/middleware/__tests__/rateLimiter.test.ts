@@ -1,6 +1,6 @@
 import { vi } from "vitest";
 import { Request, Response, NextFunction } from "express";
-import { authRateLimiter, handleRateLimitExceeded } from "../rateLimiter.js";
+import { authRateLimiter, handleRateLimitExceeded, generateRateLimitKey } from "../rateLimiter.js";
 import { ipKeyGenerator } from "express-rate-limit";
 
 describe("Rate Limiter", () => {
@@ -168,15 +168,6 @@ describe("Rate Limiter", () => {
   });
 
   describe("keyGenerator", () => {
-    /**
-     * Helper function to extract and test keyGenerator logic
-     * This mirrors the implementation in rateLimiter.ts
-     */
-    const testKeyGenerator = (req: Partial<Request>): string => {
-      const ip = req.ip || (req.socket?.remoteAddress as string) || "unknown";
-      return ipKeyGenerator(ip);
-    };
-
     it("should use req.ip when available", () => {
       const mockReq: Partial<Request> = {
         ip: "192.168.1.100",
@@ -185,7 +176,7 @@ describe("Rate Limiter", () => {
         } as any,
       };
 
-      const key = testKeyGenerator(mockReq);
+      const key = generateRateLimitKey(mockReq as Request);
       expect(key).toBeDefined();
       // The key should be generated from the IP using ipKeyGenerator
       expect(key).toBe(ipKeyGenerator("192.168.1.100"));
@@ -199,7 +190,7 @@ describe("Rate Limiter", () => {
         } as any,
       };
 
-      const key = testKeyGenerator(mockReq);
+      const key = generateRateLimitKey(mockReq as Request);
       expect(key).toBeDefined();
       expect(key).toBe(ipKeyGenerator("10.0.0.1"));
     });
@@ -212,7 +203,7 @@ describe("Rate Limiter", () => {
         } as any,
       };
 
-      const key = testKeyGenerator(mockReq);
+      const key = generateRateLimitKey(mockReq as Request);
       expect(key).toBeDefined();
       expect(key).toBe(ipKeyGenerator("unknown"));
     });
@@ -225,7 +216,7 @@ describe("Rate Limiter", () => {
         } as any,
       };
 
-      const key = testKeyGenerator(mockReq);
+      const key = generateRateLimitKey(mockReq as Request);
       expect(key).toBeDefined();
       // IPv6 addresses should be normalized by ipKeyGenerator
       expect(key).toBe(
@@ -241,7 +232,7 @@ describe("Rate Limiter", () => {
         } as any,
       };
 
-      const key = testKeyGenerator(mockReq);
+      const key = generateRateLimitKey(mockReq as Request);
       expect(key).toBeDefined();
       expect(key).toBe(ipKeyGenerator("::1"));
     });
@@ -252,7 +243,7 @@ describe("Rate Limiter", () => {
         socket: null as any,
       };
 
-      const key = testKeyGenerator(mockReq);
+      const key = generateRateLimitKey(mockReq as Request);
       expect(key).toBeDefined();
       expect(key).toBe(ipKeyGenerator("unknown"));
     });
@@ -265,7 +256,7 @@ describe("Rate Limiter", () => {
         } as any,
       };
 
-      const key = testKeyGenerator(mockReq);
+      const key = generateRateLimitKey(mockReq as Request);
       // Empty string should fall back to socket.remoteAddress
       expect(key).toBe(ipKeyGenerator("192.168.1.1"));
     });
