@@ -84,6 +84,13 @@ export class EmailService {
           user: this.config.user,
           pass: this.config.pass,
         },
+        // Increase timeouts to handle slow SMTP servers
+        connectionTimeout: 30000, // 30 seconds to establish connection
+        greetingTimeout: 30000, // 30 seconds to receive greeting
+        socketTimeout: 60000, // 60 seconds for socket operations
+        // Enable debug logging in development
+        debug: process.env.NODE_ENV !== "production",
+        logger: process.env.NODE_ENV !== "production",
       });
     }
 
