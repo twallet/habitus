@@ -519,11 +519,34 @@ If Railway doesn't provide `DATABASE_URL` directly, you can construct it:
 - Variable Name: `MAGIC_LINK_EXPIRY_MINUTES` → Value: `15`
 - Variable Name: `MAGIC_LINK_COOLDOWN_MINUTES` → Value: `5`
 
-**Email (SMTP):**
+**Email (SMTP/API):**
 
-You can use any SMTP provider. Here are recommended options:
+**⚠️ IMPORTANT: Railway SMTP Limitation**
 
-**Option 1: Brevo (Recommended - Free tier: 300 emails/day)**
+According to [Railway's documentation](https://docs.railway.com/reference/outbound-networking), **SMTP is only available on Pro plan and above**. Free, Trial, and Hobby plans have SMTP disabled to prevent spam and abuse.
+
+**For Free/Trial/Hobby plans**, you must use transactional email services with HTTPS APIs instead of SMTP.
+
+**Recommended Options:**
+
+**Option 1A: Brevo API (Recommended for Free plans - 300 emails/day free, uses HTTPS API)**
+
+**✅ Now supported!** The codebase supports Brevo API for Free/Trial/Hobby plans.
+
+1. Sign up at https://www.brevo.com (free account)
+2. Go to Settings → SMTP & API → API Keys
+3. Create an API key (not your account password)
+4. Verify your sender email/domain in Brevo (Settings → Senders)
+5. Configure in Railway:
+   - Variable Name: `BREVO_API_KEY` → Value: [Your Brevo API key]
+   - Variable Name: `SMTP_FROM_EMAIL` → Value: [Verified sender email, e.g., `habitus@nextstepslab.com`] (required)
+   - Variable Name: `SMTP_FROM_NAME` → Value: `🌱 Habitus` (optional - display name for sender)
+
+**Note:** When `BREVO_API_KEY` is set, the service will automatically use Brevo API instead of SMTP. You don't need to configure SMTP variables.
+
+**Option 1B: Brevo SMTP (Pro plan only - 300 emails/day free)**
+
+**⚠️ Only works on Railway Pro plan or above. SMTP is blocked on Free/Trial/Hobby plans.**
 
 1. Sign up at https://www.brevo.com (free account)
 2. Go to Settings → SMTP & API → SMTP
@@ -537,19 +560,49 @@ You can use any SMTP provider. Here are recommended options:
    - Variable Name: `SMTP_FROM_EMAIL` → Value: [Verified sender email, e.g., `habitus@nextstepslab.com`] (optional - if not set, uses SMTP_USER)
    - Variable Name: `SMTP_FROM_NAME` → Value: `🌱 Habitus` (optional - display name for sender)
 
-**Option 2: Gmail (Free - requires app password)**
+**Option 2: Resend (Railway's Recommended - Free tier: 3,000 emails/month, uses HTTPS API)**
+
+**⚠️ Note:** The current codebase only supports SMTP. To use Resend API, you need to either:
+
+- Upgrade to Railway Pro plan (to use SMTP), OR
+- Implement Resend API support in the codebase (see Resend API documentation: https://resend.com/docs/api-reference/emails/send-email)
+
+1. Sign up at https://resend.com (free account)
+2. Go to API Keys and create a new API key
+3. Verify your domain or use their test domain
+4. Configure in Railway (once API support is implemented):
+   - Variable Name: `RESEND_API_KEY` → Value: [Your Resend API key]
+   - Variable Name: `SMTP_FROM_EMAIL` → Value: [Verified sender email]
+   - Variable Name: `SMTP_FROM_NAME` → Value: `🌱 Habitus` (optional)
+
+**Option 3: Gmail SMTP (Pro plan only - requires app password)**
+
+**⚠️ Only works on Railway Pro plan or above. SMTP is blocked on Free/Trial/Hobby plans.**
 
 - Variable Name: `SMTP_HOST` → Value: `smtp.gmail.com`
 - Variable Name: `SMTP_PORT` → Value: `587`
 - Variable Name: `SMTP_USER` → Value: [Your Gmail address]
 - Variable Name: `SMTP_PASS` → Value: [Gmail app password - generate at https://myaccount.google.com/apppasswords]
 
-**Option 3: Custom SMTP Server**
+**Option 4: Custom SMTP Server (Pro plan only)**
+
+**⚠️ Only works on Railway Pro plan or above. SMTP is blocked on Free/Trial/Hobby plans.**
 
 - Variable Name: `SMTP_HOST` → Value: [Your SMTP host]
 - Variable Name: `SMTP_PORT` → Value: `587` (or `465` for SSL)
 - Variable Name: `SMTP_USER` → Value: [Your SMTP username/email]
 - Variable Name: `SMTP_PASS` → Value: [Your SMTP password]
+
+**Summary:**
+
+- **Free/Trial/Hobby plans:** SMTP is blocked. You must use HTTPS API services. **✅ Brevo API is now supported!** You can also implement support for Resend, SendGrid, Mailgun, or Postmark.
+- **Pro plan and above:** SMTP is available. You can use any SMTP provider (Brevo SMTP, Gmail, custom SMTP server, etc.).
+
+**Current Status:**
+
+- ✅ **Brevo API is supported** - Works on all Railway plans (Free, Trial, Hobby, Pro)
+- ✅ **SMTP is supported** - Works on Railway Pro plan and above
+- ⚠️ **Resend API** - Not yet implemented (can be added if needed)
 
 **Cloudinary:**
 

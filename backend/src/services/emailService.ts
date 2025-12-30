@@ -3,7 +3,8 @@ import { ServerConfig } from "../setup/constants.js";
 import { DateUtils } from "@habitus/shared/utils";
 
 /**
- * SMTP configuration interface.
+ * Email service configuration interface.
+ * Supports both SMTP and Brevo API.
  * @public
  */
 export interface SmtpConfig {
@@ -14,22 +15,32 @@ export interface SmtpConfig {
   frontendUrl: string;
   fromEmail?: string; // Optional: email address to use as sender (from). If not provided, uses user.
   fromName?: string; // Optional: display name for the sender (e.g., "🌱 Habitus"). If provided, from will be "Name <email>"
+  brevoApiKey?: string; // Optional: Brevo API key. If provided, uses Brevo API instead of SMTP.
 }
 
 /**
  * Service for sending emails.
+ * Supports both SMTP and Brevo API (HTTPS).
  * @public
  */
 export class EmailService {
   private transporter: Transporter | null = null;
   private config: SmtpConfig;
+  private brevoApiKey: string | null = null;
+  private readonly brevoApiUrl = "https://api.brevo.com/v3/smtp/email";
 
   /**
    * Create a new EmailService instance.
-   * @param config - SMTP configuration (optional, uses environment variables if not provided)
+   * @param config - Email configuration (optional, uses environment variables if not provided)
    * @public
    */
   constructor(config?: Partial<SmtpConfig>) {
+    // Check for Brevo API key (takes precedence over SMTP)
+    this.brevoApiKey =
+      config?.brevoApiKey !== undefined
+        ? config.brevoApiKey || null
+        : process.env.BREVO_API_KEY || null;
+
     this.config = {
       host: config?.host || process.env.SMTP_HOST || "smtp.gmail.com",
       port: config?.port || parseInt(process.env.SMTP_PORT || "587", 10),
@@ -70,6 +81,15 @@ export class EmailService {
           return `${serverUrl}:${ServerConfig.getPort()}`;
         })(),
     };
+  }
+
+  /**
+   * Check if Brevo API should be used instead of SMTP.
+   * @returns True if Brevo API key is configured
+   * @private
+   */
+  private useBrevoApi(): boolean {
+    return this.brevoApiKey !== null && this.brevoApiKey.length > 0;
   }
 
   /**
@@ -118,6 +138,89 @@ export class EmailService {
   }
 
   /**
+   * Send email using Brevo API (HTTPS).
+   * @param email - Recipient email address
+   * @param subject - Email subject
+   * @param text - Plain text email body
+   * @param html - HTML email body
+   * @returns Promise that resolves when email is sent
+   * @throws Error if email sending fails
+   * @private
+   */
+  private async sendViaBrevoApi(
+    email: string,
+    subject: string,
+    text: string,
+    html: string
+  ): Promise<void> {
+    if (!this.brevoApiKey) {
+      throw new Error(
+        "Brevo API key not configured. Please set BREVO_API_KEY environment variable."
+      );
+    }
+
+    const fromAddress = this.config.fromEmail || this.config.user;
+    if (!fromAddress) {
+      throw new Error(
+        "Sender email not configured. Please set SMTP_FROM_EMAIL environment variable."
+      );
+    }
+
+    const sender: { email: string; name?: string } = {
+      email: fromAddress,
+    };
+    if (this.config.fromName) {
+      sender.name = this.config.fromName;
+    }
+
+    const payload = {
+      sender,
+      to: [{ email }],
+      subject,
+      textContent: text,
+      htmlContent: html,
+    };
+
+    try {
+      const response = await fetch(this.brevoApiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "api-key": this.brevoApiKey,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = (await response.json().catch(() => ({}))) as {
+          message?: string;
+          code?: string;
+        };
+        const errorMessage =
+          errorData.message ||
+          `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(`Brevo API error: ${errorMessage}`);
+      }
+
+      const result = (await response.json()) as { messageId?: string };
+      console.log(
+        `[${new Date().toISOString()}] EMAIL | Email sent successfully via Brevo API to: ${email}, messageId: ${
+          result.messageId || "N/A"
+        }`
+      );
+    } catch (error: any) {
+      if (error.message?.includes("Brevo API error")) {
+        throw error;
+      }
+      throw new Error(
+        `Failed to send email via Brevo API: ${
+          error.message || "Unknown error"
+        }`
+      );
+    }
+  }
+
+  /**
    * Send a magic link email for passwordless authentication.
    * @param email - Recipient email address
    * @param token - Magic link token
@@ -136,7 +239,61 @@ export class EmailService {
       `[${new Date().toISOString()}] EMAIL | Preparing to send ${emailType} magic link email to: ${email}`
     );
 
-    // Retry mechanism for SMTP connection issues
+    // Encode token for URL to handle any special characters properly
+    const encodedToken = encodeURIComponent(token);
+    const magicLink = `${this.config.frontendUrl}/auth/verify-magic-link?token=${encodedToken}`;
+    const subject = isRegistration
+      ? "Welcome to 🌱 Habitus! Verify your email to complete registration"
+      : "Your login link to 🌱 Habitus";
+    const text = isRegistration
+      ? `Welcome to 🌱 Habitus! Click the link below to verify your email and complete your registration to 🌱 Habitus:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\nIf you didn't request this, please ignore this email.`
+      : `Click the link below to log into 🌱 Habitus:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\nIf you didn't request this, please ignore this email.`;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #ffffff;">
+        <table role="presentation" style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 40px 30px; text-align: left;">
+              <h2 style="color: #333; text-align: left; margin: 0 0 16px 0; font-size: 24px; font-weight: bold;">${
+                isRegistration ? "Welcome to 🌱 Habitus!" : "Login Request"
+              }</h2>
+              <p style="text-align: left; margin: 0 0 16px 0; font-size: 16px; line-height: 1.5; color: #333;">${
+                isRegistration
+                  ? "Click the link below to verify your email and complete your registration:"
+                  : "Click the link below to log into 🌱 Habitus:"
+              }</p>
+              <p style="margin: 30px 0; text-align: left;">
+                <a href="${magicLink}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; text-align: center;">
+                  ${isRegistration ? "Verify email" : "Log in"}
+                </a>
+              </p>
+              <p style="color: #666; font-size: 14px; text-align: left; margin: 0 0 8px 0; line-height: 1.5;">This link will expire in 15 minutes. If you didn't request this, please ignore this email.</p>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+
+    // Use Brevo API if configured, otherwise use SMTP
+    if (this.useBrevoApi()) {
+      console.log(
+        `[${new Date().toISOString()}] EMAIL | Sending ${emailType} magic link email via Brevo API`
+      );
+      await this.sendViaBrevoApi(email, subject, text, html);
+      console.log(
+        `[${new Date().toISOString()}] EMAIL | ${emailType} magic link email sent successfully to: ${email}`
+      );
+      return;
+    }
+
+    // Fallback to SMTP with retry mechanism
     const maxRetries = 3;
     let lastError: any = null;
 
@@ -149,15 +306,6 @@ export class EmailService {
         }
 
         const mailTransporter = this.getTransporter();
-        // Encode token for URL to handle any special characters properly
-        const encodedToken = encodeURIComponent(token);
-        const magicLink = `${this.config.frontendUrl}/auth/verify-magic-link?token=${encodedToken}`;
-        const subject = isRegistration
-          ? "Welcome to 🌱 Habitus! Verify your email to complete registration"
-          : "Your login link to 🌱 Habitus";
-        const text = isRegistration
-          ? `Welcome to 🌱 Habitus! Click the link below to verify your email and complete your registration to 🌱 Habitus:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\nIf you didn't request this, please ignore this email.`
-          : `Click the link below to log into 🌱 Habitus:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\nIf you didn't request this, please ignore this email.`;
 
         if (attempt > 1) {
           console.log(
@@ -182,39 +330,7 @@ export class EmailService {
           to: email,
           subject,
           text,
-          html: `
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <meta charset="utf-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            </head>
-            <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #ffffff;">
-              <table role="presentation" style="width: 100%; border-collapse: collapse;">
-                <tr>
-                  <td style="padding: 40px 30px; text-align: left;">
-                    <h2 style="color: #333; text-align: left; margin: 0 0 16px 0; font-size: 24px; font-weight: bold;">${
-                      isRegistration
-                        ? "Welcome to 🌱 Habitus!"
-                        : "Login Request"
-                    }</h2>
-                    <p style="text-align: left; margin: 0 0 16px 0; font-size: 16px; line-height: 1.5; color: #333;">${
-                      isRegistration
-                        ? "Click the link below to verify your email and complete your registration:"
-                        : "Click the link below to log into 🌱 Habitus:"
-                    }</p>
-                    <p style="margin: 30px 0; text-align: left;">
-                      <a href="${magicLink}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; text-align: center;">
-                        ${isRegistration ? "Verify email" : "Log in"}
-                      </a>
-                    </p>
-                    <p style="color: #666; font-size: 14px; text-align: left; margin: 0 0 8px 0; line-height: 1.5;">This link will expire in 15 minutes. If you didn't request this, please ignore this email.</p>
-                  </td>
-                </tr>
-              </table>
-            </body>
-            </html>
-          `,
+          html,
         });
 
         console.log(
@@ -447,6 +563,18 @@ export class EmailService {
       `[${new Date().toISOString()}] EMAIL | Preparing to send email to: ${email}, subject: ${subject}`
     );
 
+    const finalHtml = html || text.replace(/\n/g, "<br>");
+
+    // Use Brevo API if configured, otherwise use SMTP
+    if (this.useBrevoApi()) {
+      console.log(
+        `[${new Date().toISOString()}] EMAIL | Sending email via Brevo API`
+      );
+      await this.sendViaBrevoApi(email, subject, text, finalHtml);
+      return;
+    }
+
+    // Fallback to SMTP
     try {
       const mailTransporter = this.getTransporter();
 
@@ -467,7 +595,7 @@ export class EmailService {
         to: email,
         subject,
         text,
-        html: html || text.replace(/\n/g, "<br>"),
+        html: finalHtml,
       });
 
       console.log(

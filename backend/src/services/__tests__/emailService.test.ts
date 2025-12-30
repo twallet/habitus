@@ -541,4 +541,138 @@ describe("EmailService", () => {
       ).rejects.toThrow(/Failed to send email/);
     });
   });
+
+  describe("Brevo API", () => {
+    const originalFetch = global.fetch;
+    let mockFetch: Mock;
+
+    beforeEach(() => {
+      mockFetch = vi.fn();
+      global.fetch = mockFetch as any;
+    });
+
+    afterEach(() => {
+      global.fetch = originalFetch;
+    });
+
+    it("should use Brevo API when BREVO_API_KEY is set", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({ messageId: "brevo-message-id" }),
+      } as Response);
+
+      emailService = new EmailService({
+        brevoApiKey: "test-api-key",
+        fromEmail: "test@test.com",
+        frontendUrl: "http://test.com",
+      });
+
+      await emailService.sendMagicLink("user@example.com", "test-token", true);
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://api.brevo.com/v3/smtp/email",
+        expect.objectContaining({
+          method: "POST",
+          headers: expect.objectContaining({
+            "Content-Type": "application/json",
+            "api-key": "test-api-key",
+          }),
+        })
+      );
+
+      const callArgs = mockFetch.mock.calls[0];
+      const body = JSON.parse(callArgs[1].body);
+      expect(body.sender.email).toBe("test@test.com");
+      expect(body.to[0].email).toBe("user@example.com");
+      expect(body.subject).toContain("Welcome to 🌱 Habitus");
+    });
+
+    it("should include fromName in Brevo API request", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({ messageId: "brevo-message-id" }),
+      } as Response);
+
+      emailService = new EmailService({
+        brevoApiKey: "test-api-key",
+        fromEmail: "test@test.com",
+        fromName: "🌱 Habitus",
+        frontendUrl: "http://test.com",
+      });
+
+      await emailService.sendEmail(
+        "user@example.com",
+        "Test Subject",
+        "Test body"
+      );
+
+      const callArgs = mockFetch.mock.calls[0];
+      const body = JSON.parse(callArgs[1].body);
+      expect(body.sender.name).toBe("🌱 Habitus");
+      expect(body.sender.email).toBe("test@test.com");
+    });
+
+    it("should throw error if BREVO_API_KEY is set but SMTP_FROM_EMAIL is missing", async () => {
+      emailService = new EmailService({
+        brevoApiKey: "test-api-key",
+        frontendUrl: "http://test.com",
+      });
+
+      await expect(
+        emailService.sendMagicLink("user@example.com", "test-token", true)
+      ).rejects.toThrow(/Sender email not configured/);
+    });
+
+    it("should throw error if Brevo API returns error", async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 400,
+        statusText: "Bad Request",
+        json: async () => ({
+          message: "Invalid API key",
+        }),
+      } as Response);
+
+      emailService = new EmailService({
+        brevoApiKey: "invalid-api-key",
+        fromEmail: "test@test.com",
+        frontendUrl: "http://test.com",
+      });
+
+      await expect(
+        emailService.sendMagicLink("user@example.com", "test-token", true)
+      ).rejects.toThrow(/Brevo API error/);
+    });
+
+    it("should use SMTP when BREVO_API_KEY is not set", async () => {
+      emailService = new EmailService({
+        host: "smtp.test.com",
+        port: 587,
+        user: "test@test.com",
+        pass: "testpass",
+        frontendUrl: "http://test.com",
+      });
+
+      await emailService.sendMagicLink("user@example.com", "test-token", true);
+
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(mockTransporter.sendMail).toHaveBeenCalled();
+    });
+
+    it("should use SMTP when BREVO_API_KEY is empty string", async () => {
+      emailService = new EmailService({
+        brevoApiKey: "",
+        host: "smtp.test.com",
+        port: 587,
+        user: "test@test.com",
+        pass: "testpass",
+        frontendUrl: "http://test.com",
+      });
+
+      await emailService.sendMagicLink("user@example.com", "test-token", true);
+
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(mockTransporter.sendMail).toHaveBeenCalled();
+    });
+  });
 });
