@@ -116,100 +116,143 @@ export class EmailService {
       `[${new Date().toISOString()}] EMAIL | Preparing to send ${emailType} magic link email to: ${email}`
     );
 
-    try {
-      const mailTransporter = this.getTransporter();
-      // Encode token for URL to handle any special characters properly
-      const encodedToken = encodeURIComponent(token);
-      const magicLink = `${this.config.frontendUrl}/auth/verify-magic-link?token=${encodedToken}`;
-      const subject = isRegistration
-        ? "Welcome to 🌱 Habitus! Verify your email to complete registration"
-        : "Your login link to 🌱 Habitus";
-      const text = isRegistration
-        ? `Welcome to 🌱 Habitus! Click the link below to verify your email and complete your registration to 🌱 Habitus:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\nIf you didn't request this, please ignore this email.`
-        : `Click the link below to log into 🌱 Habitus:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\nIf you didn't request this, please ignore this email.`;
+    // Retry mechanism for SMTP connection issues
+    const maxRetries = 3;
+    let lastError: any = null;
 
-      console.log(
-        `[${new Date().toISOString()}] EMAIL | Sending ${emailType} magic link email via SMTP (${
-          this.config.host
-        }:${this.config.port})`
-      );
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Create a fresh transporter for each attempt to avoid stale connections
+        if (this.transporter) {
+          this.transporter.close();
+          this.transporter = null;
+        }
 
-      const info = await mailTransporter.sendMail({
-        from: this.config.user,
-        to: email,
-        subject,
-        text,
-        html: `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          </head>
-          <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #ffffff;">
-            <table role="presentation" style="width: 100%; border-collapse: collapse;">
-              <tr>
-                <td style="padding: 40px 30px; text-align: left;">
-                  <h2 style="color: #333; text-align: left; margin: 0 0 16px 0; font-size: 24px; font-weight: bold;">${
-                    isRegistration ? "Welcome to 🌱 Habitus!" : "Login Request"
-                  }</h2>
-                  <p style="text-align: left; margin: 0 0 16px 0; font-size: 16px; line-height: 1.5; color: #333;">${
-                    isRegistration
-                      ? "Click the link below to verify your email and complete your registration:"
-                      : "Click the link below to log into 🌱 Habitus:"
-                  }</p>
-                  <p style="margin: 30px 0; text-align: left;">
-                    <a href="${magicLink}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; text-align: center;">
-                      ${isRegistration ? "Verify email" : "Log in"}
-                    </a>
-                  </p>
-                  <p style="color: #666; font-size: 14px; text-align: left; margin: 0 0 8px 0; line-height: 1.5;">This link will expire in 15 minutes. If you didn't request this, please ignore this email.</p>
-                </td>
-              </tr>
-            </table>
-          </body>
-          </html>
-        `,
-      });
+        const mailTransporter = this.getTransporter();
+        // Encode token for URL to handle any special characters properly
+        const encodedToken = encodeURIComponent(token);
+        const magicLink = `${this.config.frontendUrl}/auth/verify-magic-link?token=${encodedToken}`;
+        const subject = isRegistration
+          ? "Welcome to 🌱 Habitus! Verify your email to complete registration"
+          : "Your login link to 🌱 Habitus";
+        const text = isRegistration
+          ? `Welcome to 🌱 Habitus! Click the link below to verify your email and complete your registration to 🌱 Habitus:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\nIf you didn't request this, please ignore this email.`
+          : `Click the link below to log into 🌱 Habitus:\n\n${magicLink}\n\nThis link will expire in 15 minutes.\nIf you didn't request this, please ignore this email.`;
 
-      console.log(
-        `[${new Date().toISOString()}] EMAIL | ${emailType} magic link email sent successfully to: ${email}, messageId: ${
-          info.messageId
-        }`
-      );
-    } catch (error: any) {
-      console.error(
-        `[${new Date().toISOString()}] EMAIL | Error sending ${emailType} magic link email to ${email}:`,
-        error
-      );
+        if (attempt > 1) {
+          console.log(
+            `[${new Date().toISOString()}] EMAIL | Retry attempt ${attempt}/${maxRetries} for ${emailType} magic link to ${email}`
+          );
+        } else {
+          console.log(
+            `[${new Date().toISOString()}] EMAIL | Sending ${emailType} magic link email via SMTP (${
+              this.config.host
+            }:${this.config.port})`
+          );
+        }
 
-      // Check for Gmail app-specific password requirement
-      if (
-        error.code === "EAUTH" &&
-        (error.responseCode === 534 ||
-          (error.response &&
-            error.response.includes("Application-specific password required")))
-      ) {
+        const info = await mailTransporter.sendMail({
+          from: this.config.user,
+          to: email,
+          subject,
+          text,
+          html: `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            </head>
+            <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #ffffff;">
+              <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 40px 30px; text-align: left;">
+                    <h2 style="color: #333; text-align: left; margin: 0 0 16px 0; font-size: 24px; font-weight: bold;">${
+                      isRegistration
+                        ? "Welcome to 🌱 Habitus!"
+                        : "Login Request"
+                    }</h2>
+                    <p style="text-align: left; margin: 0 0 16px 0; font-size: 16px; line-height: 1.5; color: #333;">${
+                      isRegistration
+                        ? "Click the link below to verify your email and complete your registration:"
+                        : "Click the link below to log into 🌱 Habitus:"
+                    }</p>
+                    <p style="margin: 30px 0; text-align: left;">
+                      <a href="${magicLink}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; text-align: center;">
+                        ${isRegistration ? "Verify email" : "Log in"}
+                      </a>
+                    </p>
+                    <p style="color: #666; font-size: 14px; text-align: left; margin: 0 0 8px 0; line-height: 1.5;">This link will expire in 15 minutes. If you didn't request this, please ignore this email.</p>
+                  </td>
+                </tr>
+              </table>
+            </body>
+            </html>
+          `,
+        });
+
+        console.log(
+          `[${new Date().toISOString()}] EMAIL | ${emailType} magic link email sent successfully to: ${email}, messageId: ${
+            info.messageId
+          }`
+        );
+        return; // Success, exit retry loop
+      } catch (error: any) {
+        lastError = error;
+
+        // Log retry attempt
+        if (attempt < maxRetries) {
+          console.warn(
+            `[${new Date().toISOString()}] EMAIL | Attempt ${attempt}/${maxRetries} failed for ${emailType} magic link to ${email}, retrying in ${
+              2 * attempt
+            }s...`,
+            error.message || error.code
+          );
+          // Wait before retry (exponential backoff: 2s, 4s)
+          await new Promise((resolve) => setTimeout(resolve, 2000 * attempt));
+          continue;
+        }
+
+        // All retries exhausted, log final error
+        console.error(
+          `[${new Date().toISOString()}] EMAIL | All ${maxRetries} attempts failed for ${emailType} magic link email to ${email}:`,
+          error
+        );
+
+        // Check for Gmail app-specific password requirement
+        if (
+          lastError.code === "EAUTH" &&
+          (lastError.responseCode === 534 ||
+            (lastError.response &&
+              lastError.response.includes(
+                "Application-specific password required"
+              )))
+        ) {
+          throw new Error(
+            "SMTP authentication failed: Application-specific password required. " +
+              "For Gmail accounts with 2FA enabled, you must use an app-specific password. " +
+              "Generate one at: https://myaccount.google.com/apppasswords " +
+              "Then set SMTP_PASS in your .env file to the generated app password."
+          );
+        }
+
+        // Check for other authentication errors
+        if (lastError.code === "EAUTH") {
+          throw new Error(
+            `SMTP authentication failed: ${
+              lastError.response || lastError.message
+            }. ` +
+              "Please verify your SMTP_USER and SMTP_PASS environment variables are correct."
+          );
+        }
+
+        const linkType = isRegistration ? "registration link" : "login link";
         throw new Error(
-          "SMTP authentication failed: Application-specific password required. " +
-            "For Gmail accounts with 2FA enabled, you must use an app-specific password. " +
-            "Generate one at: https://myaccount.google.com/apppasswords " +
-            "Then set SMTP_PASS in your .env file to the generated app password."
+          `Failed to send ${linkType} email after ${maxRetries} attempts: ${
+            lastError.message || lastError.code || "Unknown error"
+          }`
         );
       }
-
-      // Check for other authentication errors
-      if (error.code === "EAUTH") {
-        throw new Error(
-          `SMTP authentication failed: ${error.response || error.message}. ` +
-            "Please verify your SMTP_USER and SMTP_PASS environment variables are correct."
-        );
-      }
-
-      const linkType = isRegistration ? "registration link" : "login link";
-      throw new Error(
-        `Failed to send ${linkType} email: ${error.message || "Unknown error"}`
-      );
     }
   }
 
