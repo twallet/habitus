@@ -65,16 +65,9 @@ describe("AdminMiddleware", () => {
   });
 
   describe("constructor", () => {
-    it("should read ADMIN_EMAIL from environment", () => {
-      process.env.ADMIN_EMAIL = "admin@example.com";
+    it("should create AdminMiddleware instance", () => {
       const middleware = new AdminMiddleware();
-      expect((middleware as any).adminEmail).toBe("admin@example.com");
-    });
-
-    it("should handle missing ADMIN_EMAIL", () => {
-      delete process.env.ADMIN_EMAIL;
-      const middleware = new AdminMiddleware();
-      expect((middleware as any).adminEmail).toBeUndefined();
+      expect(middleware).toBeInstanceOf(AdminMiddleware);
     });
   });
 
@@ -221,7 +214,7 @@ describe("AdminMiddleware", () => {
 
   describe("requireAdmin function wrapper", () => {
     it("should call AdminMiddleware instance requireAdmin method", async () => {
-      // ADMIN_EMAIL is set in setupTests.ts before module load, so singleton should have correct value
+      // ADMIN_EMAIL is read dynamically, so setting it here will work
       process.env.ADMIN_EMAIL = "admin@example.com";
 
       mockReq.userId = 1;
@@ -238,10 +231,8 @@ describe("AdminMiddleware", () => {
       );
 
       // The wrapper function should delegate to the singleton instance's requireAdmin method
-      // Since ADMIN_EMAIL is set in setupTests.ts before module load, the singleton should have adminEmail set
+      // Since ADMIN_EMAIL is set before calling requireAdmin, it will be read dynamically
       // and the async callback should complete and call next()
-      // However, if the singleton was created before ADMIN_EMAIL was set, it will return 500
-      // In that case, we verify the error response
       const statusCalls = (mockRes.status as Mock).mock.calls;
       const jsonCalls = (mockRes.json as Mock).mock.calls;
 

@@ -9,14 +9,22 @@ import { ServiceManager } from "../services/index.js";
  * @public
  */
 export class AdminMiddleware {
-  private readonly adminEmail: string | undefined;
+  /**
+   * Get the admin email from environment variable.
+   * Reads dynamically from process.env to support runtime configuration changes.
+   * @returns Admin email address or undefined if not configured
+   * @internal
+   */
+  private getAdminEmail(): string | undefined {
+    return process.env.ADMIN_EMAIL;
+  }
 
   /**
    * Create a new AdminMiddleware instance.
    * @public
    */
   constructor() {
-    this.adminEmail = process.env.ADMIN_EMAIL;
+    // No initialization needed - adminEmail is read dynamically
   }
 
   /**
@@ -35,7 +43,8 @@ export class AdminMiddleware {
     // First authenticate the token
     await authenticateToken(req, res, async () => {
       try {
-        if (!this.adminEmail) {
+        const adminEmail = this.getAdminEmail();
+        if (!adminEmail) {
           console.error(
             `[${new Date().toISOString()}] ADMIN_MIDDLEWARE | ADMIN_EMAIL not configured`
           );
@@ -56,7 +65,7 @@ export class AdminMiddleware {
           return;
         }
 
-        if (user.email.toLowerCase() !== this.adminEmail.toLowerCase()) {
+        if (user.email.toLowerCase() !== adminEmail.toLowerCase()) {
           console.warn(
             `[${new Date().toISOString()}] ADMIN_MIDDLEWARE | Unauthorized admin access attempt by ${
               user.email
