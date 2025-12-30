@@ -270,6 +270,336 @@ describe("Admin Routes", () => {
       expect(response.body).toHaveProperty("error");
       expect(response.body.error).toBe("Error generating admin log");
     });
+
+    it("should return admin log with users having optional fields", async () => {
+      // Create a user with all optional fields
+      await testDb.run(
+        "INSERT INTO users (name, email, profile_picture_url, telegram_chat_id, notification_channels, locale, timezone, last_access) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          "Full User",
+          "full@example.com",
+          "https://example.com/pic.jpg",
+          "12345",
+          JSON.stringify(["email", "telegram"]),
+          "es-ES",
+          "Europe/Madrid",
+          new Date().toISOString(),
+        ]
+      );
+
+      const response = await request(app)
+        .get("/api/admin")
+        .set("Authorization", "Bearer admin-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("Full User");
+      expect(response.body.log).toContain("full@example.com");
+      expect(response.body.log).toContain("https://example.com/pic.jpg");
+      expect(response.body.log).toContain("12345");
+      expect(response.body.log).toContain("email, telegram");
+      expect(response.body.log).toContain("es-ES");
+      expect(response.body.log).toContain("Europe/Madrid");
+    });
+
+    it("should return admin log with trackings in different states", async () => {
+      const userResult = await testDb.run(
+        "INSERT INTO users (name, email) VALUES (?, ?)",
+        ["Test User", "test@example.com"]
+      );
+      const userId = userResult.lastID;
+
+      // Create trackings in different states
+      await testDb.run(
+        "INSERT INTO trackings (user_id, question, frequency, state) VALUES (?, ?, ?, ?)",
+        [
+          userId,
+          "Running Tracking",
+          JSON.stringify({ type: "daily" }),
+          "Running",
+        ]
+      );
+      await testDb.run(
+        "INSERT INTO trackings (user_id, question, frequency, state) VALUES (?, ?, ?, ?)",
+        [userId, "Paused Tracking", JSON.stringify({ type: "daily" }), "Paused"]
+      );
+      await testDb.run(
+        "INSERT INTO trackings (user_id, question, frequency, state) VALUES (?, ?, ?, ?)",
+        [
+          userId,
+          "Archived Tracking",
+          JSON.stringify({ type: "daily" }),
+          "Archived",
+        ]
+      );
+
+      const response = await request(app)
+        .get("/api/admin")
+        .set("Authorization", "Bearer admin-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("Running Tracking");
+      expect(response.body.log).toContain("Paused Tracking");
+      expect(response.body.log).toContain("Archived Tracking");
+    });
+
+    it("should return admin log with trackings without schedules", async () => {
+      const userResult = await testDb.run(
+        "INSERT INTO users (name, email) VALUES (?, ?)",
+        ["Test User", "test@example.com"]
+      );
+      const userId = userResult.lastID;
+
+      await testDb.run(
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [userId, "No Schedule Tracking", JSON.stringify({ type: "daily" })]
+      );
+
+      const response = await request(app)
+        .get("/api/admin")
+        .set("Authorization", "Bearer admin-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("No Schedule Tracking");
+      expect(response.body.log).toContain("Schedules=[None]");
+    });
+
+    it("should return admin log with trackings without reminders", async () => {
+      const userResult = await testDb.run(
+        "INSERT INTO users (name, email) VALUES (?, ?)",
+        ["Test User", "test@example.com"]
+      );
+      const userId = userResult.lastID;
+
+      const trackingResult = await testDb.run(
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [userId, "No Reminder Tracking", JSON.stringify({ type: "daily" })]
+      );
+      const trackingId = trackingResult.lastID;
+
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 9, 0]
+      );
+
+      const response = await request(app)
+        .get("/api/admin")
+        .set("Authorization", "Bearer admin-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("No Reminder Tracking");
+      expect(response.body.log).toContain("REMINDERS: None");
+    });
+
+    it("should return admin log with reminders in different statuses", async () => {
+      const userResult = await testDb.run(
+        "INSERT INTO users (name, email) VALUES (?, ?)",
+        ["Test User", "test@example.com"]
+      );
+      const userId = userResult.lastID;
+
+      const trackingResult = await testDb.run(
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [userId, "Test Tracking", JSON.stringify({ type: "daily" })]
+      );
+      const trackingId = trackingResult.lastID;
+
+      // Create reminders with different statuses
+      await testDb.run(
+        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status, value) VALUES (?, ?, ?, ?, ?)",
+        [trackingId, userId, new Date().toISOString(), "Pending", null]
+      );
+      await testDb.run(
+        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status, value) VALUES (?, ?, ?, ?, ?)",
+        [trackingId, userId, new Date().toISOString(), "Answered", "Completed"]
+      );
+      await testDb.run(
+        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status, value) VALUES (?, ?, ?, ?, ?)",
+        [trackingId, userId, new Date().toISOString(), "Upcoming", null]
+      );
+
+      const response = await request(app)
+        .get("/api/admin")
+        .set("Authorization", "Bearer admin-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("Status=Pending");
+      expect(response.body.log).toContain("Status=Answered");
+      expect(response.body.log).toContain("Status=Upcoming");
+      expect(response.body.log).toContain("Answer=Completed");
+    });
+
+    it("should return admin log with reminders having notes", async () => {
+      const userResult = await testDb.run(
+        "INSERT INTO users (name, email) VALUES (?, ?)",
+        ["Test User", "test@example.com"]
+      );
+      const userId = userResult.lastID;
+
+      const trackingResult = await testDb.run(
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [userId, "Test Tracking", JSON.stringify({ type: "daily" })]
+      );
+      const trackingId = trackingResult.lastID;
+
+      await testDb.run(
+        "INSERT INTO reminders (tracking_id, user_id, scheduled_time, status, notes) VALUES (?, ?, ?, ?, ?)",
+        [
+          trackingId,
+          userId,
+          new Date().toISOString(),
+          "Pending",
+          "Test reminder notes",
+        ]
+      );
+
+      const response = await request(app)
+        .get("/api/admin")
+        .set("Authorization", "Bearer admin-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("Notes=Test reminder notes");
+    });
+
+    it("should return admin log with trackings having notes and icon", async () => {
+      const userResult = await testDb.run(
+        "INSERT INTO users (name, email) VALUES (?, ?)",
+        ["Test User", "test@example.com"]
+      );
+      const userId = userResult.lastID;
+
+      await testDb.run(
+        "INSERT INTO trackings (user_id, question, notes, icon, frequency) VALUES (?, ?, ?, ?, ?)",
+        [
+          userId,
+          "Test Tracking",
+          "Tracking notes",
+          "🌱",
+          JSON.stringify({ type: "daily" }),
+        ]
+      );
+
+      const response = await request(app)
+        .get("/api/admin")
+        .set("Authorization", "Bearer admin-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("Tracking notes");
+      expect(response.body.log).toContain("Icon=🌱");
+    });
+
+    it("should handle JSON parse errors in tracking frequency gracefully", async () => {
+      const userResult = await testDb.run(
+        "INSERT INTO users (name, email) VALUES (?, ?)",
+        ["Test User", "test@example.com"]
+      );
+      const userId = userResult.lastID;
+
+      // Insert tracking with invalid JSON frequency
+      await testDb.run(
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [userId, "Invalid JSON Tracking", "invalid json{"]
+      );
+
+      const response = await request(app)
+        .get("/api/admin")
+        .set("Authorization", "Bearer admin-token");
+
+      // Should still return 200 and include the tracking, even with parse error
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("Invalid JSON Tracking");
+    });
+
+    it("should return admin log with multiple schedules for a tracking", async () => {
+      const userResult = await testDb.run(
+        "INSERT INTO users (name, email) VALUES (?, ?)",
+        ["Test User", "test@example.com"]
+      );
+      const userId = userResult.lastID;
+
+      const trackingResult = await testDb.run(
+        "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
+        [userId, "Multi Schedule Tracking", JSON.stringify({ type: "daily" })]
+      );
+      const trackingId = trackingResult.lastID;
+
+      // Create multiple schedules
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 9, 0]
+      );
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 14, 30]
+      );
+      await testDb.run(
+        "INSERT INTO tracking_schedules (tracking_id, hour, minutes) VALUES (?, ?, ?)",
+        [trackingId, 20, 15]
+      );
+
+      const response = await request(app)
+        .get("/api/admin")
+        .set("Authorization", "Bearer admin-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.log).toContain("Multi Schedule Tracking");
+      expect(response.body.log).toContain("09:00");
+      expect(response.body.log).toContain("14:30");
+      expect(response.body.log).toContain("20:15");
+    });
+
+    it("should return 500 when getAllTrackings throws error", async () => {
+      // Create user
+      await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
+        "Test User",
+        "test@example.com",
+      ]);
+
+      // Mock database.all to throw error
+      const originalAll = testDb.all.bind(testDb);
+      vi.spyOn(testDb, "all").mockImplementationOnce(async () => {
+        throw new Error("Database query error");
+      });
+
+      const response = await request(app)
+        .get("/api/admin")
+        .set("Authorization", "Bearer admin-token");
+
+      expect(response.status).toBe(500);
+      expect(response.body).toHaveProperty("error");
+      expect(response.body.error).toBe("Error generating admin log");
+
+      // Restore original method
+      vi.restoreAllMocks();
+    });
+
+    it("should return 500 when getAllReminders throws error", async () => {
+      // Create user
+      await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
+        "Test User",
+        "test@example.com",
+      ]);
+
+      // Mock database.all to throw error on second call (reminders query)
+      let callCount = 0;
+      const originalAll = testDb.all.bind(testDb);
+      vi.spyOn(testDb, "all").mockImplementation(async (sql: string) => {
+        if (sql.includes("FROM reminders")) {
+          throw new Error("Reminders query error");
+        }
+        return originalAll(sql);
+      });
+
+      const response = await request(app)
+        .get("/api/admin")
+        .set("Authorization", "Bearer admin-token");
+
+      expect(response.status).toBe(500);
+      expect(response.body).toHaveProperty("error");
+      expect(response.body.error).toBe("Error generating admin log");
+
+      // Restore original method
+      vi.restoreAllMocks();
+    });
   });
 
   describe("POST /api/admin/clear-db", () => {
@@ -354,6 +684,104 @@ describe("Admin Routes", () => {
       expect(response.status).toBe(500);
       expect(response.body).toHaveProperty("error");
       expect(response.body.error).toBe("Error clearing database");
+    });
+
+    it("should handle error when deleting reminders fails", async () => {
+      // Mock database.run to fail on reminders delete
+      const originalRun = testDb.run.bind(testDb);
+      let callCount = 0;
+      vi.spyOn(testDb, "run").mockImplementation(async (sql: string) => {
+        if (sql.includes("DELETE FROM reminders")) {
+          throw new Error("Failed to delete reminders");
+        }
+        return originalRun(sql);
+      });
+
+      const response = await request(app)
+        .post("/api/admin/clear-db")
+        .set("Authorization", "Bearer admin-token");
+
+      expect(response.status).toBe(500);
+      expect(response.body).toHaveProperty("error");
+      expect(response.body.error).toBe("Error clearing database");
+
+      vi.restoreAllMocks();
+    });
+
+    it("should handle error when deleting schedules fails", async () => {
+      // Mock database.run to fail on schedules delete
+      const originalRun = testDb.run.bind(testDb);
+      vi.spyOn(testDb, "run").mockImplementation(async (sql: string) => {
+        if (sql.includes("DELETE FROM tracking_schedules")) {
+          throw new Error("Failed to delete schedules");
+        }
+        return originalRun(sql);
+      });
+
+      const response = await request(app)
+        .post("/api/admin/clear-db")
+        .set("Authorization", "Bearer admin-token");
+
+      expect(response.status).toBe(500);
+      expect(response.body).toHaveProperty("error");
+      expect(response.body.error).toBe("Error clearing database");
+
+      vi.restoreAllMocks();
+    });
+
+    it("should handle error when deleting trackings fails", async () => {
+      // Mock database.run to fail on trackings delete
+      const originalRun = testDb.run.bind(testDb);
+      vi.spyOn(testDb, "run").mockImplementation(async (sql: string) => {
+        if (sql.includes("DELETE FROM trackings")) {
+          throw new Error("Failed to delete trackings");
+        }
+        return originalRun(sql);
+      });
+
+      const response = await request(app)
+        .post("/api/admin/clear-db")
+        .set("Authorization", "Bearer admin-token");
+
+      expect(response.status).toBe(500);
+      expect(response.body).toHaveProperty("error");
+      expect(response.body.error).toBe("Error clearing database");
+
+      vi.restoreAllMocks();
+    });
+
+    it("should handle error when deleting users fails", async () => {
+      // Mock database.run to fail on users delete
+      const originalRun = testDb.run.bind(testDb);
+      vi.spyOn(testDb, "run").mockImplementation(async (sql: string) => {
+        if (sql.includes("DELETE FROM users")) {
+          throw new Error("Failed to delete users");
+        }
+        return originalRun(sql);
+      });
+
+      const response = await request(app)
+        .post("/api/admin/clear-db")
+        .set("Authorization", "Bearer admin-token");
+
+      expect(response.status).toBe(500);
+      expect(response.body).toHaveProperty("error");
+      expect(response.body.error).toBe("Error clearing database");
+
+      vi.restoreAllMocks();
+    });
+
+    it("should clear empty database successfully", async () => {
+      // Don't create any test data, just clear the admin user
+      await testDb.run("DELETE FROM users WHERE id = ?", [adminUserId]);
+
+      const response = await request(app)
+        .post("/api/admin/clear-db")
+        .set("Authorization", "Bearer admin-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty("message");
+      expect(response.body.message).toBe("Database cleared successfully");
     });
   });
 });
