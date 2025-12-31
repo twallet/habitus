@@ -108,11 +108,12 @@ export class DateUtils {
     // Strategy: We need to find what UTC time corresponds to the given
     // wall-clock time (year, month, day, hour, minutes) in the target timezone.
     //
-    // Approach: Create a date at noon UTC on the target date, then see what
-    // that is in the target timezone. Use that to calculate the offset.
-    const noonUtc = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+    // Approach: Use a reference UTC time (noon) on the target date to calculate
+    // the offset between UTC and the target timezone at that specific date
+    // (accounting for DST). Then apply that offset to convert the desired local time to UTC.
+    const referenceUtc = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
 
-    // Get what noon UTC is in the target timezone
+    // Get what noon UTC looks like in the target timezone
     const formatter = new Intl.DateTimeFormat("en-US", {
       timeZone: timezone,
       year: "numeric",
@@ -123,27 +124,30 @@ export class DateUtils {
       hour12: false,
     });
 
-    const parts = formatter.formatToParts(noonUtc);
-    const tzYear = parseInt(parts.find((p) => p.type === "year")!.value);
-    const tzMonth = parseInt(parts.find((p) => p.type === "month")!.value);
-    const tzDay = parseInt(parts.find((p) => p.type === "day")!.value);
-    const tzHour = parseInt(parts.find((p) => p.type === "hour")!.value);
-    const tzMinute = parseInt(parts.find((p) => p.type === "minute")!.value);
-
-    // Calculate offset: difference between UTC noon and what it shows in target timezone
-    const tzNoon = new Date(
-      Date.UTC(tzYear, tzMonth - 1, tzDay, tzHour, tzMinute, 0)
+    const referenceParts = formatter.formatToParts(referenceUtc);
+    const refLocalHour = parseInt(
+      referenceParts.find((p) => p.type === "hour")!.value
     );
-    const offset = noonUtc.getTime() - tzNoon.getTime();
+    const refLocalMin = parseInt(
+      referenceParts.find((p) => p.type === "minute")!.value
+    );
 
-    // Now create the target date/time in UTC
-    const targetUtc = new Date(
+    // Calculate offset: if 12:00 UTC shows as refLocalHour:refLocalMin in timezone,
+    // then the timezone offset is (12:00 - refLocalHour:refLocalMin)
+    // This tells us how many hours the timezone is behind UTC
+    const offsetHours = 12 - refLocalHour;
+    const offsetMinutes = 0 - refLocalMin;
+    const offsetMs = (offsetHours * 60 + offsetMinutes) * 60 * 1000;
+
+    // Create the target date/time as if it were in UTC
+    const targetAsUtc = new Date(
       Date.UTC(year, month - 1, day, hour, minutes, 0)
     );
 
-    // Apply the offset to get the correct UTC time
-    // If timezone is ahead of UTC (positive offset), we subtract to get correct UTC
-    const result = new Date(targetUtc.getTime() - offset);
+    // Apply the offset: to convert FROM local time TO UTC, we ADD the offset
+    // (if timezone is UTC-3, we add 3 hours to local time to get UTC)
+    const result = new Date(targetAsUtc.getTime() + offsetMs);
+
     return result.toISOString();
   }
 
