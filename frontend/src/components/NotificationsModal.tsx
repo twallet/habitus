@@ -395,9 +395,7 @@ export function NotificationsModal({
                     )}
 
                     <div className="form-group">
-                        <p className="form-help-text" style={{ marginTop: '0.5rem', marginBottom: '1rem' }}>
-                            Select one notification channel for reminders
-                        </p>
+                        <label className="notifications-label">Select one notification channel for reminders</label>
                         <div className="notification-channels">
                             {channels.map((channel) => (
                                 <div key={channel.id}>
