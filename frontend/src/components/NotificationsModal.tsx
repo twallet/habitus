@@ -538,43 +538,59 @@ export function NotificationsModal({
                                                         <div className="step-content">
                                                             <h4>Start the bot</h4>
                                                             <p className="form-help-text">
-                                                                In the Telegram app, tap the "Start" button. If you're using Telegram Web, manually type this command:
+                                                                <strong>If using Telegram app (mobile/desktop):</strong> Tap the "Start" button when the bot opens.
                                                             </p>
-                                                            {telegramStartCommand && (
+                                                            <p className="form-help-text" style={{ marginTop: '8px' }}>
+                                                                <strong>If using Telegram Web:</strong> Copy and paste this command into the bot chat:
+                                                            </p>
+                                                            {telegramStartCommand ? (
                                                                 <div style={{
-                                                                    marginTop: '8px',
-                                                                    padding: '8px 12px',
-                                                                    backgroundColor: '#f5f5f5',
-                                                                    borderRadius: '4px',
+                                                                    marginTop: '12px',
+                                                                    padding: '12px',
+                                                                    backgroundColor: '#e7f3ff',
+                                                                    border: '2px solid #007bff',
+                                                                    borderRadius: '6px',
                                                                     fontFamily: 'monospace',
-                                                                    fontSize: '0.9rem',
+                                                                    fontSize: '0.95rem',
                                                                     wordBreak: 'break-all',
                                                                     display: 'flex',
                                                                     alignItems: 'center',
-                                                                    gap: '8px'
+                                                                    gap: '12px'
                                                                 }}>
-                                                                    <code style={{ flex: 1 }}>{telegramStartCommand}</code>
+                                                                    <code style={{
+                                                                        flex: 1,
+                                                                        fontWeight: 'bold',
+                                                                        color: '#0056b3'
+                                                                    }}>{telegramStartCommand}</code>
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => {
-                                                                            navigator.clipboard.writeText(telegramStartCommand).then(() => {
-                                                                                // Show brief feedback
-                                                                            });
+                                                                            if (telegramStartCommand) {
+                                                                                navigator.clipboard.writeText(telegramStartCommand).then(() => {
+                                                                                    // Could show toast notification here
+                                                                                });
+                                                                            }
                                                                         }}
                                                                         style={{
-                                                                            padding: '4px 8px',
-                                                                            fontSize: '0.8rem',
+                                                                            padding: '6px 12px',
+                                                                            fontSize: '0.85rem',
                                                                             cursor: 'pointer',
                                                                             backgroundColor: '#007bff',
                                                                             color: 'white',
                                                                             border: 'none',
-                                                                            borderRadius: '3px'
+                                                                            borderRadius: '4px',
+                                                                            fontWeight: 'bold',
+                                                                            whiteSpace: 'nowrap'
                                                                         }}
-                                                                        title="Copy to clipboard"
+                                                                        title="Copy command to clipboard"
                                                                     >
-                                                                        Copy
+                                                                        📋 Copy Command
                                                                     </button>
                                                                 </div>
+                                                            ) : (
+                                                                <p className="form-help-text" style={{ marginTop: '8px', fontStyle: 'italic', color: '#666' }}>
+                                                                    Command will appear here once the link is generated...
+                                                                </p>
                                                             )}
                                                         </div>
                                                     </div>
