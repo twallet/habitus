@@ -614,7 +614,7 @@ describe("api", () => {
         });
 
         const result = await apiClient.updateNotificationPreferences(
-          ["Email", "Telegram"],
+          "Telegram",
           "123456789"
         );
         expect(result).toEqual(mockUser);
@@ -623,7 +623,7 @@ describe("api", () => {
           expect.objectContaining({
             method: "PUT",
             body: JSON.stringify({
-              notificationChannels: ["Email", "Telegram"],
+              notificationChannel: "Telegram",
               telegramChatId: "123456789",
             }),
           })
@@ -643,7 +643,7 @@ describe("api", () => {
           json: async () => mockUser,
         });
 
-        const result = await apiClient.updateNotificationPreferences(["Email"]);
+        const result = await apiClient.updateNotificationPreferences("Email");
         expect(result).toEqual(mockUser);
         const fetchCalls = (global.fetch as Mock).mock.calls;
         const updateCall = fetchCalls.find(
@@ -653,8 +653,71 @@ describe("api", () => {
         );
         expect(updateCall).toBeDefined();
         const body = JSON.parse(updateCall![1].body);
-        expect(body.notificationChannels).toEqual(["Email"]);
+        expect(body.notificationChannel).toBe("Email");
         expect(body.telegramChatId).toBeUndefined();
+      });
+    });
+
+    describe("getTelegramStartLink", () => {
+      it("should get Telegram start link successfully", async () => {
+        const mockResponse = {
+          link: "https://t.me/testbot?start=token123_1",
+          token: "token123",
+          userId: 1,
+          botUsername: "testbot",
+        };
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockResponse,
+        });
+
+        const result = await apiClient.getTelegramStartLink();
+        expect(result).toEqual(mockResponse);
+        expect(global.fetch).toHaveBeenCalledWith(
+          expect.stringContaining("/api/telegram/start-link"),
+          expect.objectContaining({
+            method: "GET",
+          })
+        );
+      });
+    });
+
+    describe("getTelegramStatus", () => {
+      it("should get Telegram status successfully when connected", async () => {
+        const mockResponse = {
+          connected: true,
+          chatId: "123456789",
+        };
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockResponse,
+        });
+
+        const result = await apiClient.getTelegramStatus();
+        expect(result).toEqual(mockResponse);
+        expect(global.fetch).toHaveBeenCalledWith(
+          expect.stringContaining("/api/telegram/status"),
+          expect.objectContaining({
+            method: "GET",
+          })
+        );
+      });
+
+      it("should get Telegram status successfully when not connected", async () => {
+        const mockResponse = {
+          connected: false,
+          chatId: null,
+        };
+
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockResponse,
+        });
+
+        const result = await apiClient.getTelegramStatus();
+        expect(result).toEqual(mockResponse);
       });
     });
 

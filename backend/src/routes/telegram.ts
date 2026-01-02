@@ -162,6 +162,39 @@ async function processTelegramUpdate(update: TelegramUpdate): Promise<void> {
 }
 
 /**
+ * Get Telegram bot username from Bot API.
+ * @returns Promise resolving to bot username
+ * @private
+ */
+async function getBotUsername(): Promise<string> {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (!botToken) {
+    throw new Error(
+      "TELEGRAM_BOT_TOKEN not configured. Please set it in your .env file."
+    );
+  }
+
+  const response = await fetch(`https://api.telegram.org/bot${botToken}/getMe`);
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to get bot info: ${response.status} ${response.statusText}`
+    );
+  }
+
+  const data = (await response.json()) as {
+    ok: boolean;
+    result?: { username?: string };
+  };
+
+  if (!data.ok || !data.result?.username) {
+    throw new Error("Failed to get bot username from Telegram API");
+  }
+
+  return data.result.username;
+}
+
+/**
  * GET /api/telegram/start-link
  * Generate a Telegram bot start link with connection token.
  * @route GET /api/telegram/start-link
@@ -182,40 +215,38 @@ router.get(
         userId
       );
 
-      // Get bot username from environment variable
-      const botUsername = process.env.TELEGRAM_BOT_USERNAME;
+      // Get bot username
+      const botUsername = await getBotUsername();
 
-      if (!botUsername) {
-        console.warn(
-          `[${new Date().toISOString()}] TELEGRAM_ROUTE | TELEGRAM_BOT_USERNAME not set, using placeholder`
-        );
-        // Return a link format that can be constructed on the frontend
-        return res.json({
-          link: `https://t.me/YOUR_BOT_USERNAME?start=${token}_${userId}`,
-          token: token,
-          userId: userId,
-          botUsername: null,
-        });
-      }
-
-      // Construct Telegram start link: https://t.me/<bot_username>?start=<token>_<userId>
-      const link = `https://t.me/${botUsername}?start=${token}_${userId}`;
+      // Construct Telegram deep link
+      // Format: https://t.me/<bot_username>?start=<token>%20<userId>
+      // Telegram will send this as: /start <token> <userId>
+      const link = `https://t.me/${botUsername}?start=${encodeURIComponent(
+        `${token} ${userId}`
+      )}`;
 
       console.log(
         `[${new Date().toISOString()}] TELEGRAM_ROUTE | Generated start link for userId: ${userId}`
       );
 
-      res.json({
-        link: link,
-        token: token,
-        userId: userId,
-        botUsername: botUsername,
-      });
+      res.json({ link, token });
     } catch (error) {
       console.error(
         `[${new Date().toISOString()}] TELEGRAM_ROUTE | Error generating start link:`,
         error
       );
+
+      if (error instanceof Error) {
+        if (error.message.includes("TELEGRAM_BOT_TOKEN")) {
+          return res.status(500).json({
+            error: "Telegram bot not configured. Please contact support.",
+          });
+        }
+        if (error.message.includes("not found")) {
+          return res.status(404).json({ error: "User not found" });
+        }
+      }
+
       res.status(500).json({ error: "Error generating start link" });
     }
   }
@@ -223,10 +254,10 @@ router.get(
 
 /**
  * GET /api/telegram/status
- * Check if the user has connected their Telegram account.
+ * Get Telegram connection status for the authenticated user.
  * @route GET /api/telegram/status
  * @header {string} Authorization - Bearer token
- * @returns {object} { connected: boolean, chatId: string | null }
+ * @returns {object} { connected: boolean, telegramChatId: string | null }
  */
 router.get(
   "/status",
@@ -245,17 +276,15 @@ router.get(
       const connected = !!user.telegram_chat_id;
 
       res.json({
-        connected: connected,
-        chatId: user.telegram_chat_id || null,
+        connected,
+        telegramChatId: user.telegram_chat_id || null,
       });
     } catch (error) {
       console.error(
-        `[${new Date().toISOString()}] TELEGRAM_ROUTE | Error checking status:`,
+        `[${new Date().toISOString()}] TELEGRAM_ROUTE | Error getting connection status:`,
         error
       );
-      res
-        .status(500)
-        .json({ error: "Error checking Telegram connection status" });
+      res.status(500).json({ error: "Error getting connection status" });
     }
   }
 );

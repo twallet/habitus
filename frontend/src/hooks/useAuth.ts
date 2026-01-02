@@ -328,14 +328,14 @@ export function useAuth() {
 
   /**
    * Update notification preferences.
-   * @param notificationChannels - Array of enabled channels (e.g., ["Email", "Telegram"])
-   * @param telegramChatId - Optional Telegram chat ID (required if Telegram is enabled)
+   * @param notificationChannel - Single notification channel (e.g., "Email", "Telegram")
+   * @param telegramChatId - Optional Telegram chat ID (required if Telegram is selected)
    * @returns Promise resolving to updated user data
    * @throws Error if request fails
    * @public
    */
   const updateNotificationPreferences = async (
-    notificationChannels: string[],
+    notificationChannel: string,
     telegramChatId?: string
   ): Promise<UserData> => {
     if (!token) {
@@ -352,7 +352,7 @@ export function useAuth() {
     );
 
     const updatedUser = await apiClient.updateNotificationPreferences(
-      notificationChannels,
+      notificationChannel,
       telegramChatId
     );
     console.log(
@@ -362,6 +362,40 @@ export function useAuth() {
     );
     setUser(updatedUser);
     return updatedUser;
+  };
+
+  /**
+   * Get Telegram bot start link for connecting Telegram account.
+   * @returns Promise resolving to object with link, token, userId, and botUsername
+   * @throws Error if request fails
+   * @public
+   */
+  const getTelegramStartLink = async (): Promise<{
+    link: string;
+    token: string;
+    userId: number;
+    botUsername: string | null;
+  }> => {
+    if (!token) {
+      throw new Error("Not authenticated");
+    }
+    return apiClient.getTelegramStartLink();
+  };
+
+  /**
+   * Get Telegram connection status for the authenticated user.
+   * @returns Promise resolving to object with connected status and chatId
+   * @throws Error if request fails
+   * @public
+   */
+  const getTelegramStatus = async (): Promise<{
+    connected: boolean;
+    chatId: string | null;
+  }> => {
+    if (!token) {
+      throw new Error("Not authenticated");
+    }
+    return apiClient.getTelegramStatus();
   };
 
   /**
@@ -454,6 +488,8 @@ export function useAuth() {
     setTokenFromCallback,
     updateProfile,
     updateNotificationPreferences,
+    getTelegramStartLink,
+    getTelegramStatus,
     updateUserPreferences,
     deleteUser,
   };

@@ -529,20 +529,56 @@ export class ApiClient {
 
   /**
    * Update notification preferences.
-   * @param notificationChannels - Array of enabled channels (e.g., ["Email", "Telegram"])
-   * @param telegramChatId - Optional Telegram chat ID (required if Telegram is enabled)
+   * @param notificationChannel - Single notification channel (e.g., "Email", "Telegram")
+   * @param telegramChatId - Optional Telegram chat ID (required if Telegram is selected)
    * @returns Promise resolving to updated user data
    * @throws Error if request fails
    * @public
    */
   async updateNotificationPreferences(
-    notificationChannels: string[],
+    notificationChannel: string,
     telegramChatId?: string
   ): Promise<UserData> {
     return this.put<UserData>(`${API_ENDPOINTS.users}/notifications`, {
-      notificationChannels,
+      notificationChannel,
       telegramChatId,
     });
+  }
+
+  /**
+   * Get Telegram bot start link for connecting Telegram account.
+   * @returns Promise resolving to object with link, token, userId, and botUsername
+   * @throws Error if request fails
+   * @public
+   */
+  async getTelegramStartLink(): Promise<{
+    link: string;
+    token: string;
+    userId: number;
+    botUsername: string | null;
+  }> {
+    return this.get<{
+      link: string;
+      token: string;
+      userId: number;
+      botUsername: string | null;
+    }>(`${this.baseUrl}/api/telegram/start-link`);
+  }
+
+  /**
+   * Get Telegram connection status for the authenticated user.
+   * @returns Promise resolving to object with connected status and chatId
+   * @throws Error if request fails
+   * @public
+   */
+  async getTelegramStatus(): Promise<{
+    connected: boolean;
+    chatId: string | null;
+  }> {
+    return this.get<{
+      connected: boolean;
+      chatId: string | null;
+    }>(`${this.baseUrl}/api/telegram/status`);
   }
 
   /**

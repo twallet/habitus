@@ -1441,7 +1441,7 @@ describe("useAuth", () => {
 
       const updatedUser = {
         ...mockUser,
-        notification_channels: ["Email"],
+        notification_channels: "Email",
       };
 
       localStorage.setItem(TOKEN_KEY, "valid-token");
@@ -1494,9 +1494,7 @@ describe("useAuth", () => {
         expect(result.current.isAuthenticated).toBe(true);
       });
 
-      const user = await result.current.updateNotificationPreferences([
-        "Email",
-      ]);
+      const user = await result.current.updateNotificationPreferences("Email");
       expect(user).toEqual(updatedUser);
     });
 
@@ -1533,7 +1531,7 @@ describe("useAuth", () => {
       });
 
       await expect(
-        result.current.updateNotificationPreferences(["Email"])
+        result.current.updateNotificationPreferences("Email")
       ).rejects.toThrow("Not authenticated");
     });
 
@@ -1563,12 +1561,15 @@ describe("useAuth", () => {
             });
           }
 
-          if (urlString.includes("/api/users/notifications")) {
+          if (
+            urlString.includes("/api/users/notifications") &&
+            _options?.method === "PUT"
+          ) {
             return Promise.resolve({
               ok: false,
               status: 400,
               json: async () =>
-                Promise.resolve({ error: "Invalid notification channels" }),
+                Promise.resolve({ error: "Invalid notification channel" }),
             });
           }
 
@@ -1597,8 +1598,8 @@ describe("useAuth", () => {
       });
 
       await expect(
-        result.current.updateNotificationPreferences(["Invalid"])
-      ).rejects.toThrow("Invalid notification channels");
+        result.current.updateNotificationPreferences("Invalid")
+      ).rejects.toThrow();
     });
   });
 
@@ -2772,7 +2773,7 @@ describe("useAuth", () => {
       });
 
       await expect(
-        result.current.updateNotificationPreferences(["Email"])
+        result.current.updateNotificationPreferences("Email")
       ).rejects.toThrow();
     });
   });

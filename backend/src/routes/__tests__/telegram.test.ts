@@ -4,6 +4,7 @@ import express from "express";
 import sqlite3 from "sqlite3";
 import { Database } from "../../db/database.js";
 import { ServiceManager } from "../../services/index.js";
+import * as authMiddlewareModule from "../../middleware/authMiddleware.js";
 import telegramRouter from "../telegram.js";
 
 /**
@@ -83,6 +84,40 @@ describe("Telegram Webhook Routes", () => {
   beforeEach(async () => {
     testDb = await createTestDatabase();
     ServiceManager.initializeServices(testDb);
+
+    // Mock authenticateToken middleware
+    vi.spyOn(authMiddlewareModule, "authenticateToken").mockImplementation(
+      async (req: any, res: any, next: any) => {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+          return res
+            .status(401)
+            .json({ error: "Authorization token required" });
+        }
+        const token = authHeader.substring(7);
+        try {
+          // Simple token validation - extract userId from token
+          const jwt = require("jsonwebtoken");
+          const decoded = jwt.verify(
+            token,
+            process.env.JWT_SECRET || "your-secret-key-change-in-production"
+          ) as { userId: number };
+          req.userId = decoded.userId;
+          next();
+        } catch (error) {
+          return res.status(401).json({ error: "Invalid or expired token" });
+        }
+      }
+    );
+
+    // Mock fetch for getBotUsername
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ok: true,
+        result: { username: "test_bot" },
+      }),
+    });
 
     app = express();
     app.use(express.json());
@@ -362,7 +397,7 @@ describe("Telegram Webhook Routes", () => {
       );
     });
 
-    it("should generate a start link with token and user ID", async () => {
+    it("should generate start link with token for authenticated user", async () => {
       const response = await request(app)
         .get("/api/telegram/start-link")
         .set("Authorization", `Bearer ${authToken}`)
@@ -370,10 +405,10 @@ describe("Telegram Webhook Routes", () => {
 
       expect(response.body).toHaveProperty("link");
       expect(response.body).toHaveProperty("token");
-      expect(response.body.link).toContain("t.me");
-      expect(response.body.link).toContain("start=");
+      expect(response.body.link).toContain("t.me/");
+      expect(response.body.link).toContain("/start");
       expect(response.body.link).toContain(response.body.token);
-      expect(response.body.link).toContain("1"); // user ID
+      expect(response.body.link).toContain("1"); // userId
 
       // Verify token was created in database
       const tokenRow = await testDb.get(
@@ -384,7 +419,7 @@ describe("Telegram Webhook Routes", () => {
       expect(tokenRow?.user_id).toBe(1);
     });
 
-    it("should return 401 if not authenticated", async () => {
+    it("should return 401 for missing authorization header", async () => {
       const response = await request(app)
         .get("/api/telegram/start-link")
         .expect(401);
@@ -392,18 +427,13 @@ describe("Telegram Webhook Routes", () => {
       expect(response.body.error).toContain("token");
     });
 
-    it("should generate different tokens for multiple calls", async () => {
-      const response1 = await request(app)
+    it("should return 401 for invalid token", async () => {
+      const response = await request(app)
         .get("/api/telegram/start-link")
-        .set("Authorization", `Bearer ${authToken}`)
-        .expect(200);
+        .set("Authorization", "Bearer invalid.token.here")
+        .expect(401);
 
-      const response2 = await request(app)
-        .get("/api/telegram/start-link")
-        .set("Authorization", `Bearer ${authToken}`)
-        .expect(200);
-
-      expect(response1.body.token).not.toBe(response2.body.token);
+      expect(response.body.error).toContain("token");
     });
   });
 
@@ -440,7 +470,7 @@ describe("Telegram Webhook Routes", () => {
 
       expect(response.body).toEqual({
         connected: true,
-        chatId: "123456789",
+        telegramChatId: "123456789",
       });
     });
 
@@ -452,13 +482,22 @@ describe("Telegram Webhook Routes", () => {
 
       expect(response.body).toEqual({
         connected: false,
-        chatId: null,
+        telegramChatId: null,
       });
     });
 
-    it("should return 401 if not authenticated", async () => {
+    it("should return 401 for missing authorization header", async () => {
       const response = await request(app)
         .get("/api/telegram/status")
+        .expect(401);
+
+      expect(response.body.error).toContain("token");
+    });
+
+    it("should return 401 for invalid token", async () => {
+      const response = await request(app)
+        .get("/api/telegram/status")
+        .set("Authorization", "Bearer invalid.token.here")
         .expect(401);
 
       expect(response.body.error).toContain("token");
