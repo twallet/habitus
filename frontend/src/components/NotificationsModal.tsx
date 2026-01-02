@@ -306,15 +306,19 @@ export function NotificationsModal({
 
     // Get display labels for channels based on selection
     const emailLabel = useMemo(() => {
-        if (selectedChannel === 'Email') {
-            return user?.email || 'Email';
+        if (selectedChannel === 'Email' && user?.email) {
+            return `Email ${user.email}`;
         }
         return 'Email';
     }, [selectedChannel, user?.email]);
 
     const telegramLabel = useMemo(() => {
         if (selectedChannel === 'Telegram' && telegramUsername) {
-            return telegramUsername;
+            // Add @ prefix if it's a username (doesn't start with @), otherwise use as is
+            const displayUsername = telegramUsername.startsWith('@')
+                ? telegramUsername
+                : `@${telegramUsername}`;
+            return `Telegram ${displayUsername}`;
         }
         return 'Telegram';
     }, [selectedChannel, telegramUsername]);
