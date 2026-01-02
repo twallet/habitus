@@ -154,8 +154,8 @@ CREATE INDEX IF NOT EXISTS idx_reminders_status ON reminders(status);
 CREATE TABLE IF NOT EXISTS telegram_connection_tokens (
   token TEXT PRIMARY KEY,
   user_id INTEGER NOT NULL,
-  expires_at DATETIME NOT NULL,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  expires_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_telegram_connection_tokens_user_id ON telegram_connection_tokens(user_id);
