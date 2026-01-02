@@ -112,7 +112,13 @@ export function NotificationsModal({
      */
     const checkTelegramStatus = async () => {
         try {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'NotificationsModal.tsx:113', message: 'checkTelegramStatus called', data: {}, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'E' }) }).catch(() => { });
+            // #endregion
             const status = await onGetTelegramStatus();
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'NotificationsModal.tsx:115', message: 'Telegram status received', data: { connected: status?.connected, hasChatId: !!status?.telegramChatId, chatId: status?.telegramChatId }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'E' }) }).catch(() => { });
+            // #endregion
             if (status.connected && status.telegramChatId) {
                 setTelegramChatId(status.telegramChatId);
                 setTelegramConnected(true);
@@ -163,7 +169,28 @@ export function NotificationsModal({
         setIsGeneratingLink(true);
         setError(null);
         try {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'NotificationsModal.tsx:162', message: 'generateTelegramLink called', data: {}, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'C' }) }).catch(() => { });
+            // #endregion
             const result = await onGetTelegramStartLink();
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'NotificationsModal.tsx:166', message: 'Telegram link received', data: { hasLink: !!result?.link, link: result?.link?.substring(0, 100), webhookConfigured: (result as any)?.webhookConfigured }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' }) }).catch(() => { });
+            // #endregion
+
+            // Check if webhook is configured
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'NotificationsModal.tsx:180', message: 'Checking webhook configuration', data: { hasResult: !!result, isObject: result && typeof result === 'object', hasWebhookConfigured: result && typeof result === 'object' && 'webhookConfigured' in result, webhookConfigured: (result as any)?.webhookConfigured, conditionMet: result && typeof result === 'object' && 'webhookConfigured' in result && !(result as any).webhookConfigured }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' }) }).catch(() => { });
+            // #endregion
+            if (result && typeof result === 'object' && 'webhookConfigured' in result && !(result as any).webhookConfigured) {
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'NotificationsModal.tsx:181', message: 'Webhook not configured - setting error', data: { webhookUrl: (result as any)?.webhookUrl }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' }) }).catch(() => { });
+                // #endregion
+                const webhookUrl = (result as any).webhookUrl;
+                setError(`Telegram webhook is not configured. The connection will not work until the webhook is set up. ${webhookUrl ? `Current webhook URL: ${webhookUrl}` : 'No webhook URL is set.'} Please use the /api/telegram/set-webhook endpoint to configure it. For local development, use a tunneling service like ngrok.`);
+                setIsGeneratingLink(false);
+                return;
+            }
+
             setTelegramLink(result.link);
             // Set connecting state after link is ready
             setTelegramConnecting(true);

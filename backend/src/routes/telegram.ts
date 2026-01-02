@@ -43,6 +43,24 @@ interface TelegramUpdate {
  */
 router.post("/webhook", async (req: Request, res: Response) => {
   try {
+    // #region agent log
+    fetch("http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        location: "telegram.ts:44",
+        message: "Webhook endpoint called",
+        data: {
+          hasBody: !!req.body,
+          bodyKeys: req.body ? Object.keys(req.body) : [],
+        },
+        timestamp: Date.now(),
+        sessionId: "debug-session",
+        runId: "run1",
+        hypothesisId: "A",
+      }),
+    }).catch(() => {});
+    // #endregion
     const update = req.body as TelegramUpdate;
 
     console.log(
@@ -54,6 +72,26 @@ router.post("/webhook", async (req: Request, res: Response) => {
         }
       )}`
     );
+
+    // #region agent log
+    fetch("http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        location: "telegram.ts:56",
+        message: "Webhook update parsed",
+        data: {
+          updateId: update?.update_id,
+          hasMessage: !!update?.message,
+          messageText: update?.message?.text?.substring(0, 100),
+        },
+        timestamp: Date.now(),
+        sessionId: "debug-session",
+        runId: "run1",
+        hypothesisId: "A",
+      }),
+    }).catch(() => {});
+    // #endregion
 
     // Telegram requires webhooks to always return 200 OK
     // We'll process the update asynchronously
@@ -83,6 +121,21 @@ router.post("/webhook", async (req: Request, res: Response) => {
  * @private
  */
 async function processTelegramUpdate(update: TelegramUpdate): Promise<void> {
+  // #region agent log
+  fetch("http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      location: "telegram.ts:85",
+      message: "processTelegramUpdate called",
+      data: { updateId: update?.update_id },
+      timestamp: Date.now(),
+      sessionId: "debug-session",
+      runId: "run1",
+      hypothesisId: "B",
+    }),
+  }).catch(() => {});
+  // #endregion
   console.log(
     `[${new Date().toISOString()}] TELEGRAM_WEBHOOK | Processing update ${
       update.update_id
@@ -91,6 +144,24 @@ async function processTelegramUpdate(update: TelegramUpdate): Promise<void> {
 
   // Only process messages (ignore other update types)
   if (!update.message || !update.message.text) {
+    // #region agent log
+    fetch("http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        location: "telegram.ts:93",
+        message: "No message or text in update",
+        data: {
+          hasMessage: !!update?.message,
+          hasText: !!update?.message?.text,
+        },
+        timestamp: Date.now(),
+        sessionId: "debug-session",
+        runId: "run1",
+        hypothesisId: "B",
+      }),
+    }).catch(() => {});
+    // #endregion
     console.log(
       `[${new Date().toISOString()}] TELEGRAM_WEBHOOK | Update ${
         update.update_id
@@ -102,6 +173,22 @@ async function processTelegramUpdate(update: TelegramUpdate): Promise<void> {
   const messageText = update.message.text.trim();
   const chatId = update.message.chat.id.toString();
 
+  // #region agent log
+  fetch("http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      location: "telegram.ts:102",
+      message: "Message extracted",
+      data: { messageText: messageText.substring(0, 150), chatId },
+      timestamp: Date.now(),
+      sessionId: "debug-session",
+      runId: "run1",
+      hypothesisId: "B",
+    }),
+  }).catch(() => {});
+  // #endregion
+
   console.log(
     `[${new Date().toISOString()}] TELEGRAM_WEBHOOK | Processing message: "${messageText.substring(
       0,
@@ -111,6 +198,21 @@ async function processTelegramUpdate(update: TelegramUpdate): Promise<void> {
 
   // Only process /start commands
   if (!messageText.startsWith("/start")) {
+    // #region agent log
+    fetch("http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        location: "telegram.ts:113",
+        message: "Not a /start command",
+        data: { messageText: messageText.substring(0, 50) },
+        timestamp: Date.now(),
+        sessionId: "debug-session",
+        runId: "run1",
+        hypothesisId: "B",
+      }),
+    }).catch(() => {});
+    // #endregion
     console.log(
       `[${new Date().toISOString()}] TELEGRAM_WEBHOOK | Message is not a /start command, skipping`
     );
@@ -119,6 +221,21 @@ async function processTelegramUpdate(update: TelegramUpdate): Promise<void> {
 
   // Parse /start command: /start <token> <userId>
   const parts = messageText.split(/\s+/);
+  // #region agent log
+  fetch("http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      location: "telegram.ts:121",
+      message: "Parsed /start command",
+      data: { partsCount: parts.length, parts: parts },
+      timestamp: Date.now(),
+      sessionId: "debug-session",
+      runId: "run1",
+      hypothesisId: "C",
+    }),
+  }).catch(() => {});
+  // #endregion
   console.log(
     `[${new Date().toISOString()}] TELEGRAM_WEBHOOK | Parsed /start command parts: ${
       parts.length
@@ -126,6 +243,21 @@ async function processTelegramUpdate(update: TelegramUpdate): Promise<void> {
   );
 
   if (parts.length < 3) {
+    // #region agent log
+    fetch("http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        location: "telegram.ts:128",
+        message: "Invalid /start format",
+        data: { partsCount: parts.length, messageText: messageText },
+        timestamp: Date.now(),
+        sessionId: "debug-session",
+        runId: "run1",
+        hypothesisId: "C",
+      }),
+    }).catch(() => {});
+    // #endregion
     console.log(
       `[${new Date().toISOString()}] TELEGRAM_WEBHOOK | Invalid /start command format: "${messageText}". Expected format: /start <token> <userId>`
     );
@@ -135,6 +267,27 @@ async function processTelegramUpdate(update: TelegramUpdate): Promise<void> {
   const token = parts[1];
   const userIdStr = parts[2];
   const userId = parseInt(userIdStr, 10);
+
+  // #region agent log
+  fetch("http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      location: "telegram.ts:135",
+      message: "Extracted token and userId",
+      data: {
+        token: token?.substring(0, 20),
+        userIdStr,
+        userId,
+        isValidUserId: !isNaN(userId),
+      },
+      timestamp: Date.now(),
+      sessionId: "debug-session",
+      runId: "run1",
+      hypothesisId: "C",
+    }),
+  }).catch(() => {});
+  // #endregion
 
   if (isNaN(userId)) {
     console.log(
@@ -146,7 +299,40 @@ async function processTelegramUpdate(update: TelegramUpdate): Promise<void> {
   // Validate token
   const telegramConnectionService =
     ServiceManager.getTelegramConnectionService();
+  // #region agent log
+  fetch("http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      location: "telegram.ts:149",
+      message: "Before token validation",
+      data: { token: token?.substring(0, 20) },
+      timestamp: Date.now(),
+      sessionId: "debug-session",
+      runId: "run1",
+      hypothesisId: "D",
+    }),
+  }).catch(() => {});
+  // #endregion
   const validationResult = await telegramConnectionService.validateToken(token);
+  // #region agent log
+  fetch("http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      location: "telegram.ts:150",
+      message: "After token validation",
+      data: {
+        isValid: !!validationResult,
+        userIdFromToken: validationResult?.userId,
+      },
+      timestamp: Date.now(),
+      sessionId: "debug-session",
+      runId: "run1",
+      hypothesisId: "D",
+    }),
+  }).catch(() => {});
+  // #endregion
 
   if (!validationResult) {
     console.log(
@@ -245,6 +431,48 @@ router.get(
     try {
       const userId = req.userId!;
 
+      // Check webhook status before generating link
+      const botToken = process.env.TELEGRAM_BOT_TOKEN;
+      let webhookConfigured = false;
+      let webhookUrl = null;
+
+      if (botToken) {
+        try {
+          const webhookInfoResponse = await fetch(
+            `https://api.telegram.org/bot${botToken}/getWebhookInfo`
+          );
+          const webhookInfo = (await webhookInfoResponse.json()) as {
+            ok: boolean;
+            result?: { url?: string };
+          };
+          if (webhookInfo.ok && webhookInfo.result?.url) {
+            webhookConfigured = true;
+            webhookUrl = webhookInfo.result.url;
+          }
+        } catch (error) {
+          // Ignore webhook check errors
+        }
+      }
+
+      // #region agent log
+      fetch(
+        "http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            location: "telegram.ts:248",
+            message: "Webhook check before link generation",
+            data: { webhookConfigured, webhookUrl },
+            timestamp: Date.now(),
+            sessionId: "debug-session",
+            runId: "run1",
+            hypothesisId: "A",
+          }),
+        }
+      ).catch(() => {});
+      // #endregion
+
       // Generate connection token
       const telegramConnectionService =
         ServiceManager.getTelegramConnectionService();
@@ -258,15 +486,53 @@ router.get(
       // Construct Telegram deep link
       // Format: https://t.me/<bot_username>?start=<token>%20<userId>
       // Telegram will send this as: /start <token> <userId>
-      const link = `https://t.me/${botUsername}?start=${encodeURIComponent(
-        `${token} ${userId}`
-      )}`;
+      const startParam = `${token} ${userId}`;
+      const encodedParam = encodeURIComponent(startParam);
+      const link = `https://t.me/${botUsername}?start=${encodedParam}`;
+
+      // #region agent log
+      fetch(
+        "http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            location: "telegram.ts:261",
+            message: "Start link generated",
+            data: {
+              userId,
+              botUsername,
+              token: token?.substring(0, 20),
+              startParam,
+              encodedParam,
+              link,
+            },
+            timestamp: Date.now(),
+            sessionId: "debug-session",
+            runId: "run1",
+            hypothesisId: "C",
+          }),
+        }
+      ).catch(() => {});
+      // #endregion
 
       console.log(
         `[${new Date().toISOString()}] TELEGRAM_ROUTE | Generated start link for userId: ${userId}`
       );
 
-      res.json({ link, token });
+      // Warn if webhook is not configured
+      if (!webhookConfigured) {
+        console.warn(
+          `[${new Date().toISOString()}] TELEGRAM_ROUTE | WARNING: Webhook is not configured. Telegram cannot send updates. Connection will not work.`
+        );
+      }
+
+      res.json({
+        link,
+        token,
+        webhookConfigured,
+        webhookUrl: webhookUrl || undefined,
+      });
     } catch (error) {
       console.error(
         `[${new Date().toISOString()}] TELEGRAM_ROUTE | Error generating start link:`,
@@ -303,6 +569,25 @@ router.get(
     try {
       const userId = req.userId!;
 
+      // #region agent log
+      fetch(
+        "http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            location: "telegram.ts:327",
+            message: "Status endpoint called",
+            data: { userId },
+            timestamp: Date.now(),
+            sessionId: "debug-session",
+            runId: "run1",
+            hypothesisId: "E",
+          }),
+        }
+      ).catch(() => {});
+      // #endregion
+
       const userService = ServiceManager.getUserService();
       const user = await userService.getUserById(userId);
 
@@ -311,6 +596,24 @@ router.get(
       }
 
       const connected = !!user.telegram_chat_id;
+      // #region agent log
+      fetch(
+        "http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            location: "telegram.ts:338",
+            message: "User telegram status",
+            data: { userId, connected, telegramChatId: user.telegram_chat_id },
+            timestamp: Date.now(),
+            sessionId: "debug-session",
+            runId: "run1",
+            hypothesisId: "E",
+          }),
+        }
+      ).catch(() => {});
+      // #endregion
       let telegramUsername: string | null = null;
 
       // Try to get Telegram username if connected
