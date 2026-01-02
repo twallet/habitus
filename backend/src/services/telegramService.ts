@@ -219,19 +219,23 @@ export class TelegramService {
   }
 
   /**
-   * Send a simple text message via Telegram.
+   * Send a welcome message to a user after they connect their Telegram account.
    * @param chatId - Telegram chat ID
-   * @param text - Message text
-   * @param parseMode - Optional parse mode (default: "Markdown")
+   * @param userId - Habitus user ID
+   * @param frontendUrl - Frontend URL for the link back to the app
    * @returns Promise that resolves when message is sent
    * @throws Error if message sending fails
    * @public
    */
-  async sendMessage(
+  async sendWelcomeMessage(
     chatId: string,
-    text: string,
-    parseMode: "Markdown" | "HTML" = "Markdown"
+    userId: number,
+    frontendUrl: string
   ): Promise<void> {
+    console.log(
+      `[${new Date().toISOString()}] TELEGRAM | Preparing to send welcome message to chatId: ${chatId}, userId: ${userId}`
+    );
+
     if (!this.config.botToken) {
       throw new Error(
         "Telegram bot token not configured. Please set TELEGRAM_BOT_TOKEN environment variable."
@@ -242,6 +246,8 @@ export class TelegramService {
       throw new Error("Telegram chat ID is required");
     }
 
+    const messageText = `🎉 *Welcome to Habitus!*\n\nYour Telegram account has been successfully connected.\n\nYou will now receive reminders via Telegram.\n\n[Go to Dashboard](${frontendUrl})`;
+
     try {
       const url = `${this.apiBaseUrl}${this.config.botToken}/sendMessage`;
       const response = await fetch(url, {
@@ -251,8 +257,8 @@ export class TelegramService {
         },
         body: JSON.stringify({
           chat_id: chatId,
-          text: text,
-          parse_mode: parseMode,
+          text: messageText,
+          parse_mode: "Markdown",
         }),
       });
 
@@ -274,19 +280,19 @@ export class TelegramService {
       }
 
       console.log(
-        `[${new Date().toISOString()}] TELEGRAM | Message sent successfully to chatId: ${chatId}, messageId: ${
+        `[${new Date().toISOString()}] TELEGRAM | Welcome message sent successfully to chatId: ${chatId}, userId: ${userId}, messageId: ${
           result.result?.message_id
         }`
       );
     } catch (error: any) {
       console.error(
-        `[${new Date().toISOString()}] TELEGRAM | Error sending message to ${chatId}:`,
+        `[${new Date().toISOString()}] TELEGRAM | Error sending welcome message to ${chatId}:`,
         error
       );
 
       if (error.message?.includes("chat not found")) {
         throw new Error(
-          "Telegram chat not found. Please make sure you have started a conversation with the bot and provided the correct chat ID."
+          "Telegram chat not found. Please make sure you have started a conversation with the bot."
         );
       }
 
@@ -297,7 +303,9 @@ export class TelegramService {
       }
 
       throw new Error(
-        `Failed to send Telegram message: ${error.message || "Unknown error"}`
+        `Failed to send Telegram welcome message: ${
+          error.message || "Unknown error"
+        }`
       );
     }
   }

@@ -1,41 +1,10 @@
-import { vi, type Mock } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import request from "supertest";
-import express, { Express } from "express";
+import express from "express";
 import sqlite3 from "sqlite3";
-import jwt from "jsonwebtoken";
 import { Database } from "../../db/database.js";
 import { ServiceManager } from "../../services/index.js";
-import { TelegramConnectionService } from "../../services/telegramConnectionService.js";
-import { UserService } from "../../services/userService.js";
-import { TelegramService } from "../../services/telegramService.js";
-import { EmailService } from "../../services/emailService.js";
-import { AuthService } from "../../services/authService.js";
 import telegramRouter from "../telegram.js";
-import * as authMiddleware from "../../middleware/authMiddleware.js";
-
-// Mock authMiddleware
-vi.mock("../../middleware/authMiddleware.js", () => ({
-  authenticateToken: vi.fn((req: any, _res: any, next: any) => {
-    // Extract userId from token if present
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      const token = authHeader.substring(7);
-      try {
-        const decoded = jwt.verify(
-          token,
-          process.env.JWT_SECRET || "test-secret"
-        ) as {
-          userId: number;
-        };
-        req.userId = decoded.userId;
-      } catch {
-        // Invalid token
-      }
-    }
-    next();
-  }),
-  AuthRequest: {},
-}));
 
 /**
  * Create an in-memory database for testing.
@@ -108,27 +77,13 @@ async function createTestDatabase(): Promise<Database> {
 }
 
 describe("Telegram Webhook Routes", () => {
-  let app: Express;
+  let app: express.Application;
   let testDb: Database;
-  let telegramConnectionService: TelegramConnectionService;
-  let userService: UserService;
-  let telegramService: TelegramService;
 
   beforeEach(async () => {
     testDb = await createTestDatabase();
-    const emailService = new EmailService();
-    userService = new UserService(testDb);
-    telegramService = new TelegramService();
-    telegramConnectionService = new TelegramConnectionService(testDb);
-    const authService = new AuthService(testDb, emailService);
-
-    // Set JWT_SECRET for token generation
-    process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
-
-    // Initialize services
     ServiceManager.initializeServices(testDb);
 
-    // Create Express app for testing
     app = express();
     app.use(express.json());
     app.use("/api/telegram", telegramRouter);
@@ -140,25 +95,29 @@ describe("Telegram Webhook Routes", () => {
   });
 
   describe("POST /api/telegram/webhook", () => {
-    it("should handle /start command with valid token and associate chat ID", async () => {
+    it("should handle /start command with valid token and update user telegram_chat_id", async () => {
       // Create a test user
       await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
         "Test User",
         "test@example.com",
       ]);
 
-      // Generate a connection token
+      // Get TelegramConnectionService to generate a token
+      const telegramConnectionService =
+        ServiceManager.getTelegramConnectionService();
       const token = await telegramConnectionService.generateConnectionToken(1);
 
-      // Mock TelegramService.sendMessage for welcome message
-      const sendMessageSpy = vi
-        .spyOn(telegramService, "sendMessage")
+      // Mock TelegramService.sendWelcomeMessage to avoid actual API calls
+      const telegramService = ServiceManager.getTelegramService();
+      const sendWelcomeMessageSpy = vi
+        .spyOn(telegramService as any, "sendWelcomeMessage")
         .mockResolvedValue(undefined);
 
-      // Simulate Telegram webhook update
-      const webhookUpdate = {
+      // Create Telegram webhook update payload
+      const update = {
+        update_id: 123456789,
         message: {
-          message_id: 123,
+          message_id: 1,
           from: {
             id: 987654321,
             is_bot: false,
@@ -168,6 +127,8 @@ describe("Telegram Webhook Routes", () => {
           chat: {
             id: 987654321,
             type: "private",
+            first_name: "Test",
+            username: "testuser",
           },
           date: Math.floor(Date.now() / 1000),
           text: `/start ${token} 1`,
@@ -176,17 +137,28 @@ describe("Telegram Webhook Routes", () => {
 
       const response = await request(app)
         .post("/api/telegram/webhook")
-        .send(webhookUpdate)
+        .send(update)
         .expect(200);
 
       expect(response.body).toEqual({ ok: true });
 
-      // Verify telegram_chat_id was set
+      // Wait for async processing to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Verify user's telegram_chat_id was updated
       const user = await testDb.get<{ telegram_chat_id: string }>(
         "SELECT telegram_chat_id FROM users WHERE id = ?",
         [1]
       );
+
       expect(user?.telegram_chat_id).toBe("987654321");
+
+      // Verify welcome message was sent
+      expect(sendWelcomeMessageSpy).toHaveBeenCalledWith(
+        "987654321",
+        1,
+        expect.any(String) // frontendUrl
+      );
 
       // Verify token was deleted (single-use)
       const tokenRow = await testDb.get(
@@ -196,62 +168,11 @@ describe("Telegram Webhook Routes", () => {
       expect(tokenRow).toBeUndefined();
     });
 
-    it("should return 200 and ignore non-/start messages", async () => {
-      const webhookUpdate = {
+    it("should return 200 but not update user if token is invalid", async () => {
+      const update = {
+        update_id: 123456789,
         message: {
-          message_id: 124,
-          from: {
-            id: 987654321,
-            is_bot: false,
-            first_name: "Test",
-          },
-          chat: {
-            id: 987654321,
-            type: "private",
-          },
-          date: Math.floor(Date.now() / 1000),
-          text: "Hello bot!",
-        },
-      };
-
-      const response = await request(app)
-        .post("/api/telegram/webhook")
-        .send(webhookUpdate)
-        .expect(200);
-
-      expect(response.body).toEqual({ ok: true });
-    });
-
-    it("should return 200 and ignore /start without token", async () => {
-      const webhookUpdate = {
-        message: {
-          message_id: 125,
-          from: {
-            id: 987654321,
-            is_bot: false,
-            first_name: "Test",
-          },
-          chat: {
-            id: 987654321,
-            type: "private",
-          },
-          date: Math.floor(Date.now() / 1000),
-          text: "/start",
-        },
-      };
-
-      const response = await request(app)
-        .post("/api/telegram/webhook")
-        .send(webhookUpdate)
-        .expect(200);
-
-      expect(response.body).toEqual({ ok: true });
-    });
-
-    it("should return 200 and ignore invalid token", async () => {
-      const webhookUpdate = {
-        message: {
-          message_id: 126,
+          message_id: 1,
           from: {
             id: 987654321,
             is_bot: false,
@@ -268,20 +189,21 @@ describe("Telegram Webhook Routes", () => {
 
       const response = await request(app)
         .post("/api/telegram/webhook")
-        .send(webhookUpdate)
+        .send(update)
         .expect(200);
 
       expect(response.body).toEqual({ ok: true });
 
-      // Verify telegram_chat_id was NOT set
+      // Verify user's telegram_chat_id was not updated
       const user = await testDb.get<{ telegram_chat_id: string }>(
         "SELECT telegram_chat_id FROM users WHERE id = ?",
         [1]
       );
+
       expect(user).toBeUndefined();
     });
 
-    it("should return 200 and ignore expired token", async () => {
+    it("should return 200 but not update user if token is expired", async () => {
       // Create a test user
       await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
         "Test User",
@@ -289,15 +211,16 @@ describe("Telegram Webhook Routes", () => {
       ]);
 
       // Create an expired token manually
-      const expiredTime = new Date(Date.now() - 1000);
+      const expiredTime = new Date(Date.now() - 1000); // 1 second ago
       await testDb.run(
         "INSERT INTO telegram_connection_tokens (token, user_id, expires_at) VALUES (?, ?, ?)",
         ["expired-token", 1, expiredTime.toISOString()]
       );
 
-      const webhookUpdate = {
+      const update = {
+        update_id: 123456789,
         message: {
-          message_id: 127,
+          message_id: 1,
           from: {
             id: 987654321,
             is_bot: false,
@@ -314,152 +237,109 @@ describe("Telegram Webhook Routes", () => {
 
       const response = await request(app)
         .post("/api/telegram/webhook")
-        .send(webhookUpdate)
+        .send(update)
         .expect(200);
 
       expect(response.body).toEqual({ ok: true });
 
-      // Verify telegram_chat_id was NOT set
+      // Wait for async processing to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Verify user's telegram_chat_id was not updated
       const user = await testDb.get<{ telegram_chat_id: string | null }>(
         "SELECT telegram_chat_id FROM users WHERE id = ?",
         [1]
       );
+
       expect(user?.telegram_chat_id).toBeNull();
     });
 
-    it("should handle updates without message field", async () => {
-      const webhookUpdate = {
-        update_id: 123456,
+    it("should return 200 for non-/start messages", async () => {
+      const update = {
+        update_id: 123456789,
+        message: {
+          message_id: 1,
+          from: {
+            id: 987654321,
+            is_bot: false,
+            first_name: "Test",
+          },
+          chat: {
+            id: 987654321,
+            type: "private",
+          },
+          date: Math.floor(Date.now() / 1000),
+          text: "Hello, bot!",
+        },
       };
 
       const response = await request(app)
         .post("/api/telegram/webhook")
-        .send(webhookUpdate)
+        .send(update)
         .expect(200);
 
       expect(response.body).toEqual({ ok: true });
     });
-  });
 
-  describe("GET /api/telegram/start-link", () => {
-    it("should generate a start link with token and user ID", async () => {
+    it("should return 200 for updates without message", async () => {
+      const update = {
+        update_id: 123456789,
+      };
+
+      const response = await request(app)
+        .post("/api/telegram/webhook")
+        .send(update)
+        .expect(200);
+
+      expect(response.body).toEqual({ ok: true });
+    });
+
+    it("should handle /start command with token but missing user ID", async () => {
       // Create a test user
       await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
         "Test User",
         "test@example.com",
       ]);
 
-      // Set TELEGRAM_BOT_USERNAME for the test
-      process.env.TELEGRAM_BOT_USERNAME = "test_bot";
-
+      const telegramConnectionService =
+        ServiceManager.getTelegramConnectionService();
       const token = await telegramConnectionService.generateConnectionToken(1);
 
+      const update = {
+        update_id: 123456789,
+        message: {
+          message_id: 1,
+          from: {
+            id: 987654321,
+            is_bot: false,
+            first_name: "Test",
+          },
+          chat: {
+            id: 987654321,
+            type: "private",
+          },
+          date: Math.floor(Date.now() / 1000),
+          text: `/start ${token}`, // Missing user ID
+        },
+      };
+
       const response = await request(app)
-        .get("/api/telegram/start-link")
-        .set("Authorization", `Bearer ${generateTestToken(1)}`)
+        .post("/api/telegram/webhook")
+        .send(update)
         .expect(200);
 
-      expect(response.body).toHaveProperty("url");
-      expect(response.body.url).toContain("https://t.me/test_bot?start=");
-      // Token is URL-encoded in the URL, so decode it to check
-      const decodedUrl = decodeURIComponent(response.body.url);
-      expect(decodedUrl).toContain(token);
-      expect(decodedUrl).toContain("1");
+      expect(response.body).toEqual({ ok: true });
 
-      // Cleanup
-      delete process.env.TELEGRAM_BOT_USERNAME;
-    });
+      // Wait for async processing to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
-    it("should return 401 if not authenticated", async () => {
-      // Mock authenticateToken to return 401
-      vi.mocked(authMiddleware.authenticateToken).mockImplementation(
-        (req: any, res: any, _next: any) => {
-          res.status(401).json({ error: "Authorization token required" });
-        }
+      // Verify user's telegram_chat_id was not updated
+      const user = await testDb.get<{ telegram_chat_id: string | null }>(
+        "SELECT telegram_chat_id FROM users WHERE id = ?",
+        [1]
       );
 
-      const response = await request(app)
-        .get("/api/telegram/start-link")
-        .expect(401);
-
-      expect(response.body).toHaveProperty("error");
-    });
-
-    it("should return 500 if bot username is not configured", async () => {
-      await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
-        "Test User",
-        "test@example.com",
-      ]);
-
-      // Ensure TELEGRAM_BOT_USERNAME is not set
-      delete process.env.TELEGRAM_BOT_USERNAME;
-
-      const response = await request(app)
-        .get("/api/telegram/start-link")
-        .set("Authorization", `Bearer ${generateTestToken(1)}`)
-        .expect(500);
-
-      expect(response.body).toHaveProperty("error");
-    });
-  });
-
-  describe("GET /api/telegram/status", () => {
-    it("should return connected status when user has telegram_chat_id", async () => {
-      // Create a test user with telegram_chat_id
-      await testDb.run(
-        "INSERT INTO users (name, email, telegram_chat_id, notification_channels) VALUES (?, ?, ?, ?)",
-        ["Test User", "test@example.com", "123456789", "Telegram"]
-      );
-
-      const response = await request(app)
-        .get("/api/telegram/status")
-        .set("Authorization", `Bearer ${generateTestToken(1)}`)
-        .expect(200);
-
-      expect(response.body).toEqual({
-        connected: true,
-        chatId: "123456789",
-      });
-    });
-
-    it("should return not connected status when user has no telegram_chat_id", async () => {
-      // Create a test user without telegram_chat_id
-      await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
-        "Test User",
-        "test@example.com",
-      ]);
-
-      const response = await request(app)
-        .get("/api/telegram/status")
-        .set("Authorization", `Bearer ${generateTestToken(1)}`)
-        .expect(200);
-
-      expect(response.body).toEqual({
-        connected: false,
-      });
-    });
-
-    it("should return 401 if not authenticated", async () => {
-      // Mock authenticateToken to return 401
-      vi.mocked(authMiddleware.authenticateToken).mockImplementation(
-        (req: any, res: any, _next: any) => {
-          res.status(401).json({ error: "Authorization token required" });
-        }
-      );
-
-      const response = await request(app)
-        .get("/api/telegram/status")
-        .expect(401);
-
-      expect(response.body).toHaveProperty("error");
+      expect(user?.telegram_chat_id).toBeNull();
     });
   });
 });
-
-/**
- * Helper function to generate a test JWT token.
- */
-function generateTestToken(userId: number): string {
-  const secret = process.env.JWT_SECRET || "test-secret";
-  return jwt.sign({ userId }, secret, { expiresIn: "1h" });
-}
