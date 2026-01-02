@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import './NotificationsModal.css';
 import { UserData } from '../models/User';
+import { TelegramConnectionStepsModal } from './TelegramConnectionStepsModal';
 
 interface NotificationsModalProps {
     onClose: () => void;
@@ -74,10 +75,7 @@ export function NotificationsModal({
     const [telegramConnected, setTelegramConnected] = useState(false);
     const [telegramChatId, setTelegramChatId] = useState<string | null>(null);
     const [telegramUsername, setTelegramUsername] = useState<string | null>(null);
-    const [telegramLink, setTelegramLink] = useState<string | null>(null);
-    const [telegramStartCommand, setTelegramStartCommand] = useState<string | null>(null);
-    const [isGeneratingLink, setIsGeneratingLink] = useState(false);
-    const [keyCopied, setKeyCopied] = useState(false);
+    const [showTelegramConnectionModal, setShowTelegramConnectionModal] = useState(false);
 
     /**
      * Load existing preferences from user data and check Telegram status.
@@ -126,51 +124,6 @@ export function NotificationsModal({
         }
     };
 
-    /**
-     * Generate Telegram connection link and extract start command.
-     * @internal
-     */
-    const generateTelegramLink = async () => {
-        setIsGeneratingLink(true);
-        setError(null);
-        try {
-            const result = await onGetTelegramStartLink();
-
-            // Check if webhook is configured
-            if (result && typeof result === 'object' && 'webhookConfigured' in result && !(result as any).webhookConfigured) {
-                const webhookUrl = (result as any).webhookUrl;
-                const webhookError = (result as any).webhookError;
-                let errorMsg = `Telegram webhook is not configured. The connection will not work until the webhook is set up. ${webhookUrl ? `Current webhook URL: ${webhookUrl}` : 'No webhook URL is set.'}`;
-                if (webhookError) {
-                    errorMsg += ` Telegram reports error: ${webhookError}`;
-                }
-                errorMsg += ' Please use the /api/telegram/set-webhook endpoint to configure it.';
-                setError(errorMsg);
-                setIsGeneratingLink(false);
-                return;
-            }
-
-            setTelegramLink(result.link);
-            // Extract start command from link: format is "start <token> <userId>"
-            try {
-                const url = new URL(result.link);
-                const startParam = url.searchParams.get('start');
-                if (startParam) {
-                    const decoded = decodeURIComponent(startParam);
-                    // Build command as "start <token> <userId>" (remove leading /start if present)
-                    const command = decoded.startsWith('/start ') ? decoded.substring(7) : `start ${decoded}`;
-                    setTelegramStartCommand(command);
-                }
-            } catch (e) {
-                // Ignore URL parsing errors
-            }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Error generating Telegram link');
-        } finally {
-            // Ensure isGeneratingLink is set to false after link generation
-            setIsGeneratingLink(false);
-        }
-    };
 
 
     /**
@@ -224,10 +177,8 @@ export function NotificationsModal({
                 await savePreferences('Telegram');
                 return;
             }
-            // Otherwise, generate connection link if not already generated
-            if (!telegramLink && !isGeneratingLink) {
-                await generateTelegramLink();
-            }
+            // Otherwise, open the connection steps modal
+            setShowTelegramConnectionModal(true);
         } else {
             setSelectedChannel(channelId);
             selectedChannelRef.current = channelId;
@@ -260,8 +211,6 @@ export function NotificationsModal({
      * @internal
      */
     const handleModalClose = () => {
-        setTelegramLink(null);
-        setKeyCopied(false);
         onClose();
     };
 
@@ -420,91 +369,18 @@ export function NotificationsModal({
                                             ) : null}
                                         </div>
                                     </label>
-                                    {channel.id === 'Telegram' && selectedChannel === 'Telegram' && !telegramConnected && !isGeneratingLink && (
-                                        <div className="telegram-connection-panel-inline" key={`telegram-panel-${telegramLink}`}>
-                                            <h3 style={{ marginBottom: '16px', fontSize: '1.1rem', fontWeight: 'bold' }}>
-                                                How to connect your Telegram account?
-                                            </h3>
-                                            <div className="connection-step">
-                                                <div className={`step-indicator ${telegramStartCommand ? 'active' : ''}`}>1</div>
-                                                <div className="step-content">
-                                                    <h4>Go to 🌱 Habitus in Telegram</h4>
-                                                    <p className="form-help-text">Click the button below to open Habitus in Telegram:</p>
-                                                    <a
-                                                        href="https://t.me/abitus_robot"
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="btn-primary telegram-link-button"
-                                                        style={{
-                                                            display: 'inline-block',
-                                                            textAlign: 'center',
-                                                            textDecoration: 'none',
-                                                            marginTop: '8px',
-                                                            height: 'auto',
-                                                            minHeight: '32px',
-                                                            lineHeight: '32px'
-                                                        }}
-                                                    >
-                                                        Go
-                                                    </a>
-                                                </div>
-                                            </div>
-                                            <div className="connection-step">
-                                                <div className={`step-indicator ${telegramStartCommand ? 'active' : ''}`}>2</div>
-                                                <div className="step-content">
-                                                    <h4>Copy/Paste your key</h4>
-                                                    <p className="form-help-text">
-                                                        Copy your key by clicking the button below and paste it in the Habitus chat in Telegram:
-                                                    </p>
-                                                    {telegramStartCommand ? (
-                                                        <>
-                                                            <button
-                                                                type="button"
-                                                                onClick={async () => {
-                                                                    if (telegramStartCommand) {
-                                                                        try {
-                                                                            await navigator.clipboard.writeText(telegramStartCommand);
-                                                                            setKeyCopied(true);
-                                                                        } catch (err) {
-                                                                            console.error('Error copying to clipboard:', err);
-                                                                        }
-                                                                    }
-                                                                }}
-                                                                className="btn-primary"
-                                                                style={{
-                                                                    display: 'inline-block',
-                                                                    textAlign: 'center',
-                                                                    marginTop: '8px',
-                                                                    width: 'auto',
-                                                                    height: 'auto',
-                                                                    minHeight: '32px',
-                                                                    lineHeight: '32px'
-                                                                }}
-                                                                title="Copy key to clipboard"
-                                                            >
-                                                                Copy key
-                                                            </button>
-                                                            {keyCopied && (
-                                                                <p className="form-help-text" style={{ marginTop: '12px', color: '#25a85a', fontWeight: 'bold' }}>
-                                                                    Key copied to the clipboard. You can now close this window.
-                                                                </p>
-                                                            )}
-                                                        </>
-                                                    ) : (
-                                                        <p className="form-help-text" style={{ marginTop: '8px', fontStyle: 'italic', color: '#666' }}>
-                                                            Generating key...
-                                                        </p>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                             ))}
                         </div>
                     </div>
                 </div>
             </div>
+            {showTelegramConnectionModal && (
+                <TelegramConnectionStepsModal
+                    onClose={() => setShowTelegramConnectionModal(false)}
+                    onGetTelegramStartLink={onGetTelegramStartLink}
+                />
+            )}
         </div>
     );
 }

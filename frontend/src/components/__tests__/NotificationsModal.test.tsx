@@ -350,7 +350,7 @@ describe('NotificationsModal', () => {
 
         await waitFor(() => {
             // Title should be shown
-            expect(screen.getByText('How to connect your Telegram account?')).toBeInTheDocument();
+            expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
 
             // Step 1: Button to open Telegram
             const telegramLink = screen.getByRole('link', { name: /^go$/i });
@@ -567,7 +567,7 @@ describe('NotificationsModal', () => {
         expect(telegramLabel?.querySelector('.channel-icon-svg')).toBeInTheDocument();
     });
 
-    it('should show title "How to connect your Telegram account?"', async () => {
+    it('should show title "Connect your Telegram account"', async () => {
         const user = userEvent.setup();
         render(
             <NotificationsModal
@@ -583,7 +583,7 @@ describe('NotificationsModal', () => {
 
         await waitFor(() => {
             // Should show the title before the steps
-            expect(screen.getByText('How to connect your Telegram account?')).toBeInTheDocument();
+            expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
         });
     });
 
