@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import './NotificationsModal.css';
 import { UserData } from '../models/User';
 
@@ -68,6 +68,7 @@ export function NotificationsModal({
     user,
 }: NotificationsModalProps) {
     const [selectedChannel, setSelectedChannel] = useState<string>('Email');
+    const selectedChannelRef = useRef<string>('Email');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [telegramConnected, setTelegramConnected] = useState(false);
@@ -84,7 +85,9 @@ export function NotificationsModal({
      */
     useEffect(() => {
         if (user) {
-            setSelectedChannel(user.notification_channels || 'Email');
+            const channel = user.notification_channels || 'Email';
+            setSelectedChannel(channel);
+            selectedChannelRef.current = channel;
 
             if (user.telegram_chat_id) {
                 setTelegramChatId(user.telegram_chat_id);
@@ -120,14 +123,14 @@ export function NotificationsModal({
                     clearInterval(pollingInterval);
                     setPollingInterval(null);
                 }
-                // Automatically save when connected
-                if (selectedChannel === 'Telegram') {
+                // Automatically save when connected (use ref to get current value)
+                if (selectedChannelRef.current === 'Telegram') {
                     await savePreferences('Telegram', status.telegramChatId);
                 }
             } else {
                 // Keep connecting state if not yet connected
                 // This ensures the panel stays visible
-                if (selectedChannel === 'Telegram' && !telegramConnected) {
+                if (selectedChannelRef.current === 'Telegram' && !telegramConnected) {
                     setTelegramConnecting(true);
                 }
             }
@@ -215,7 +218,7 @@ export function NotificationsModal({
 
         // Use provided chat ID if available, otherwise use state
         const chatIdToUse = providedTelegramChatId !== undefined ? providedTelegramChatId : telegramChatId;
-        
+
         // Validate that Telegram is connected if Telegram is selected
         if (channelId === 'Telegram' && !chatIdToUse) {
             setError('Please connect your Telegram account before saving');
@@ -257,6 +260,7 @@ export function NotificationsModal({
 
         if (channelId === 'Telegram') {
             setSelectedChannel('Telegram');
+            selectedChannelRef.current = 'Telegram';
             // If Telegram is already connected, save immediately
             if (telegramConnected) {
                 await savePreferences('Telegram');
@@ -268,6 +272,7 @@ export function NotificationsModal({
             }
         } else {
             setSelectedChannel(channelId);
+            selectedChannelRef.current = channelId;
             // Save immediately for non-Telegram channels
             await savePreferences(channelId);
         }
