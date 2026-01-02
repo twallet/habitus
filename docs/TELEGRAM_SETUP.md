@@ -80,6 +80,18 @@ For local development, you need to use a tunneling service like ngrok:
 
 **Note:** Keep ngrok running while testing. If you restart ngrok, you'll get a new URL and need to update the webhook.
 
+**Important for ngrok Free Tier:**
+
+- ngrok free tier (`*.ngrok-free.dev`) may show a browser warning page that blocks automated requests
+- If webhook is configured but Telegram isn't sending updates, check webhook info for errors:
+  ```bash
+  curl http://localhost:3005/api/telegram/webhook-info
+  ```
+- If you see errors, try:
+  1. Use ngrok paid tier (no browser warning)
+  2. Or use a different tunneling service like Cloudflare Tunnel or localtunnel
+  3. Or test in production where you have a real domain
+
 ## User Configuration Flow
 
 The Telegram connection uses a secure token-based flow:

@@ -179,14 +179,20 @@ export function NotificationsModal({
 
             // Check if webhook is configured
             // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'NotificationsModal.tsx:180', message: 'Checking webhook configuration', data: { hasResult: !!result, isObject: result && typeof result === 'object', hasWebhookConfigured: result && typeof result === 'object' && 'webhookConfigured' in result, webhookConfigured: (result as any)?.webhookConfigured, conditionMet: result && typeof result === 'object' && 'webhookConfigured' in result && !(result as any).webhookConfigured }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' }) }).catch(() => { });
+            fetch('http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'NotificationsModal.tsx:180', message: 'Checking webhook configuration', data: { hasResult: !!result, isObject: result && typeof result === 'object', hasWebhookConfigured: result && typeof result === 'object' && 'webhookConfigured' in result, webhookConfigured: (result as any)?.webhookConfigured, webhookError: (result as any)?.webhookError, webhookUrl: (result as any)?.webhookUrl, conditionMet: result && typeof result === 'object' && 'webhookConfigured' in result && !(result as any).webhookConfigured }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run2', hypothesisId: 'A' }) }).catch(() => { });
             // #endregion
             if (result && typeof result === 'object' && 'webhookConfigured' in result && !(result as any).webhookConfigured) {
                 // #region agent log
                 fetch('http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'NotificationsModal.tsx:181', message: 'Webhook not configured - setting error', data: { webhookUrl: (result as any)?.webhookUrl }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' }) }).catch(() => { });
                 // #endregion
                 const webhookUrl = (result as any).webhookUrl;
-                setError(`Telegram webhook is not configured. The connection will not work until the webhook is set up. ${webhookUrl ? `Current webhook URL: ${webhookUrl}` : 'No webhook URL is set.'} Please use the /api/telegram/set-webhook endpoint to configure it. For local development, use a tunneling service like ngrok.`);
+                const webhookError = (result as any).webhookError;
+                let errorMsg = `Telegram webhook is not configured. The connection will not work until the webhook is set up. ${webhookUrl ? `Current webhook URL: ${webhookUrl}` : 'No webhook URL is set.'}`;
+                if (webhookError) {
+                    errorMsg += ` Telegram reports error: ${webhookError}`;
+                }
+                errorMsg += ' Please use the /api/telegram/set-webhook endpoint to configure it.';
+                setError(errorMsg);
                 setIsGeneratingLink(false);
                 return;
             }

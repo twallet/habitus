@@ -440,6 +440,7 @@ router.get(
       const botToken = process.env.TELEGRAM_BOT_TOKEN;
       let webhookConfigured = false;
       let webhookUrl = null;
+      let webhookError = null;
 
       if (botToken) {
         try {
@@ -448,11 +449,16 @@ router.get(
           );
           const webhookInfo = (await webhookInfoResponse.json()) as {
             ok: boolean;
-            result?: { url?: string };
+            result?: {
+              url?: string;
+              last_error_message?: string;
+              pending_update_count?: number;
+            };
           };
           if (webhookInfo.ok && webhookInfo.result?.url) {
             webhookConfigured = true;
             webhookUrl = webhookInfo.result.url;
+            webhookError = webhookInfo.result.last_error_message || null;
           }
         } catch (error) {
           // Ignore webhook check errors
@@ -468,10 +474,10 @@ router.get(
           body: JSON.stringify({
             location: "telegram.ts:248",
             message: "Webhook check before link generation",
-            data: { webhookConfigured, webhookUrl },
+            data: { webhookConfigured, webhookUrl, webhookError },
             timestamp: Date.now(),
             sessionId: "debug-session",
-            runId: "run1",
+            runId: "run2",
             hypothesisId: "A",
           }),
         }
@@ -525,10 +531,14 @@ router.get(
         `[${new Date().toISOString()}] TELEGRAM_ROUTE | Generated start link for userId: ${userId}`
       );
 
-      // Warn if webhook is not configured
+      // Warn if webhook is not configured or has errors
       if (!webhookConfigured) {
         console.warn(
           `[${new Date().toISOString()}] TELEGRAM_ROUTE | WARNING: Webhook is not configured. Telegram cannot send updates. Connection will not work.`
+        );
+      } else if (webhookError) {
+        console.warn(
+          `[${new Date().toISOString()}] TELEGRAM_ROUTE | WARNING: Webhook is configured but Telegram reports error: ${webhookError}`
         );
       }
 
@@ -537,6 +547,7 @@ router.get(
         token,
         webhookConfigured,
         webhookUrl: webhookUrl || undefined,
+        webhookError: webhookError || undefined,
       });
     } catch (error) {
       console.error(
