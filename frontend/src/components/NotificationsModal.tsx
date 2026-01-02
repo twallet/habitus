@@ -429,7 +429,7 @@ export function NotificationsModal({
                                                 <div className={`step-indicator ${telegramStartCommand ? 'active' : ''}`}>1</div>
                                                 <div className="step-content">
                                                     <h4>Go to 🌱 Habitus in Telegram</h4>
-                                                    <p className="form-help-text">Click the button below to open Telegram</p>
+                                                    <p className="form-help-text">Click the button below to open 🌱 Habitus in Telegram:</p>
                                                     <a
                                                         href="https://t.me/abitus_robot"
                                                         target="_blank"
@@ -454,7 +454,7 @@ export function NotificationsModal({
                                                 <div className="step-content">
                                                     <h4>Copy/Paste your key</h4>
                                                     <p className="form-help-text">
-                                                        Copy the command and paste it in the Telegram bot chat:
+                                                        Copy the command and paste it in the 🌱 Habitus chat in Telegram:
                                                     </p>
                                                     {telegramStartCommand ? (
                                                         <>
