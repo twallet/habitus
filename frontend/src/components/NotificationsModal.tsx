@@ -123,9 +123,15 @@ export function NotificationsModal({
             if (user.telegram_chat_id) {
                 setTelegramChatId(user.telegram_chat_id);
                 setTelegramConnected(true);
+                // Stop polling if Telegram is already connected
+                if (pollingInterval) {
+                    clearInterval(pollingInterval);
+                    setPollingInterval(null);
+                }
+                setTelegramConfigInProgress(false);
             }
         }
-    }, [user]);
+    }, [user, pollingInterval]);
 
     /**
      * Check Telegram connection status.
@@ -168,16 +174,30 @@ export function NotificationsModal({
     };
 
     /**
-     * Cleanup polling interval on unmount.
+     * Cleanup polling interval on unmount or when modal closes.
      * @internal
      */
     useEffect(() => {
         return () => {
             if (pollingInterval) {
                 clearInterval(pollingInterval);
+                setPollingInterval(null);
             }
         };
     }, [pollingInterval]);
+
+    /**
+     * Stop polling when modal is closed.
+     * @internal
+     */
+    useEffect(() => {
+        // This effect runs when the component mounts/unmounts
+        // We'll also stop polling if telegramConfigInProgress becomes false
+        if (!telegramConfigInProgress && pollingInterval) {
+            clearInterval(pollingInterval);
+            setPollingInterval(null);
+        }
+    }, [telegramConfigInProgress]);
 
     /**
      * Handle channel selection change.
@@ -185,6 +205,15 @@ export function NotificationsModal({
      * @internal
      */
     const handleChannelChange = (channelId: string) => {
+        // Stop polling if switching away from Telegram configuration
+        if (telegramConfigInProgress && channelId !== 'Telegram') {
+            setTelegramConfigInProgress(false);
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                setPollingInterval(null);
+            }
+        }
+
         if (channelId === 'Telegram') {
             // If Telegram is already connected, just select it
             if (telegramConnected) {
@@ -236,6 +265,20 @@ export function NotificationsModal({
     };
 
     /**
+     * Handle modal close - stop polling before closing.
+     * @internal
+     */
+    const handleModalClose = () => {
+        // Stop polling when modal closes
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+            setPollingInterval(null);
+        }
+        setTelegramConfigInProgress(false);
+        onClose();
+    };
+
+    /**
      * Handle form submission.
      * @param e - Form submission event
      * @internal
@@ -263,6 +306,12 @@ export function NotificationsModal({
                 selectedChannel,
                 selectedChannel === 'Telegram' && telegramChatId ? telegramChatId : undefined
             );
+            // Stop polling before closing
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                setPollingInterval(null);
+            }
+            setTelegramConfigInProgress(false);
             onClose();
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Error saving notification settings');
@@ -315,14 +364,14 @@ export function NotificationsModal({
     ];
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-overlay" onClick={handleModalClose}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
                     <h2>Configure notifications</h2>
                     <button
                         type="button"
                         className="modal-close"
-                        onClick={onClose}
+                        onClick={handleModalClose}
                         aria-label="Close"
                     >
                         ×
@@ -411,7 +460,7 @@ export function NotificationsModal({
                         <button
                             type="button"
                             className="btn-secondary"
-                            onClick={onClose}
+                            onClick={handleModalClose}
                             disabled={isSubmitting}
                         >
                             Cancel
