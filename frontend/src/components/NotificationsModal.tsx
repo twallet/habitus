@@ -74,11 +74,10 @@ export function NotificationsModal({
     const [telegramConnected, setTelegramConnected] = useState(false);
     const [telegramChatId, setTelegramChatId] = useState<string | null>(null);
     const [telegramUsername, setTelegramUsername] = useState<string | null>(null);
-    const [telegramConnecting, setTelegramConnecting] = useState(false);
     const [telegramLink, setTelegramLink] = useState<string | null>(null);
     const [telegramStartCommand, setTelegramStartCommand] = useState<string | null>(null);
     const [isGeneratingLink, setIsGeneratingLink] = useState(false);
-    const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+    const [keyCopied, setKeyCopied] = useState(false);
 
     /**
      * Load existing preferences from user data and check Telegram status.
@@ -93,12 +92,6 @@ export function NotificationsModal({
             if (user.telegram_chat_id) {
                 setTelegramChatId(user.telegram_chat_id);
                 setTelegramConnected(true);
-                // Stop polling if Telegram is already connected
-                if (pollingInterval) {
-                    clearInterval(pollingInterval);
-                    setPollingInterval(null);
-                }
-                setTelegramConnecting(false);
                 // Fetch Telegram username
                 checkTelegramStatus().catch((err) => {
                     console.error('Error fetching Telegram username:', err);
@@ -110,7 +103,7 @@ export function NotificationsModal({
                 });
             }
         }
-    }, [user, pollingInterval]);
+    }, [user]);
 
     /**
      * Check Telegram connection status.
@@ -123,21 +116,9 @@ export function NotificationsModal({
                 setTelegramChatId(status.telegramChatId);
                 setTelegramConnected(true);
                 setTelegramUsername(status.telegramUsername || null);
-                setTelegramConnecting(false);
-                // Stop polling
-                if (pollingInterval) {
-                    clearInterval(pollingInterval);
-                    setPollingInterval(null);
-                }
                 // Automatically save when connected (use ref to get current value)
                 if (selectedChannelRef.current === 'Telegram') {
                     await savePreferences('Telegram', status.telegramChatId);
-                }
-            } else {
-                // Keep connecting state if not yet connected
-                // This ensures the panel stays visible
-                if (selectedChannelRef.current === 'Telegram' && !telegramConnected) {
-                    setTelegramConnecting(true);
                 }
             }
         } catch (err) {
@@ -146,23 +127,7 @@ export function NotificationsModal({
     };
 
     /**
-     * Start polling for Telegram connection status.
-     * @internal
-     */
-    const startPolling = () => {
-        if (pollingInterval) {
-            clearInterval(pollingInterval);
-        }
-        const interval = setInterval(() => {
-            checkTelegramStatus();
-        }, 2000); // Poll every 2 seconds
-        setPollingInterval(interval);
-        // Check immediately
-        checkTelegramStatus();
-    };
-
-    /**
-     * Generate Telegram connection link.
+     * Generate Telegram connection link and extract start command.
      * @internal
      */
     const generateTelegramLink = async () => {
@@ -186,53 +151,27 @@ export function NotificationsModal({
             }
 
             setTelegramLink(result.link);
-            // Extract start command from link for manual entry (needed for web interface)
+            // Extract start command from link: format is "start <token> <userId>"
             try {
                 const url = new URL(result.link);
                 const startParam = url.searchParams.get('start');
                 if (startParam) {
                     const decoded = decodeURIComponent(startParam);
-                    const command = `/start ${decoded}`;
+                    // Build command as "start <token> <userId>" (remove leading /start if present)
+                    const command = decoded.startsWith('/start ') ? decoded.substring(7) : `start ${decoded}`;
                     setTelegramStartCommand(command);
                 }
             } catch (e) {
                 // Ignore URL parsing errors
             }
-            // Set connecting state after link is ready
-            setTelegramConnecting(true);
-            startPolling();
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Error generating Telegram link');
-            setTelegramConnecting(false);
         } finally {
             // Ensure isGeneratingLink is set to false after link generation
             setIsGeneratingLink(false);
         }
     };
 
-    /**
-     * Cleanup polling interval on unmount or when modal closes.
-     * @internal
-     */
-    useEffect(() => {
-        return () => {
-            if (pollingInterval) {
-                clearInterval(pollingInterval);
-                setPollingInterval(null);
-            }
-        };
-    }, [pollingInterval]);
-
-    /**
-     * Stop polling when Telegram connection is no longer in progress.
-     * @internal
-     */
-    useEffect(() => {
-        if (!telegramConnecting && pollingInterval) {
-            clearInterval(pollingInterval);
-            setPollingInterval(null);
-        }
-    }, [telegramConnecting, pollingInterval]);
 
     /**
      * Save notification preferences.
@@ -264,12 +203,6 @@ export function NotificationsModal({
                 channelId,
                 channelId === 'Telegram' && chatIdToUse ? chatIdToUse : undefined
             );
-            // Stop polling after saving
-            if (pollingInterval) {
-                clearInterval(pollingInterval);
-                setPollingInterval(null);
-            }
-            setTelegramConnecting(false);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Error saving notification settings');
         } finally {
@@ -283,14 +216,6 @@ export function NotificationsModal({
      * @internal
      */
     const handleChannelChange = async (channelId: string) => {
-        // Stop polling if switching away from Telegram
-        if (channelId !== 'Telegram' && pollingInterval) {
-            clearInterval(pollingInterval);
-            setPollingInterval(null);
-            setTelegramConnecting(false);
-            setTelegramLink(null);
-        }
-
         if (channelId === 'Telegram') {
             setSelectedChannel('Telegram');
             selectedChannelRef.current = 'Telegram';
@@ -309,23 +234,6 @@ export function NotificationsModal({
             // Save immediately for non-Telegram channels
             await savePreferences(channelId);
         }
-    };
-
-    /**
-     * Handle canceling Telegram connection.
-     * @internal
-     */
-    const handleCancelTelegram = async () => {
-        setTelegramConnecting(false);
-        setTelegramLink(null);
-        // Stop polling if active
-        if (pollingInterval) {
-            clearInterval(pollingInterval);
-            setPollingInterval(null);
-        }
-        // Switch back to Email and save
-        setSelectedChannel('Email');
-        await savePreferences('Email');
     };
 
     /**
@@ -348,17 +256,12 @@ export function NotificationsModal({
     };
 
     /**
-     * Handle modal close - stop polling before closing.
+     * Handle modal close.
      * @internal
      */
     const handleModalClose = () => {
-        // Stop polling when modal closes
-        if (pollingInterval) {
-            clearInterval(pollingInterval);
-            setPollingInterval(null);
-        }
-        setTelegramConnecting(false);
         setTelegramLink(null);
+        setKeyCopied(false);
         onClose();
     };
 
@@ -465,12 +368,7 @@ export function NotificationsModal({
                                     >
                                         {channel.enabled ? (
                                             <>
-                                                {channel.id === 'Telegram' && telegramConnecting && (
-                                                    <span className="coming-soon-badge config-progress-badge" style={{ background: '#0088cc', color: 'white' }}>
-                                                        Connecting...
-                                                    </span>
-                                                )}
-                                                {channel.id === 'Telegram' && telegramConnected && !telegramConnecting && (
+                                                {channel.id === 'Telegram' && telegramConnected && (
                                                     <span className="coming-soon-badge config-progress-badge" style={{ background: '#25a85a', color: 'white' }}>
                                                         ✓ Connected
                                                     </span>
@@ -486,13 +384,12 @@ export function NotificationsModal({
                                             <span className="channel-label">
                                                 {channel.label}
                                                 {channel.badge && (
-                                                    <span className={`user-badge ${
-                                                        channel.id === 'Email' 
-                                                            ? 'badge-green' 
-                                                            : channel.id === 'Telegram' 
-                                                                ? (telegramConnected ? 'badge-green' : 'badge-red')
-                                                                : ''
-                                                    }`}>
+                                                    <span className={`user-badge ${channel.id === 'Email'
+                                                        ? 'badge-green'
+                                                        : channel.id === 'Telegram'
+                                                            ? (telegramConnected ? 'badge-green' : 'badge-red')
+                                                            : ''
+                                                        }`}>
                                                         {channel.badge}
                                                         {channel.id === 'Telegram' && telegramConnected && (
                                                             <button
@@ -531,69 +428,42 @@ export function NotificationsModal({
                                                         <span className="spinner"></span>
                                                     </div>
                                                     <div className="step-content">
-                                                        <h4>Preparing connection...</h4>
-                                                        <p className="form-help-text">Generating your unique Telegram connection link</p>
+                                                        <h4>Generating connection key...</h4>
+                                                        <p className="form-help-text">Please wait</p>
                                                     </div>
                                                 </div>
                                             ) : (
                                                 <>
                                                     <div className="connection-step">
-                                                        <div className={`step-indicator ${telegramLink ? 'active' : ''}`}>1</div>
+                                                        <div className={`step-indicator ${telegramStartCommand ? 'active' : ''}`}>1</div>
                                                         <div className="step-content">
-                                                            <h4>Open Telegram</h4>
-                                                            <p className="form-help-text">Click the button below to open Telegram and start the bot</p>
-                                                            {telegramLink ? (
-                                                                <a
-                                                                    href={telegramLink}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="btn-primary telegram-link-button"
-                                                                    style={{
-                                                                        display: 'inline-block',
-                                                                        textAlign: 'center',
-                                                                        textDecoration: 'none',
-                                                                        marginTop: '8px'
-                                                                    }}
-                                                                >
-                                                                    Open Telegram
-                                                                </a>
-                                                            ) : (
-                                                                <p className="form-help-text" style={{ marginTop: '8px', fontStyle: 'italic' }}>
-                                                                    Generating link...
-                                                                </p>
-                                                            )}
+                                                            <h4>Go to 🌱 Habitus in Telegram</h4>
+                                                            <p className="form-help-text">Click the button below to open Telegram</p>
+                                                            <a
+                                                                href="https://t.me/abitus_robot"
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="btn-primary telegram-link-button"
+                                                                style={{
+                                                                    display: 'inline-block',
+                                                                    textAlign: 'center',
+                                                                    textDecoration: 'none',
+                                                                    marginTop: '8px'
+                                                                }}
+                                                            >
+                                                                Go to 🌱 Habitus in Telegram
+                                                            </a>
                                                         </div>
                                                     </div>
                                                     <div className="connection-step">
-                                                        <div className={`step-indicator ${telegramConnecting ? 'active' : ''}`}>2</div>
+                                                        <div className={`step-indicator ${telegramStartCommand ? 'active' : ''}`}>2</div>
                                                         <div className="step-content">
-                                                            <h4>Start the bot</h4>
+                                                            <h4>Copy/Paste your key</h4>
                                                             <p className="form-help-text">
-                                                                <strong>Important:</strong> Telegram deep links don't always automatically send the start command. You need to manually type this command in the bot chat:
+                                                                Copy the command below and paste it in the Telegram bot chat:
                                                             </p>
-                                                            {(() => {
-                                                                // Try to extract command from link if not already set
-                                                                let commandToShow = telegramStartCommand;
-                                                                if (!commandToShow && telegramLink) {
-                                                                    try {
-                                                                        const url = new URL(telegramLink);
-                                                                        const startParam = url.searchParams.get('start');
-                                                                        console.log('[Telegram] Extracting command from link:', { hasLink: !!telegramLink, hasStartParam: !!startParam, link: telegramLink?.substring(0, 100) });
-                                                                        if (startParam) {
-                                                                            const decoded = decodeURIComponent(startParam);
-                                                                            commandToShow = `/start ${decoded}`;
-                                                                            console.log('[Telegram] Extracted command:', commandToShow.substring(0, 50) + '...');
-                                                                        } else {
-                                                                            console.warn('[Telegram] No start parameter in link:', telegramLink);
-                                                                        }
-                                                                    } catch (e) {
-                                                                        console.error('[Telegram] Error extracting command:', e);
-                                                                    }
-                                                                } else if (!commandToShow) {
-                                                                    console.warn('[Telegram] No command to show:', { hasState: !!telegramStartCommand, hasLink: !!telegramLink });
-                                                                }
-
-                                                                return commandToShow ? (
+                                                            {telegramStartCommand ? (
+                                                                <>
                                                                     <div style={{
                                                                         marginTop: '12px',
                                                                         padding: '12px',
@@ -611,14 +481,17 @@ export function NotificationsModal({
                                                                             flex: 1,
                                                                             fontWeight: 'bold',
                                                                             color: '#0056b3'
-                                                                        }}>{commandToShow}</code>
+                                                                        }}>{telegramStartCommand}</code>
                                                                         <button
                                                                             type="button"
-                                                                            onClick={() => {
-                                                                                if (commandToShow) {
-                                                                                    navigator.clipboard.writeText(commandToShow).then(() => {
-                                                                                        // Could show toast notification here
-                                                                                    });
+                                                                            onClick={async () => {
+                                                                                if (telegramStartCommand) {
+                                                                                    try {
+                                                                                        await navigator.clipboard.writeText(telegramStartCommand);
+                                                                                        setKeyCopied(true);
+                                                                                    } catch (err) {
+                                                                                        console.error('Error copying to clipboard:', err);
+                                                                                    }
                                                                                 }
                                                                             }}
                                                                             style={{
@@ -632,40 +505,23 @@ export function NotificationsModal({
                                                                                 fontWeight: 'bold',
                                                                                 whiteSpace: 'nowrap'
                                                                             }}
-                                                                            title="Copy command to clipboard"
+                                                                            title="Copy key to clipboard"
                                                                         >
-                                                                            📋 Copy Command
+                                                                            Copy Key
                                                                         </button>
                                                                     </div>
-                                                                ) : (
-                                                                    <p className="form-help-text" style={{ marginTop: '8px', fontStyle: 'italic', color: '#666' }}>
-                                                                        Command will appear here once the link is generated...
-                                                                    </p>
-                                                                );
-                                                            })()}
-                                                        </div>
-                                                    </div>
-                                                    <div className="connection-step">
-                                                        <div className={`step-indicator ${telegramConnecting ? 'checking' : ''}`}>3</div>
-                                                        <div className="step-content">
-                                                            <h4>Waiting for connection...</h4>
-                                                            {telegramConnecting && (
-                                                                <p className="form-help-text">
-                                                                    <span className="spinner-inline"></span>
-                                                                    Checking connection status...
+                                                                    {keyCopied && (
+                                                                        <p className="form-help-text" style={{ marginTop: '12px', color: '#25a85a', fontWeight: 'bold' }}>
+                                                                            You can close the window, your reminders will be sent by Telegram as soon as we finish to connect your Telegram account
+                                                                        </p>
+                                                                    )}
+                                                                </>
+                                                            ) : (
+                                                                <p className="form-help-text" style={{ marginTop: '8px', fontStyle: 'italic', color: '#666' }}>
+                                                                    Generating key...
                                                                 </p>
                                                             )}
                                                         </div>
-                                                    </div>
-                                                    <div className="connection-actions">
-                                                        <button
-                                                            type="button"
-                                                            className="btn-secondary"
-                                                            onClick={handleCancelTelegram}
-                                                            disabled={isSubmitting}
-                                                        >
-                                                            Cancel
-                                                        </button>
                                                     </div>
                                                 </>
                                             )}
