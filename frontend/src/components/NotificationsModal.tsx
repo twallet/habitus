@@ -314,10 +314,14 @@ export function NotificationsModal({
 
     const telegramLabel = useMemo(() => {
         if (selectedChannel === 'Telegram' && telegramUsername) {
-            // Add @ prefix if it's a username (doesn't start with @), otherwise use as is
-            const displayUsername = telegramUsername.startsWith('@')
-                ? telegramUsername
-                : `@${telegramUsername}`;
+            // If it's already prefixed with @, use as is
+            // If it looks like a username (no spaces, alphanumeric/underscores), add @
+            // Otherwise (likely first_name), use as is
+            let displayUsername = telegramUsername;
+            if (!telegramUsername.startsWith('@') && !telegramUsername.includes(' ')) {
+                // Likely a username, add @ prefix
+                displayUsername = `@${telegramUsername}`;
+            }
             return `Telegram ${displayUsername}`;
         }
         return 'Telegram';
