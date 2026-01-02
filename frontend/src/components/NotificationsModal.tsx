@@ -404,6 +404,7 @@ export function NotificationsModal({
                                     key={channel.id}
                                     className={`channel-option channel-option-${channel.id.toLowerCase()} ${!channel.enabled ? 'disabled' : ''}`}
                                     style={selectedChannel === channel.id ? { '--channel-color': channel.color } as React.CSSProperties : undefined}
+                                    title={channel.description}
                                 >
                                     {channel.enabled ? (
                                         <>
@@ -412,6 +413,16 @@ export function NotificationsModal({
                                                     Configuration in progress
                                                 </span>
                                             )}
+                                        </>
+                                    ) : (
+                                        <span className="coming-soon-badge">Coming soon</span>
+                                    )}
+                                    <div className="channel-header">
+                                        <span className="channel-icon">
+                                            {typeof channel.icon === 'string' ? channel.icon : channel.icon}
+                                        </span>
+                                        <span className="channel-label">{channel.label}</span>
+                                        {channel.enabled ? (
                                             <input
                                                 type="radio"
                                                 name="notification-channel"
@@ -420,16 +431,7 @@ export function NotificationsModal({
                                                 onChange={() => handleChannelChange(channel.id)}
                                                 disabled={isSubmitting}
                                             />
-                                        </>
-                                    ) : (
-                                        <span className="coming-soon-badge">Coming soon</span>
-                                    )}
-                                    <span className="channel-icon">
-                                        {typeof channel.icon === 'string' ? channel.icon : channel.icon}
-                                    </span>
-                                    <div className="channel-info">
-                                        <span className="channel-label">{channel.label}</span>
-                                        <span className="channel-description">{channel.description}</span>
+                                        ) : null}
                                     </div>
                                 </label>
                             ))}
