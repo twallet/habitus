@@ -8,12 +8,20 @@ import { UserData } from '../../models/User';
 describe('NotificationsModal', () => {
     const mockOnClose = vi.fn();
     const mockOnSave = vi.fn().mockResolvedValue(undefined);
+    const mockGetTelegramStartLink = vi.fn().mockResolvedValue({
+        link: 'https://t.me/testbot?start=token123%201',
+        token: 'token123'
+    });
+    const mockGetTelegramStatus = vi.fn().mockResolvedValue({
+        connected: false,
+        telegramChatId: null
+    });
 
     const mockUser: UserData = {
         id: 1,
         name: 'John Doe',
         email: 'john@example.com',
-        notification_channels: ['Email'],
+        notification_channels: 'Email',
         telegram_chat_id: '',
         created_at: '2024-01-15T10:30:00Z',
     };
@@ -24,7 +32,12 @@ describe('NotificationsModal', () => {
 
     it('should render modal with title', () => {
         render(
-            <NotificationsModal onClose={mockOnClose} onSave={mockOnSave} />
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+            />
         );
 
         expect(screen.getByText('Configure notifications')).toBeInTheDocument();
@@ -32,29 +45,61 @@ describe('NotificationsModal', () => {
 
     it('should render all notification channels', () => {
         render(
-            <NotificationsModal onClose={mockOnClose} onSave={mockOnSave} />
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+            />
         );
 
         expect(screen.getByText('Email')).toBeInTheDocument();
-        expect(screen.getByText('Calendar')).toBeInTheDocument();
         expect(screen.getByText('Telegram')).toBeInTheDocument();
         expect(screen.getByText('WhatsApp')).toBeInTheDocument();
+        expect(screen.getByText('MS Teams')).toBeInTheDocument();
+        expect(screen.getByText('Slack')).toBeInTheDocument();
     });
 
     it('should have Email selected by default', () => {
         render(
-            <NotificationsModal onClose={mockOnClose} onSave={mockOnSave} />
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+            />
         );
 
-        const emailLabel = screen.getByText('Email').closest('label');
-        const emailCheckbox = emailLabel?.querySelector('input[type="checkbox"]') as HTMLInputElement;
-        expect(emailCheckbox).toBeChecked();
+        const emailRadio = screen.getByRole('radio', { name: /email/i });
+        expect(emailRadio).toBeChecked();
+    });
+
+    it('should show "Coming soon" badge for disabled channels', () => {
+        render(
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+            />
+        );
+
+        // Check for badges (not descriptions)
+        const badges = screen.getAllByText('Coming soon').filter(
+            (el) => el.className.includes('coming-soon-badge')
+        );
+        expect(badges).toHaveLength(3);
     });
 
     it('should close modal when close button is clicked', async () => {
         const user = userEvent.setup();
         render(
-            <NotificationsModal onClose={mockOnClose} onSave={mockOnSave} />
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+            />
         );
 
         const closeButton = screen.getByRole('button', { name: /close/i });
@@ -66,7 +111,12 @@ describe('NotificationsModal', () => {
     it('should close modal when overlay is clicked', async () => {
         const user = userEvent.setup();
         render(
-            <NotificationsModal onClose={mockOnClose} onSave={mockOnSave} />
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+            />
         );
 
         const overlay = document.querySelector('.modal-overlay');
@@ -76,151 +126,269 @@ describe('NotificationsModal', () => {
         }
     });
 
-    it('should toggle channel selection', async () => {
+    it('should change selected channel when radio button is clicked', async () => {
         const user = userEvent.setup();
         render(
-            <NotificationsModal onClose={mockOnClose} onSave={mockOnSave} />
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+            />
         );
 
-        const calendarLabel = screen.getByText('Calendar').closest('label');
-        const calendarCheckbox = calendarLabel?.querySelector('input[type="checkbox"]') as HTMLInputElement;
+        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
+        await user.click(telegramRadio);
 
-        expect(calendarCheckbox).not.toBeChecked();
-        await user.click(calendarLabel!);
-        expect(calendarCheckbox).toBeChecked();
-
-        await user.click(calendarLabel!);
-        expect(calendarCheckbox).not.toBeChecked();
+        expect(telegramRadio).toBeChecked();
+        const emailRadio = screen.getByRole('radio', { name: /email/i });
+        expect(emailRadio).not.toBeChecked();
     });
 
-    it('should show Telegram chat ID input when Telegram is selected', async () => {
-        const user = userEvent.setup();
+    it('should show email confirmation message when Email is selected', () => {
         render(
-            <NotificationsModal onClose={mockOnClose} onSave={mockOnSave} />
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+                user={mockUser}
+            />
         );
 
-        const telegramLabel = screen.getByText('Telegram').closest('label');
-        await user.click(telegramLabel!);
+        // Check for the info message (not the channel description)
+        const emailMessage = screen.getByText((content, element) => {
+            return (
+                content.includes('Reminders will be sent to') &&
+                element?.className.includes('message-text') === true
+            );
+        });
+        expect(emailMessage).toBeInTheDocument();
+        expect(emailMessage.textContent).toContain(mockUser.email!);
+    });
+
+    it('should show Telegram connection flow when Telegram is selected', async () => {
+        const user = userEvent.setup();
+        render(
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+            />
+        );
+
+        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
+        await user.click(telegramRadio);
 
         await waitFor(() => {
-            expect(screen.getByLabelText(/telegram chat id/i)).toBeInTheDocument();
+            expect(screen.getByText(/telegram connection/i)).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /generate telegram link/i })).toBeInTheDocument();
         });
     });
 
-    it('should show Calendar provider select when Calendar is selected', async () => {
+    it('should generate Telegram link when button is clicked', async () => {
         const user = userEvent.setup();
         render(
-            <NotificationsModal onClose={mockOnClose} onSave={mockOnSave} />
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+            />
         );
 
-        const calendarLabel = screen.getByText('Calendar').closest('label');
-        await user.click(calendarLabel!);
+        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
+        await user.click(telegramRadio);
 
         await waitFor(() => {
-            expect(screen.getByLabelText(/calendar provider/i)).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /generate telegram link/i })).toBeInTheDocument();
+        });
+
+        const generateButton = screen.getByRole('button', { name: /generate telegram link/i });
+        await user.click(generateButton);
+
+        await waitFor(() => {
+            expect(mockGetTelegramStartLink).toHaveBeenCalledTimes(1);
+            expect(screen.getByText(/click the link below/i)).toBeInTheDocument();
         });
     });
 
-    it('should show WhatsApp number input when WhatsApp is selected', async () => {
+    it('should show Telegram connection link after generating', async () => {
         const user = userEvent.setup();
         render(
-            <NotificationsModal onClose={mockOnClose} onSave={mockOnSave} />
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+            />
         );
 
-        const whatsappLabel = screen.getByText('WhatsApp').closest('label');
-        await user.click(whatsappLabel!);
+        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
+        await user.click(telegramRadio);
 
         await waitFor(() => {
-            expect(screen.getByLabelText(/whatsapp number/i)).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /generate telegram link/i })).toBeInTheDocument();
         });
+
+        const generateButton = screen.getByRole('button', { name: /generate telegram link/i });
+        await user.click(generateButton);
+
+        await waitFor(() => {
+            const link = screen.getByRole('link', { name: /connect telegram/i });
+            expect(link).toHaveAttribute('href', 'https://t.me/testbot?start=token123%201');
+            expect(link).toHaveAttribute('target', '_blank');
+        });
+    });
+
+    it('should check Telegram status after generating link', async () => {
+        const user = userEvent.setup();
+        render(
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+            />
+        );
+
+        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
+        await user.click(telegramRadio);
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /generate telegram link/i })).toBeInTheDocument();
+        });
+
+        const generateButton = screen.getByRole('button', { name: /generate telegram link/i });
+        await user.click(generateButton);
+
+        await waitFor(() => {
+            expect(mockGetTelegramStatus).toHaveBeenCalled();
+        });
+    });
+
+    it('should show connected status when Telegram is already connected', () => {
+        const mockGetTelegramStatusConnected = vi.fn().mockResolvedValue({
+            connected: true,
+            telegramChatId: '123456789'
+        });
+
+        const userWithTelegram: UserData = {
+            ...mockUser,
+            notification_channels: 'Telegram',
+            telegram_chat_id: '123456789',
+        };
+
+        render(
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatusConnected}
+                user={userWithTelegram}
+            />
+        );
+
+        expect(screen.getByText(/telegram account connected/i)).toBeInTheDocument();
+        expect(screen.getByText(/123456789/)).toBeInTheDocument();
     });
 
     it('should load user preferences on mount', () => {
         const userWithPreferences: UserData = {
             ...mockUser,
-            notification_channels: ['Email', 'Telegram'],
+            notification_channels: 'Telegram',
             telegram_chat_id: '123456789',
         };
 
         render(
-            <NotificationsModal onClose={mockOnClose} onSave={mockOnSave} user={userWithPreferences} />
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+                user={userWithPreferences}
+            />
         );
 
-        const emailLabel = screen.getByText('Email').closest('label');
-        const telegramLabel = screen.getByText('Telegram').closest('label');
-        const emailCheckbox = emailLabel?.querySelector('input[type="checkbox"]') as HTMLInputElement;
-        const telegramCheckbox = telegramLabel?.querySelector('input[type="checkbox"]') as HTMLInputElement;
-
-        expect(emailCheckbox).toBeChecked();
-        expect(telegramCheckbox).toBeChecked();
+        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
+        expect(telegramRadio).toBeChecked();
     });
 
-    it('should validate Telegram chat ID when Telegram is selected', async () => {
+    it('should disable save button when Telegram is selected but not connected', async () => {
         const user = userEvent.setup();
         render(
-            <NotificationsModal onClose={mockOnClose} onSave={mockOnSave} />
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+            />
         );
 
-        const telegramLabel = screen.getByText('Telegram').closest('label');
-        await user.click(telegramLabel!);
+        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
+        await user.click(telegramRadio);
 
         await waitFor(() => {
-            expect(screen.getByLabelText(/telegram chat id/i)).toBeInTheDocument();
+            expect(screen.getByText(/telegram connection/i)).toBeInTheDocument();
         });
 
         const saveButton = screen.getByRole('button', { name: /^save$/i });
-        await user.click(saveButton);
-
-        await waitFor(() => {
-            expect(screen.getByText(/telegram chat id is required/i)).toBeInTheDocument();
-        });
+        expect(saveButton).toBeDisabled();
 
         expect(mockOnSave).not.toHaveBeenCalled();
     });
 
-    it('should submit form with selected channels', async () => {
+    it('should submit form with Email channel', async () => {
         const user = userEvent.setup();
         render(
-            <NotificationsModal onClose={mockOnClose} onSave={mockOnSave} />
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+            />
         );
-
-        const telegramLabel = screen.getByText('Telegram').closest('label');
-        await user.click(telegramLabel!);
-
-        await waitFor(() => {
-            expect(screen.getByLabelText(/telegram chat id/i)).toBeInTheDocument();
-        });
-
-        const telegramInput = screen.getByLabelText(/telegram chat id/i);
-        await user.type(telegramInput, '123456789');
 
         const saveButton = screen.getByRole('button', { name: /^save$/i });
         await user.click(saveButton);
 
         await waitFor(() => {
-            expect(mockOnSave).toHaveBeenCalledWith(['Email', 'Telegram'], '123456789');
+            expect(mockOnSave).toHaveBeenCalledWith('Email', undefined);
         });
         expect(mockOnClose).toHaveBeenCalledTimes(1);
     });
 
-    it('should handle multiple channel selection', async () => {
+    it('should submit form with Telegram channel when connected', async () => {
         const user = userEvent.setup();
+        const mockGetTelegramStatusConnected = vi.fn().mockResolvedValue({
+            connected: true,
+            telegramChatId: '123456789'
+        });
+
+        const userWithTelegram: UserData = {
+            ...mockUser,
+            notification_channels: 'Telegram',
+            telegram_chat_id: '123456789',
+        };
+
         render(
-            <NotificationsModal onClose={mockOnClose} onSave={mockOnSave} />
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatusConnected}
+                user={userWithTelegram}
+            />
         );
-
-        const calendarLabel = screen.getByText('Calendar').closest('label');
-        const whatsappLabel = screen.getByText('WhatsApp').closest('label');
-
-        await user.click(calendarLabel!);
-        await user.click(whatsappLabel!);
 
         const saveButton = screen.getByRole('button', { name: /^save$/i });
         await user.click(saveButton);
 
         await waitFor(() => {
-            expect(mockOnSave).toHaveBeenCalledWith(['Email', 'Calendar', 'WhatsApp'], undefined);
+            expect(mockOnSave).toHaveBeenCalledWith('Telegram', '123456789');
         });
+        expect(mockOnClose).toHaveBeenCalledTimes(1);
     });
 
     it('should display error message on save failure', async () => {
@@ -229,7 +397,12 @@ describe('NotificationsModal', () => {
         const mockOnSaveWithError = vi.fn().mockRejectedValue(new Error(errorMessage));
 
         render(
-            <NotificationsModal onClose={mockOnClose} onSave={mockOnSaveWithError} />
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSaveWithError}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+            />
         );
 
         const saveButton = screen.getByRole('button', { name: /^save$/i });
@@ -250,7 +423,12 @@ describe('NotificationsModal', () => {
         });
 
         render(
-            <NotificationsModal onClose={mockOnClose} onSave={mockOnSaveDelayed} />
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSaveDelayed}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+            />
         );
 
         const saveButton = screen.getByRole('button', { name: /^save$/i });
@@ -267,69 +445,23 @@ describe('NotificationsModal', () => {
         });
     });
 
-    it('should hide configuration sections when channels are deselected', async () => {
-        const user = userEvent.setup();
-        render(
-            <NotificationsModal onClose={mockOnClose} onSave={mockOnSave} />
-        );
-
-        const telegramLabel = screen.getByText('Telegram').closest('label');
-        await user.click(telegramLabel!);
-
-        await waitFor(() => {
-            expect(screen.getByLabelText(/telegram chat id/i)).toBeInTheDocument();
-        });
-
-        await user.click(telegramLabel!);
-
-        await waitFor(() => {
-            expect(screen.queryByLabelText(/telegram chat id/i)).not.toBeInTheDocument();
-        });
-    });
-
-    it('should maintain backward compatibility with existing Email/Telegram setup', async () => {
-        const userWithTelegram: UserData = {
-            ...mockUser,
-            notification_channels: ['Email', 'Telegram'],
-            telegram_chat_id: '987654321',
-        };
-
-        render(
-            <NotificationsModal onClose={mockOnClose} onSave={mockOnSave} user={userWithTelegram} />
-        );
-
-        const emailLabel = screen.getByText('Email').closest('label');
-        const telegramLabel = screen.getByText('Telegram').closest('label');
-        const emailCheckbox = emailLabel?.querySelector('input[type="checkbox"]') as HTMLInputElement;
-        const telegramCheckbox = telegramLabel?.querySelector('input[type="checkbox"]') as HTMLInputElement;
-
-        expect(emailCheckbox).toBeChecked();
-        expect(telegramCheckbox).toBeChecked();
-
-        await waitFor(() => {
-            const telegramInput = screen.getByLabelText(/telegram chat id/i) as HTMLInputElement;
-            expect(telegramInput.value).toBe('987654321');
-        });
-    });
 
     it('should render channel icons', () => {
         render(
-            <NotificationsModal onClose={mockOnClose} onSave={mockOnSave} />
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+            />
         );
 
-        // Check for emoji icons (Email and Calendar)
+        // Check for emoji icons (Email)
         const emailLabel = screen.getByText('Email').closest('label');
-        const calendarLabel = screen.getByText('Calendar').closest('label');
-
         expect(emailLabel?.querySelector('.channel-icon')).toBeInTheDocument();
-        expect(calendarLabel?.querySelector('.channel-icon')).toBeInTheDocument();
 
-        // Check for SVG icons (Telegram and WhatsApp)
+        // Check for SVG icons (Telegram, WhatsApp, etc.)
         const telegramLabel = screen.getByText('Telegram').closest('label');
-        const whatsappLabel = screen.getByText('WhatsApp').closest('label');
-
         expect(telegramLabel?.querySelector('.channel-icon-svg')).toBeInTheDocument();
-        expect(whatsappLabel?.querySelector('.channel-icon-svg')).toBeInTheDocument();
     });
 });
-

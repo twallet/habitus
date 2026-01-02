@@ -366,15 +366,13 @@ export function useAuth() {
 
   /**
    * Get Telegram bot start link for connecting Telegram account.
-   * @returns Promise resolving to object with link, token, userId, and botUsername
+   * @returns Promise resolving to object with link and token
    * @throws Error if request fails
    * @public
    */
   const getTelegramStartLink = async (): Promise<{
     link: string;
     token: string;
-    userId: number;
-    botUsername: string | null;
   }> => {
     if (!token) {
       throw new Error("Not authenticated");
@@ -384,13 +382,13 @@ export function useAuth() {
 
   /**
    * Get Telegram connection status for the authenticated user.
-   * @returns Promise resolving to object with connected status and chatId
+   * @returns Promise resolving to object with connected status and telegramChatId
    * @throws Error if request fails
    * @public
    */
   const getTelegramStatus = async (): Promise<{
     connected: boolean;
-    chatId: string | null;
+    telegramChatId: string | null;
   }> => {
     if (!token) {
       throw new Error("Not authenticated");

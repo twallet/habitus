@@ -37,7 +37,7 @@
   transform: translateY(-2px);
 }
 
-.channel-option:has(input[type="checkbox"]:checked) {
+.channel-option:has(input[type="radio"]:checked) {
   border-color: var(--channel-color, var(--primary-color));
   background: var(--bg-secondary);
   box-shadow: 0 0 0 3px rgba(0, 90, 127, 0.1);
@@ -49,7 +49,7 @@
   background: var(--bg-secondary);
 }
 
-.channel-option input[type="checkbox"] {
+.channel-option input[type="radio"] {
   width: 20px;
   height: 20px;
   cursor: pointer;
@@ -57,7 +57,7 @@
   flex-shrink: 0;
 }
 
-.channel-option.disabled input[type="checkbox"] {
+.channel-option.disabled input[type="radio"] {
   cursor: not-allowed;
 }
 
@@ -93,16 +93,50 @@
   color: #25d366;
 }
 
-.channel-label {
+.channel-info {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.channel-label {
   font-size: 1rem;
   font-weight: 500;
   color: var(--text-primary);
   user-select: none;
 }
 
-.channel-option.disabled .channel-label {
+.channel-description {
+  font-size: 0.875rem;
   color: var(--text-secondary);
+  user-select: none;
+}
+
+.channel-option.disabled .channel-label,
+.channel-option.disabled .channel-description {
+  color: var(--text-secondary);
+}
+
+.coming-soon-badge {
+  padding: 4px 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.telegram-connection-flow {
+  margin-top: 8px;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
 }
 
 .form-help-text {

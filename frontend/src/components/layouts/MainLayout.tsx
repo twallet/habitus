@@ -17,7 +17,7 @@ import { NotificationsModal } from '../../components/NotificationsModal';
 import { OutletContextType } from '../../context/AppContext';
 
 export function MainLayout() {
-    const { isAuthenticated, isLoading, user, logout, updateProfile, updateNotificationPreferences, deleteUser, requestEmailChange } = useAuth();
+    const { isAuthenticated, isLoading, user, logout, updateProfile, updateNotificationPreferences, deleteUser, requestEmailChange, getTelegramStartLink, getTelegramStatus } = useAuth();
     const [searchParams, setSearchParams] = useSearchParams();
     const location = useLocation();
     const isAdminPage = location.pathname === '/admin';
@@ -340,10 +340,12 @@ export function MainLayout() {
                 {showNotifications && (
                     <NotificationsModal
                         onClose={() => setShowNotifications(false)}
-                        onSave={async (selectedChannels, telegramChatId) => {
-                            await updateNotificationPreferences(selectedChannels, telegramChatId);
+                        onSave={async (notificationChannel, telegramChatId) => {
+                            await updateNotificationPreferences(notificationChannel, telegramChatId);
                             setMessage({ text: 'Notification settings saved', type: 'success' });
                         }}
+                        onGetTelegramStartLink={getTelegramStartLink}
+                        onGetTelegramStatus={getTelegramStatus}
                         user={user}
                     />
                 )}

@@ -4,7 +4,9 @@ import { UserData } from '../models/User';
 
 interface NotificationsModalProps {
     onClose: () => void;
-    onSave: (selectedChannels: string[], telegramChatId?: string) => Promise<void>;
+    onSave: (notificationChannel: string, telegramChatId?: string) => Promise<void>;
+    onGetTelegramStartLink: () => Promise<{ link: string; token: string }>;
+    onGetTelegramStatus: () => Promise<{ connected: boolean; telegramChatId: string | null }>;
     user?: UserData | null;
 }
 
@@ -47,25 +49,70 @@ function WhatsAppIcon({ className }: { className?: string }) {
 }
 
 /**
+ * MS Teams icon SVG component.
+ * @internal
+ */
+function MSTeamsIcon({ className }: { className?: string }) {
+    return (
+        <svg
+            className={className}
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+        >
+            <path d="M19.5 4.5h-15A1.5 1.5 0 003 6v12a1.5 1.5 0 001.5 1.5h15a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5zM12 7.5a3 3 0 110 6 3 3 0 010-6zm-6 9v-1.5a4.5 4.5 0 019 0V16.5H6z" />
+        </svg>
+    );
+}
+
+/**
+ * Slack icon SVG component.
+ * @internal
+ */
+function SlackIcon({ className }: { className?: string }) {
+    return (
+        <svg
+            className={className}
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+        >
+            <path d="M5.042 15.165a2.528 2.528 0 01-2.52 2.523A2.528 2.528 0 010 15.165a2.527 2.527 0 012.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 012.521-2.52 2.527 2.527 0 012.521 2.52v6.313A2.528 2.528 0 018.834 24a2.528 2.528 0 01-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 01-2.521-2.52A2.528 2.528 0 018.834 0a2.528 2.528 0 012.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 012.521 2.521 2.528 2.528 0 01-2.521 2.521H2.522A2.528 2.528 0 010 8.834a2.528 2.528 0 012.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 012.522-2.521A2.528 2.528 0 0124 8.834a2.528 2.528 0 01-2.522 2.521h-2.52V8.834zM17.688 8.834a2.528 2.528 0 01-2.523 2.521 2.527 2.527 0 01-2.52-2.521V2.522A2.527 2.527 0 0115.165 0a2.528 2.528 0 012.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 012.523 2.522A2.528 2.528 0 0115.165 24a2.527 2.527 0 01-2.52-2.522v-2.52h2.52zM15.165 17.688a2.527 2.527 0 01-2.52-2.523 2.526 2.526 0 012.52-2.52h6.313A2.527 2.527 0 0124 15.165a2.528 2.528 0 01-2.522 2.523h-6.313z" />
+        </svg>
+    );
+}
+
+/**
  * Modal component for managing notification settings.
- * Allows users to select notification channels for reminders.
+ * Allows users to select a single notification channel for reminders.
  * @param props - Component props
  * @param props.onClose - Callback when modal is closed
- * @param props.onSave - Callback when settings are saved
+ * @param props.onSave - Callback when settings are saved (accepts single channel)
+ * @param props.onGetTelegramStartLink - Callback to get Telegram connection link
+ * @param props.onGetTelegramStatus - Callback to check Telegram connection status
  * @param props.user - Current user data (optional, for loading existing preferences)
  * @public
  */
 export function NotificationsModal({
     onClose,
     onSave,
+    onGetTelegramStartLink,
+    onGetTelegramStatus,
     user,
 }: NotificationsModalProps) {
-    const [selectedChannels, setSelectedChannels] = useState<string[]>(['Email']);
-    const [telegramChatId, setTelegramChatId] = useState<string>('');
-    const [calendarProvider, setCalendarProvider] = useState<string>('');
-    const [whatsappNumber, setWhatsappNumber] = useState<string>('');
+    const [selectedChannel, setSelectedChannel] = useState<string>('Email');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Telegram connection state
+    const [telegramLink, setTelegramLink] = useState<string | null>(null);
+    const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+    const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+    const [telegramConnected, setTelegramConnected] = useState(false);
+    const [telegramChatId, setTelegramChatId] = useState<string | null>(null);
+    const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
     /**
      * Load existing preferences from user data.
@@ -73,25 +120,83 @@ export function NotificationsModal({
      */
     useEffect(() => {
         if (user) {
-            setSelectedChannels(user.notification_channels || ['Email']);
-            setTelegramChatId(user.telegram_chat_id || '');
+            setSelectedChannel(user.notification_channels || 'Email');
+
+            if (user.telegram_chat_id) {
+                setTelegramChatId(user.telegram_chat_id);
+                setTelegramConnected(true);
+            }
         }
     }, [user]);
 
     /**
-     * Handle channel toggle.
-     * @param channel - The channel to toggle
+     * Check Telegram connection status.
      * @internal
      */
-    const handleChannelToggle = (channel: string) => {
-        if (selectedChannels.includes(channel)) {
-            // Remove channel if already selected
-            setSelectedChannels(selectedChannels.filter((ch) => ch !== channel));
-        } else {
-            // Add channel if not selected
-            setSelectedChannels([...selectedChannels, channel]);
+    const checkTelegramStatus = async () => {
+        if (isCheckingStatus) return;
+
+        setIsCheckingStatus(true);
+        try {
+            const status = await onGetTelegramStatus();
+            setTelegramConnected(status.connected);
+            if (status.connected && status.telegramChatId) {
+                setTelegramChatId(status.telegramChatId);
+                // Stop polling once connected
+                if (pollingInterval) {
+                    clearInterval(pollingInterval);
+                    setPollingInterval(null);
+                }
+            }
+        } catch (err) {
+            console.error('Error checking Telegram status:', err);
+        } finally {
+            setIsCheckingStatus(false);
         }
     };
+
+    /**
+     * Generate Telegram connection link.
+     * @internal
+     */
+    const handleGenerateTelegramLink = async () => {
+        setIsGeneratingLink(true);
+        setError(null);
+        try {
+            const result = await onGetTelegramStartLink();
+            setTelegramLink(result.link);
+
+            // Start polling for connection status
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+            }
+
+            const interval = setInterval(() => {
+                checkTelegramStatus();
+            }, 2000); // Poll every 2 seconds
+
+            setPollingInterval(interval);
+
+            // Check immediately
+            await checkTelegramStatus();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Error generating Telegram link');
+        } finally {
+            setIsGeneratingLink(false);
+        }
+    };
+
+    /**
+     * Cleanup polling interval on unmount.
+     * @internal
+     */
+    useEffect(() => {
+        return () => {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+            }
+        };
+    }, [pollingInterval]);
 
     /**
      * Handle form submission.
@@ -109,17 +214,17 @@ export function NotificationsModal({
         setIsSubmitting(true);
         setError(null);
 
-        // Validate that Telegram chat ID is provided if Telegram is selected
-        if (selectedChannels.includes('Telegram') && !telegramChatId.trim()) {
-            setError('Telegram chat ID is required when Telegram notifications are enabled');
+        // Validate that Telegram is connected if Telegram is selected
+        if (selectedChannel === 'Telegram' && !telegramConnected) {
+            setError('Please connect your Telegram account before saving');
             setIsSubmitting(false);
             return;
         }
 
         try {
             await onSave(
-                selectedChannels,
-                selectedChannels.includes('Telegram') ? telegramChatId.trim() : undefined
+                selectedChannel,
+                selectedChannel === 'Telegram' && telegramChatId ? telegramChatId : undefined
             );
             onClose();
         } catch (err) {
@@ -135,28 +240,40 @@ export function NotificationsModal({
             label: 'Email',
             enabled: true,
             icon: '📧',
-            color: '#005A7F'
-        },
-        {
-            id: 'Calendar',
-            label: 'Calendar',
-            enabled: true,
-            icon: '📅',
-            color: '#EA4335'
+            color: '#005A7F',
+            description: `Reminders will be sent to ${user?.email || 'your email address'}`
         },
         {
             id: 'Telegram',
             label: 'Telegram',
             enabled: true,
             icon: <TelegramIcon className="channel-icon-svg" />,
-            color: '#0088cc'
+            color: '#0088cc',
+            description: 'Connect your Telegram account to receive reminders'
         },
         {
             id: 'WhatsApp',
             label: 'WhatsApp',
-            enabled: true,
+            enabled: false,
             icon: <WhatsAppIcon className="channel-icon-svg" />,
-            color: '#25D366'
+            color: '#25D366',
+            description: 'Coming soon'
+        },
+        {
+            id: 'MSTeams',
+            label: 'MS Teams',
+            enabled: false,
+            icon: <MSTeamsIcon className="channel-icon-svg" />,
+            color: '#6264A7',
+            description: 'Coming soon'
+        },
+        {
+            id: 'Slack',
+            label: 'Slack',
+            enabled: false,
+            icon: <SlackIcon className="channel-icon-svg" />,
+            color: '#4A154B',
+            description: 'Coming soon'
         },
     ];
 
@@ -191,89 +308,98 @@ export function NotificationsModal({
                     )}
 
                     <div className="form-group">
-                        <label className="notifications-label">Send reminders</label>
+                        <label className="notifications-label">Notification channel</label>
+                        <p className="form-help-text" style={{ marginTop: '0.5rem', marginBottom: '1rem' }}>
+                            Select one notification channel for reminders
+                        </p>
                         <div className="notification-channels">
                             {channels.map((channel) => (
                                 <label
                                     key={channel.id}
                                     className={`channel-option channel-option-${channel.id.toLowerCase()} ${!channel.enabled ? 'disabled' : ''}`}
-                                    style={selectedChannels.includes(channel.id) ? { '--channel-color': channel.color } as React.CSSProperties : undefined}
+                                    style={selectedChannel === channel.id ? { '--channel-color': channel.color } as React.CSSProperties : undefined}
                                 >
                                     <span className="channel-icon">
                                         {typeof channel.icon === 'string' ? channel.icon : channel.icon}
                                     </span>
-                                    <span className="channel-label">{channel.label}</span>
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedChannels.includes(channel.id)}
-                                        onChange={() => handleChannelToggle(channel.id)}
-                                        disabled={!channel.enabled || isSubmitting}
-                                    />
+                                    <div className="channel-info">
+                                        <span className="channel-label">{channel.label}</span>
+                                        <span className="channel-description">{channel.description}</span>
+                                    </div>
+                                    {channel.enabled ? (
+                                        <input
+                                            type="radio"
+                                            name="notification-channel"
+                                            value={channel.id}
+                                            checked={selectedChannel === channel.id}
+                                            onChange={() => setSelectedChannel(channel.id)}
+                                            disabled={isSubmitting}
+                                        />
+                                    ) : (
+                                        <span className="coming-soon-badge">Coming soon</span>
+                                    )}
                                 </label>
                             ))}
                         </div>
                     </div>
 
-                    {selectedChannels.includes('Telegram') && (
+                    {selectedChannel === 'Email' && (
                         <div className="form-group">
-                            <label htmlFor="telegram-chat-id" className="notifications-label">
-                                Telegram chat ID
-                            </label>
-                            <input
-                                id="telegram-chat-id"
-                                type="text"
-                                value={telegramChatId}
-                                onChange={(e) => setTelegramChatId(e.target.value)}
-                                placeholder="Enter your Telegram chat ID"
-                                disabled={isSubmitting}
-                                className="form-input"
-                            />
-                            <p className="form-help-text">
-                                To get your chat ID, start a conversation with your bot and send /start, then check the bot's logs or use @userinfobot
-                            </p>
+                            <div className="message info show">
+                                <span className="message-text">
+                                    Reminders will be sent to <strong>{user?.email || 'your email address'}</strong>
+                                </span>
+                            </div>
                         </div>
                     )}
 
-                    {selectedChannels.includes('Calendar') && (
+                    {selectedChannel === 'Telegram' && (
                         <div className="form-group">
-                            <label htmlFor="calendar-provider" className="notifications-label">
-                                Calendar provider
-                            </label>
-                            <select
-                                id="calendar-provider"
-                                value={calendarProvider}
-                                onChange={(e) => setCalendarProvider(e.target.value)}
-                                disabled={isSubmitting}
-                                className="form-input"
-                            >
-                                <option value="">Select a calendar provider</option>
-                                <option value="google">Google Calendar</option>
-                                <option value="outlook">Microsoft Outlook</option>
-                                <option value="apple">Apple Calendar</option>
-                            </select>
-                            <p className="form-help-text">
-                                Connect your calendar to sync reminders. This feature is coming soon.
-                            </p>
-                        </div>
-                    )}
-
-                    {selectedChannels.includes('WhatsApp') && (
-                        <div className="form-group">
-                            <label htmlFor="whatsapp-number" className="notifications-label">
-                                WhatsApp number
-                            </label>
-                            <input
-                                id="whatsapp-number"
-                                type="text"
-                                value={whatsappNumber}
-                                onChange={(e) => setWhatsappNumber(e.target.value)}
-                                placeholder="Enter your WhatsApp number (e.g., +1234567890)"
-                                disabled={isSubmitting}
-                                className="form-input"
-                            />
-                            <p className="form-help-text">
-                                Enter your WhatsApp number to receive reminders. This feature is coming soon.
-                            </p>
+                            <label className="notifications-label">Telegram connection</label>
+                            {telegramConnected ? (
+                                <div className="message success show">
+                                    <span className="message-text">
+                                        ✓ Telegram account connected (Chat ID: {telegramChatId})
+                                    </span>
+                                </div>
+                            ) : (
+                                <>
+                                    {telegramLink ? (
+                                        <div className="telegram-connection-flow">
+                                            <p className="form-help-text">
+                                                Click the link below to connect your Telegram account:
+                                            </p>
+                                            <a
+                                                href={telegramLink}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="btn-primary"
+                                                style={{ display: 'inline-block', marginTop: '0.5rem', textDecoration: 'none' }}
+                                            >
+                                                Connect Telegram
+                                            </a>
+                                            <p className="form-help-text" style={{ marginTop: '0.5rem' }}>
+                                                After clicking the link and starting the bot, your account will be connected automatically.
+                                                {isCheckingStatus && ' Checking connection status...'}
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="telegram-connection-flow">
+                                            <p className="form-help-text">
+                                                Click the button below to generate a connection link for your Telegram account.
+                                            </p>
+                                            <button
+                                                type="button"
+                                                className="btn-primary"
+                                                onClick={handleGenerateTelegramLink}
+                                                disabled={isGeneratingLink || isSubmitting}
+                                            >
+                                                {isGeneratingLink ? 'Generating link...' : 'Generate Telegram link'}
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
+                            )}
                         </div>
                     )}
 
@@ -289,7 +415,7 @@ export function NotificationsModal({
                         <button
                             type="submit"
                             className="btn-primary"
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || (selectedChannel === 'Telegram' && !telegramConnected)}
                         >
                             {isSubmitting ? 'Saving...' : 'Save'}
                         </button>
@@ -299,4 +425,3 @@ export function NotificationsModal({
         </div>
     );
 }
-
