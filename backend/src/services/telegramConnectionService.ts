@@ -114,6 +114,21 @@ export class TelegramConnectionService {
   }
 
   /**
+   * Check if user has an active (non-expired) connection token.
+   * @param userId - The user ID to check
+   * @returns Promise resolving to true if user has active token, false otherwise
+   * @public
+   */
+  async hasActiveToken(userId: number): Promise<boolean> {
+    const now = new Date().toISOString();
+    const result = await this.db.get<{ count: number }>(
+      "SELECT COUNT(*) as count FROM telegram_connection_tokens WHERE user_id = ? AND expires_at > ?",
+      [userId, now]
+    );
+    return (result?.count ?? 0) > 0;
+  }
+
+  /**
    * Clean up expired tokens from the database.
    * Should be called periodically to prevent database bloat.
    * @returns Promise resolving when cleanup is complete

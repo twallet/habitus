@@ -7,7 +7,7 @@ interface NotificationsModalProps {
     onClose: () => void;
     onSave: (notificationChannel: string, telegramChatId?: string) => Promise<void>;
     onGetTelegramStartLink: () => Promise<{ link: string; token: string }>;
-    onGetTelegramStatus: () => Promise<{ connected: boolean; telegramChatId: string | null; telegramUsername: string | null }>;
+    onGetTelegramStatus: () => Promise<{ connected: boolean; telegramChatId: string | null; telegramUsername: string | null; hasActiveToken: boolean }>;
     user?: UserData | null;
 }
 
@@ -77,165 +77,8 @@ export function NotificationsModal({
     const [telegramUsername, setTelegramUsername] = useState<string | null>(null);
     const [showTelegramConnectionModal, setShowTelegramConnectionModal] = useState(false);
     const [telegramConnecting, setTelegramConnecting] = useState(false);
-    const connectingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const keyGenerationTimeRef = useRef<number | null>(null);
     const isCancelingRef = useRef(false);
-
-    /**
-     * Load connecting state from localStorage on mount.
-     * @internal
-     */
-    useEffect(() => {
-        const savedConnecting = localStorage.getItem('telegramConnecting');
-        const savedKeyTime = localStorage.getItem('telegramKeyGenerationTime');
-
-        if (savedConnecting === 'true' && savedKeyTime) {
-            const keyTime = parseInt(savedKeyTime, 10);
-            const elapsed = Date.now() - keyTime;
-            const remaining = 10 * 60 * 1000 - elapsed; // 10 minutes minus elapsed time
-
-            if (remaining > 0) {
-                // Restore connecting state
-                setTelegramConnecting(true);
-                keyGenerationTimeRef.current = keyTime;
-
-                // Set timeout for remaining time
-                connectingTimeoutRef.current = setTimeout(() => {
-                    setTelegramConnecting(false);
-                    localStorage.removeItem('telegramConnecting');
-                    localStorage.removeItem('telegramKeyGenerationTime');
-                    keyGenerationTimeRef.current = null;
-                }, remaining);
-            } else {
-                // Key has expired, clear storage
-                localStorage.removeItem('telegramConnecting');
-                localStorage.removeItem('telegramKeyGenerationTime');
-            }
-        }
-    }, []);
-
-    /**
-     * Record key generation time when modal opens.
-     * @internal
-     */
-    useEffect(() => {
-        if (showTelegramConnectionModal) {
-            // Record when key generation starts (modal opens)
-            const keyTime = Date.now();
-            keyGenerationTimeRef.current = keyTime;
-            // Persist to localStorage
-            localStorage.setItem('telegramKeyGenerationTime', keyTime.toString());
-        }
-    }, [showTelegramConnectionModal]);
-
-    /**
-     * Clear connecting status when key expires (10 minutes from generation).
-     * The timeout starts when copy is clicked, but calculates remaining time from key generation.
-     * Persists state to localStorage so it survives modal close/reopen.
-     * @internal
-     */
-    useEffect(() => {
-        if (telegramConnecting && !telegramConnected && keyGenerationTimeRef.current) {
-            // Persist connecting state to localStorage
-            localStorage.setItem('telegramConnecting', 'true');
-
-            // Calculate remaining time from key generation
-            const elapsed = Date.now() - keyGenerationTimeRef.current;
-            const remaining = 10 * 60 * 1000 - elapsed; // 10 minutes minus elapsed time
-
-            if (remaining > 0) {
-                // Clear any existing timeout
-                if (connectingTimeoutRef.current) {
-                    clearTimeout(connectingTimeoutRef.current);
-                }
-                // Set timeout for remaining time
-                connectingTimeoutRef.current = setTimeout(() => {
-                    setTelegramConnecting(false);
-                    localStorage.removeItem('telegramConnecting');
-                    localStorage.removeItem('telegramKeyGenerationTime');
-                    keyGenerationTimeRef.current = null;
-                }, remaining);
-            } else {
-                // Key has already expired, clear connecting status immediately
-                setTelegramConnecting(false);
-                localStorage.removeItem('telegramConnecting');
-                localStorage.removeItem('telegramKeyGenerationTime');
-                keyGenerationTimeRef.current = null;
-            }
-
-            // Cleanup timeout on unmount or when connecting state changes
-            return () => {
-                if (connectingTimeoutRef.current) {
-                    clearTimeout(connectingTimeoutRef.current);
-                    connectingTimeoutRef.current = null;
-                }
-            };
-        } else {
-            // Clear timeout if connecting state is cleared manually or Telegram is connected
-            if (connectingTimeoutRef.current) {
-                clearTimeout(connectingTimeoutRef.current);
-                connectingTimeoutRef.current = null;
-            }
-            if (telegramConnected) {
-                localStorage.removeItem('telegramConnecting');
-                localStorage.removeItem('telegramKeyGenerationTime');
-                keyGenerationTimeRef.current = null;
-            }
-        }
-    }, [telegramConnecting, telegramConnected]);
-
-    /**
-     * Load existing preferences from user data and check Telegram status.
-     * @internal
-     */
-    useEffect(() => {
-        if (user) {
-            const channel = user.notification_channels || 'Email';
-            setSelectedChannel(channel);
-            selectedChannelRef.current = channel;
-
-            if (user.telegram_chat_id) {
-                setTelegramChatId(user.telegram_chat_id);
-                setTelegramConnected(true);
-                setTelegramConnecting(false);
-                // Clear connecting state from localStorage when connected
-                localStorage.removeItem('telegramConnecting');
-                localStorage.removeItem('telegramKeyGenerationTime');
-                // Fetch Telegram username
-                checkTelegramStatus().catch((err) => {
-                    console.error('Error fetching Telegram username:', err);
-                });
-            } else {
-                // Check Telegram status even if not connected to get current state
-                checkTelegramStatus().catch((err) => {
-                    console.error('Error checking Telegram status:', err);
-                });
-            }
-        }
-    }, [user]);
-
-    /**
-     * Check Telegram connection status.
-     * @internal
-     */
-    const checkTelegramStatus = async () => {
-        try {
-            const status = await onGetTelegramStatus();
-            if (status.connected && status.telegramChatId) {
-                setTelegramChatId(status.telegramChatId);
-                setTelegramConnected(true);
-                setTelegramUsername(status.telegramUsername || null);
-                // Automatically save when connected (use ref to get current value)
-                if (selectedChannelRef.current === 'Telegram') {
-                    await savePreferences('Telegram', status.telegramChatId);
-                }
-            }
-        } catch (err) {
-            console.error('Error checking Telegram status:', err);
-        }
-    };
-
-
+    const checkStatusIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     /**
      * Save notification preferences.
@@ -263,16 +106,97 @@ export function NotificationsModal({
         }
 
         try {
-            await onSave(
-                channelId,
-                channelId === 'Telegram' && chatIdToUse ? chatIdToUse : undefined
-            );
+            await onSave(channelId, chatIdToUse || undefined);
+            setSelectedChannel(channelId);
+            selectedChannelRef.current = channelId;
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Error saving notification settings');
+            setError(err instanceof Error ? err.message : 'Error saving notification preferences');
         } finally {
             setIsSubmitting(false);
         }
     };
+
+    /**
+     * Check Telegram connection status including active token state.
+     * @internal
+     */
+    const checkTelegramStatus = async () => {
+        try {
+            const status = await onGetTelegramStatus();
+            if (status.connected && status.telegramChatId) {
+                setTelegramChatId(status.telegramChatId);
+                setTelegramConnected(true);
+                setTelegramConnecting(false);
+                if (status.telegramUsername) {
+                    setTelegramUsername(status.telegramUsername);
+                }
+                // Automatically save when connected (use ref to get current value)
+                if (selectedChannelRef.current === 'Telegram') {
+                    await savePreferences('Telegram', status.telegramChatId);
+                }
+            } else {
+                setTelegramChatId(null);
+                setTelegramConnected(false);
+                // Set connecting state based on hasActiveToken from backend
+                setTelegramConnecting(status.hasActiveToken);
+            }
+        } catch (err) {
+            console.error('Error checking Telegram status:', err);
+        }
+    };
+
+    /**
+     * Load existing preferences from user data and check Telegram status.
+     * @internal
+     */
+    useEffect(() => {
+        if (user) {
+            const channel = user.notification_channels || 'Email';
+            setSelectedChannel(channel);
+            selectedChannelRef.current = channel;
+
+            if (user.telegram_chat_id) {
+                setTelegramChatId(user.telegram_chat_id);
+                setTelegramConnected(true);
+                setTelegramConnecting(false);
+                // Fetch Telegram username
+                checkTelegramStatus().catch((err) => {
+                    console.error('Error fetching Telegram username:', err);
+                });
+            } else {
+                // Check Telegram status even if not connected to get current state (including hasActiveToken)
+                checkTelegramStatus().catch((err) => {
+                    console.error('Error checking Telegram status:', err);
+                });
+            }
+        }
+    }, [user]);
+
+    /**
+     * Poll for connection status when connecting (to detect when token expires or connection succeeds).
+     * @internal
+     */
+    useEffect(() => {
+        if (telegramConnecting && !telegramConnected) {
+            // Poll every 30 seconds to check if token expired or connection succeeded
+            checkStatusIntervalRef.current = setInterval(() => {
+                checkTelegramStatus();
+            }, 30000); // Check every 30 seconds
+
+            return () => {
+                if (checkStatusIntervalRef.current) {
+                    clearInterval(checkStatusIntervalRef.current);
+                    checkStatusIntervalRef.current = null;
+                }
+            };
+        } else {
+            // Clear interval when not connecting
+            if (checkStatusIntervalRef.current) {
+                clearInterval(checkStatusIntervalRef.current);
+                checkStatusIntervalRef.current = null;
+            }
+        }
+    }, [telegramConnecting, telegramConnected]);
 
     /**
      * Handle channel selection change.
@@ -472,21 +396,14 @@ export function NotificationsModal({
                                                                     e.preventDefault();
                                                                     // Set canceling flag to prevent modal from opening
                                                                     isCancelingRef.current = true;
-                                                                    // Clear timeout if it exists
-                                                                    if (connectingTimeoutRef.current) {
-                                                                        clearTimeout(connectingTimeoutRef.current);
-                                                                        connectingTimeoutRef.current = null;
-                                                                    }
-                                                                    keyGenerationTimeRef.current = null;
                                                                     setTelegramConnecting(false);
-                                                                    // Clear connecting state from localStorage
-                                                                    localStorage.removeItem('telegramConnecting');
-                                                                    localStorage.removeItem('telegramKeyGenerationTime');
                                                                     // Close the connection modal if it's open
                                                                     setShowTelegramConnectionModal(false);
                                                                     // Select Email channel
                                                                     setSelectedChannel('Email');
                                                                     selectedChannelRef.current = 'Email';
+                                                                    // Re-check status to sync with backend (will clear hasActiveToken state)
+                                                                    checkTelegramStatus();
                                                                     // Reset canceling flag after a short delay
                                                                     setTimeout(() => {
                                                                         isCancelingRef.current = false;
@@ -546,7 +463,8 @@ export function NotificationsModal({
                     }}
                     onGetTelegramStartLink={onGetTelegramStartLink}
                     onCopyClicked={() => {
-                        setTelegramConnecting(true);
+                        // Check status to get hasActiveToken from backend
+                        checkTelegramStatus();
                     }}
                 />
             )}

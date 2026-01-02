@@ -392,10 +392,18 @@ router.get(
         }
       }
 
+      // Check if user has an active connection token
+      const telegramConnectionService =
+        ServiceManager.getTelegramConnectionService();
+      const hasActiveToken = await telegramConnectionService.hasActiveToken(
+        userId
+      );
+
       res.json({
         connected,
         telegramChatId: user.telegram_chat_id || null,
         telegramUsername,
+        hasActiveToken,
       });
     } catch (error) {
       console.error(

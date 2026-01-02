@@ -563,7 +563,7 @@ export class ApiClient {
 
   /**
    * Get Telegram connection status for the authenticated user.
-   * @returns Promise resolving to object with connected status, telegramChatId, and telegramUsername
+   * @returns Promise resolving to object with connected status, telegramChatId, telegramUsername, and hasActiveToken
    * @throws Error if request fails
    * @public
    */
@@ -571,11 +571,13 @@ export class ApiClient {
     connected: boolean;
     telegramChatId: string | null;
     telegramUsername: string | null;
+    hasActiveToken: boolean;
   }> {
     return this.get<{
       connected: boolean;
       telegramChatId: string | null;
       telegramUsername: string | null;
+      hasActiveToken: boolean;
     }>(`${this.baseUrl}/api/telegram/status`);
   }
 

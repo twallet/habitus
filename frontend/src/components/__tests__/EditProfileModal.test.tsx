@@ -154,6 +154,7 @@ describe('EditProfileModal', () => {
         user={userWithPicture}
         onClose={mockOnClose}
         onSave={mockOnSave}
+        onChangeEmail={mockOnChangeEmail}
       />
     );
 
@@ -175,7 +176,7 @@ describe('EditProfileModal', () => {
     );
 
     render(
-      <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={slowSave} />
+      <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={slowSave} onChangeEmail={mockOnChangeEmail} />
     );
 
     const saveButton = screen.getByRole('button', { name: /^save$/i });
@@ -248,7 +249,7 @@ describe('EditProfileModal', () => {
     const errorSave = vi.fn().mockRejectedValue(new Error('Save failed'));
 
     render(
-      <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={errorSave} />
+      <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={errorSave} onChangeEmail={mockOnChangeEmail} />
     );
 
     const saveButton = screen.getByRole('button', { name: /^save$/i });
@@ -273,7 +274,7 @@ describe('EditProfileModal', () => {
     );
 
     render(
-      <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={slowSave} />
+      <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={slowSave} onChangeEmail={mockOnChangeEmail} />
     );
 
     const saveButton = screen.getByRole('button', { name: /^save$/i });
@@ -296,6 +297,7 @@ describe('EditProfileModal', () => {
         user={userWithPicture}
         onClose={mockOnClose}
         onSave={mockOnSave}
+        onChangeEmail={mockOnChangeEmail}
       />
     );
 

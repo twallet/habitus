@@ -390,6 +390,7 @@ export function useAuth() {
     connected: boolean;
     telegramChatId: string | null;
     telegramUsername: string | null;
+    hasActiveToken: boolean;
   }> => {
     if (!token) {
       throw new Error("Not authenticated");
