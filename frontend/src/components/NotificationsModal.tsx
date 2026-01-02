@@ -203,12 +203,25 @@ export function NotificationsModal({
             try {
                 const url = new URL(result.link);
                 const startParam = url.searchParams.get('start');
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'NotificationsModal.tsx:203', message: 'Extracting start command from link', data: { hasLink: !!result.link, link: result.link?.substring(0, 100), hasStartParam: !!startParam, startParam: startParam?.substring(0, 50) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run2', hypothesisId: 'A' }) }).catch(() => { });
+                // #endregion
                 if (startParam) {
                     const decoded = decodeURIComponent(startParam);
-                    setTelegramStartCommand(`/start ${decoded}`);
+                    const command = `/start ${decoded}`;
+                    // #region agent log
+                    fetch('http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'NotificationsModal.tsx:210', message: 'Setting start command', data: { command: command.substring(0, 100) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run2', hypothesisId: 'A' }) }).catch(() => { });
+                    // #endregion
+                    setTelegramStartCommand(command);
+                } else {
+                    // #region agent log
+                    fetch('http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'NotificationsModal.tsx:214', message: 'No start parameter found in link', data: {}, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run2', hypothesisId: 'A' }) }).catch(() => { });
+                    // #endregion
                 }
             } catch (e) {
-                // Ignore URL parsing errors
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'NotificationsModal.tsx:217', message: 'Error extracting start command', data: { error: e instanceof Error ? e.message : String(e) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run2', hypothesisId: 'A' }) }).catch(() => { });
+                // #endregion
             }
             // Set connecting state after link is ready
             setTelegramConnecting(true);
@@ -538,60 +551,74 @@ export function NotificationsModal({
                                                         <div className="step-content">
                                                             <h4>Start the bot</h4>
                                                             <p className="form-help-text">
-                                                                <strong>If using Telegram app (mobile/desktop):</strong> Tap the "Start" button when the bot opens.
+                                                                <strong>Important:</strong> Telegram deep links don't always automatically send the start command. You need to manually type this command in the bot chat:
                                                             </p>
-                                                            <p className="form-help-text" style={{ marginTop: '8px' }}>
-                                                                <strong>If using Telegram Web:</strong> Copy and paste this command into the bot chat:
-                                                            </p>
-                                                            {telegramStartCommand ? (
-                                                                <div style={{
-                                                                    marginTop: '12px',
-                                                                    padding: '12px',
-                                                                    backgroundColor: '#e7f3ff',
-                                                                    border: '2px solid #007bff',
-                                                                    borderRadius: '6px',
-                                                                    fontFamily: 'monospace',
-                                                                    fontSize: '0.95rem',
-                                                                    wordBreak: 'break-all',
-                                                                    display: 'flex',
-                                                                    alignItems: 'center',
-                                                                    gap: '12px'
-                                                                }}>
-                                                                    <code style={{
-                                                                        flex: 1,
-                                                                        fontWeight: 'bold',
-                                                                        color: '#0056b3'
-                                                                    }}>{telegramStartCommand}</code>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            if (telegramStartCommand) {
-                                                                                navigator.clipboard.writeText(telegramStartCommand).then(() => {
-                                                                                    // Could show toast notification here
-                                                                                });
-                                                                            }
-                                                                        }}
-                                                                        style={{
-                                                                            padding: '6px 12px',
-                                                                            fontSize: '0.85rem',
-                                                                            cursor: 'pointer',
-                                                                            backgroundColor: '#007bff',
-                                                                            color: 'white',
-                                                                            border: 'none',
-                                                                            borderRadius: '4px',
+                                                            {(() => {
+                                                                // Try to extract command from link if not already set
+                                                                let commandToShow = telegramStartCommand;
+                                                                if (!commandToShow && telegramLink) {
+                                                                    try {
+                                                                        const url = new URL(telegramLink);
+                                                                        const startParam = url.searchParams.get('start');
+                                                                        if (startParam) {
+                                                                            const decoded = decodeURIComponent(startParam);
+                                                                            commandToShow = `/start ${decoded}`;
+                                                                        }
+                                                                    } catch (e) {
+                                                                        // Ignore
+                                                                    }
+                                                                }
+
+                                                                return commandToShow ? (
+                                                                    <div style={{
+                                                                        marginTop: '12px',
+                                                                        padding: '12px',
+                                                                        backgroundColor: '#e7f3ff',
+                                                                        border: '2px solid #007bff',
+                                                                        borderRadius: '6px',
+                                                                        fontFamily: 'monospace',
+                                                                        fontSize: '0.95rem',
+                                                                        wordBreak: 'break-all',
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        gap: '12px'
+                                                                    }}>
+                                                                        <code style={{
+                                                                            flex: 1,
                                                                             fontWeight: 'bold',
-                                                                            whiteSpace: 'nowrap'
-                                                                        }}
-                                                                        title="Copy command to clipboard"
-                                                                    >
-                                                                        📋 Copy Command
-                                                                    </button>
-                                                                </div>
-                                                            ) : (
-                                                                <p className="form-help-text" style={{ marginTop: '8px', fontStyle: 'italic', color: '#666' }}>
-                                                                    Command will appear here once the link is generated...
-                                                                </p>
-                                                            )}
+                                                                            color: '#0056b3'
+                                                                        }}>{commandToShow}</code>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                if (commandToShow) {
+                                                                                    navigator.clipboard.writeText(commandToShow).then(() => {
+                                                                                        // Could show toast notification here
+                                                                                    });
+                                                                                }
+                                                                            }}
+                                                                            style={{
+                                                                                padding: '6px 12px',
+                                                                                fontSize: '0.85rem',
+                                                                                cursor: 'pointer',
+                                                                                backgroundColor: '#007bff',
+                                                                                color: 'white',
+                                                                                border: 'none',
+                                                                                borderRadius: '4px',
+                                                                                fontWeight: 'bold',
+                                                                                whiteSpace: 'nowrap'
+                                                                            }}
+                                                                            title="Copy command to clipboard"
+                                                                        >
+                                                                            📋 Copy Command
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <p className="form-help-text" style={{ marginTop: '8px', fontStyle: 'italic', color: '#666' }}>
+                                                                        Command will appear here once the link is generated...
+                                                                    </p>
+                                                                );
+                                                            })()}
                                                         </div>
                                                     </div>
                                                     <div className="connection-step">
