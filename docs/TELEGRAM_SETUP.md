@@ -35,7 +35,17 @@ TELEGRAM_BOT_TOKEN=your_bot_token_here
 
 The webhook endpoint is: `POST /api/telegram/webhook`
 
-#### For Production Environments
+#### For Production Environments (Railway)
+
+**Automatic Setup (Recommended):**
+The webhook is automatically configured when the server starts in production, using the `VITE_SERVER_URL` environment variable. Ensure:
+
+1. `VITE_SERVER_URL` is set to your production URL (e.g., `https://habitus.nextstepslab.com`)
+2. `TELEGRAM_BOT_TOKEN` is set in your Railway environment variables
+3. The server will automatically set the webhook on startup
+
+**Manual Setup (If automatic setup fails):**
+If automatic setup fails, you can set it manually:
 
 1. Ensure your server URL is publicly accessible (HTTPS required)
 2. Set up the webhook by calling the setup endpoint:

@@ -325,7 +325,7 @@ db.initialize()
       }
     );
 
-    const server = app.listen(ServerConfig.getPort(), () => {
+    const server = app.listen(ServerConfig.getPort(), async () => {
       console.log(
         `[${new Date().toISOString()}] Server running on ${ServerConfig.getServerUrl()}:${ServerConfig.getPort()}`
       );
@@ -338,6 +338,63 @@ db.initialize()
         console.log(
           `[${new Date().toISOString()}] Frontend served via Vite with HMR`
         );
+      }
+
+      // Automatically set up Telegram webhook in production
+      if (!isDevelopment && process.env.TELEGRAM_BOT_TOKEN) {
+        try {
+          const serverUrl = ServerConfig.getServerUrl();
+          // Ensure URL is HTTPS for production
+          const webhookBaseUrl = serverUrl.startsWith("https://")
+            ? serverUrl
+            : `https://${serverUrl}`;
+
+          const webhookUrl = `${webhookBaseUrl}/api/telegram/webhook`;
+          const botToken = process.env.TELEGRAM_BOT_TOKEN;
+
+          console.log(
+            `[${new Date().toISOString()}] TELEGRAM_SETUP | Attempting to set webhook to: ${webhookUrl}`
+          );
+
+          const response = await fetch(
+            `https://api.telegram.org/bot${botToken}/setWebhook`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                url: webhookUrl,
+              }),
+            }
+          );
+
+          const data = (await response.json()) as {
+            ok: boolean;
+            result?: boolean;
+            description?: string;
+          };
+
+          if (response.ok && data.ok) {
+            console.log(
+              `[${new Date().toISOString()}] TELEGRAM_SETUP | Webhook set successfully: ${webhookUrl}`
+            );
+          } else {
+            console.warn(
+              `[${new Date().toISOString()}] TELEGRAM_SETUP | Failed to set webhook automatically: ${
+                data.description || "Unknown error"
+              }. You can set it manually using POST /api/telegram/set-webhook`
+            );
+          }
+        } catch (error) {
+          console.warn(
+            `[${new Date().toISOString()}] TELEGRAM_SETUP | Error setting webhook automatically:`,
+            error instanceof Error ? error.message : String(error)
+          );
+          console.warn(
+            `[${new Date().toISOString()}] TELEGRAM_SETUP | You can set the webhook manually using POST /api/telegram/set-webhook`
+          );
+        }
       }
     });
 
