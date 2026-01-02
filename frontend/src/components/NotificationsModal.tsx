@@ -88,7 +88,7 @@ export function NotificationsModal({
     useEffect(() => {
         const savedConnecting = localStorage.getItem('telegramConnecting');
         const savedKeyTime = localStorage.getItem('telegramKeyGenerationTime');
-        
+
         if (savedConnecting === 'true' && savedKeyTime) {
             const keyTime = parseInt(savedKeyTime, 10);
             const elapsed = Date.now() - keyTime;
@@ -98,7 +98,7 @@ export function NotificationsModal({
                 // Restore connecting state
                 setTelegramConnecting(true);
                 keyGenerationTimeRef.current = keyTime;
-                
+
                 // Set timeout for remaining time
                 connectingTimeoutRef.current = setTimeout(() => {
                     setTelegramConnecting(false);
@@ -138,7 +138,7 @@ export function NotificationsModal({
         if (telegramConnecting && !telegramConnected && keyGenerationTimeRef.current) {
             // Persist connecting state to localStorage
             localStorage.setItem('telegramConnecting', 'true');
-            
+
             // Calculate remaining time from key generation
             const elapsed = Date.now() - keyGenerationTimeRef.current;
             const remaining = 10 * 60 * 1000 - elapsed; // 10 minutes minus elapsed time
@@ -479,6 +479,9 @@ export function NotificationsModal({
                                                                     }
                                                                     keyGenerationTimeRef.current = null;
                                                                     setTelegramConnecting(false);
+                                                                    // Clear connecting state from localStorage
+                                                                    localStorage.removeItem('telegramConnecting');
+                                                                    localStorage.removeItem('telegramKeyGenerationTime');
                                                                     // Close the connection modal if it's open
                                                                     setShowTelegramConnectionModal(false);
                                                                     // Select Email channel
