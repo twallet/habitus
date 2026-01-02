@@ -73,7 +73,7 @@ describe("TelegramService", () => {
       expect(mockFetch).toHaveBeenCalledTimes(1);
       const callArgs = mockFetch.mock.calls[0];
       expect(callArgs[0]).toBe(
-        "https://api.telegram.org/bot/test-bot-token/sendMessage"
+        "https://api.telegram.org/bottest-bot-token/sendMessage"
       );
       expect(callArgs[1]).toMatchObject({
         method: "POST",

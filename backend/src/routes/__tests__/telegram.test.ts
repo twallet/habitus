@@ -471,6 +471,7 @@ describe("Telegram Webhook Routes", () => {
       expect(response.body).toEqual({
         connected: true,
         telegramChatId: "123456789",
+        telegramUsername: "test_bot",
       });
     });
 
@@ -483,6 +484,7 @@ describe("Telegram Webhook Routes", () => {
       expect(response.body).toEqual({
         connected: false,
         telegramChatId: null,
+        telegramUsername: null,
       });
     });
 

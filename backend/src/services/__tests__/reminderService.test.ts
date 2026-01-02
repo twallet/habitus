@@ -140,6 +140,22 @@ describe("ReminderService", () => {
     testDb = await createTestDatabase();
     // Initialize ServiceManager so that ReminderService can use mocked services
     ServiceManager.initializeServices(testDb);
+
+    // Mock ServiceManager to return mocked services
+    const emailServiceMock = {
+      sendReminderEmail: mockFunctions.sendReminderEmail,
+    };
+    const telegramServiceMock = {
+      sendReminderMessage: mockFunctions.sendReminderMessage,
+    };
+
+    vi.spyOn(ServiceManager, "getEmailService").mockImplementation(
+      () => emailServiceMock as any
+    );
+    vi.spyOn(ServiceManager, "getTelegramService").mockImplementation(
+      () => telegramServiceMock as any
+    );
+
     reminderService = new ReminderService(testDb);
 
     // Clear mock calls
