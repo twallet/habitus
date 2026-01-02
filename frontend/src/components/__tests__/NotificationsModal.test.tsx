@@ -398,7 +398,10 @@ describe('NotificationsModal', () => {
             expect(screen.queryByText('Connect Telegram')).not.toBeInTheDocument();
         });
 
-        expect(mockOnSave).not.toHaveBeenCalled();
+        // Verify that Email was saved when canceling Telegram
+        await waitFor(() => {
+            expect(mockOnSave).toHaveBeenCalledWith('Email', undefined);
+        });
     });
 
     it('should close Telegram modal when connection is established', async () => {
