@@ -1421,7 +1421,7 @@ describe("useAuth", () => {
       });
 
       const user = await result.current.updateNotificationPreferences(
-        ["Email", "Telegram"],
+        "Telegram",
         "123456"
       );
       expect(user).toEqual(updatedUser);

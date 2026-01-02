@@ -73,6 +73,8 @@ describe('MainLayout', () => {
             setTokenFromCallback: vi.fn(),
             updateProfile: vi.fn(),
             updateNotificationPreferences: vi.fn(),
+            getTelegramStartLink: vi.fn(),
+            getTelegramStatus: vi.fn(),
             updateUserPreferences: vi.fn(),
             deleteUser: vi.fn(),
         });
@@ -121,6 +123,8 @@ describe('MainLayout', () => {
             setTokenFromCallback: vi.fn(),
             updateProfile: vi.fn(),
             updateNotificationPreferences: vi.fn(),
+            getTelegramStartLink: vi.fn(),
+            getTelegramStatus: vi.fn(),
             updateUserPreferences: vi.fn(),
             deleteUser: vi.fn(),
         });
@@ -144,6 +148,8 @@ describe('MainLayout', () => {
             setTokenFromCallback: vi.fn(),
             updateProfile: vi.fn(),
             updateNotificationPreferences: vi.fn(),
+            getTelegramStartLink: vi.fn(),
+            getTelegramStatus: vi.fn(),
             updateUserPreferences: vi.fn(),
             deleteUser: vi.fn(),
         });
@@ -391,6 +397,8 @@ describe('MainLayout', () => {
             setTokenFromCallback: vi.fn(),
             updateProfile: vi.fn(),
             updateNotificationPreferences: vi.fn(),
+            getTelegramStartLink: vi.fn(),
+            getTelegramStatus: vi.fn(),
             updateUserPreferences: vi.fn(),
             deleteUser: vi.fn(),
         });
@@ -430,6 +438,8 @@ describe('MainLayout', () => {
             setTokenFromCallback: vi.fn(),
             updateProfile: mockUpdateProfile,
             updateNotificationPreferences: vi.fn(),
+            getTelegramStartLink: vi.fn(),
+            getTelegramStatus: vi.fn(),
             updateUserPreferences: vi.fn(),
             deleteUser: vi.fn(),
         });
@@ -470,6 +480,8 @@ describe('MainLayout', () => {
             setTokenFromCallback: vi.fn(),
             updateProfile: vi.fn(),
             updateNotificationPreferences: vi.fn(),
+            getTelegramStartLink: vi.fn(),
+            getTelegramStatus: vi.fn(),
             updateUserPreferences: vi.fn(),
             deleteUser: vi.fn(),
         });
@@ -831,6 +843,8 @@ describe('MainLayout', () => {
             setTokenFromCallback: vi.fn(),
             updateProfile: vi.fn(),
             updateNotificationPreferences: vi.fn(),
+            getTelegramStartLink: vi.fn(),
+            getTelegramStatus: vi.fn(),
             updateUserPreferences: vi.fn(),
             deleteUser: vi.fn(),
         });

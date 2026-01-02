@@ -36,6 +36,8 @@ describe('LoginPage', () => {
             setTokenFromCallback: vi.fn(),
             updateProfile: vi.fn(),
             updateNotificationPreferences: vi.fn(),
+            getTelegramStartLink: vi.fn(),
+            getTelegramStatus: vi.fn(),
             updateUserPreferences: vi.fn(),
             deleteUser: vi.fn(),
         });
