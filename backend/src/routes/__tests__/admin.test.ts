@@ -280,7 +280,7 @@ describe("Admin Routes", () => {
           "full@example.com",
           "https://example.com/pic.jpg",
           "12345",
-          JSON.stringify(["email", "telegram"]),
+          "Telegram",
           "es-ES",
           "Europe/Madrid",
           new Date().toISOString(),
@@ -296,7 +296,7 @@ describe("Admin Routes", () => {
       expect(response.body.log).toContain("full@example.com");
       expect(response.body.log).toContain("https://example.com/pic.jpg");
       expect(response.body.log).toContain("12345");
-      expect(response.body.log).toContain("email, telegram");
+      expect(response.body.log).toContain("Telegram");
       expect(response.body.log).toContain("es-ES");
       expect(response.body.log).toContain("Europe/Madrid");
     });

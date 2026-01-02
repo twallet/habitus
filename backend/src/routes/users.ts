@@ -182,15 +182,21 @@ router.put(
       const userId = req.userId!;
       const { notificationChannels, telegramChatId } = req.body;
 
-      if (!notificationChannels || !Array.isArray(notificationChannels)) {
+      // Accept either array (for backward compatibility) or string
+      if (!notificationChannels) {
         return res
           .status(400)
-          .json({ error: "notificationChannels must be an array" });
+          .json({ error: "notificationChannel is required" });
       }
+
+      // Convert array to single channel (take first element for backward compatibility during transition)
+      const notificationChannel = Array.isArray(notificationChannels)
+        ? notificationChannels[0] || "Email"
+        : notificationChannels;
 
       const user = await getUserServiceInstance().updateNotificationPreferences(
         userId,
-        notificationChannels,
+        notificationChannel,
         telegramChatId
       );
 

@@ -56,9 +56,7 @@ export class UserService {
       email: row.email,
       profile_picture_url: row.profile_picture_url || undefined,
       telegram_chat_id: row.telegram_chat_id || undefined,
-      notification_channels: row.notification_channels
-        ? JSON.parse(row.notification_channels)
-        : undefined,
+      notification_channels: row.notification_channels || undefined,
       locale: row.locale || undefined,
       timezone: row.timezone || undefined,
       last_access: row.last_access || undefined,
@@ -112,9 +110,7 @@ export class UserService {
       email: row.email,
       profile_picture_url: row.profile_picture_url || undefined,
       telegram_chat_id: row.telegram_chat_id || undefined,
-      notification_channels: row.notification_channels
-        ? JSON.parse(row.notification_channels)
-        : undefined,
+      notification_channels: row.notification_channels || undefined,
       locale: row.locale || undefined,
       timezone: row.timezone || undefined,
       last_access: row.last_access || undefined,
@@ -259,31 +255,28 @@ export class UserService {
    */
   async updateNotificationPreferences(
     userId: number,
-    notificationChannels: string[],
+    notificationChannel: string,
     telegramChatId?: string
   ): Promise<UserData> {
     console.log(
-      `[${new Date().toISOString()}] USER | Updating notification preferences for userId: ${userId}, channels: ${JSON.stringify(
-        notificationChannels
-      )}, telegramChatId: ${telegramChatId ? "provided" : "not provided"}`
+      `[${new Date().toISOString()}] USER | Updating notification preferences for userId: ${userId}, channel: ${notificationChannel}, telegramChatId: ${
+        telegramChatId ? "provided" : "not provided"
+      }`
     );
 
-    // Validate notification channels
+    // Validate notification channel
     const validChannels = ["Email", "Telegram"];
-    const invalidChannels = notificationChannels.filter(
-      (ch) => !validChannels.includes(ch)
-    );
-    if (invalidChannels.length > 0) {
+    if (!validChannels.includes(notificationChannel)) {
       throw new TypeError(
-        `Invalid notification channels: ${invalidChannels.join(
+        `Invalid notification channel: ${notificationChannel}. Valid channels are: ${validChannels.join(
           ", "
-        )}. Valid channels are: ${validChannels.join(", ")}`
+        )}`
       );
     }
 
     // Validate that Telegram chat ID is provided if Telegram is enabled
     if (
-      notificationChannels.includes("Telegram") &&
+      notificationChannel === "Telegram" &&
       (!telegramChatId || telegramChatId.trim() === "")
     ) {
       throw new TypeError(
@@ -301,15 +294,16 @@ export class UserService {
     }
 
     // Update notification preferences
-    // If Telegram is not in channels, clear telegram_chat_id (use empty string which will be converted to null in DB)
-    // If Telegram is in channels, use provided telegramChatId or keep existing
-    const finalTelegramChatId = notificationChannels.includes("Telegram")
-      ? telegramChatId || user.telegram_chat_id
-      : "";
+    // If Email is selected, clear telegram_chat_id (use empty string which will be converted to null in DB)
+    // If Telegram is selected, use provided telegramChatId or keep existing
+    const finalTelegramChatId =
+      notificationChannel === "Telegram"
+        ? telegramChatId || user.telegram_chat_id
+        : "";
 
     await user.update(
       {
-        notification_channels: notificationChannels,
+        notification_channels: notificationChannel,
         telegram_chat_id: finalTelegramChatId,
       },
       this.db

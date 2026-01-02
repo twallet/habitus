@@ -7,7 +7,7 @@ export interface UserData {
   email: string;
   profile_picture_url?: string;
   telegram_chat_id?: string;
-  notification_channels?: string[];
+  notification_channels?: string;
   locale?: string;
   timezone?: string;
   last_access?: string;

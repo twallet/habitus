@@ -144,7 +144,7 @@ describe("UserService", () => {
           "test@example.com",
           "http://example.com/pic.jpg",
           "123456789",
-          '["Email", "Telegram"]',
+          "Telegram",
           "fr-FR",
           "Europe/Paris",
           "2024-01-01T00:00:00Z",
@@ -155,7 +155,7 @@ describe("UserService", () => {
 
       expect(users[0].profile_picture_url).toBe("http://example.com/pic.jpg");
       expect(users[0].telegram_chat_id).toBe("123456789");
-      expect(users[0].notification_channels).toEqual(["Email", "Telegram"]);
+      expect(users[0].notification_channels).toBe("Telegram");
       expect(users[0].locale).toBe("fr-FR");
       expect(users[0].timezone).toBe("Europe/Paris");
       expect(users[0].last_access).toBe("2024-01-01T00:00:00Z");
@@ -229,7 +229,7 @@ describe("UserService", () => {
           "test@example.com",
           "http://example.com/pic.jpg",
           "123456789",
-          '["Email"]',
+          "Email",
           "es-AR",
           "America/Buenos_Aires",
           "2024-01-01T00:00:00Z",
@@ -241,7 +241,7 @@ describe("UserService", () => {
 
       expect(user?.profile_picture_url).toBe("http://example.com/pic.jpg");
       expect(user?.telegram_chat_id).toBe("123456789");
-      expect(user?.notification_channels).toEqual(["Email"]);
+      expect(user?.notification_channels).toBe("Email");
       expect(user?.locale).toBe("es-AR");
       expect(user?.timezone).toBe("America/Buenos_Aires");
       expect(user?.last_access).toBe("2024-01-01T00:00:00Z");
@@ -984,11 +984,11 @@ describe("UserService", () => {
       // Update notification preferences
       const updatedUser = await userService.updateNotificationPreferences(
         user.id,
-        ["Email", "Telegram"],
+        "Telegram",
         "123456789"
       );
 
-      expect(updatedUser.notification_channels).toEqual(["Email", "Telegram"]);
+      expect(updatedUser.notification_channels).toBe("Telegram");
       expect(updatedUser.telegram_chat_id).toBe("123456789");
     });
 
@@ -1005,10 +1005,10 @@ describe("UserService", () => {
       // Update notification preferences with only Email
       const updatedUser = await userService.updateNotificationPreferences(
         user.id,
-        ["Email"]
+        "Email"
       );
 
-      expect(updatedUser.notification_channels).toEqual(["Email"]);
+      expect(updatedUser.notification_channels).toBe("Email");
       expect(updatedUser.telegram_chat_id).toBeUndefined();
     });
 
@@ -1024,7 +1024,7 @@ describe("UserService", () => {
 
       // Try to enable Telegram without providing chat ID
       await expect(
-        userService.updateNotificationPreferences(user.id, ["Telegram"])
+        userService.updateNotificationPreferences(user.id, "Telegram")
       ).rejects.toThrow("Telegram chat ID is required");
     });
 
@@ -1040,13 +1040,13 @@ describe("UserService", () => {
 
       // Try to use invalid channel
       await expect(
-        userService.updateNotificationPreferences(user.id, ["InvalidChannel"])
-      ).rejects.toThrow("Invalid notification channels");
+        userService.updateNotificationPreferences(user.id, "InvalidChannel")
+      ).rejects.toThrow("Invalid notification channel");
     });
 
     it("should throw error if user not found", async () => {
       await expect(
-        userService.updateNotificationPreferences(999, ["Email"])
+        userService.updateNotificationPreferences(999, "Email")
       ).rejects.toThrow("User not found");
     });
 
@@ -1059,7 +1059,7 @@ describe("UserService", () => {
       const user = users[0];
 
       await expect(
-        userService.updateNotificationPreferences(user.id, ["Telegram"], "")
+        userService.updateNotificationPreferences(user.id, "Telegram", "")
       ).rejects.toThrow("Telegram chat ID is required");
     });
 
@@ -1072,7 +1072,7 @@ describe("UserService", () => {
       const user = users[0];
 
       await expect(
-        userService.updateNotificationPreferences(user.id, ["Telegram"], "   ")
+        userService.updateNotificationPreferences(user.id, "Telegram", "   ")
       ).rejects.toThrow("Telegram chat ID is required");
     });
 
@@ -1088,7 +1088,7 @@ describe("UserService", () => {
       // we can pass it explicitly to keep it
       const updatedUser = await userService.updateNotificationPreferences(
         user.id,
-        ["Telegram"],
+        "Telegram",
         "existing-chat-id"
       );
 
@@ -1105,7 +1105,7 @@ describe("UserService", () => {
 
       const updatedUser = await userService.updateNotificationPreferences(
         user.id,
-        ["Email"]
+        "Email"
       );
 
       expect(updatedUser.telegram_chat_id).toBeUndefined();

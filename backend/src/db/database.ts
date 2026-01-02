@@ -151,6 +151,15 @@ CREATE INDEX IF NOT EXISTS idx_reminders_user_id ON reminders(user_id);
 CREATE INDEX IF NOT EXISTS idx_reminders_tracking_id ON reminders(tracking_id);
 CREATE INDEX IF NOT EXISTS idx_reminders_scheduled_time ON reminders(scheduled_time);
 CREATE INDEX IF NOT EXISTS idx_reminders_status ON reminders(status);
+CREATE TABLE IF NOT EXISTS telegram_connection_tokens (
+  token TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  expires_at DATETIME NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_telegram_connection_tokens_user_id ON telegram_connection_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_telegram_connection_tokens_expires_at ON telegram_connection_tokens(expires_at);
 `;
 
 /**
@@ -226,6 +235,15 @@ CREATE INDEX IF NOT EXISTS idx_reminders_user_id ON reminders(user_id);
 CREATE INDEX IF NOT EXISTS idx_reminders_tracking_id ON reminders(tracking_id);
 CREATE INDEX IF NOT EXISTS idx_reminders_scheduled_time ON reminders(scheduled_time);
 CREATE INDEX IF NOT EXISTS idx_reminders_status ON reminders(status);
+CREATE TABLE IF NOT EXISTS telegram_connection_tokens (
+  token TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  expires_at DATETIME NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_telegram_connection_tokens_user_id ON telegram_connection_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_telegram_connection_tokens_expires_at ON telegram_connection_tokens(expires_at);
 `;
 
 /**

@@ -434,6 +434,60 @@ describe("Database", () => {
       await db.close();
     });
 
+    it("should store and retrieve notification_channels as single string", async () => {
+      const db = new Database(":memory:");
+      await db.initialize();
+
+      // Insert user with notification channel as single string
+      const insertResult = await db.run(
+        "INSERT INTO users (name, email, notification_channels) VALUES (?, ?, ?)",
+        ["Test User", "test@example.com", "Email"]
+      );
+
+      // Retrieve and verify
+      const user = await db.get<{
+        id: number;
+        name: string;
+        email: string;
+        notification_channels: string | null;
+      }>(
+        "SELECT id, name, email, notification_channels FROM users WHERE id = ?",
+        [insertResult.lastID]
+      );
+
+      expect(user?.notification_channels).toBe("Email");
+
+      // Update to different channel
+      await db.run("UPDATE users SET notification_channels = ? WHERE id = ?", [
+        "Telegram",
+        insertResult.lastID,
+      ]);
+
+      const updatedUser = await db.get<{
+        notification_channels: string | null;
+      }>("SELECT notification_channels FROM users WHERE id = ?", [
+        insertResult.lastID,
+      ]);
+
+      expect(updatedUser?.notification_channels).toBe("Telegram");
+
+      // Test null value
+      await db.run("UPDATE users SET notification_channels = ? WHERE id = ?", [
+        null,
+        insertResult.lastID,
+      ]);
+
+      const nullUser = await db.get<{
+        notification_channels: string | null;
+      }>("SELECT notification_channels FROM users WHERE id = ?", [
+        insertResult.lastID,
+      ]);
+
+      expect(nullUser?.notification_channels).toBeNull();
+
+      await db.close();
+    });
+
     it("should handle foreign key constraints", async () => {
       const db = new Database(":memory:");
       await db.initialize();

@@ -64,8 +64,10 @@ export class User extends BaseUser {
       if (this.notification_channels !== undefined) {
         updates.push("notification_channels = ?");
         values.push(
-          this.notification_channels.length > 0
-            ? JSON.stringify(this.notification_channels)
+          this.notification_channels &&
+            typeof this.notification_channels === "string" &&
+            this.notification_channels.trim() !== ""
+            ? this.notification_channels.trim()
             : null
         );
       }
@@ -200,9 +202,7 @@ export class User extends BaseUser {
       email: row.email,
       profile_picture_url: row.profile_picture_url || undefined,
       telegram_chat_id: row.telegram_chat_id || undefined,
-      notification_channels: row.notification_channels
-        ? JSON.parse(row.notification_channels)
-        : undefined,
+      notification_channels: row.notification_channels || undefined,
       last_access: row.last_access || undefined,
       created_at: row.created_at,
     });
@@ -243,9 +243,7 @@ export class User extends BaseUser {
       email: row.email,
       profile_picture_url: row.profile_picture_url || undefined,
       telegram_chat_id: row.telegram_chat_id || undefined,
-      notification_channels: row.notification_channels
-        ? JSON.parse(row.notification_channels)
-        : undefined,
+      notification_channels: row.notification_channels || undefined,
       last_access: row.last_access || undefined,
       created_at: row.created_at,
     });

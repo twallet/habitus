@@ -248,9 +248,7 @@ export class AdminController {
         }
 
         // Format notification channels
-        const notificationChannelsStr = user.notification_channels
-          ? user.notification_channels.join(", ")
-          : "None";
+        const notificationChannelsStr = user.notification_channels || "None";
 
         // Format telegram chat ID
         const telegramChatIdStr = user.telegram_chat_id || "null";

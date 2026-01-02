@@ -429,22 +429,17 @@ describe("Users Routes", () => {
         });
 
       expect(response.status).toBe(200);
-      expect(response.body.notification_channels).toEqual(["Email"]);
+      expect(response.body.notification_channels).toBe("Email");
     });
 
     it("should update notification preferences with Telegram", async () => {
-      const response = await request(app)
-        .put("/api/users/notifications")
-        .send({
-          notificationChannels: ["Email", "Telegram"],
-          telegramChatId: "123456789",
-        });
+      const response = await request(app).put("/api/users/notifications").send({
+        notificationChannels: "Telegram",
+        telegramChatId: "123456789",
+      });
 
       expect(response.status).toBe(200);
-      expect(response.body.notification_channels).toEqual([
-        "Email",
-        "Telegram",
-      ]);
+      expect(response.body.notification_channels).toBe("Telegram");
       expect(response.body.telegram_chat_id).toBe("123456789");
     });
 
@@ -454,16 +449,16 @@ describe("Users Routes", () => {
         .send({});
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe("notificationChannels must be an array");
+      expect(response.body.error).toBe("notificationChannel is required");
     });
 
-    it("should return 400 if notificationChannels is not an array", async () => {
+    it("should accept string notificationChannel", async () => {
       const response = await request(app).put("/api/users/notifications").send({
-        notificationChannels: "not-an-array",
+        notificationChannels: "Email",
       });
 
-      expect(response.status).toBe(400);
-      expect(response.body.error).toBe("notificationChannels must be an array");
+      expect(response.status).toBe(200);
+      expect(response.body.notification_channels).toBe("Email");
     });
 
     it("should handle TypeError with 400 status", async () => {
