@@ -304,15 +304,15 @@ export function NotificationsModal({
     };
 
 
-    // Get display labels for channels based on selection
-    const emailLabel = useMemo(() => {
+    // Get display values for badges
+    const emailBadge = useMemo(() => {
         if (selectedChannel === 'Email' && user?.email) {
-            return `Email ${user.email}`;
+            return user.email;
         }
-        return 'Email';
+        return null;
     }, [selectedChannel, user?.email]);
 
-    const telegramLabel = useMemo(() => {
+    const telegramBadge = useMemo(() => {
         if (selectedChannel === 'Telegram' && telegramUsername) {
             // If it's already prefixed with @, use as is
             // If it looks like a username (no spaces, alphanumeric/underscores), add @
@@ -322,27 +322,29 @@ export function NotificationsModal({
                 // Likely a username, add @ prefix
                 displayUsername = `@${telegramUsername}`;
             }
-            return `Telegram ${displayUsername}`;
+            return displayUsername;
         }
-        return 'Telegram';
+        return null;
     }, [selectedChannel, telegramUsername]);
 
     const channels = useMemo(() => [
         {
             id: 'Email',
-            label: emailLabel,
+            label: 'Email',
             enabled: true,
             icon: '📧',
             color: '#005A7F',
-            description: 'Send reminders by email'
+            description: 'Send reminders by email',
+            badge: emailBadge
         },
         {
             id: 'Telegram',
-            label: telegramLabel,
+            label: 'Telegram',
             enabled: true,
             icon: <TelegramIcon className="channel-icon-svg" />,
             color: '#0088cc',
-            description: 'Send reminders by Telegram'
+            description: 'Send reminders by Telegram',
+            badge: telegramBadge
         },
         {
             id: 'WhatsApp',
@@ -350,9 +352,10 @@ export function NotificationsModal({
             enabled: false,
             icon: <WhatsAppIcon className="channel-icon-svg" />,
             color: '#25D366',
-            description: 'Coming soon'
+            description: 'Coming soon',
+            badge: null
         },
-    ], [emailLabel, telegramLabel]);
+    ], [emailBadge, telegramBadge]);
 
     return (
         <div className="modal-overlay" onClick={handleModalClose}>
@@ -412,7 +415,12 @@ export function NotificationsModal({
                                         <span className="channel-icon">
                                             {typeof channel.icon === 'string' ? channel.icon : channel.icon}
                                         </span>
-                                        <span className="channel-label">{channel.label}</span>
+                                        <span className="channel-label">
+                                            {channel.label}
+                                            {channel.badge && (
+                                                <span className="user-badge">{channel.badge}</span>
+                                            )}
+                                        </span>
                                         {channel.enabled ? (
                                             <input
                                                 type="radio"
