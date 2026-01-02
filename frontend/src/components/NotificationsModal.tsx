@@ -49,41 +49,6 @@ function WhatsAppIcon({ className }: { className?: string }) {
     );
 }
 
-/**
- * MS Teams icon SVG component.
- * @internal
- */
-function MSTeamsIcon({ className }: { className?: string }) {
-    return (
-        <svg
-            className={className}
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden="true"
-        >
-            <path d="M19.5 4.5h-15A1.5 1.5 0 003 6v12a1.5 1.5 0 001.5 1.5h15a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5zM12 7.5a3 3 0 110 6 3 3 0 010-6zm-6 9v-1.5a4.5 4.5 0 019 0V16.5H6z" />
-        </svg>
-    );
-}
-
-/**
- * Slack icon SVG component.
- * @internal
- */
-function SlackIcon({ className }: { className?: string }) {
-    return (
-        <svg
-            className={className}
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden="true"
-        >
-            <path d="M5.042 15.165a2.528 2.528 0 01-2.52 2.523A2.528 2.528 0 010 15.165a2.527 2.527 0 012.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 012.521-2.52 2.527 2.527 0 012.521 2.52v6.313A2.528 2.528 0 018.834 24a2.528 2.528 0 01-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 01-2.521-2.52A2.528 2.528 0 018.834 0a2.528 2.528 0 012.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 012.521 2.521 2.528 2.528 0 01-2.521 2.521H2.522A2.528 2.528 0 010 8.834a2.528 2.528 0 012.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 012.522-2.521A2.528 2.528 0 0124 8.834a2.528 2.528 0 01-2.522 2.521h-2.52V8.834zM17.688 8.834a2.528 2.528 0 01-2.523 2.521 2.527 2.527 0 01-2.52-2.521V2.522A2.527 2.527 0 0115.165 0a2.528 2.528 0 012.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 012.523 2.522A2.528 2.528 0 0115.165 24a2.527 2.527 0 01-2.52-2.522v-2.52h2.52zM15.165 17.688a2.527 2.527 0 01-2.52-2.523 2.526 2.526 0 012.52-2.52h6.313A2.527 2.527 0 0124 15.165a2.528 2.528 0 01-2.522 2.523h-6.313z" />
-        </svg>
-    );
-}
 
 /**
  * Modal component for managing notification settings.
@@ -343,22 +308,6 @@ export function NotificationsModal({
             enabled: false,
             icon: <WhatsAppIcon className="channel-icon-svg" />,
             color: '#25D366',
-            description: 'Coming soon'
-        },
-        {
-            id: 'MSTeams',
-            label: 'MS Teams',
-            enabled: false,
-            icon: <MSTeamsIcon className="channel-icon-svg" />,
-            color: '#6264A7',
-            description: 'Coming soon'
-        },
-        {
-            id: 'Slack',
-            label: 'Slack',
-            enabled: false,
-            icon: <SlackIcon className="channel-icon-svg" />,
-            color: '#4A154B',
             description: 'Coming soon'
         },
     ];

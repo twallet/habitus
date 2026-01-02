@@ -56,8 +56,6 @@ describe('NotificationsModal', () => {
         expect(screen.getByText('Email')).toBeInTheDocument();
         expect(screen.getByText('Telegram')).toBeInTheDocument();
         expect(screen.getByText('WhatsApp')).toBeInTheDocument();
-        expect(screen.getByText('MS Teams')).toBeInTheDocument();
-        expect(screen.getByText('Slack')).toBeInTheDocument();
     });
 
     it('should have Email selected by default', () => {
@@ -88,7 +86,7 @@ describe('NotificationsModal', () => {
         const badges = screen.getAllByText('Coming soon').filter(
             (el) => el.className.includes('coming-soon-badge')
         );
-        expect(badges).toHaveLength(3);
+        expect(badges).toHaveLength(1);
     });
 
     it('should close modal when close button is clicked', async () => {
