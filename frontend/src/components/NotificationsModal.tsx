@@ -422,6 +422,9 @@ export function NotificationsModal({
                                     </label>
                                     {channel.id === 'Telegram' && selectedChannel === 'Telegram' && !telegramConnected && !isGeneratingLink && (
                                         <div className="telegram-connection-panel-inline" key={`telegram-panel-${telegramLink}`}>
+                                            <h3 style={{ marginBottom: '16px', fontSize: '1.1rem', fontWeight: 'bold' }}>
+                                                How to connect your Telegram account?
+                                            </h3>
                                             <div className="connection-step">
                                                 <div className={`step-indicator ${telegramStartCommand ? 'active' : ''}`}>1</div>
                                                 <div className="step-content">
@@ -436,10 +439,13 @@ export function NotificationsModal({
                                                             display: 'inline-block',
                                                             textAlign: 'center',
                                                             textDecoration: 'none',
-                                                            marginTop: '8px'
+                                                            marginTop: '8px',
+                                                            height: 'auto',
+                                                            minHeight: '32px',
+                                                            lineHeight: '32px'
                                                         }}
                                                     >
-                                                        Go to 🌱 Habitus in Telegram
+                                                        Go
                                                     </a>
                                                 </div>
                                             </div>
@@ -448,56 +454,36 @@ export function NotificationsModal({
                                                 <div className="step-content">
                                                     <h4>Copy/Paste your key</h4>
                                                     <p className="form-help-text">
-                                                        Copy the command below and paste it in the Telegram bot chat:
+                                                        Copy the command and paste it in the Telegram bot chat:
                                                     </p>
                                                     {telegramStartCommand ? (
                                                         <>
-                                                            <div style={{
-                                                                marginTop: '12px',
-                                                                padding: '12px',
-                                                                backgroundColor: '#e7f3ff',
-                                                                border: '2px solid #007bff',
-                                                                borderRadius: '6px',
-                                                                fontFamily: 'monospace',
-                                                                fontSize: '0.95rem',
-                                                                wordBreak: 'break-all',
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                gap: '12px'
-                                                            }}>
-                                                                <code style={{
-                                                                    flex: 1,
-                                                                    fontWeight: 'bold',
-                                                                    color: '#0056b3'
-                                                                }}>{telegramStartCommand}</code>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={async () => {
-                                                                        if (telegramStartCommand) {
-                                                                            try {
-                                                                                await navigator.clipboard.writeText(telegramStartCommand);
-                                                                                setKeyCopied(true);
-                                                                            } catch (err) {
-                                                                                console.error('Error copying to clipboard:', err);
-                                                                            }
+                                                            <button
+                                                                type="button"
+                                                                onClick={async () => {
+                                                                    if (telegramStartCommand) {
+                                                                        try {
+                                                                            await navigator.clipboard.writeText(telegramStartCommand);
+                                                                            setKeyCopied(true);
+                                                                        } catch (err) {
+                                                                            console.error('Error copying to clipboard:', err);
                                                                         }
-                                                                    }}
-                                                                    style={{
-                                                                        padding: '6px 12px',
-                                                                        fontSize: '0.85rem',
-                                                                        cursor: 'pointer',
-                                                                        backgroundColor: '#007bff',
-                                                                        color: 'white',
-                                                                        border: 'none',
-                                                                        borderRadius: '4px',
-                                                                        fontWeight: 'bold',
-                                                                        whiteSpace: 'nowrap'
-                                                                    }}
-                                                                    title="Copy key to clipboard"
-                                                                >
-                                                                    Copy Key
-                                                                </button>
-                                                            </div>
+                                                                    }
+                                                                }}
+                                                                className="btn-primary"
+                                                                style={{
+                                                                    display: 'inline-block',
+                                                                    textAlign: 'center',
+                                                                    marginTop: '8px',
+                                                                    width: 'auto',
+                                                                    height: 'auto',
+                                                                    minHeight: '32px',
+                                                                    lineHeight: '32px'
+                                                                }}
+                                                                title="Copy key to clipboard"
+                                                            >
+                                                                Copy key
+                                                            </button>
                                                             {keyCopied && (
                                                                 <p className="form-help-text" style={{ marginTop: '12px', color: '#25a85a', fontWeight: 'bold' }}>
                                                                     You can close the window, your reminders will be sent by Telegram as soon as we finish to connect your Telegram account

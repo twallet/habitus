@@ -187,7 +187,7 @@ describe('NotificationsModal', () => {
         // Check for inline connection panel (not a separate modal)
         // Check for the link in the inline panel
         await waitFor(() => {
-            const link = screen.getByRole('link', { name: /go to.*habitus.*telegram/i });
+            const link = screen.getByRole('link', { name: /^go$/i });
             expect(link).toBeInTheDocument();
         });
     });
@@ -207,10 +207,11 @@ describe('NotificationsModal', () => {
         await user.click(telegramRadio);
 
         await waitFor(() => {
-            const link = screen.getByRole('link', { name: /go to.*habitus.*telegram/i });
+            const link = screen.getByRole('link', { name: /^go$/i });
             // Should use hardcoded URL, not the API link
             expect(link).toHaveAttribute('href', 'https://t.me/abitus_robot');
             expect(link).toHaveAttribute('target', '_blank');
+            expect(link).toHaveTextContent('Go');
         });
     });
 
@@ -249,7 +250,7 @@ describe('NotificationsModal', () => {
         await user.click(telegramRadio);
 
         await waitFor(() => {
-            const link = screen.getByRole('link', { name: /go to.*habitus.*telegram/i });
+            const link = screen.getByRole('link', { name: /^go$/i });
             expect(link).toBeInTheDocument();
         });
 
@@ -275,7 +276,7 @@ describe('NotificationsModal', () => {
         await user.click(telegramRadio);
 
         await waitFor(() => {
-            expect(screen.getByRole('link', { name: /go to.*habitus.*telegram/i })).toBeInTheDocument();
+            expect(screen.getByRole('link', { name: /^go$/i })).toBeInTheDocument();
         });
 
         // Cancel button should NOT exist in the connection panel
@@ -348,10 +349,14 @@ describe('NotificationsModal', () => {
         await user.click(telegramRadio);
 
         await waitFor(() => {
+            // Title should be shown
+            expect(screen.getByText('How to connect your Telegram account?')).toBeInTheDocument();
+
             // Step 1: Button to open Telegram
-            const telegramLink = screen.getByRole('link', { name: /go to.*habitus.*telegram/i });
+            const telegramLink = screen.getByRole('link', { name: /^go$/i });
             expect(telegramLink).toBeInTheDocument();
             expect(telegramLink).toHaveAttribute('href', 'https://t.me/abitus_robot');
+            expect(telegramLink).toHaveTextContent('Go');
 
             // Step 2: Copy key button
             const copyButton = screen.getByRole('button', { name: /copy key/i });
@@ -382,13 +387,13 @@ describe('NotificationsModal', () => {
         await user.click(telegramRadio);
 
         await waitFor(() => {
-            expect(screen.getByRole('link', { name: /go to.*habitus.*telegram/i })).toBeInTheDocument();
+            expect(screen.getByRole('link', { name: /^go$/i })).toBeInTheDocument();
         });
 
         // Connection panel should remain visible
         // Connection will happen via webhook when user sends /start command in Telegram
         // No automatic polling or connection detection
-        expect(screen.getByRole('link', { name: /go to.*habitus.*telegram/i })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /^go$/i })).toBeInTheDocument();
     });
 
     it('should save automatically when switching to Email channel', async () => {
@@ -408,7 +413,7 @@ describe('NotificationsModal', () => {
 
         // Wait for connection panel to appear
         await waitFor(() => {
-            expect(screen.getByRole('link', { name: /go to.*habitus.*telegram/i })).toBeInTheDocument();
+            expect(screen.getByRole('link', { name: /^go$/i })).toBeInTheDocument();
         }, { timeout: 3000 });
 
         // Now click Email to trigger save
@@ -482,7 +487,7 @@ describe('NotificationsModal', () => {
         await user.click(telegramRadio);
 
         await waitFor(() => {
-            expect(screen.getByRole('link', { name: /go to.*habitus.*telegram/i })).toBeInTheDocument();
+            expect(screen.getByRole('link', { name: /^go$/i })).toBeInTheDocument();
         });
 
         // Switch back to Email to trigger save
@@ -518,7 +523,7 @@ describe('NotificationsModal', () => {
         await user.click(telegramRadio);
 
         await waitFor(() => {
-            expect(screen.getByRole('link', { name: /go to.*habitus.*telegram/i })).toBeInTheDocument();
+            expect(screen.getByRole('link', { name: /^go$/i })).toBeInTheDocument();
         });
 
         // Switch back to Email to trigger save
@@ -562,7 +567,7 @@ describe('NotificationsModal', () => {
         expect(telegramLabel?.querySelector('.channel-icon-svg')).toBeInTheDocument();
     });
 
-    it('should display start command in correct format', async () => {
+    it('should show title "How to connect your Telegram account?"', async () => {
         const user = userEvent.setup();
         render(
             <NotificationsModal
@@ -577,9 +582,32 @@ describe('NotificationsModal', () => {
         await user.click(telegramRadio);
 
         await waitFor(() => {
-            // Should display start command as "start <token> <userId>"
-            const startCommand = screen.getByText(/^start\s+token123\s+1$/);
-            expect(startCommand).toBeInTheDocument();
+            // Should show the title before the steps
+            expect(screen.getByText('How to connect your Telegram account?')).toBeInTheDocument();
+        });
+    });
+
+    it('should NOT display the start command text, only the Copy Key button', async () => {
+        const user = userEvent.setup();
+        render(
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+            />
+        );
+
+        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
+        await user.click(telegramRadio);
+
+        await waitFor(() => {
+            // Should NOT display the command text
+            expect(screen.queryByText(/^start\s+token123\s+1$/)).not.toBeInTheDocument();
+            
+            // Should only show the Copy Key button
+            const copyButton = screen.getByRole('button', { name: /copy key/i });
+            expect(copyButton).toBeInTheDocument();
         });
     });
 
@@ -700,14 +728,14 @@ describe('NotificationsModal', () => {
         // Should not show connection panel or any loading message while generating
         expect(screen.queryByText('Preparing connection...')).not.toBeInTheDocument();
         expect(screen.queryByText('Generating connection key...')).not.toBeInTheDocument();
-        expect(screen.queryByRole('link', { name: /go to.*habitus.*telegram/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: /^go$/i })).not.toBeInTheDocument();
 
         // Resolve the promise to complete generation
         resolveLink!({ link: 'https://t.me/testbot?start=token123%201', token: 'token123' });
 
         // Now the connection panel should appear
         await waitFor(() => {
-            expect(screen.getByRole('link', { name: /go to.*habitus.*telegram/i })).toBeInTheDocument();
+            expect(screen.getByRole('link', { name: /^go$/i })).toBeInTheDocument();
         });
     });
 });
