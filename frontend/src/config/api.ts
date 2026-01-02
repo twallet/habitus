@@ -547,37 +547,33 @@ export class ApiClient {
 
   /**
    * Get Telegram bot start link for connecting Telegram account.
-   * @returns Promise resolving to object with link, token, userId, and botUsername
+   * @returns Promise resolving to object with link and token
    * @throws Error if request fails
    * @public
    */
   async getTelegramStartLink(): Promise<{
     link: string;
     token: string;
-    userId: number;
-    botUsername: string | null;
   }> {
     return this.get<{
       link: string;
       token: string;
-      userId: number;
-      botUsername: string | null;
     }>(`${this.baseUrl}/api/telegram/start-link`);
   }
 
   /**
    * Get Telegram connection status for the authenticated user.
-   * @returns Promise resolving to object with connected status and chatId
+   * @returns Promise resolving to object with connected status and telegramChatId
    * @throws Error if request fails
    * @public
    */
   async getTelegramStatus(): Promise<{
     connected: boolean;
-    chatId: string | null;
+    telegramChatId: string | null;
   }> {
     return this.get<{
       connected: boolean;
-      chatId: string | null;
+      telegramChatId: string | null;
     }>(`${this.baseUrl}/api/telegram/status`);
   }
 

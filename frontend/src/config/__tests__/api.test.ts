@@ -661,10 +661,8 @@ describe("api", () => {
     describe("getTelegramStartLink", () => {
       it("should get Telegram start link successfully", async () => {
         const mockResponse = {
-          link: "https://t.me/testbot?start=token123_1",
+          link: "https://t.me/testbot?start=token123%201",
           token: "token123",
-          userId: 1,
-          botUsername: "testbot",
         };
 
         (global.fetch as Mock).mockResolvedValueOnce({
@@ -687,7 +685,7 @@ describe("api", () => {
       it("should get Telegram status successfully when connected", async () => {
         const mockResponse = {
           connected: true,
-          chatId: "123456789",
+          telegramChatId: "123456789",
         };
 
         (global.fetch as Mock).mockResolvedValueOnce({
@@ -708,7 +706,7 @@ describe("api", () => {
       it("should get Telegram status successfully when not connected", async () => {
         const mockResponse = {
           connected: false,
-          chatId: null,
+          telegramChatId: null,
         };
 
         (global.fetch as Mock).mockResolvedValueOnce({
