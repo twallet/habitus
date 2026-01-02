@@ -11,6 +11,7 @@ interface EditProfileModalProps {
         profilePicture: File | null,
         removeProfilePicture?: boolean
     ) => Promise<void>;
+    onChangeEmail: () => void;
 }
 
 /**
@@ -20,12 +21,14 @@ interface EditProfileModalProps {
  * @param props.user - The current user's data
  * @param props.onClose - Callback when modal is closed
  * @param props.onSave - Callback when profile is saved
+ * @param props.onChangeEmail - Callback when Change email button is clicked
  * @public
  */
 export function EditProfileModal({
     user,
     onClose,
     onSave,
+    onChangeEmail,
 }: EditProfileModalProps) {
     const [name, setName] = useState(user.name);
     const [profilePicture, setProfilePicture] = useState<File | null>(null);
@@ -177,6 +180,40 @@ export function EditProfileModal({
                         <span className="char-count">
                             {name.length}/{User.MAX_NAME_LENGTH}
                         </span>
+                    </div>
+
+                    <div className="form-group">
+                        <div className="form-label-row">
+                            <label htmlFor="edit-email">
+                                Email{" "}
+                                <button
+                                    type="button"
+                                    className="field-help"
+                                    aria-label="Email help"
+                                    title="Your email address (read-only). Use the Change email button to update it."
+                                >
+                                    ?
+                                </button>
+                            </label>
+                        </div>
+                        <div className="email-field-wrapper">
+                            <input
+                                type="email"
+                                id="edit-email"
+                                name="email"
+                                value={user.email}
+                                disabled
+                                className="disabled-input"
+                            />
+                            <button
+                                type="button"
+                                className="btn-secondary email-change-btn"
+                                onClick={onChangeEmail}
+                                disabled={isSubmitting}
+                            >
+                                Change email
+                            </button>
+                        </div>
                     </div>
 
                     <div className="form-group">

@@ -185,7 +185,22 @@ async function processTelegramUpdate(update: TelegramUpdate): Promise<void> {
 
   // Send welcome message
   const telegramService = ServiceManager.getTelegramService();
-  const frontendUrl = `${ServerConfig.getServerUrl()}:${ServerConfig.getPort()}`;
+  // Construct frontend URL without port for production (custom domain)
+  // Only add port in development (localhost)
+  const serverUrl = ServerConfig.getServerUrl();
+  let frontendUrl: string;
+  if (serverUrl.startsWith("https://") || serverUrl.startsWith("http://")) {
+    // Production: use URL as-is (no port needed)
+    // Development: add port if it's localhost
+    if (serverUrl.includes("localhost") || serverUrl.includes("127.0.0.1")) {
+      frontendUrl = `${serverUrl}:${ServerConfig.getPort()}`;
+    } else {
+      frontendUrl = serverUrl;
+    }
+  } else {
+    // Fallback: add port if URL doesn't have protocol
+    frontendUrl = `${serverUrl}:${ServerConfig.getPort()}`;
+  }
 
   try {
     await telegramService.sendWelcomeMessage(chatId, userId, frontendUrl);

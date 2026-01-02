@@ -492,11 +492,18 @@ describe('MainLayout', () => {
         await user.click(userMenuButton);
 
         await waitFor(() => {
-            expect(screen.getByText('Change email')).toBeInTheDocument();
+            expect(screen.getByText('Account settings')).toBeInTheDocument();
         });
 
-        const changeEmailItem = screen.getByText('Change email');
-        await user.click(changeEmailItem);
+        const accountSettingsItem = screen.getByText('Account settings');
+        await user.click(accountSettingsItem);
+
+        await waitFor(() => {
+            expect(screen.getByRole('heading', { name: /edit profile/i })).toBeInTheDocument();
+        });
+
+        const changeEmailButton = screen.getByRole('button', { name: /change email/i });
+        await user.click(changeEmailButton);
 
         await waitFor(() => {
             expect(screen.getByRole('heading', { name: /change email/i })).toBeInTheDocument();

@@ -150,3 +150,24 @@
   margin: 0;
   font-weight: normal;
 }
+
+.email-field-wrapper {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.email-field-wrapper input {
+  flex: 1;
+}
+
+.email-change-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.disabled-input {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+}

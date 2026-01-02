@@ -270,7 +270,6 @@ export function MainLayout() {
                             <UserMenu
                                 user={user}
                                 onEditProfile={() => setShowEditProfile(true)}
-                                onChangeEmail={() => setShowChangeEmail(true)}
                                 onNotifications={() => setShowNotifications(true)}
                                 onLogout={handleLogout}
                                 onDeleteUser={() => setShowDeleteConfirmation(true)}
@@ -307,7 +306,15 @@ export function MainLayout() {
                 </main>
 
                 {showEditProfile && (
-                    <EditProfileModal user={user} onClose={() => setShowEditProfile(false)} onSave={handleSaveProfile} />
+                    <EditProfileModal
+                        user={user}
+                        onClose={() => setShowEditProfile(false)}
+                        onSave={handleSaveProfile}
+                        onChangeEmail={() => {
+                            setShowEditProfile(false);
+                            setShowChangeEmail(true);
+                        }}
+                    />
                 )}
                 {showChangeEmail && (
                     <ChangeEmailModal user={user} onClose={() => setShowChangeEmail(false)} onRequestEmailChange={handleRequestEmailChange} />

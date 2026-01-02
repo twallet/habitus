@@ -5,7 +5,6 @@ import './UserMenu.css';
 interface UserMenuProps {
     user: UserData;
     onEditProfile: () => void;
-    onChangeEmail: () => void;
     onNotifications: () => void;
     onLogout: () => void;
     onDeleteUser: () => void;
@@ -17,7 +16,6 @@ interface UserMenuProps {
  * @param props - Component props
  * @param props.user - The current user's data
  * @param props.onEditProfile - Callback when Account settings is clicked
- * @param props.onChangeEmail - Callback when Change email is clicked
  * @param props.onNotifications - Callback when Notifications is clicked
  * @param props.onLogout - Callback when Logout is clicked
  * @param props.onDeleteUser - Callback when Delete account is clicked
@@ -26,7 +24,6 @@ interface UserMenuProps {
 export function UserMenu({
     user,
     onEditProfile,
-    onChangeEmail,
     onNotifications,
     onLogout,
     onDeleteUser,
@@ -114,13 +111,6 @@ export function UserMenu({
                         onClick={() => handleMenuItemClick(onEditProfile)}
                     >
                         Account settings
-                    </button>
-                    <button
-                        type="button"
-                        className="user-menu-item"
-                        onClick={() => handleMenuItemClick(onChangeEmail)}
-                    >
-                        Change email
                     </button>
                     <button
                         type="button"

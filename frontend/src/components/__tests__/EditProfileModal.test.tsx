@@ -15,6 +15,7 @@ describe('EditProfileModal', () => {
 
   const mockOnClose = vi.fn();
   const mockOnSave = vi.fn().mockResolvedValue(undefined);
+  const mockOnChangeEmail = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -22,17 +23,18 @@ describe('EditProfileModal', () => {
 
   it('should render modal with user information', () => {
     render(
-      <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={mockOnSave} />
+      <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={mockOnSave} onChangeEmail={mockOnChangeEmail} />
     );
 
     expect(screen.getByText('Edit profile')).toBeInTheDocument();
     expect(screen.getByDisplayValue('John Doe')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('john@example.com')).toBeInTheDocument();
   });
 
   it('should close modal when close button is clicked', async () => {
     const user = userEvent.setup();
     render(
-      <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={mockOnSave} />
+      <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={mockOnSave} onChangeEmail={mockOnChangeEmail} />
     );
 
     const closeButton = screen.getByRole('button', { name: /close/i });
@@ -46,7 +48,7 @@ describe('EditProfileModal', () => {
   it('should update name when input changes', async () => {
     const user = userEvent.setup();
     render(
-      <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={mockOnSave} />
+      <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={mockOnSave} onChangeEmail={mockOnChangeEmail} />
     );
 
     const nameInput = screen.getByPlaceholderText('Enter your name');
@@ -58,7 +60,7 @@ describe('EditProfileModal', () => {
 
   it('should show character count', () => {
     render(
-      <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={mockOnSave} />
+      <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={mockOnSave} onChangeEmail={mockOnChangeEmail} />
     );
 
     expect(screen.getByText(/8\/30/i)).toBeInTheDocument();
@@ -67,7 +69,7 @@ describe('EditProfileModal', () => {
   it('should submit form with updated name', async () => {
     const user = userEvent.setup();
     render(
-      <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={mockOnSave} />
+      <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={mockOnSave} onChangeEmail={mockOnChangeEmail} />
     );
 
     const nameInput = screen.getByPlaceholderText('Enter your name');
@@ -88,7 +90,7 @@ describe('EditProfileModal', () => {
     const file = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
 
     render(
-      <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={mockOnSave} />
+      <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={mockOnSave} onChangeEmail={mockOnChangeEmail} />
     );
 
     const fileInput = document.getElementById('edit-profile-picture') as HTMLInputElement;
@@ -103,7 +105,7 @@ describe('EditProfileModal', () => {
     const file = new File(['test'], 'test.txt', { type: 'text/plain' });
 
     render(
-      <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={mockOnSave} />
+      <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={mockOnSave} onChangeEmail={mockOnChangeEmail} />
     );
 
     const fileInput = document.getElementById('edit-profile-picture') as HTMLInputElement;
@@ -129,7 +131,7 @@ describe('EditProfileModal', () => {
     });
 
     render(
-      <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={mockOnSave} />
+      <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={mockOnSave} onChangeEmail={mockOnChangeEmail} />
     );
 
     const fileInput = document.getElementById('edit-profile-picture') as HTMLInputElement;
@@ -300,6 +302,45 @@ describe('EditProfileModal', () => {
     const image = screen.getByAltText('Profile preview');
     expect(image).toBeInTheDocument();
     expect(image).toHaveAttribute('src', 'https://example.com/picture.jpg');
+  });
+
+  it('should display email field as disabled', () => {
+    render(
+      <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={mockOnSave} onChangeEmail={mockOnChangeEmail} />
+    );
+
+    const emailInput = screen.getByDisplayValue('john@example.com');
+    expect(emailInput).toBeDisabled();
+    expect(emailInput).toHaveAttribute('type', 'email');
+  });
+
+  it('should call onChangeEmail when Change email button is clicked', async () => {
+    const user = userEvent.setup();
+    render(
+      <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={mockOnSave} onChangeEmail={mockOnChangeEmail} />
+    );
+
+    const changeEmailButton = screen.getByRole('button', { name: /change email/i });
+    await user.click(changeEmailButton);
+
+    expect(mockOnChangeEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it('should disable Change email button when submitting', async () => {
+    const user = userEvent.setup();
+    const slowSave = vi.fn().mockImplementation(
+      () => new Promise(resolve => setTimeout(resolve, 100))
+    );
+
+    render(
+      <EditProfileModal user={mockUser} onClose={mockOnClose} onSave={slowSave} onChangeEmail={mockOnChangeEmail} />
+    );
+
+    const saveButton = screen.getByRole('button', { name: /^save$/i });
+    await user.click(saveButton);
+
+    const changeEmailButton = screen.getByRole('button', { name: /change email/i });
+    expect(changeEmailButton).toBeDisabled();
   });
 });
 

@@ -246,7 +246,7 @@ export class TelegramService {
       throw new Error("Telegram chat ID is required");
     }
 
-    const messageText = `🎉 *Welcome to Habitus!*\n\nYour Telegram account has been successfully connected.\n\nYou will now receive reminders via Telegram.\n\n[Go to Dashboard](${frontendUrl})`;
+    const messageText = `🎉 *Welcome to 🌱 Habitus!*\n\nYour Telegram account has been successfully connected, so you will now receive reminders via Telegram.\n\n[Go to 🌱 Habitus Dashboard](${frontendUrl})`;
 
     try {
       const url = `${this.apiBaseUrl}${this.config.botToken}/sendMessage`;
