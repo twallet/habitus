@@ -356,17 +356,10 @@ export function NotificationsModal({
                                     className={`channel-option channel-option-${channel.id.toLowerCase()} ${!channel.enabled ? 'disabled' : ''}`}
                                     style={selectedChannel === channel.id ? { '--channel-color': channel.color } as React.CSSProperties : undefined}
                                 >
-                                    <span className="channel-icon">
-                                        {typeof channel.icon === 'string' ? channel.icon : channel.icon}
-                                    </span>
-                                    <div className="channel-info">
-                                        <span className="channel-label">{channel.label}</span>
-                                        <span className="channel-description">{channel.description}</span>
-                                    </div>
                                     {channel.enabled ? (
                                         <>
                                             {channel.id === 'Telegram' && telegramConfigInProgress && (
-                                                <span className="coming-soon-badge" style={{ background: '#0088cc', color: 'white' }}>
+                                                <span className="coming-soon-badge config-progress-badge" style={{ background: '#0088cc', color: 'white' }}>
                                                     Configuration in progress
                                                 </span>
                                             )}
@@ -382,6 +375,13 @@ export function NotificationsModal({
                                     ) : (
                                         <span className="coming-soon-badge">Coming soon</span>
                                     )}
+                                    <span className="channel-icon">
+                                        {typeof channel.icon === 'string' ? channel.icon : channel.icon}
+                                    </span>
+                                    <div className="channel-info">
+                                        <span className="channel-label">{channel.label}</span>
+                                        <span className="channel-description">{channel.description}</span>
+                                    </div>
                                 </label>
                             ))}
                         </div>

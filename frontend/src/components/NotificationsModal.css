@@ -18,9 +18,10 @@
 
 .channel-option {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 14px;
   padding: 16px;
+  padding-right: 44px;
   border: 2px solid var(--border-color);
   border-radius: var(--radius);
   cursor: pointer;
@@ -50,11 +51,15 @@
 }
 
 .channel-option input[type="radio"] {
+  position: absolute;
+  top: 12px;
+  right: 12px;
   width: 20px;
   height: 20px;
   cursor: pointer;
   accent-color: var(--channel-color, var(--primary-color));
   flex-shrink: 0;
+  margin: 0;
 }
 
 .channel-option.disabled input[type="radio"] {
@@ -119,6 +124,9 @@
 }
 
 .coming-soon-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
   padding: 4px 8px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
@@ -129,6 +137,11 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   flex-shrink: 0;
+  z-index: 1;
+}
+
+.config-progress-badge {
+  z-index: 2;
 }
 
 .telegram-connection-flow {
