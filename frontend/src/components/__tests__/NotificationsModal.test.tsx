@@ -434,7 +434,7 @@ describe('NotificationsModal', () => {
         });
     });
 
-    it('should submit form with Email channel', async () => {
+    it('should save automatically when switching to Email channel', async () => {
         const user = userEvent.setup();
         render(
             <NotificationsModal
@@ -445,16 +445,32 @@ describe('NotificationsModal', () => {
             />
         );
 
-        const saveButton = screen.getByRole('button', { name: /^save$/i });
-        await user.click(saveButton);
+        // Select Telegram first, then switch back to Email to trigger save
+        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
+        await user.click(telegramRadio);
+
+        // Wait for Telegram modal to appear, then cancel to go back
+        await waitFor(() => {
+            expect(screen.getByText('Connect Telegram')).toBeInTheDocument();
+        });
+
+        const cancelButtons = screen.getAllByRole('button', { name: /^cancel$/i });
+        const telegramModal = screen.getByText('Connect Telegram').closest('.modal-content');
+        const cancelButton = telegramModal?.querySelector('button.btn-secondary');
+        if (cancelButton) {
+            await user.click(cancelButton);
+        }
+
+        // Now click Email to trigger save
+        const emailRadio = screen.getByRole('radio', { name: /email/i });
+        await user.click(emailRadio);
 
         await waitFor(() => {
             expect(mockOnSave).toHaveBeenCalledWith('Email', undefined);
         });
-        expect(mockOnClose).toHaveBeenCalledTimes(1);
     });
 
-    it('should submit form with Telegram channel when connected', async () => {
+    it('should save automatically when Telegram channel is selected and connected', async () => {
         const user = userEvent.setup();
         const mockGetTelegramStatusConnected = vi.fn().mockResolvedValue({
             connected: true,
@@ -477,13 +493,23 @@ describe('NotificationsModal', () => {
             />
         );
 
-        const saveButton = screen.getByRole('button', { name: /^save$/i });
-        await user.click(saveButton);
+        // Switch to Email first, then back to Telegram to trigger save
+        const emailRadio = screen.getByRole('radio', { name: /email/i });
+        await user.click(emailRadio);
+
+        await waitFor(() => {
+            expect(mockOnSave).toHaveBeenCalledWith('Email', undefined);
+        });
+
+        mockOnSave.mockClear();
+
+        // Now click Telegram to trigger save
+        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
+        await user.click(telegramRadio);
 
         await waitFor(() => {
             expect(mockOnSave).toHaveBeenCalledWith('Telegram', '123456789');
         });
-        expect(mockOnClose).toHaveBeenCalledTimes(1);
     });
 
     it('should display error message on save failure', async () => {
@@ -500,15 +526,32 @@ describe('NotificationsModal', () => {
             />
         );
 
-        const saveButton = screen.getByRole('button', { name: /^save$/i });
-        await user.click(saveButton);
+        // Switch to Telegram first, then back to Email to trigger save
+        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
+        await user.click(telegramRadio);
+
+        // Wait for Telegram modal, then cancel
+        await waitFor(() => {
+            expect(screen.getByText('Connect Telegram')).toBeInTheDocument();
+        });
+
+        const cancelButtons = screen.getAllByRole('button', { name: /^cancel$/i });
+        const telegramModal = screen.getByText('Connect Telegram').closest('.modal-content');
+        const cancelButton = telegramModal?.querySelector('button.btn-secondary');
+        if (cancelButton) {
+            await user.click(cancelButton);
+        }
+
+        // Now click Email to trigger save with error
+        const emailRadio = screen.getByRole('radio', { name: /email/i });
+        await user.click(emailRadio);
 
         await waitFor(() => {
             expect(screen.getByText(errorMessage)).toBeInTheDocument();
         });
     });
 
-    it('should disable form during submission', async () => {
+    it('should disable radio buttons during submission', async () => {
         const user = userEvent.setup();
         let resolveSave: () => void;
         const mockOnSaveDelayed = vi.fn().mockImplementation(() => {
@@ -526,17 +569,23 @@ describe('NotificationsModal', () => {
             />
         );
 
-        const saveButton = screen.getByRole('button', { name: /^save$/i });
-        await user.click(saveButton);
+        // Click Email radio button to trigger save
+        const emailRadio = screen.getByRole('radio', { name: /email/i });
+        await user.click(emailRadio);
 
         await waitFor(() => {
-            expect(saveButton).toBeDisabled();
-            expect(screen.getByText(/saving/i)).toBeInTheDocument();
+            const radioButtons = screen.getAllByRole('radio');
+            radioButtons.forEach(radio => {
+                expect(radio).toBeDisabled();
+            });
         });
 
         resolveSave!();
         await waitFor(() => {
-            expect(saveButton).not.toBeDisabled();
+            const radioButtons = screen.getAllByRole('radio');
+            radioButtons.forEach(radio => {
+                expect(radio).not.toBeDisabled();
+            });
         });
     });
 

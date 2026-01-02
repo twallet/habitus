@@ -1,4 +1,4 @@
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import './NotificationsModal.css';
 import { UserData } from '../models/User';
 import { TelegramConnectionModal } from './TelegramConnectionModal';
@@ -165,11 +165,50 @@ export function NotificationsModal({
     }, [telegramConfigInProgress]);
 
     /**
+     * Save notification preferences.
+     * @param channelId - The selected channel ID
+     * @internal
+     */
+    const savePreferences = async (channelId: string) => {
+        // Prevent double submission
+        if (isSubmitting) {
+            return;
+        }
+
+        setIsSubmitting(true);
+        setError(null);
+
+        // Validate that Telegram is connected if Telegram is selected
+        if (channelId === 'Telegram' && !telegramConnected) {
+            setError('Please connect your Telegram account before saving');
+            setIsSubmitting(false);
+            return;
+        }
+
+        try {
+            await onSave(
+                channelId,
+                channelId === 'Telegram' && telegramChatId ? telegramChatId : undefined
+            );
+            // Stop polling after saving
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                setPollingInterval(null);
+            }
+            setTelegramConfigInProgress(false);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Error saving notification settings');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    /**
      * Handle channel selection change.
      * @param channelId - The selected channel ID
      * @internal
      */
-    const handleChannelChange = (channelId: string) => {
+    const handleChannelChange = async (channelId: string) => {
         // Stop polling if switching away from Telegram configuration
         if (telegramConfigInProgress && channelId !== 'Telegram') {
             setTelegramConfigInProgress(false);
@@ -180,9 +219,10 @@ export function NotificationsModal({
         }
 
         if (channelId === 'Telegram') {
-            // If Telegram is already connected, just select it
+            // If Telegram is already connected, select it and save
             if (telegramConnected) {
                 setSelectedChannel('Telegram');
+                await savePreferences('Telegram');
                 return;
             }
             // Otherwise, open Telegram connection modal
@@ -191,6 +231,8 @@ export function NotificationsModal({
         } else {
             setSelectedChannel(channelId);
             setShowTelegramModal(false);
+            // Save immediately for non-Telegram channels
+            await savePreferences(channelId);
         }
     };
 
@@ -201,6 +243,10 @@ export function NotificationsModal({
     const handleTelegramConnected = async () => {
         setShowTelegramModal(false);
         await checkTelegramStatus();
+        // Save preferences automatically when Telegram is connected
+        if (telegramConnected && telegramChatId) {
+            await savePreferences('Telegram');
+        }
     };
 
     /**
@@ -243,47 +289,6 @@ export function NotificationsModal({
         onClose();
     };
 
-    /**
-     * Handle form submission.
-     * @param e - Form submission event
-     * @internal
-     */
-    const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-
-        // Prevent double submission
-        if (isSubmitting) {
-            return;
-        }
-
-        setIsSubmitting(true);
-        setError(null);
-
-        // Validate that Telegram is connected if Telegram is selected
-        if (selectedChannel === 'Telegram' && !telegramConnected) {
-            setError('Please connect your Telegram account before saving');
-            setIsSubmitting(false);
-            return;
-        }
-
-        try {
-            await onSave(
-                selectedChannel,
-                selectedChannel === 'Telegram' && telegramChatId ? telegramChatId : undefined
-            );
-            // Stop polling before closing
-            if (pollingInterval) {
-                clearInterval(pollingInterval);
-                setPollingInterval(null);
-            }
-            setTelegramConfigInProgress(false);
-            onClose();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Error saving notification settings');
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
 
     const channels = [
         {
@@ -327,7 +332,7 @@ export function NotificationsModal({
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="notifications-form">
+                <div className="notifications-form">
                     {error && (
                         <div className="message error show">
                             <span className="message-text">{error}</span>
@@ -406,25 +411,7 @@ export function NotificationsModal({
                             </div>
                         </div>
                     )}
-
-                    <div className="modal-actions">
-                        <button
-                            type="button"
-                            className="btn-secondary"
-                            onClick={handleModalClose}
-                            disabled={isSubmitting}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            className="btn-primary"
-                            disabled={isSubmitting || (selectedChannel === 'Telegram' && !telegramConnected)}
-                        >
-                            {isSubmitting ? 'Saving...' : 'Save'}
-                        </button>
-                    </div>
-                </form>
+                </div>
             </div>
 
             {/* Telegram Connection Modal */}

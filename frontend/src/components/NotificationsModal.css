@@ -11,9 +11,9 @@
 }
 
 .notification-channels {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .channel-option {
@@ -25,28 +25,26 @@
   border-radius: var(--radius);
   cursor: pointer;
   transition: var(--transition);
-  background: var(--bg-primary);
+  background: rgba(0, 90, 127, 0.05);
   position: relative;
   box-shadow: var(--shadow-sm);
 }
 
 .channel-option:hover:not(.disabled) {
-  background: var(--bg-secondary);
+  background: rgba(0, 90, 127, 0.08);
   border-color: var(--text-secondary);
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
 }
 
 .channel-option:has(input[type="radio"]:checked) {
   border-color: var(--channel-color, var(--primary-color));
-  background: var(--bg-secondary);
+  background: rgba(0, 90, 127, 0.15);
   box-shadow: 0 0 0 3px rgba(0, 90, 127, 0.1);
 }
 
 .channel-option.disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  background: var(--bg-secondary);
+  background: rgba(0, 90, 127, 0.05);
 }
 
 .channel-header {
@@ -120,11 +118,11 @@
   top: 12px;
   right: 12px;
   padding: 4px 8px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
+  background: #808080;
+  border: 1px solid #666666;
   border-radius: var(--radius);
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: white;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
