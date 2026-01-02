@@ -247,8 +247,8 @@ export class UserService {
   /**
    * Update notification preferences for a user.
    * @param userId - The user ID
-   * @param notificationChannels - Array of enabled notification channels (e.g., ["Email", "Telegram"])
-   * @param telegramChatId - Optional Telegram chat ID
+   * @param notificationChannel - Single notification channel (e.g., "Email" or "Telegram")
+   * @param telegramChatId - Optional Telegram chat ID (required if Telegram is selected)
    * @returns Promise resolving to updated user data
    * @throws Error if user not found or validation fails
    * @public

@@ -43,10 +43,10 @@ export class User {
   telegram_chat_id?: string;
 
   /**
-   * Notification channels (optional).
+   * Notification channel (optional).
    * @public
    */
-  notification_channels?: string[];
+  notification_channels?: string;
 
   /**
    * User locale (optional, BCP 47 format like 'en-US', 'es-AR', 'fr-FR').
