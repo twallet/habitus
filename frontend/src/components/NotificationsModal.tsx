@@ -350,7 +350,22 @@ export function NotificationsModal({
                                                             : undefined
                                                         }>
                                                         {channel.badge}
-                                                        {channel.id === 'Telegram' && telegramConnected && (
+                                                        {channel.id === 'Telegram' && telegramConnecting && !telegramConnected && (
+                                                            <button
+                                                                type="button"
+                                                                className="badge-disconnect-btn"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setTelegramConnecting(false);
+                                                                }}
+                                                                aria-label="Cancel Telegram connection"
+                                                                title="Cancel Telegram connection"
+                                                                style={{ backgroundColor: '#000000', color: '#ffffff' }}
+                                                            >
+                                                                X
+                                                            </button>
+                                                        )}
+                                                        {channel.id === 'Telegram' && telegramConnected && !telegramConnecting && (
                                                             <button
                                                                 type="button"
                                                                 className="badge-disconnect-btn"
@@ -374,7 +389,7 @@ export function NotificationsModal({
                                                     value={channel.id}
                                                     checked={selectedChannel === channel.id}
                                                     onChange={() => handleChannelChange(channel.id)}
-                                                    disabled={isSubmitting}
+                                                    disabled={isSubmitting || (channel.id === 'Telegram' && telegramConnecting && !telegramConnected)}
                                                 />
                                             ) : null}
                                         </div>

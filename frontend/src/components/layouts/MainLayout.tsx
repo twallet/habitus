@@ -349,7 +349,6 @@ export function MainLayout() {
                         onClose={() => setShowNotifications(false)}
                         onSave={async (notificationChannel, telegramChatId) => {
                             await updateNotificationPreferences(notificationChannel, telegramChatId);
-                            setMessage({ text: 'Notification settings saved', type: 'success' });
                         }}
                         onGetTelegramStartLink={getTelegramStartLink}
                         onGetTelegramStatus={getTelegramStatus}
