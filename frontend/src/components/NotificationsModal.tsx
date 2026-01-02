@@ -79,6 +79,7 @@ export function NotificationsModal({
     const [telegramConnecting, setTelegramConnecting] = useState(false);
     const connectingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const keyGenerationTimeRef = useRef<number | null>(null);
+    const isCancelingRef = useRef(false);
 
     /**
      * Record key generation time when modal opens.
@@ -233,6 +234,10 @@ export function NotificationsModal({
      * @internal
      */
     const handleChannelChange = async (channelId: string) => {
+        // Don't open modal if we're in the process of canceling
+        if (isCancelingRef.current) {
+            return;
+        }
         if (channelId === 'Telegram') {
             setSelectedChannel('Telegram');
             selectedChannelRef.current = 'Telegram';
@@ -418,6 +423,9 @@ export function NotificationsModal({
                                                                 className="badge-disconnect-btn"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
+                                                                    e.preventDefault();
+                                                                    // Set canceling flag to prevent modal from opening
+                                                                    isCancelingRef.current = true;
                                                                     // Clear timeout if it exists
                                                                     if (connectingTimeoutRef.current) {
                                                                         clearTimeout(connectingTimeoutRef.current);
@@ -430,6 +438,10 @@ export function NotificationsModal({
                                                                     // Select Email channel
                                                                     setSelectedChannel('Email');
                                                                     selectedChannelRef.current = 'Email';
+                                                                    // Reset canceling flag after a short delay
+                                                                    setTimeout(() => {
+                                                                        isCancelingRef.current = false;
+                                                                    }, 100);
                                                                 }}
                                                                 aria-label="Cancel Telegram connection"
                                                                 title="Cancel Telegram connection"
