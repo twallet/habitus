@@ -170,8 +170,8 @@ router.delete(
  * Update authenticated user's notification preferences.
  * @route PUT /api/users/notifications
  * @header {string} Authorization - Bearer token
- * @body {string[]} notificationChannels - Array of enabled channels (e.g., ["Email", "Telegram"])
- * @body {string} telegramChatId - Optional Telegram chat ID (required if Telegram is enabled)
+ * @body {string} notificationChannel - Single notification channel (e.g., "Email" or "Telegram")
+ * @body {string} telegramChatId - Optional Telegram chat ID (required if Telegram is selected)
  * @returns {UserData} Updated user data
  */
 router.put(
@@ -180,19 +180,13 @@ router.put(
   async (req: AuthRequest, res: Response) => {
     try {
       const userId = req.userId!;
-      const { notificationChannels, telegramChatId } = req.body;
+      const { notificationChannel, telegramChatId } = req.body;
 
-      // Accept either array (for backward compatibility) or string
-      if (!notificationChannels) {
+      if (!notificationChannel) {
         return res
           .status(400)
           .json({ error: "notificationChannel is required" });
       }
-
-      // Convert array to single channel (take first element for backward compatibility during transition)
-      const notificationChannel = Array.isArray(notificationChannels)
-        ? notificationChannels[0] || "Email"
-        : notificationChannels;
 
       const user = await getUserServiceInstance().updateNotificationPreferences(
         userId,

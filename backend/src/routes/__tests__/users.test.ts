@@ -422,11 +422,9 @@ describe("Users Routes", () => {
     });
 
     it("should update notification preferences successfully", async () => {
-      const response = await request(app)
-        .put("/api/users/notifications")
-        .send({
-          notificationChannels: ["Email"],
-        });
+      const response = await request(app).put("/api/users/notifications").send({
+        notificationChannel: "Email",
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.notification_channels).toBe("Email");
@@ -434,7 +432,7 @@ describe("Users Routes", () => {
 
     it("should update notification preferences with Telegram", async () => {
       const response = await request(app).put("/api/users/notifications").send({
-        notificationChannels: "Telegram",
+        notificationChannel: "Telegram",
         telegramChatId: "123456789",
       });
 
@@ -443,7 +441,7 @@ describe("Users Routes", () => {
       expect(response.body.telegram_chat_id).toBe("123456789");
     });
 
-    it("should return 400 if notificationChannels is missing", async () => {
+    it("should return 400 if notificationChannel is missing", async () => {
       const response = await request(app)
         .put("/api/users/notifications")
         .send({});
@@ -452,33 +450,22 @@ describe("Users Routes", () => {
       expect(response.body.error).toBe("notificationChannel is required");
     });
 
-    it("should accept string notificationChannel", async () => {
-      const response = await request(app).put("/api/users/notifications").send({
-        notificationChannels: "Email",
-      });
-
-      expect(response.status).toBe(200);
-      expect(response.body.notification_channels).toBe("Email");
-    });
-
     it("should handle TypeError with 400 status", async () => {
       const errorService = {
         updateNotificationPreferences: vi
           .fn()
-          .mockRejectedValue(new TypeError("Invalid notification channels")),
+          .mockRejectedValue(new TypeError("Invalid notification channel")),
       };
       vi.spyOn(servicesModule.ServiceManager, "getUserService").mockReturnValue(
         errorService as any
       );
 
-      const response = await request(app)
-        .put("/api/users/notifications")
-        .send({
-          notificationChannels: ["InvalidChannel"],
-        });
+      const response = await request(app).put("/api/users/notifications").send({
+        notificationChannel: "InvalidChannel",
+      });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toBe("Invalid notification channels");
+      expect(response.body.error).toBe("Invalid notification channel");
     });
 
     it("should handle User not found error with 404 status", async () => {
@@ -489,11 +476,9 @@ describe("Users Routes", () => {
         }
       );
 
-      const response = await request(app)
-        .put("/api/users/notifications")
-        .send({
-          notificationChannels: ["Email"],
-        });
+      const response = await request(app).put("/api/users/notifications").send({
+        notificationChannel: "Email",
+      });
 
       expect(response.status).toBe(404);
       expect(response.body.error).toBe("User not found");
@@ -509,11 +494,9 @@ describe("Users Routes", () => {
         errorService as any
       );
 
-      const response = await request(app)
-        .put("/api/users/notifications")
-        .send({
-          notificationChannels: ["Email"],
-        });
+      const response = await request(app).put("/api/users/notifications").send({
+        notificationChannel: "Email",
+      });
 
       expect(response.status).toBe(500);
       expect(response.body.error).toBe(
