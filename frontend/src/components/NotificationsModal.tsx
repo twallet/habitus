@@ -437,7 +437,7 @@ export function NotificationsModal({
                                         </div>
                                     </label>
                                     {channel.id === 'Telegram' && selectedChannel === 'Telegram' && !telegramConnected && (
-                                        <div className="telegram-connection-panel-inline">
+                                        <div className="telegram-connection-panel-inline" key={`telegram-panel-${isGeneratingLink}-${telegramLink}`}>
                                             {isGeneratingLink ? (
                                                 <div className="connection-step">
                                                     <div className="step-indicator loading">
