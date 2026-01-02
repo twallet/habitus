@@ -452,9 +452,36 @@ router.get(
             result?: {
               url?: string;
               last_error_message?: string;
+              last_error_date?: number;
               pending_update_count?: number;
             };
           };
+          // #region agent log
+          fetch(
+            "http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                location: "telegram.ts:458",
+                message: "Webhook info from Telegram API",
+                data: {
+                  ok: webhookInfo.ok,
+                  hasResult: !!webhookInfo.result,
+                  url: webhookInfo.result?.url,
+                  lastError: webhookInfo.result?.last_error_message,
+                  pendingUpdates: webhookInfo.result?.pending_update_count,
+                  lastErrorDate: webhookInfo.result?.last_error_date,
+                },
+                timestamp: Date.now(),
+                sessionId: "debug-session",
+                runId: "run2",
+                hypothesisId: "A",
+              }),
+            }
+          ).catch(() => {});
+          // #endregion
+
           if (webhookInfo.ok && webhookInfo.result?.url) {
             webhookConfigured = true;
             webhookUrl = webhookInfo.result.url;
@@ -472,7 +499,7 @@ router.get(
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            location: "telegram.ts:248",
+            location: "telegram.ts:468",
             message: "Webhook check before link generation",
             data: { webhookConfigured, webhookUrl, webhookError },
             timestamp: Date.now(),
