@@ -379,6 +379,36 @@ db.initialize()
             console.log(
               `[${new Date().toISOString()}] TELEGRAM_SETUP | Webhook set successfully: ${webhookUrl}`
             );
+
+            // Verify webhook was actually set by checking webhook info
+            try {
+              const verifyResponse = await fetch(
+                `https://api.telegram.org/bot${botToken}/getWebhookInfo`
+              );
+              const verifyData = (await verifyResponse.json()) as {
+                ok: boolean;
+                result?: {
+                  url?: string;
+                  pending_update_count?: number;
+                  last_error_message?: string;
+                };
+              };
+              if (verifyData.ok && verifyData.result) {
+                console.log(
+                  `[${new Date().toISOString()}] TELEGRAM_SETUP | Webhook verification: URL=${
+                    verifyData.result.url
+                  }, Pending updates=${
+                    verifyData.result.pending_update_count || 0
+                  }${
+                    verifyData.result.last_error_message
+                      ? `, Last error: ${verifyData.result.last_error_message}`
+                      : ""
+                  }`
+                );
+              }
+            } catch (error) {
+              // Ignore verification errors
+            }
           } else {
             console.warn(
               `[${new Date().toISOString()}] TELEGRAM_SETUP | Failed to set webhook automatically: ${

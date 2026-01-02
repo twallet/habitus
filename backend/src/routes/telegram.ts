@@ -53,10 +53,15 @@ router.post("/webhook", async (req: Request, res: Response) => {
         data: {
           hasBody: !!req.body,
           bodyKeys: req.body ? Object.keys(req.body) : [],
+          headers: Object.keys(req.headers),
+          method: req.method,
+          path: req.path,
+          ip: req.ip,
+          rawBody: JSON.stringify(req.body).substring(0, 500),
         },
         timestamp: Date.now(),
         sessionId: "debug-session",
-        runId: "run1",
+        runId: "run2",
         hypothesisId: "A",
       }),
     }).catch(() => {});
@@ -775,6 +780,29 @@ router.get("/webhook-info", async (req: Request, res: Response) => {
         allowed_updates?: string[];
       };
     };
+
+    // #region agent log
+    fetch("http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        location: "telegram.ts:770",
+        message: "Webhook info retrieved",
+        data: {
+          ok: data.ok,
+          webhookUrl: data.result?.url,
+          pendingUpdates: data.result?.pending_update_count,
+          lastError: data.result?.last_error_message,
+          lastErrorDate: data.result?.last_error_date,
+          hasCustomCert: data.result?.has_custom_certificate,
+        },
+        timestamp: Date.now(),
+        sessionId: "debug-session",
+        runId: "run2",
+        hypothesisId: "A",
+      }),
+    }).catch(() => {});
+    // #endregion
 
     if (!response.ok || !data.ok) {
       return res.status(500).json({
