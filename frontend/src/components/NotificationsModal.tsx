@@ -76,6 +76,7 @@ export function NotificationsModal({
     const [telegramChatId, setTelegramChatId] = useState<string | null>(null);
     const [telegramUsername, setTelegramUsername] = useState<string | null>(null);
     const [showTelegramConnectionModal, setShowTelegramConnectionModal] = useState(false);
+    const [telegramConnecting, setTelegramConnecting] = useState(false);
 
     /**
      * Load existing preferences from user data and check Telegram status.
@@ -90,6 +91,7 @@ export function NotificationsModal({
             if (user.telegram_chat_id) {
                 setTelegramChatId(user.telegram_chat_id);
                 setTelegramConnected(true);
+                setTelegramConnecting(false);
                 // Fetch Telegram username
                 checkTelegramStatus().catch((err) => {
                     console.error('Error fetching Telegram username:', err);
@@ -225,6 +227,10 @@ export function NotificationsModal({
     }, [user?.email]);
 
     const telegramBadge = useMemo(() => {
+        // Show "Connecting..." if copy button was clicked but not yet connected
+        if (telegramConnecting && !telegramConnected) {
+            return 'Connecting...';
+        }
         // Show "No account connected" if Telegram is not connected
         if (!telegramConnected) {
             return 'No account connected';
@@ -243,7 +249,7 @@ export function NotificationsModal({
         }
         // If connected but no username available, show generic message
         return 'Connected';
-    }, [telegramConnected, telegramUsername]);
+    }, [telegramConnected, telegramUsername, telegramConnecting]);
 
     const channels = useMemo(() => [
         {
@@ -336,9 +342,13 @@ export function NotificationsModal({
                                                     <span className={`user-badge ${channel.id === 'Email'
                                                         ? 'badge-green'
                                                         : channel.id === 'Telegram'
-                                                            ? (telegramConnected ? 'badge-green' : 'badge-red')
+                                                            ? (telegramConnected ? 'badge-green' : telegramConnecting ? 'badge-yellow' : 'badge-red')
                                                             : ''
-                                                        }`}>
+                                                        }`}
+                                                        style={channel.id === 'Telegram' && telegramConnecting && !telegramConnected
+                                                            ? { backgroundColor: '#fff9c4', color: '#856404' }
+                                                            : undefined
+                                                        }>
                                                         {channel.badge}
                                                         {channel.id === 'Telegram' && telegramConnected && (
                                                             <button
@@ -377,8 +387,18 @@ export function NotificationsModal({
             </div>
             {showTelegramConnectionModal && (
                 <TelegramConnectionStepsModal
-                    onClose={() => setShowTelegramConnectionModal(false)}
+                    onClose={() => {
+                        setShowTelegramConnectionModal(false);
+                        // If connecting, switch back to Email but keep connecting state
+                        if (telegramConnecting && !telegramConnected) {
+                            setSelectedChannel('Email');
+                            selectedChannelRef.current = 'Email';
+                        }
+                    }}
                     onGetTelegramStartLink={onGetTelegramStartLink}
+                    onCopyClicked={() => {
+                        setTelegramConnecting(true);
+                    }}
                 />
             )}
         </div>

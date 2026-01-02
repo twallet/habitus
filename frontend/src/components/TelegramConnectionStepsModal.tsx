@@ -4,6 +4,7 @@ import './NotificationsModal.css';
 interface TelegramConnectionStepsModalProps {
     onClose: () => void;
     onGetTelegramStartLink: () => Promise<{ link: string; token: string }>;
+    onCopyClicked?: () => void;
 }
 
 /**
@@ -17,6 +18,7 @@ interface TelegramConnectionStepsModalProps {
 export function TelegramConnectionStepsModal({
     onClose,
     onGetTelegramStartLink,
+    onCopyClicked,
 }: TelegramConnectionStepsModalProps) {
     const [telegramStartCommand, setTelegramStartCommand] = useState<string | null>(null);
     const [isGeneratingLink, setIsGeneratingLink] = useState(false);
@@ -152,6 +154,10 @@ export function TelegramConnectionStepsModal({
                                                         try {
                                                             await navigator.clipboard.writeText(telegramStartCommand);
                                                             setKeyCopied(true);
+                                                            // Notify parent that copy was clicked
+                                                            if (onCopyClicked) {
+                                                                onCopyClicked();
+                                                            }
                                                         } catch (err) {
                                                             console.error('Error copying to clipboard:', err);
                                                         }
