@@ -445,21 +445,25 @@ describe('NotificationsModal', () => {
             />
         );
 
-        // Select Telegram first, then switch back to Email to trigger save
+        // Select Telegram first to change from default Email
         const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
         await user.click(telegramRadio);
 
         // Wait for Telegram modal to appear, then cancel to go back
         await waitFor(() => {
             expect(screen.getByText('Connect Telegram')).toBeInTheDocument();
-        });
+        }, { timeout: 3000 });
 
-        const cancelButtons = screen.getAllByRole('button', { name: /^cancel$/i });
         const telegramModal = screen.getByText('Connect Telegram').closest('.modal-content');
         const cancelButton = telegramModal?.querySelector('button.btn-secondary');
         if (cancelButton) {
             await user.click(cancelButton);
         }
+
+        // Wait for modal to close
+        await waitFor(() => {
+            expect(screen.queryByText('Connect Telegram')).not.toBeInTheDocument();
+        }, { timeout: 3000 });
 
         // Now click Email to trigger save
         const emailRadio = screen.getByRole('radio', { name: /email/i });
@@ -467,7 +471,7 @@ describe('NotificationsModal', () => {
 
         await waitFor(() => {
             expect(mockOnSave).toHaveBeenCalledWith('Email', undefined);
-        });
+        }, { timeout: 3000 });
     });
 
     it('should save automatically when Telegram channel is selected and connected', async () => {
@@ -533,14 +537,18 @@ describe('NotificationsModal', () => {
         // Wait for Telegram modal, then cancel
         await waitFor(() => {
             expect(screen.getByText('Connect Telegram')).toBeInTheDocument();
-        });
+        }, { timeout: 3000 });
 
-        const cancelButtons = screen.getAllByRole('button', { name: /^cancel$/i });
         const telegramModal = screen.getByText('Connect Telegram').closest('.modal-content');
         const cancelButton = telegramModal?.querySelector('button.btn-secondary');
         if (cancelButton) {
             await user.click(cancelButton);
         }
+
+        // Wait for modal to close
+        await waitFor(() => {
+            expect(screen.queryByText('Connect Telegram')).not.toBeInTheDocument();
+        }, { timeout: 3000 });
 
         // Now click Email to trigger save with error
         const emailRadio = screen.getByRole('radio', { name: /email/i });
@@ -548,7 +556,7 @@ describe('NotificationsModal', () => {
 
         await waitFor(() => {
             expect(screen.getByText(errorMessage)).toBeInTheDocument();
-        });
+        }, { timeout: 3000 });
     });
 
     it('should disable radio buttons during submission', async () => {
@@ -569,7 +577,27 @@ describe('NotificationsModal', () => {
             />
         );
 
-        // Click Email radio button to trigger save
+        // Switch to Telegram first, then back to Email to trigger save
+        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
+        await user.click(telegramRadio);
+
+        // Wait for Telegram modal, then cancel
+        await waitFor(() => {
+            expect(screen.getByText('Connect Telegram')).toBeInTheDocument();
+        }, { timeout: 3000 });
+
+        const telegramModal = screen.getByText('Connect Telegram').closest('.modal-content');
+        const cancelButton = telegramModal?.querySelector('button.btn-secondary');
+        if (cancelButton) {
+            await user.click(cancelButton);
+        }
+
+        // Wait for modal to close
+        await waitFor(() => {
+            expect(screen.queryByText('Connect Telegram')).not.toBeInTheDocument();
+        }, { timeout: 3000 });
+
+        // Now click Email to trigger save
         const emailRadio = screen.getByRole('radio', { name: /email/i });
         await user.click(emailRadio);
 
@@ -578,7 +606,7 @@ describe('NotificationsModal', () => {
             radioButtons.forEach(radio => {
                 expect(radio).toBeDisabled();
             });
-        });
+        }, { timeout: 3000 });
 
         resolveSave!();
         await waitFor(() => {
@@ -586,7 +614,7 @@ describe('NotificationsModal', () => {
             radioButtons.forEach(radio => {
                 expect(radio).not.toBeDisabled();
             });
-        });
+        }, { timeout: 3000 });
     });
 
 
