@@ -1214,7 +1214,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
 
   /**
    * Send notifications when a reminder becomes Pending.
-   * Sends via all enabled channels (Email, Telegram) based on user preferences.
+   * Sends via the selected notification channel (Email or Telegram) based on user preferences.
    * @param reminder - The reminder data
    * @returns Promise resolving when notifications are sent
    * @private
@@ -1249,50 +1249,38 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
         return;
       }
 
-      // Get user notification preferences (default to Email if not set)
-      const notificationChannels =
-        user.notification_channels && user.notification_channels.length > 0
-          ? user.notification_channels
-          : ["Email"];
+      // Get user notification channel (default to Email if not set)
+      const notificationChannel = user.notification_channels || "Email";
 
-      // Send via all enabled channels
-      const sendPromises: Promise<void>[] = [];
-
-      // Send email if enabled
-      if (notificationChannels.includes("Email")) {
-        sendPromises.push(
-          this.sendReminderEmail(user, reminder, tracking).catch((error) => {
+      // Send via selected channel
+      if (notificationChannel === "Email") {
+        await this.sendReminderEmail(user, reminder, tracking).catch(
+          (error) => {
             console.error(
               `[${new Date().toISOString()}] REMINDER | Error sending email notification for reminder ID ${
                 reminder.id
               }:`,
               error
             );
-          })
+          }
         );
-      }
-
-      // Send Telegram if enabled
-      if (notificationChannels.includes("Telegram") && user.telegram_chat_id) {
-        sendPromises.push(
-          this.sendReminderTelegram(user, reminder, tracking).catch((error) => {
+      } else if (notificationChannel === "Telegram" && user.telegram_chat_id) {
+        await this.sendReminderTelegram(user, reminder, tracking).catch(
+          (error) => {
             console.error(
               `[${new Date().toISOString()}] REMINDER | Error sending Telegram notification for reminder ID ${
                 reminder.id
               }:`,
               error
             );
-          })
+          }
         );
       }
 
-      // Wait for all notifications to be sent (errors are caught individually)
-      await Promise.allSettled(sendPromises);
-
       console.log(
-        `[${new Date().toISOString()}] REMINDER | Notifications sent for reminder ID ${
+        `[${new Date().toISOString()}] REMINDER | Notification sent for reminder ID ${
           reminder.id
-        } via channels: ${notificationChannels.join(", ")}`
+        } via channel: ${notificationChannel}`
       );
     } catch (error) {
       // Log error but don't throw - notification sending failure shouldn't break reminder updates

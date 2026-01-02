@@ -9,6 +9,33 @@ import {
 import { Frequency } from "../../models/Tracking.js";
 import { Database } from "../../db/database.js";
 import { TrackingSchedule } from "../../models/TrackingSchedule.js";
+import { ServiceManager } from "../index.js";
+
+// Mock EmailService and TelegramService to avoid sending actual notifications during tests
+const { mockFunctions } = vi.hoisted(() => ({
+  mockFunctions: {
+    sendReminderEmail: vi.fn().mockResolvedValue(undefined),
+    sendReminderMessage: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+vi.mock("../emailService.js", () => {
+  class EmailServiceMock {
+    sendReminderEmail = mockFunctions.sendReminderEmail;
+  }
+  return {
+    EmailService: EmailServiceMock,
+  };
+});
+
+vi.mock("../telegramService.js", () => {
+  class TelegramServiceMock {
+    sendReminderMessage = mockFunctions.sendReminderMessage;
+  }
+  return {
+    TelegramService: TelegramServiceMock,
+  };
+});
 
 /**
  * Create an in-memory database for testing.
@@ -40,6 +67,8 @@ async function createTestDatabase(): Promise<Database> {
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               name TEXT NOT NULL CHECK(length(name) <= 30),
               email TEXT NOT NULL UNIQUE,
+              telegram_chat_id TEXT,
+              notification_channels TEXT,
               locale TEXT DEFAULT 'en-US',
               timezone TEXT,
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -109,7 +138,13 @@ describe("ReminderService", () => {
 
   beforeEach(async () => {
     testDb = await createTestDatabase();
+    // Initialize ServiceManager so that ReminderService can use mocked services
+    ServiceManager.initializeServices(testDb);
     reminderService = new ReminderService(testDb);
+
+    // Clear mock calls
+    mockFunctions.sendReminderEmail.mockClear();
+    mockFunctions.sendReminderMessage.mockClear();
 
     const userResult = await testDb.run(
       "INSERT INTO users (name, email) VALUES (?, ?)",
@@ -140,6 +175,7 @@ describe("ReminderService", () => {
 
   afterEach(async () => {
     await testDb.close();
+    vi.clearAllMocks();
   });
 
   describe("createReminder", () => {
@@ -1274,6 +1310,137 @@ describe("ReminderService", () => {
       const nextDate = new Date(nextTime!);
       expect(nextDate.getMonth() + 1).toBe(12);
       expect(nextDate.getDate()).toBe(25);
+    });
+  });
+
+  describe("sendReminderNotifications", () => {
+    it("should send email notification when user has Email channel selected", async () => {
+      // Update user to have Email notification channel
+      await testDb.run(
+        "UPDATE users SET notification_channels = ? WHERE id = ?",
+        ["Email", testUserId]
+      );
+
+      // Create a reminder with past scheduled time (will be PENDING and trigger notifications)
+      const pastTime = new Date(Date.now() - 60000).toISOString();
+      await reminderService.createReminder(
+        testTrackingId,
+        testUserId,
+        pastTime
+      );
+
+      // Verify email was sent
+      expect(mockFunctions.sendReminderEmail).toHaveBeenCalledTimes(1);
+      expect(mockFunctions.sendReminderMessage).not.toHaveBeenCalled();
+
+      // Verify email was called with correct parameters
+      const emailCallArgs = mockFunctions.sendReminderEmail.mock.calls[0];
+      expect(emailCallArgs[0]).toBe("test@example.com");
+      expect(emailCallArgs[1]).toBeGreaterThan(0); // reminder ID
+      expect(emailCallArgs[2]).toBe("Did I exercise?"); // tracking question
+    });
+
+    it("should send Telegram notification when user has Telegram channel selected", async () => {
+      // Update user to have Telegram notification channel and chat ID
+      await testDb.run(
+        "UPDATE users SET notification_channels = ?, telegram_chat_id = ? WHERE id = ?",
+        ["Telegram", "123456789", testUserId]
+      );
+
+      // Create a reminder with past scheduled time (will be PENDING and trigger notifications)
+      const pastTime = new Date(Date.now() - 60000).toISOString();
+      await reminderService.createReminder(
+        testTrackingId,
+        testUserId,
+        pastTime
+      );
+
+      // Verify Telegram message was sent
+      expect(mockFunctions.sendReminderMessage).toHaveBeenCalledTimes(1);
+      expect(mockFunctions.sendReminderEmail).not.toHaveBeenCalled();
+
+      // Verify Telegram was called with correct parameters
+      const telegramCallArgs = mockFunctions.sendReminderMessage.mock.calls[0];
+      expect(telegramCallArgs[0]).toBe("123456789"); // chat ID
+      expect(telegramCallArgs[1]).toBeGreaterThan(0); // reminder ID
+      expect(telegramCallArgs[2]).toBe("Did I exercise?"); // tracking question
+    });
+
+    it("should default to Email when notification channel is not set", async () => {
+      // User has no notification channel set (should default to Email)
+      // Create a reminder with past scheduled time (will be PENDING and trigger notifications)
+      const pastTime = new Date(Date.now() - 60000).toISOString();
+      await reminderService.createReminder(
+        testTrackingId,
+        testUserId,
+        pastTime
+      );
+
+      // Verify email was sent (default behavior)
+      expect(mockFunctions.sendReminderEmail).toHaveBeenCalledTimes(1);
+      expect(mockFunctions.sendReminderMessage).not.toHaveBeenCalled();
+    });
+
+    it("should only send to selected channel (not both)", async () => {
+      // Update user to have Email channel
+      await testDb.run(
+        "UPDATE users SET notification_channels = ? WHERE id = ?",
+        ["Email", testUserId]
+      );
+
+      // Create a reminder with past scheduled time
+      const pastTime = new Date(Date.now() - 60000).toISOString();
+      await reminderService.createReminder(
+        testTrackingId,
+        testUserId,
+        pastTime
+      );
+
+      // Verify only Email was sent, not Telegram
+      expect(mockFunctions.sendReminderEmail).toHaveBeenCalledTimes(1);
+      expect(mockFunctions.sendReminderMessage).not.toHaveBeenCalled();
+
+      // Clear mocks
+      mockFunctions.sendReminderEmail.mockClear();
+      mockFunctions.sendReminderMessage.mockClear();
+
+      // Now switch to Telegram
+      await testDb.run(
+        "UPDATE users SET notification_channels = ?, telegram_chat_id = ? WHERE id = ?",
+        ["Telegram", "987654321", testUserId]
+      );
+
+      // Create another reminder
+      const pastTime2 = new Date(Date.now() - 60000).toISOString();
+      await reminderService.createReminder(
+        testTrackingId,
+        testUserId,
+        pastTime2
+      );
+
+      // Verify only Telegram was sent, not Email
+      expect(mockFunctions.sendReminderMessage).toHaveBeenCalledTimes(1);
+      expect(mockFunctions.sendReminderEmail).not.toHaveBeenCalled();
+    });
+
+    it("should not send Telegram notification when Telegram channel is selected but chat ID is missing", async () => {
+      // Update user to have Telegram channel but no chat ID
+      await testDb.run(
+        "UPDATE users SET notification_channels = ?, telegram_chat_id = NULL WHERE id = ?",
+        ["Telegram", testUserId]
+      );
+
+      // Create a reminder with past scheduled time
+      const pastTime = new Date(Date.now() - 60000).toISOString();
+      await reminderService.createReminder(
+        testTrackingId,
+        testUserId,
+        pastTime
+      );
+
+      // Verify no notifications were sent
+      expect(mockFunctions.sendReminderEmail).not.toHaveBeenCalled();
+      expect(mockFunctions.sendReminderMessage).not.toHaveBeenCalled();
     });
   });
 });
