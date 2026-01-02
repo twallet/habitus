@@ -124,6 +124,12 @@ export function NotificationsModal({
                 if (selectedChannel === 'Telegram') {
                     await savePreferences('Telegram');
                 }
+            } else {
+                // Keep connecting state if not yet connected
+                // This ensures the panel stays visible
+                if (selectedChannel === 'Telegram' && !telegramConnected) {
+                    setTelegramConnecting(true);
+                }
             }
         } catch (err) {
             console.error('Error checking Telegram status:', err);
@@ -156,10 +162,12 @@ export function NotificationsModal({
         try {
             const result = await onGetTelegramStartLink();
             setTelegramLink(result.link);
+            // Set connecting state after link is ready
             setTelegramConnecting(true);
             startPolling();
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Error generating Telegram link');
+            setTelegramConnecting(false);
         } finally {
             setIsGeneratingLink(false);
         }
@@ -439,27 +447,33 @@ export function NotificationsModal({
                                                         <p className="form-help-text">Generating your unique Telegram connection link</p>
                                                     </div>
                                                 </div>
-                                            ) : telegramLink ? (
+                                            ) : (
                                                 <>
                                                     <div className="connection-step">
-                                                        <div className="step-indicator active">1</div>
+                                                        <div className={`step-indicator ${telegramLink ? 'active' : ''}`}>1</div>
                                                         <div className="step-content">
                                                             <h4>Open Telegram</h4>
                                                             <p className="form-help-text">Click the button below to open Telegram and start the bot</p>
-                                                            <a
-                                                                href={telegramLink}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="btn-primary telegram-link-button"
-                                                                style={{
-                                                                    display: 'inline-block',
-                                                                    textAlign: 'center',
-                                                                    textDecoration: 'none',
-                                                                    marginTop: '8px'
-                                                                }}
-                                                            >
-                                                                Open Telegram
-                                                            </a>
+                                                            {telegramLink ? (
+                                                                <a
+                                                                    href={telegramLink}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="btn-primary telegram-link-button"
+                                                                    style={{
+                                                                        display: 'inline-block',
+                                                                        textAlign: 'center',
+                                                                        textDecoration: 'none',
+                                                                        marginTop: '8px'
+                                                                    }}
+                                                                >
+                                                                    Open Telegram
+                                                                </a>
+                                                            ) : (
+                                                                <p className="form-help-text" style={{ marginTop: '8px', fontStyle: 'italic' }}>
+                                                                    Generating link...
+                                                                </p>
+                                                            )}
                                                         </div>
                                                     </div>
                                                     <div className="connection-step">
@@ -494,12 +508,6 @@ export function NotificationsModal({
                                                         </button>
                                                     </div>
                                                 </>
-                                            ) : (
-                                                <div className="connection-step">
-                                                    <div className="step-content">
-                                                        <p className="form-help-text">Click the Telegram option above to start connecting</p>
-                                                    </div>
-                                                </div>
                                             )}
                                         </div>
                                     )}
