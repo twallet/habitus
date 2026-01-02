@@ -2,13 +2,40 @@ import { vi, type Mock } from "vitest";
 import request from "supertest";
 import express, { Express } from "express";
 import sqlite3 from "sqlite3";
+import jwt from "jsonwebtoken";
 import { Database } from "../../db/database.js";
 import { ServiceManager } from "../../services/index.js";
 import { TelegramConnectionService } from "../../services/telegramConnectionService.js";
 import { UserService } from "../../services/userService.js";
 import { TelegramService } from "../../services/telegramService.js";
 import { EmailService } from "../../services/emailService.js";
+import { AuthService } from "../../services/authService.js";
 import telegramRouter from "../telegram.js";
+import * as authMiddleware from "../../middleware/authMiddleware.js";
+
+// Mock authMiddleware
+vi.mock("../../middleware/authMiddleware.js", () => ({
+  authenticateToken: vi.fn((req: any, _res: any, next: any) => {
+    // Extract userId from token if present
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.substring(7);
+      try {
+        const decoded = jwt.verify(
+          token,
+          process.env.JWT_SECRET || "test-secret"
+        ) as {
+          userId: number;
+        };
+        req.userId = decoded.userId;
+      } catch {
+        // Invalid token
+      }
+    }
+    next();
+  }),
+  AuthRequest: {},
+}));
 
 /**
  * Create an in-memory database for testing.
@@ -93,6 +120,10 @@ describe("Telegram Webhook Routes", () => {
     userService = new UserService(testDb);
     telegramService = new TelegramService();
     telegramConnectionService = new TelegramConnectionService(testDb);
+    const authService = new AuthService(testDb, emailService);
+
+    // Set JWT_SECRET for token generation
+    process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 
     // Initialize services
     ServiceManager.initializeServices(testDb);
@@ -309,4 +340,126 @@ describe("Telegram Webhook Routes", () => {
       expect(response.body).toEqual({ ok: true });
     });
   });
+
+  describe("GET /api/telegram/start-link", () => {
+    it("should generate a start link with token and user ID", async () => {
+      // Create a test user
+      await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
+        "Test User",
+        "test@example.com",
+      ]);
+
+      // Set TELEGRAM_BOT_USERNAME for the test
+      process.env.TELEGRAM_BOT_USERNAME = "test_bot";
+
+      const token = await telegramConnectionService.generateConnectionToken(1);
+
+      const response = await request(app)
+        .get("/api/telegram/start-link")
+        .set("Authorization", `Bearer ${generateTestToken(1)}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty("url");
+      expect(response.body.url).toContain("https://t.me/test_bot?start=");
+      // Token is URL-encoded in the URL, so decode it to check
+      const decodedUrl = decodeURIComponent(response.body.url);
+      expect(decodedUrl).toContain(token);
+      expect(decodedUrl).toContain("1");
+
+      // Cleanup
+      delete process.env.TELEGRAM_BOT_USERNAME;
+    });
+
+    it("should return 401 if not authenticated", async () => {
+      // Mock authenticateToken to return 401
+      vi.mocked(authMiddleware.authenticateToken).mockImplementation(
+        (req: any, res: any, _next: any) => {
+          res.status(401).json({ error: "Authorization token required" });
+        }
+      );
+
+      const response = await request(app)
+        .get("/api/telegram/start-link")
+        .expect(401);
+
+      expect(response.body).toHaveProperty("error");
+    });
+
+    it("should return 500 if bot username is not configured", async () => {
+      await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
+        "Test User",
+        "test@example.com",
+      ]);
+
+      // Ensure TELEGRAM_BOT_USERNAME is not set
+      delete process.env.TELEGRAM_BOT_USERNAME;
+
+      const response = await request(app)
+        .get("/api/telegram/start-link")
+        .set("Authorization", `Bearer ${generateTestToken(1)}`)
+        .expect(500);
+
+      expect(response.body).toHaveProperty("error");
+    });
+  });
+
+  describe("GET /api/telegram/status", () => {
+    it("should return connected status when user has telegram_chat_id", async () => {
+      // Create a test user with telegram_chat_id
+      await testDb.run(
+        "INSERT INTO users (name, email, telegram_chat_id, notification_channels) VALUES (?, ?, ?, ?)",
+        ["Test User", "test@example.com", "123456789", "Telegram"]
+      );
+
+      const response = await request(app)
+        .get("/api/telegram/status")
+        .set("Authorization", `Bearer ${generateTestToken(1)}`)
+        .expect(200);
+
+      expect(response.body).toEqual({
+        connected: true,
+        chatId: "123456789",
+      });
+    });
+
+    it("should return not connected status when user has no telegram_chat_id", async () => {
+      // Create a test user without telegram_chat_id
+      await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
+        "Test User",
+        "test@example.com",
+      ]);
+
+      const response = await request(app)
+        .get("/api/telegram/status")
+        .set("Authorization", `Bearer ${generateTestToken(1)}`)
+        .expect(200);
+
+      expect(response.body).toEqual({
+        connected: false,
+      });
+    });
+
+    it("should return 401 if not authenticated", async () => {
+      // Mock authenticateToken to return 401
+      vi.mocked(authMiddleware.authenticateToken).mockImplementation(
+        (req: any, res: any, _next: any) => {
+          res.status(401).json({ error: "Authorization token required" });
+        }
+      );
+
+      const response = await request(app)
+        .get("/api/telegram/status")
+        .expect(401);
+
+      expect(response.body).toHaveProperty("error");
+    });
+  });
 });
+
+/**
+ * Helper function to generate a test JWT token.
+ */
+function generateTestToken(userId: number): string {
+  const secret = process.env.JWT_SECRET || "test-secret";
+  return jwt.sign({ userId }, secret, { expiresIn: "1h" });
+}
