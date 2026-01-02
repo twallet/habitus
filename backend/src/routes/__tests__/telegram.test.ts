@@ -406,7 +406,7 @@ describe("Telegram Webhook Routes", () => {
       expect(response.body).toHaveProperty("link");
       expect(response.body).toHaveProperty("token");
       expect(response.body.link).toContain("t.me/");
-      expect(response.body.link).toContain("/start");
+      expect(response.body.link).toContain("?start=");
       expect(response.body.link).toContain(response.body.token);
       expect(response.body.link).toContain("1"); // userId
 
