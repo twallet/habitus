@@ -168,6 +168,16 @@
   vertical-align: middle;
 }
 
+.user-badge.badge-green {
+  background: #a8e6cf;
+  color: #2d5a3d;
+}
+
+.user-badge.badge-red {
+  background: #ffb3ba;
+  color: #8b2635;
+}
+
 .badge-disconnect-btn {
   display: inline-flex;
   align-items: center;

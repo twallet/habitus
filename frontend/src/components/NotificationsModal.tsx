@@ -486,7 +486,13 @@ export function NotificationsModal({
                                             <span className="channel-label">
                                                 {channel.label}
                                                 {channel.badge && (
-                                                    <span className="user-badge">
+                                                    <span className={`user-badge ${
+                                                        channel.id === 'Email' 
+                                                            ? 'badge-green' 
+                                                            : channel.id === 'Telegram' 
+                                                                ? (telegramConnected ? 'badge-green' : 'badge-red')
+                                                                : ''
+                                                    }`}>
                                                         {channel.badge}
                                                         {channel.id === 'Telegram' && telegramConnected && (
                                                             <button
