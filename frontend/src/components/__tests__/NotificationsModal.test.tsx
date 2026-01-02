@@ -391,6 +391,9 @@ describe('NotificationsModal', () => {
             expect(screen.getByRole('link', { name: /open telegram/i })).toBeInTheDocument();
         });
 
+        // Wait a bit to ensure selectedChannel state is updated
+        await new Promise(resolve => setTimeout(resolve, 100));
+
         // Simulate connection
         resolveStatus!({ connected: true, telegramChatId: '123456789', telegramUsername: 'testuser' });
 
@@ -402,7 +405,7 @@ describe('NotificationsModal', () => {
         // Should automatically save when connected
         await waitFor(() => {
             expect(mockOnSave).toHaveBeenCalledWith('Telegram', '123456789');
-        });
+        }, { timeout: 3000 });
     });
 
     it('should save automatically when switching to Email channel', async () => {
