@@ -429,7 +429,7 @@ export function NotificationsModal({
                                                 <div className={`step-indicator ${telegramStartCommand ? 'active' : ''}`}>1</div>
                                                 <div className="step-content">
                                                     <h4>Go to 🌱 Habitus in Telegram</h4>
-                                                    <p className="form-help-text">Click the button below to open 🌱 Habitus in Telegram:</p>
+                                                    <p className="form-help-text">Click the button below to open Habitus in Telegram:</p>
                                                     <a
                                                         href="https://t.me/abitus_robot"
                                                         target="_blank"
@@ -454,7 +454,7 @@ export function NotificationsModal({
                                                 <div className="step-content">
                                                     <h4>Copy/Paste your key</h4>
                                                     <p className="form-help-text">
-                                                        Copy the command and paste it in the 🌱 Habitus chat in Telegram:
+                                                        Copy your key by clicking the button below and paste it in the Habitus chat in Telegram:
                                                     </p>
                                                     {telegramStartCommand ? (
                                                         <>
@@ -486,7 +486,7 @@ export function NotificationsModal({
                                                             </button>
                                                             {keyCopied && (
                                                                 <p className="form-help-text" style={{ marginTop: '12px', color: '#25a85a', fontWeight: 'bold' }}>
-                                                                    You can close the window, your reminders will be sent by Telegram as soon as we finish to connect your Telegram account
+                                                                    Key copied to the clipboard. You can now close this window.
                                                                 </p>
                                                             )}
                                                         </>

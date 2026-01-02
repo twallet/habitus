@@ -604,7 +604,7 @@ describe('NotificationsModal', () => {
         await waitFor(() => {
             // Should NOT display the command text
             expect(screen.queryByText(/^start\s+token123\s+1$/)).not.toBeInTheDocument();
-            
+
             // Should only show the Copy Key button
             const copyButton = screen.getByRole('button', { name: /copy key/i });
             expect(copyButton).toBeInTheDocument();
@@ -642,35 +642,6 @@ describe('NotificationsModal', () => {
         writeTextSpy.mockRestore();
     });
 
-    it('should show completion message after Copy Key button is clicked', async () => {
-        const user = userEvent.setup();
-        vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
-
-        render(
-            <NotificationsModal
-                onClose={mockOnClose}
-                onSave={mockOnSave}
-                onGetTelegramStartLink={mockGetTelegramStartLink}
-                onGetTelegramStatus={mockGetTelegramStatus}
-            />
-        );
-
-        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
-        await user.click(telegramRadio);
-
-        await waitFor(() => {
-            const copyButton = screen.getByRole('button', { name: /copy key/i });
-            expect(copyButton).toBeInTheDocument();
-        });
-
-        const copyButton = screen.getByRole('button', { name: /copy key/i });
-        await user.click(copyButton);
-
-        await waitFor(() => {
-            const completionMessage = screen.getByText(/you can close the window, your reminders will be sent by telegram as soon as we finish to connect your telegram account/i);
-            expect(completionMessage).toBeInTheDocument();
-        });
-    });
 
     it('should NOT poll for Telegram connection status', async () => {
         const user = userEvent.setup();
@@ -702,6 +673,36 @@ describe('NotificationsModal', () => {
         expect(mockGetTelegramStatus).not.toHaveBeenCalled();
 
         vi.useRealTimers();
+    });
+
+    it('should show message when Copy key button is clicked', async () => {
+        const user = userEvent.setup();
+        vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+
+        render(
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+            />
+        );
+
+        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
+        await user.click(telegramRadio);
+
+        await waitFor(() => {
+            const copyButton = screen.getByRole('button', { name: /copy key/i });
+            expect(copyButton).toBeInTheDocument();
+        });
+
+        const copyButton = screen.getByRole('button', { name: /copy key/i });
+        await user.click(copyButton);
+
+        await waitFor(() => {
+            const message = screen.getByText('Key copied to the clipboard. You can now close this window.');
+            expect(message).toBeInTheDocument();
+        });
     });
 
     it('should NOT show anything when generating connection key', async () => {
