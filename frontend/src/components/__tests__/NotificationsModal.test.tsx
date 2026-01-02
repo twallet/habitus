@@ -14,7 +14,8 @@ describe('NotificationsModal', () => {
     });
     const mockGetTelegramStatus = vi.fn().mockResolvedValue({
         connected: false,
-        telegramChatId: null
+        telegramChatId: null,
+        telegramUsername: null
     });
 
     const mockUser: UserData = {
@@ -165,7 +166,7 @@ describe('NotificationsModal', () => {
         expect(emailMessage.textContent).toContain(mockUser.email!);
     });
 
-    it('should show Telegram connection modal when Telegram is selected', async () => {
+    it('should show inline Telegram connection panel when Telegram is selected', async () => {
         const user = userEvent.setup();
         render(
             <NotificationsModal
@@ -183,19 +184,15 @@ describe('NotificationsModal', () => {
             expect(mockGetTelegramStartLink).toHaveBeenCalledTimes(1);
         });
 
-        // Check for modal title
-        await waitFor(() => {
-            expect(screen.getByText('Connect Telegram')).toBeInTheDocument();
-        });
-
-        // Check for the link in the modal
+        // Check for inline connection panel (not a separate modal)
+        // Check for the link in the inline panel
         await waitFor(() => {
             const link = screen.getByRole('link', { name: /open telegram/i });
             expect(link).toBeInTheDocument();
         });
     });
 
-    it('should show Telegram connection link in modal after selecting Telegram', async () => {
+    it('should show Telegram connection link in inline panel after selecting Telegram', async () => {
         const user = userEvent.setup();
         render(
             <NotificationsModal
@@ -208,10 +205,6 @@ describe('NotificationsModal', () => {
 
         const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
         await user.click(telegramRadio);
-
-        await waitFor(() => {
-            expect(screen.getByText('Connect Telegram')).toBeInTheDocument();
-        });
 
         await waitFor(() => {
             const link = screen.getByRole('link', { name: /open telegram/i });
@@ -239,7 +232,7 @@ describe('NotificationsModal', () => {
         });
     });
 
-    it('should close modal, select Email, and show "Configuration in progress" badge when Telegram link is clicked', async () => {
+    it('should keep Telegram selected and show "Connecting..." badge when Telegram link is generated', async () => {
         const user = userEvent.setup();
 
         render(
@@ -253,30 +246,20 @@ describe('NotificationsModal', () => {
 
         const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
         await user.click(telegramRadio);
-
-        await waitFor(() => {
-            expect(screen.getByText('Connect Telegram')).toBeInTheDocument();
-        });
 
         await waitFor(() => {
             const link = screen.getByRole('link', { name: /open telegram/i });
             expect(link).toBeInTheDocument();
         });
 
-        // Click the Telegram link
-        const link = screen.getByRole('link', { name: /open telegram/i });
-        await user.click(link);
-
-        // Modal should close, Email should be selected, and badge should appear
+        // Telegram should remain selected and show connecting badge
         await waitFor(() => {
-            expect(screen.queryByText('Connect Telegram')).not.toBeInTheDocument();
-            const emailRadio = screen.getByRole('radio', { name: /email/i });
-            expect(emailRadio).toBeChecked();
-            expect(screen.getByText('Configuration in progress')).toBeInTheDocument();
+            expect(telegramRadio).toBeChecked();
+            expect(screen.getByText('Connecting...')).toBeInTheDocument();
         });
     });
 
-    it('should return to Email when cancel button is clicked in Telegram modal', async () => {
+    it('should return to Email when cancel button is clicked in Telegram connection panel', async () => {
         const user = userEvent.setup();
         render(
             <NotificationsModal
@@ -291,35 +274,32 @@ describe('NotificationsModal', () => {
         await user.click(telegramRadio);
 
         await waitFor(() => {
-            expect(screen.getByText('Connect Telegram')).toBeInTheDocument();
+            expect(screen.getByRole('link', { name: /open telegram/i })).toBeInTheDocument();
         });
 
-        // Find the cancel button in the Telegram modal (there are multiple cancel buttons)
-        const cancelButtons = screen.getAllByRole('button', { name: /^cancel$/i });
-        // The cancel button in the Telegram modal should be the one inside the modal with title "Connect Telegram"
-        const telegramModal = screen.getByText('Connect Telegram').closest('.modal-content');
-        const cancelButton = telegramModal?.querySelector('button.btn-secondary');
-
-        if (cancelButton) {
-            await user.click(cancelButton);
-        } else {
-            // Fallback: click the last cancel button (should be the one in the Telegram modal)
-            await user.click(cancelButtons[cancelButtons.length - 1]);
-        }
+        // Find the cancel button in the connection panel
+        const cancelButton = screen.getByRole('button', { name: /^cancel$/i });
+        await user.click(cancelButton);
 
         await waitFor(() => {
             const emailRadio = screen.getByRole('radio', { name: /email/i });
             expect(emailRadio).toBeChecked();
-            expect(screen.queryByText('Connect Telegram')).not.toBeInTheDocument();
+            expect(screen.queryByRole('link', { name: /open telegram/i })).not.toBeInTheDocument();
             // Badge should not appear when canceling
-            expect(screen.queryByText('Configuration in progress')).not.toBeInTheDocument();
+            expect(screen.queryByText('Connecting...')).not.toBeInTheDocument();
+        });
+
+        // Should save Email preference when canceling
+        await waitFor(() => {
+            expect(mockOnSave).toHaveBeenCalledWith('Email', undefined);
         });
     });
 
     it('should show connected status when Telegram is already connected', () => {
         const mockGetTelegramStatusConnected = vi.fn().mockResolvedValue({
             connected: true,
-            telegramChatId: '123456789'
+            telegramChatId: '123456789',
+            telegramUsername: 'testuser'
         });
 
         const userWithTelegram: UserData = {
@@ -362,7 +342,7 @@ describe('NotificationsModal', () => {
         expect(telegramRadio).toBeChecked();
     });
 
-    it('should open Telegram modal when Telegram is selected but not connected', async () => {
+    it('should show inline connection panel when Telegram is selected but not connected', async () => {
         const user = userEvent.setup();
         render(
             <NotificationsModal
@@ -377,38 +357,20 @@ describe('NotificationsModal', () => {
         await user.click(telegramRadio);
 
         await waitFor(() => {
-            expect(screen.getByText('Connect Telegram')).toBeInTheDocument();
+            expect(screen.getByRole('link', { name: /open telegram/i })).toBeInTheDocument();
+            expect(screen.getByText('Start the bot')).toBeInTheDocument();
+            expect(screen.getByText('Waiting for connection...')).toBeInTheDocument();
         });
 
-        // Close the modal to see the save button in the main form
-        const cancelButtons = screen.getAllByRole('button', { name: /^cancel$/i });
-        const telegramModal = screen.getByText('Connect Telegram').closest('.modal-content');
-        const cancelButton = telegramModal?.querySelector('button.btn-secondary');
-
-        if (cancelButton) {
-            await user.click(cancelButton);
-        } else {
-            await user.click(cancelButtons[cancelButtons.length - 1]);
-        }
-
-        await waitFor(() => {
-            // Should return to Email after canceling
-            const emailRadio = screen.getByRole('radio', { name: /email/i });
-            expect(emailRadio).toBeChecked();
-            expect(screen.queryByText('Connect Telegram')).not.toBeInTheDocument();
-        });
-
-        // Verify that Email was saved when canceling Telegram
-        await waitFor(() => {
-            expect(mockOnSave).toHaveBeenCalledWith('Email', undefined);
-        });
+        // Telegram should remain selected
+        expect(telegramRadio).toBeChecked();
     });
 
-    it('should close Telegram modal when connection is established', async () => {
+    it('should hide connection panel and show success message when connection is established', async () => {
         const user = userEvent.setup();
-        let resolveStatus: (value: { connected: boolean; telegramChatId: string | null }) => void;
+        let resolveStatus: (value: { connected: boolean; telegramChatId: string | null; telegramUsername: string | null }) => void;
         const mockGetTelegramStatusDelayed = vi.fn().mockImplementation(() => {
-            return new Promise<{ connected: boolean; telegramChatId: string | null }>((resolve) => {
+            return new Promise<{ connected: boolean; telegramChatId: string | null; telegramUsername: string | null }>((resolve) => {
                 resolveStatus = resolve;
             });
         });
@@ -426,14 +388,20 @@ describe('NotificationsModal', () => {
         await user.click(telegramRadio);
 
         await waitFor(() => {
-            expect(screen.getByText('Connect Telegram')).toBeInTheDocument();
+            expect(screen.getByRole('link', { name: /open telegram/i })).toBeInTheDocument();
         });
 
         // Simulate connection
-        resolveStatus!({ connected: true, telegramChatId: '123456789' });
+        resolveStatus!({ connected: true, telegramChatId: '123456789', telegramUsername: 'testuser' });
 
         await waitFor(() => {
-            expect(screen.queryByText('Connect Telegram')).not.toBeInTheDocument();
+            expect(screen.queryByRole('link', { name: /open telegram/i })).not.toBeInTheDocument();
+            expect(screen.getByText(/telegram account connected/i)).toBeInTheDocument();
+        });
+
+        // Should automatically save when connected
+        await waitFor(() => {
+            expect(mockOnSave).toHaveBeenCalledWith('Telegram', '123456789');
         });
     });
 
@@ -452,20 +420,9 @@ describe('NotificationsModal', () => {
         const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
         await user.click(telegramRadio);
 
-        // Wait for Telegram modal to appear, then cancel to go back
+        // Wait for connection panel to appear
         await waitFor(() => {
-            expect(screen.getByText('Connect Telegram')).toBeInTheDocument();
-        }, { timeout: 3000 });
-
-        const telegramModal = screen.getByText('Connect Telegram').closest('.modal-content');
-        const cancelButton = telegramModal?.querySelector('button.btn-secondary');
-        if (cancelButton) {
-            await user.click(cancelButton);
-        }
-
-        // Wait for modal to close
-        await waitFor(() => {
-            expect(screen.queryByText('Connect Telegram')).not.toBeInTheDocument();
+            expect(screen.getByRole('link', { name: /open telegram/i })).toBeInTheDocument();
         }, { timeout: 3000 });
 
         // Now click Email to trigger save
@@ -481,7 +438,8 @@ describe('NotificationsModal', () => {
         const user = userEvent.setup();
         const mockGetTelegramStatusConnected = vi.fn().mockResolvedValue({
             connected: true,
-            telegramChatId: '123456789'
+            telegramChatId: '123456789',
+            telegramUsername: 'testuser'
         });
 
         const userWithTelegram: UserData = {
@@ -538,14 +496,11 @@ describe('NotificationsModal', () => {
         await user.click(telegramRadio);
 
         await waitFor(() => {
-            expect(screen.getByText('Connect Telegram')).toBeInTheDocument();
+            expect(screen.getByRole('link', { name: /open telegram/i })).toBeInTheDocument();
         });
 
-        const telegramModal = screen.getByText('Connect Telegram').closest('.modal-content');
-        const cancelButton = telegramModal?.querySelector('button.btn-secondary');
-        if (cancelButton) {
-            await user.click(cancelButton);
-        }
+        const cancelButton = screen.getByRole('button', { name: /^cancel$/i });
+        await user.click(cancelButton);
 
         // After canceling, Email should be saved, which will trigger the error
         await waitFor(() => {
@@ -576,14 +531,11 @@ describe('NotificationsModal', () => {
         await user.click(telegramRadio);
 
         await waitFor(() => {
-            expect(screen.getByText('Connect Telegram')).toBeInTheDocument();
+            expect(screen.getByRole('link', { name: /open telegram/i })).toBeInTheDocument();
         });
 
-        const telegramModal = screen.getByText('Connect Telegram').closest('.modal-content');
-        const cancelButton = telegramModal?.querySelector('button.btn-secondary');
-        if (cancelButton) {
-            await user.click(cancelButton);
-        }
+        const cancelButton = screen.getByRole('button', { name: /^cancel$/i });
+        await user.click(cancelButton);
 
         // After canceling, Email should be saved, which should disable radio buttons
         await waitFor(() => {

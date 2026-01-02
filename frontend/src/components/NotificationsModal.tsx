@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import './NotificationsModal.css';
 import { UserData } from '../models/User';
-import { TelegramConnectionModal } from './TelegramConnectionModal';
 
 interface NotificationsModalProps {
     onClose: () => void;
@@ -71,11 +70,12 @@ export function NotificationsModal({
     const [selectedChannel, setSelectedChannel] = useState<string>('Email');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [showTelegramModal, setShowTelegramModal] = useState(false);
     const [telegramConnected, setTelegramConnected] = useState(false);
     const [telegramChatId, setTelegramChatId] = useState<string | null>(null);
     const [telegramUsername, setTelegramUsername] = useState<string | null>(null);
-    const [telegramConfigInProgress, setTelegramConfigInProgress] = useState(false);
+    const [telegramConnecting, setTelegramConnecting] = useState(false);
+    const [telegramLink, setTelegramLink] = useState<string | null>(null);
+    const [isGeneratingLink, setIsGeneratingLink] = useState(false);
     const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
     /**
@@ -94,7 +94,7 @@ export function NotificationsModal({
                     clearInterval(pollingInterval);
                     setPollingInterval(null);
                 }
-                setTelegramConfigInProgress(false);
+                setTelegramConnecting(false);
                 // Fetch Telegram username
                 checkTelegramStatus().catch((err) => {
                     console.error('Error fetching Telegram username:', err);
@@ -114,13 +114,15 @@ export function NotificationsModal({
                 setTelegramChatId(status.telegramChatId);
                 setTelegramConnected(true);
                 setTelegramUsername(status.telegramUsername || null);
-                setTelegramConfigInProgress(false);
-                // Automatically select Telegram when connected
-                setSelectedChannel('Telegram');
+                setTelegramConnecting(false);
                 // Stop polling
                 if (pollingInterval) {
                     clearInterval(pollingInterval);
                     setPollingInterval(null);
+                }
+                // Automatically save when connected
+                if (selectedChannel === 'Telegram') {
+                    await savePreferences('Telegram');
                 }
             }
         } catch (err) {
@@ -145,6 +147,25 @@ export function NotificationsModal({
     };
 
     /**
+     * Generate Telegram connection link.
+     * @internal
+     */
+    const generateTelegramLink = async () => {
+        setIsGeneratingLink(true);
+        setError(null);
+        try {
+            const result = await onGetTelegramStartLink();
+            setTelegramLink(result.link);
+            setTelegramConnecting(true);
+            startPolling();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Error generating Telegram link');
+        } finally {
+            setIsGeneratingLink(false);
+        }
+    };
+
+    /**
      * Cleanup polling interval on unmount or when modal closes.
      * @internal
      */
@@ -158,17 +179,15 @@ export function NotificationsModal({
     }, [pollingInterval]);
 
     /**
-     * Stop polling when modal is closed.
+     * Stop polling when Telegram connection is no longer in progress.
      * @internal
      */
     useEffect(() => {
-        // This effect runs when the component mounts/unmounts
-        // We'll also stop polling if telegramConfigInProgress becomes false
-        if (!telegramConfigInProgress && pollingInterval) {
+        if (!telegramConnecting && pollingInterval) {
             clearInterval(pollingInterval);
             setPollingInterval(null);
         }
-    }, [telegramConfigInProgress]);
+    }, [telegramConnecting, pollingInterval]);
 
     /**
      * Save notification preferences.
@@ -201,7 +220,7 @@ export function NotificationsModal({
                 clearInterval(pollingInterval);
                 setPollingInterval(null);
             }
-            setTelegramConfigInProgress(false);
+            setTelegramConnecting(false);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Error saving notification settings');
         } finally {
@@ -215,77 +234,46 @@ export function NotificationsModal({
      * @internal
      */
     const handleChannelChange = async (channelId: string) => {
-        // Stop polling if switching away from Telegram configuration
-        if (telegramConfigInProgress && channelId !== 'Telegram') {
-            setTelegramConfigInProgress(false);
-            if (pollingInterval) {
-                clearInterval(pollingInterval);
-                setPollingInterval(null);
-            }
+        // Stop polling if switching away from Telegram
+        if (channelId !== 'Telegram' && pollingInterval) {
+            clearInterval(pollingInterval);
+            setPollingInterval(null);
+            setTelegramConnecting(false);
+            setTelegramLink(null);
         }
 
         if (channelId === 'Telegram') {
-            // If Telegram is already connected, select it and save
+            setSelectedChannel('Telegram');
+            // If Telegram is already connected, save immediately
             if (telegramConnected) {
-                setSelectedChannel('Telegram');
                 await savePreferences('Telegram');
                 return;
             }
-            // Otherwise, open Telegram connection modal
-            setSelectedChannel('Telegram');
-            setShowTelegramModal(true);
-        } else {
-            // Only save if it's a different channel or if we're switching back from Telegram
-            if (selectedChannel !== channelId || (selectedChannel === 'Email' && channelId === 'Email' && showTelegramModal === false)) {
-                setSelectedChannel(channelId);
-                setShowTelegramModal(false);
-                // Save immediately for non-Telegram channels
-                await savePreferences(channelId);
-            } else {
-                setSelectedChannel(channelId);
-                setShowTelegramModal(false);
+            // Otherwise, generate connection link if not already generated
+            if (!telegramLink && !isGeneratingLink) {
+                await generateTelegramLink();
             }
+        } else {
+            setSelectedChannel(channelId);
+            // Save immediately for non-Telegram channels
+            await savePreferences(channelId);
         }
     };
 
     /**
-     * Handle successful Telegram connection.
-     * @internal
-     */
-    const handleTelegramConnected = async () => {
-        setShowTelegramModal(false);
-        await checkTelegramStatus();
-        // Save preferences automatically when Telegram is connected
-        if (telegramConnected && telegramChatId) {
-            await savePreferences('Telegram');
-        }
-    };
-
-    /**
-     * Handle link clicked in Telegram modal - close modal, select Email, show badge, and start polling.
-     * @internal
-     */
-    const handleTelegramLinkClicked = () => {
-        setShowTelegramModal(false);
-        setSelectedChannel('Email');
-        setTelegramConfigInProgress(true);
-        startPolling();
-    };
-
-    /**
-     * Handle cancel from Telegram modal - return to Email and save.
+     * Handle canceling Telegram connection.
      * @internal
      */
     const handleCancelTelegram = async () => {
-        setShowTelegramModal(false);
-        setSelectedChannel('Email');
-        setTelegramConfigInProgress(false);
+        setTelegramConnecting(false);
+        setTelegramLink(null);
         // Stop polling if active
         if (pollingInterval) {
             clearInterval(pollingInterval);
             setPollingInterval(null);
         }
-        // Save Email preference when canceling Telegram
+        // Switch back to Email and save
+        setSelectedChannel('Email');
         await savePreferences('Email');
     };
 
@@ -299,7 +287,8 @@ export function NotificationsModal({
             clearInterval(pollingInterval);
             setPollingInterval(null);
         }
-        setTelegramConfigInProgress(false);
+        setTelegramConnecting(false);
+        setTelegramLink(null);
         onClose();
     };
 
@@ -394,45 +383,138 @@ export function NotificationsModal({
                         </p>
                         <div className="notification-channels">
                             {channels.map((channel) => (
-                                <label
-                                    key={channel.id}
-                                    className={`channel-option channel-option-${channel.id.toLowerCase()} ${!channel.enabled ? 'disabled' : ''}`}
-                                    style={selectedChannel === channel.id ? { '--channel-color': channel.color } as React.CSSProperties : undefined}
-                                    title={channel.description}
-                                >
-                                    {channel.enabled ? (
-                                        <>
-                                            {channel.id === 'Telegram' && telegramConfigInProgress && (
-                                                <span className="coming-soon-badge config-progress-badge" style={{ background: '#0088cc', color: 'white' }}>
-                                                    Configuration in progress
-                                                </span>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <span className="coming-soon-badge">Coming soon</span>
-                                    )}
-                                    <div className="channel-header">
-                                        <span className="channel-icon">
-                                            {typeof channel.icon === 'string' ? channel.icon : channel.icon}
-                                        </span>
-                                        <span className="channel-label">
-                                            {channel.label}
-                                            {channel.badge && (
-                                                <span className="user-badge">{channel.badge}</span>
-                                            )}
-                                        </span>
+                                <div key={channel.id}>
+                                    <label
+                                        className={`channel-option channel-option-${channel.id.toLowerCase()} ${!channel.enabled ? 'disabled' : ''}`}
+                                        style={selectedChannel === channel.id ? { '--channel-color': channel.color } as React.CSSProperties : undefined}
+                                        title={channel.description}
+                                    >
                                         {channel.enabled ? (
-                                            <input
-                                                type="radio"
-                                                name="notification-channel"
-                                                value={channel.id}
-                                                checked={selectedChannel === channel.id}
-                                                onChange={() => handleChannelChange(channel.id)}
-                                                disabled={isSubmitting}
-                                            />
-                                        ) : null}
-                                    </div>
-                                </label>
+                                            <>
+                                                {channel.id === 'Telegram' && telegramConnecting && (
+                                                    <span className="coming-soon-badge config-progress-badge" style={{ background: '#0088cc', color: 'white' }}>
+                                                        Connecting...
+                                                    </span>
+                                                )}
+                                                {channel.id === 'Telegram' && telegramConnected && !telegramConnecting && (
+                                                    <span className="coming-soon-badge config-progress-badge" style={{ background: '#25a85a', color: 'white' }}>
+                                                        ✓ Connected
+                                                    </span>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <span className="coming-soon-badge">Coming soon</span>
+                                        )}
+                                        <div className="channel-header">
+                                            <span className="channel-icon">
+                                                {typeof channel.icon === 'string' ? channel.icon : channel.icon}
+                                            </span>
+                                            <span className="channel-label">
+                                                {channel.label}
+                                                {channel.badge && (
+                                                    <span className="user-badge">{channel.badge}</span>
+                                                )}
+                                            </span>
+                                            {channel.enabled ? (
+                                                <input
+                                                    type="radio"
+                                                    name="notification-channel"
+                                                    value={channel.id}
+                                                    checked={selectedChannel === channel.id}
+                                                    onChange={() => handleChannelChange(channel.id)}
+                                                    disabled={isSubmitting}
+                                                />
+                                            ) : null}
+                                        </div>
+                                    </label>
+                                    {channel.id === 'Telegram' && selectedChannel === 'Telegram' && !telegramConnected && (
+                                        <div className="telegram-connection-panel-inline">
+                                            {isGeneratingLink ? (
+                                                <div className="connection-step">
+                                                    <div className="step-indicator loading">
+                                                        <span className="spinner"></span>
+                                                    </div>
+                                                    <div className="step-content">
+                                                        <h4>Preparing connection...</h4>
+                                                        <p className="form-help-text">Generating your unique Telegram connection link</p>
+                                                    </div>
+                                                </div>
+                                            ) : telegramLink ? (
+                                                <>
+                                                    <div className="connection-step">
+                                                        <div className="step-indicator active">1</div>
+                                                        <div className="step-content">
+                                                            <h4>Open Telegram</h4>
+                                                            <p className="form-help-text">Click the button below to open Telegram and start the bot</p>
+                                                            <a
+                                                                href={telegramLink}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="btn-primary"
+                                                                style={{
+                                                                    display: 'inline-block',
+                                                                    textAlign: 'center',
+                                                                    textDecoration: 'none',
+                                                                    padding: '12px 24px',
+                                                                    fontSize: '1rem',
+                                                                    marginTop: '8px'
+                                                                }}
+                                                            >
+                                                                Open Telegram
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                    <div className="connection-step">
+                                                        <div className={`step-indicator ${telegramConnecting ? 'active' : ''}`}>2</div>
+                                                        <div className="step-content">
+                                                            <h4>Start the bot</h4>
+                                                            <p className="form-help-text">
+                                                                In Telegram, tap the "Start" button to connect your account
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="connection-step">
+                                                        <div className={`step-indicator ${telegramConnecting ? 'checking' : ''}`}>3</div>
+                                                        <div className="step-content">
+                                                            <h4>Waiting for connection...</h4>
+                                                            {telegramConnecting && (
+                                                                <p className="form-help-text">
+                                                                    <span className="spinner-inline"></span>
+                                                                    Checking connection status...
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div className="connection-actions">
+                                                        <button
+                                                            type="button"
+                                                            className="btn-secondary"
+                                                            onClick={handleCancelTelegram}
+                                                            disabled={isSubmitting}
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className="connection-step">
+                                                    <div className="step-content">
+                                                        <p className="form-help-text">Click the Telegram option above to start connecting</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                    {channel.id === 'Telegram' && selectedChannel === 'Telegram' && telegramConnected && (
+                                        <div className="telegram-success-message-inline">
+                                            <div className="message success show">
+                                                <span className="message-text">
+                                                    ✓ Telegram account connected{telegramUsername ? ` (@${telegramUsername.replace('@', '')})` : ''}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             ))}
                         </div>
                     </div>
@@ -447,28 +529,98 @@ export function NotificationsModal({
                         </div>
                     )}
 
+                    {selectedChannel === 'Telegram' && !telegramConnected && (
+                        <div className="form-group">
+                            <div className="telegram-connection-panel">
+                                {isGeneratingLink ? (
+                                    <div className="connection-step">
+                                        <div className="step-indicator loading">
+                                            <span className="spinner"></span>
+                                        </div>
+                                        <div className="step-content">
+                                            <h4>Preparing connection...</h4>
+                                            <p className="form-help-text">Generating your unique Telegram connection link</p>
+                                        </div>
+                                    </div>
+                                ) : telegramLink ? (
+                                    <>
+                                        <div className="connection-step">
+                                            <div className="step-indicator active">1</div>
+                                            <div className="step-content">
+                                                <h4>Open Telegram</h4>
+                                                <p className="form-help-text">Click the button below to open Telegram and start the bot</p>
+                                                <a
+                                                    href={telegramLink}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="btn-primary"
+                                                    style={{
+                                                        display: 'inline-block',
+                                                        textAlign: 'center',
+                                                        textDecoration: 'none',
+                                                        padding: '12px 24px',
+                                                        fontSize: '1rem',
+                                                        marginTop: '8px'
+                                                    }}
+                                                >
+                                                    Open Telegram
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div className="connection-step">
+                                            <div className={`step-indicator ${telegramConnecting ? 'active' : ''}`}>2</div>
+                                            <div className="step-content">
+                                                <h4>Start the bot</h4>
+                                                <p className="form-help-text">
+                                                    In Telegram, tap the "Start" button to connect your account
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="connection-step">
+                                            <div className={`step-indicator ${telegramConnecting ? 'checking' : ''}`}>3</div>
+                                            <div className="step-content">
+                                                <h4>Waiting for connection...</h4>
+                                                {telegramConnecting && (
+                                                    <p className="form-help-text">
+                                                        <span className="spinner-inline"></span>
+                                                        Checking connection status...
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="connection-actions">
+                                            <button
+                                                type="button"
+                                                className="btn-secondary"
+                                                onClick={handleCancelTelegram}
+                                                disabled={isSubmitting}
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="connection-step">
+                                        <div className="step-content">
+                                            <p className="form-help-text">Click the Telegram option above to start connecting</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {selectedChannel === 'Telegram' && telegramConnected && (
                         <div className="form-group">
                             <div className="message success show">
                                 <span className="message-text">
-                                    ✓ Telegram account connected
+                                    ✓ Telegram account connected{telegramUsername ? ` (@${telegramUsername.replace('@', '')})` : ''}
                                 </span>
                             </div>
                         </div>
                     )}
                 </div>
             </div>
-
-            {/* Telegram Connection Modal */}
-            {showTelegramModal && (
-                <TelegramConnectionModal
-                    onClose={handleTelegramConnected}
-                    onCancel={handleCancelTelegram}
-                    onLinkClicked={handleTelegramLinkClicked}
-                    onGetTelegramStartLink={onGetTelegramStartLink}
-                    onGetTelegramStatus={onGetTelegramStatus}
-                />
-            )}
         </div>
     );
 }

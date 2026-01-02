@@ -160,3 +160,107 @@
   font-weight: 500;
   vertical-align: middle;
 }
+
+.telegram-connection-panel {
+  margin-top: 16px;
+  padding: 20px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+}
+
+.connection-step {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  align-items: flex-start;
+}
+
+.connection-step:last-of-type {
+  margin-bottom: 0;
+}
+
+.step-indicator {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--border-color);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+  transition: var(--transition);
+}
+
+.step-indicator.active {
+  background: #0088cc;
+  color: white;
+}
+
+.step-indicator.checking {
+  background: #0088cc;
+  color: white;
+  position: relative;
+}
+
+.step-indicator.loading {
+  background: transparent;
+  border: 2px solid #0088cc;
+  color: #0088cc;
+}
+
+.step-content {
+  flex: 1;
+}
+
+.step-content h4 {
+  margin: 0 0 4px 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.step-content .form-help-text {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.connection-actions {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(0, 136, 204, 0.2);
+  border-top-color: #0088cc;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+
+.spinner-inline {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(0, 136, 204, 0.2);
+  border-top-color: #0088cc;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
