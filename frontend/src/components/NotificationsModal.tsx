@@ -113,13 +113,7 @@ export function NotificationsModal({
      */
     const checkTelegramStatus = async () => {
         try {
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'NotificationsModal.tsx:113', message: 'checkTelegramStatus called', data: {}, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'E' }) }).catch(() => { });
-            // #endregion
             const status = await onGetTelegramStatus();
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'NotificationsModal.tsx:115', message: 'Telegram status received', data: { connected: status?.connected, hasChatId: !!status?.telegramChatId, chatId: status?.telegramChatId }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'E' }) }).catch(() => { });
-            // #endregion
             if (status.connected && status.telegramChatId) {
                 setTelegramChatId(status.telegramChatId);
                 setTelegramConnected(true);
@@ -170,22 +164,10 @@ export function NotificationsModal({
         setIsGeneratingLink(true);
         setError(null);
         try {
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'NotificationsModal.tsx:162', message: 'generateTelegramLink called', data: {}, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'C' }) }).catch(() => { });
-            // #endregion
             const result = await onGetTelegramStartLink();
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'NotificationsModal.tsx:166', message: 'Telegram link received', data: { hasLink: !!result?.link, link: result?.link?.substring(0, 100), webhookConfigured: (result as any)?.webhookConfigured }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' }) }).catch(() => { });
-            // #endregion
 
             // Check if webhook is configured
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'NotificationsModal.tsx:180', message: 'Checking webhook configuration', data: { hasResult: !!result, isObject: result && typeof result === 'object', hasWebhookConfigured: result && typeof result === 'object' && 'webhookConfigured' in result, webhookConfigured: (result as any)?.webhookConfigured, webhookError: (result as any)?.webhookError, webhookUrl: (result as any)?.webhookUrl, conditionMet: result && typeof result === 'object' && 'webhookConfigured' in result && !(result as any).webhookConfigured }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run2', hypothesisId: 'A' }) }).catch(() => { });
-            // #endregion
             if (result && typeof result === 'object' && 'webhookConfigured' in result && !(result as any).webhookConfigured) {
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'NotificationsModal.tsx:181', message: 'Webhook not configured - setting error', data: { webhookUrl: (result as any)?.webhookUrl }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' }) }).catch(() => { });
-                // #endregion
                 const webhookUrl = (result as any).webhookUrl;
                 const webhookError = (result as any).webhookError;
                 let errorMsg = `Telegram webhook is not configured. The connection will not work until the webhook is set up. ${webhookUrl ? `Current webhook URL: ${webhookUrl}` : 'No webhook URL is set.'}`;
@@ -203,25 +185,13 @@ export function NotificationsModal({
             try {
                 const url = new URL(result.link);
                 const startParam = url.searchParams.get('start');
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'NotificationsModal.tsx:203', message: 'Extracting start command from link', data: { hasLink: !!result.link, link: result.link?.substring(0, 100), hasStartParam: !!startParam, startParam: startParam?.substring(0, 50) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run2', hypothesisId: 'A' }) }).catch(() => { });
-                // #endregion
                 if (startParam) {
                     const decoded = decodeURIComponent(startParam);
                     const command = `/start ${decoded}`;
-                    // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'NotificationsModal.tsx:210', message: 'Setting start command', data: { command: command.substring(0, 100) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run2', hypothesisId: 'A' }) }).catch(() => { });
-                    // #endregion
                     setTelegramStartCommand(command);
-                } else {
-                    // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'NotificationsModal.tsx:214', message: 'No start parameter found in link', data: {}, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run2', hypothesisId: 'A' }) }).catch(() => { });
-                    // #endregion
                 }
             } catch (e) {
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'NotificationsModal.tsx:217', message: 'Error extracting start command', data: { error: e instanceof Error ? e.message : String(e) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run2', hypothesisId: 'A' }) }).catch(() => { });
-                // #endregion
+                // Ignore URL parsing errors
             }
             // Set connecting state after link is ready
             setTelegramConnecting(true);
@@ -531,11 +501,6 @@ export function NotificationsModal({
                                                                         textDecoration: 'none',
                                                                         marginTop: '8px'
                                                                     }}
-                                                                    onClick={() => {
-                                                                        // #region agent log
-                                                                        fetch('http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'NotificationsModal.tsx:510', message: 'Telegram link clicked', data: { link: telegramLink?.substring(0, 100), hasStartCommand: !!telegramStartCommand }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run2', hypothesisId: 'A' }) }).catch(() => { });
-                                                                        // #endregion
-                                                                    }}
                                                                 >
                                                                     Open Telegram
                                                                 </a>
@@ -560,13 +525,19 @@ export function NotificationsModal({
                                                                     try {
                                                                         const url = new URL(telegramLink);
                                                                         const startParam = url.searchParams.get('start');
+                                                                        console.log('[Telegram] Extracting command from link:', { hasLink: !!telegramLink, hasStartParam: !!startParam, link: telegramLink?.substring(0, 100) });
                                                                         if (startParam) {
                                                                             const decoded = decodeURIComponent(startParam);
                                                                             commandToShow = `/start ${decoded}`;
+                                                                            console.log('[Telegram] Extracted command:', commandToShow.substring(0, 50) + '...');
+                                                                        } else {
+                                                                            console.warn('[Telegram] No start parameter in link:', telegramLink);
                                                                         }
                                                                     } catch (e) {
-                                                                        // Ignore
+                                                                        console.error('[Telegram] Error extracting command:', e);
                                                                     }
+                                                                } else if (!commandToShow) {
+                                                                    console.warn('[Telegram] No command to show:', { hasState: !!telegramStartCommand, hasLink: !!telegramLink });
                                                                 }
 
                                                                 return commandToShow ? (
