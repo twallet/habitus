@@ -77,6 +77,38 @@ export function NotificationsModal({
     const [telegramUsername, setTelegramUsername] = useState<string | null>(null);
     const [showTelegramConnectionModal, setShowTelegramConnectionModal] = useState(false);
     const [telegramConnecting, setTelegramConnecting] = useState(false);
+    const connectingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    /**
+     * Clear connecting status when key expires (10 minutes).
+     * @internal
+     */
+    useEffect(() => {
+        if (telegramConnecting && !telegramConnected) {
+            // Clear any existing timeout
+            if (connectingTimeoutRef.current) {
+                clearTimeout(connectingTimeoutRef.current);
+            }
+            // Set timeout to clear connecting status after 10 minutes (key expiration)
+            connectingTimeoutRef.current = setTimeout(() => {
+                setTelegramConnecting(false);
+            }, 10 * 60 * 1000); // 10 minutes in milliseconds
+
+            // Cleanup timeout on unmount or when connecting state changes
+            return () => {
+                if (connectingTimeoutRef.current) {
+                    clearTimeout(connectingTimeoutRef.current);
+                    connectingTimeoutRef.current = null;
+                }
+            };
+        } else {
+            // Clear timeout if connecting state is cleared manually
+            if (connectingTimeoutRef.current) {
+                clearTimeout(connectingTimeoutRef.current);
+                connectingTimeoutRef.current = null;
+            }
+        }
+    }, [telegramConnecting, telegramConnected]);
 
     /**
      * Load existing preferences from user data and check Telegram status.
@@ -356,6 +388,11 @@ export function NotificationsModal({
                                                                 className="badge-disconnect-btn"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
+                                                                    // Clear timeout if it exists
+                                                                    if (connectingTimeoutRef.current) {
+                                                                        clearTimeout(connectingTimeoutRef.current);
+                                                                        connectingTimeoutRef.current = null;
+                                                                    }
                                                                     setTelegramConnecting(false);
                                                                 }}
                                                                 aria-label="Cancel Telegram connection"
