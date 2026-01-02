@@ -192,7 +192,7 @@ describe('NotificationsModal', () => {
 
         // Check for the link in the modal
         await waitFor(() => {
-            const link = screen.getByRole('link', { name: /connect telegram/i });
+            const link = screen.getByRole('link', { name: /open telegram/i });
             expect(link).toBeInTheDocument();
         });
     });
@@ -212,7 +212,11 @@ describe('NotificationsModal', () => {
         await user.click(telegramRadio);
 
         await waitFor(() => {
-            const link = screen.getByRole('link', { name: /connect telegram/i });
+            expect(screen.getByText('Connect Telegram')).toBeInTheDocument();
+        });
+
+        await waitFor(() => {
+            const link = screen.getByRole('link', { name: /open telegram/i });
             expect(link).toHaveAttribute('href', 'https://t.me/testbot?start=token123%201');
             expect(link).toHaveAttribute('target', '_blank');
         });
@@ -298,7 +302,6 @@ describe('NotificationsModal', () => {
         );
 
         expect(screen.getByText(/telegram account connected/i)).toBeInTheDocument();
-        expect(screen.getByText(/123456789/)).toBeInTheDocument();
     });
 
     it('should load user preferences on mount', () => {
@@ -352,14 +355,10 @@ describe('NotificationsModal', () => {
         }
 
         await waitFor(() => {
-            // Telegram is still selected but not connected, so save should be disabled
-            const telegramRadioAfterCancel = screen.getByRole('radio', { name: /telegram/i });
-            expect(telegramRadioAfterCancel).toBeChecked();
-
-            // The save button in the main form should be disabled
-            const mainForm = document.querySelector('.notifications-form');
-            const saveButton = mainForm?.querySelector('button[type="submit"]') as HTMLButtonElement;
-            expect(saveButton).toBeDisabled();
+            // Should return to Email after canceling
+            const emailRadio = screen.getByRole('radio', { name: /email/i });
+            expect(emailRadio).toBeChecked();
+            expect(screen.queryByText('Connect Telegram')).not.toBeInTheDocument();
         });
 
         expect(mockOnSave).not.toHaveBeenCalled();

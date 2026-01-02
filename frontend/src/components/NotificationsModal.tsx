@@ -1,6 +1,7 @@
 import { useState, FormEvent, useEffect } from 'react';
 import './NotificationsModal.css';
 import { UserData } from '../models/User';
+import { TelegramConnectionModal } from './TelegramConnectionModal';
 
 interface NotificationsModalProps {
     onClose: () => void;
@@ -105,15 +106,9 @@ export function NotificationsModal({
     const [selectedChannel, setSelectedChannel] = useState<string>('Email');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
-
-    // Telegram connection state
-    const [telegramLink, setTelegramLink] = useState<string | null>(null);
-    const [isGeneratingLink, setIsGeneratingLink] = useState(false);
-    const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+    const [showTelegramModal, setShowTelegramModal] = useState(false);
     const [telegramConnected, setTelegramConnected] = useState(false);
     const [telegramChatId, setTelegramChatId] = useState<string | null>(null);
-    const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
-    const [showTelegramModal, setShowTelegramModal] = useState(false);
 
     /**
      * Load existing preferences from user data.
@@ -135,58 +130,14 @@ export function NotificationsModal({
      * @internal
      */
     const checkTelegramStatus = async () => {
-        if (isCheckingStatus) return;
-
-        setIsCheckingStatus(true);
         try {
             const status = await onGetTelegramStatus();
-            setTelegramConnected(status.connected);
             if (status.connected && status.telegramChatId) {
                 setTelegramChatId(status.telegramChatId);
-                // Close modal and stop polling once connected
-                setShowTelegramModal(false);
-                if (pollingInterval) {
-                    clearInterval(pollingInterval);
-                    setPollingInterval(null);
-                }
+                setTelegramConnected(true);
             }
         } catch (err) {
             console.error('Error checking Telegram status:', err);
-        } finally {
-            setIsCheckingStatus(false);
-        }
-    };
-
-    /**
-     * Generate Telegram connection link.
-     * @internal
-     */
-    const handleGenerateTelegramLink = async () => {
-        setIsGeneratingLink(true);
-        setError(null);
-        try {
-            const result = await onGetTelegramStartLink();
-            setTelegramLink(result.link);
-            setShowTelegramModal(true);
-
-            // Start polling for connection status
-            if (pollingInterval) {
-                clearInterval(pollingInterval);
-            }
-
-            const interval = setInterval(() => {
-                checkTelegramStatus();
-            }, 2000); // Poll every 2 seconds
-
-            setPollingInterval(interval);
-
-            // Check immediately
-            await checkTelegramStatus();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Error generating Telegram link');
-            setShowTelegramModal(false);
-        } finally {
-            setIsGeneratingLink(false);
         }
     };
 
@@ -195,20 +146,29 @@ export function NotificationsModal({
      * @param channelId - The selected channel ID
      * @internal
      */
-    const handleChannelChange = async (channelId: string) => {
+    const handleChannelChange = (channelId: string) => {
         if (channelId === 'Telegram') {
             // If Telegram is already connected, just select it
             if (telegramConnected) {
                 setSelectedChannel('Telegram');
                 return;
             }
-            // Otherwise, generate link and show modal
+            // Otherwise, open Telegram connection modal
             setSelectedChannel('Telegram');
-            await handleGenerateTelegramLink();
+            setShowTelegramModal(true);
         } else {
             setSelectedChannel(channelId);
             setShowTelegramModal(false);
         }
+    };
+
+    /**
+     * Handle successful Telegram connection.
+     * @internal
+     */
+    const handleTelegramConnected = async () => {
+        setShowTelegramModal(false);
+        await checkTelegramStatus();
     };
 
     /**
@@ -217,26 +177,8 @@ export function NotificationsModal({
      */
     const handleCancelTelegram = () => {
         setShowTelegramModal(false);
-        setTelegramLink(null);
         setSelectedChannel('Email');
-        // Stop polling if active
-        if (pollingInterval) {
-            clearInterval(pollingInterval);
-            setPollingInterval(null);
-        }
     };
-
-    /**
-     * Cleanup polling interval on unmount.
-     * @internal
-     */
-    useEffect(() => {
-        return () => {
-            if (pollingInterval) {
-                clearInterval(pollingInterval);
-            }
-        };
-    }, [pollingInterval]);
 
     /**
      * Handle form submission.
@@ -373,7 +315,7 @@ export function NotificationsModal({
                                             value={channel.id}
                                             checked={selectedChannel === channel.id}
                                             onChange={() => handleChannelChange(channel.id)}
-                                            disabled={isSubmitting || isGeneratingLink}
+                                            disabled={isSubmitting}
                                         />
                                     ) : (
                                         <span className="coming-soon-badge">Coming soon</span>
@@ -393,22 +335,13 @@ export function NotificationsModal({
                         </div>
                     )}
 
-                    {selectedChannel === 'Telegram' && !showTelegramModal && (
+                    {selectedChannel === 'Telegram' && telegramConnected && (
                         <div className="form-group">
-                            <label className="notifications-label">Telegram connection</label>
-                            {telegramConnected ? (
-                                <div className="message success show">
-                                    <span className="message-text">
-                                        ✓ Telegram account connected (Chat ID: {telegramChatId})
-                                    </span>
-                                </div>
-                            ) : (
-                                <div className="telegram-connection-flow">
-                                    <p className="form-help-text">
-                                        {isGeneratingLink ? 'Generating connection link...' : 'Click the link in the modal to connect your Telegram account.'}
-                                    </p>
-                                </div>
-                            )}
+                            <div className="message success show">
+                                <span className="message-text">
+                                    ✓ Telegram account connected
+                                </span>
+                            </div>
                         </div>
                     )}
 
@@ -433,52 +366,13 @@ export function NotificationsModal({
             </div>
 
             {/* Telegram Connection Modal */}
-            {showTelegramModal && telegramLink && (
-                <div className="modal-overlay" onClick={handleCancelTelegram}>
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h2>Connect Telegram</h2>
-                            <button
-                                type="button"
-                                className="modal-close"
-                                onClick={handleCancelTelegram}
-                                aria-label="Close"
-                            >
-                                ×
-                            </button>
-                        </div>
-                        <div className="notifications-form">
-                            <div className="form-group">
-                                <p className="form-help-text">
-                                    Click the link below to connect your Telegram account:
-                                </p>
-                                <a
-                                    href={telegramLink}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="btn-primary"
-                                    style={{ display: 'inline-block', marginTop: '0.5rem', textDecoration: 'none', width: '100%', textAlign: 'center' }}
-                                >
-                                    Connect Telegram
-                                </a>
-                                <p className="form-help-text" style={{ marginTop: '0.5rem' }}>
-                                    After clicking the link and starting the bot, your account will be connected automatically.
-                                    {isCheckingStatus && ' Checking connection status...'}
-                                </p>
-                            </div>
-                            <div className="modal-actions">
-                                <button
-                                    type="button"
-                                    className="btn-secondary"
-                                    onClick={handleCancelTelegram}
-                                    disabled={isSubmitting}
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            {showTelegramModal && (
+                <TelegramConnectionModal
+                    onClose={handleTelegramConnected}
+                    onCancel={handleCancelTelegram}
+                    onGetTelegramStartLink={onGetTelegramStartLink}
+                    onGetTelegramStatus={onGetTelegramStatus}
+                />
             )}
         </div>
     );
