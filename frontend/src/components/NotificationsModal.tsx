@@ -76,6 +76,7 @@ export function NotificationsModal({
     const [telegramUsername, setTelegramUsername] = useState<string | null>(null);
     const [telegramConnecting, setTelegramConnecting] = useState(false);
     const [telegramLink, setTelegramLink] = useState<string | null>(null);
+    const [telegramStartCommand, setTelegramStartCommand] = useState<string | null>(null);
     const [isGeneratingLink, setIsGeneratingLink] = useState(false);
     const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
@@ -198,6 +199,17 @@ export function NotificationsModal({
             }
 
             setTelegramLink(result.link);
+            // Extract start command from link for manual entry (needed for web interface)
+            try {
+                const url = new URL(result.link);
+                const startParam = url.searchParams.get('start');
+                if (startParam) {
+                    const decoded = decodeURIComponent(startParam);
+                    setTelegramStartCommand(`/start ${decoded}`);
+                }
+            } catch (e) {
+                // Ignore URL parsing errors
+            }
             // Set connecting state after link is ready
             setTelegramConnecting(true);
             startPolling();
@@ -506,6 +518,11 @@ export function NotificationsModal({
                                                                         textDecoration: 'none',
                                                                         marginTop: '8px'
                                                                     }}
+                                                                    onClick={() => {
+                                                                        // #region agent log
+                                                                        fetch('http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'NotificationsModal.tsx:510', message: 'Telegram link clicked', data: { link: telegramLink?.substring(0, 100), hasStartCommand: !!telegramStartCommand }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run2', hypothesisId: 'A' }) }).catch(() => { });
+                                                                        // #endregion
+                                                                    }}
                                                                 >
                                                                     Open Telegram
                                                                 </a>
@@ -521,8 +538,44 @@ export function NotificationsModal({
                                                         <div className="step-content">
                                                             <h4>Start the bot</h4>
                                                             <p className="form-help-text">
-                                                                In Telegram, tap the "Start" button to connect your account
+                                                                In the Telegram app, tap the "Start" button. If you're using Telegram Web, manually type this command:
                                                             </p>
+                                                            {telegramStartCommand && (
+                                                                <div style={{
+                                                                    marginTop: '8px',
+                                                                    padding: '8px 12px',
+                                                                    backgroundColor: '#f5f5f5',
+                                                                    borderRadius: '4px',
+                                                                    fontFamily: 'monospace',
+                                                                    fontSize: '0.9rem',
+                                                                    wordBreak: 'break-all',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '8px'
+                                                                }}>
+                                                                    <code style={{ flex: 1 }}>{telegramStartCommand}</code>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            navigator.clipboard.writeText(telegramStartCommand).then(() => {
+                                                                                // Show brief feedback
+                                                                            });
+                                                                        }}
+                                                                        style={{
+                                                                            padding: '4px 8px',
+                                                                            fontSize: '0.8rem',
+                                                                            cursor: 'pointer',
+                                                                            backgroundColor: '#007bff',
+                                                                            color: 'white',
+                                                                            border: 'none',
+                                                                            borderRadius: '3px'
+                                                                        }}
+                                                                        title="Copy to clipboard"
+                                                                    >
+                                                                        Copy
+                                                                    </button>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                     <div className="connection-step">
