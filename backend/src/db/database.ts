@@ -542,13 +542,22 @@ export class Database {
       let convertedSql = convertPlaceholdersToPostgreSQL(sql);
 
       // For INSERT statements, automatically add RETURNING id if not present
+      // Skip for tables that don't have an id column (e.g., telegram_connection_tokens)
       let finalSql = convertedSql;
       if (isInsert && !hasReturning) {
-        // Add RETURNING id before any semicolon or at the end
-        if (convertedSql.trim().endsWith(";")) {
-          finalSql = convertedSql.trim().slice(0, -1) + " RETURNING id;";
-        } else {
-          finalSql = convertedSql.trim() + " RETURNING id";
+        // Check if this is an INSERT into a table without an id column
+        const tableNameMatch = sqlUpper.match(/INSERT\s+INTO\s+(\w+)/);
+        const tableName = tableNameMatch ? tableNameMatch[1] : "";
+        const tablesWithoutId = ["TELEGRAM_CONNECTION_TOKENS"];
+
+        // Only add RETURNING id if the table has an id column
+        if (!tablesWithoutId.includes(tableName)) {
+          // Add RETURNING id before any semicolon or at the end
+          if (convertedSql.trim().endsWith(";")) {
+            finalSql = convertedSql.trim().slice(0, -1) + " RETURNING id;";
+          } else {
+            finalSql = convertedSql.trim() + " RETURNING id";
+          }
         }
       }
 
