@@ -67,10 +67,17 @@ async function createTestDatabase(): Promise<Database> {
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               name TEXT NOT NULL CHECK(length(name) <= 30),
               email TEXT NOT NULL UNIQUE,
+              profile_picture_url TEXT,
+              magic_link_token TEXT,
+              magic_link_expires DATETIME,
+              pending_email TEXT,
+              email_verification_token TEXT,
+              email_verification_expires DATETIME,
               telegram_chat_id TEXT,
               notification_channels TEXT,
               locale TEXT DEFAULT 'en-US',
               timezone TEXT,
+              last_access DATETIME,
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
