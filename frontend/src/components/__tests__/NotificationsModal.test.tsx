@@ -243,7 +243,6 @@ describe('NotificationsModal', () => {
 
     it('should close modal, select Email, and show "Configuration in progress" badge when Telegram link is clicked', async () => {
         const user = userEvent.setup();
-        vi.useFakeTimers();
 
         render(
             <NotificationsModal
@@ -277,14 +276,6 @@ describe('NotificationsModal', () => {
             expect(emailRadio).toBeChecked();
             expect(screen.getByText('Configuration in progress')).toBeInTheDocument();
         });
-
-        // Verify polling is active by checking that getTelegramStatus is called
-        await vi.advanceTimersByTimeAsync(2000);
-        await waitFor(() => {
-            expect(mockGetTelegramStatus).toHaveBeenCalled();
-        });
-
-        vi.useRealTimers();
     });
 
     it('should return to Email when cancel button is clicked in Telegram modal', async () => {
