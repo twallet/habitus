@@ -29,15 +29,46 @@ TELEGRAM_BOT_TOKEN=your_bot_token_here
 4. Copy the bot token provided by BotFather
 5. Add it to your `.env` file as `TELEGRAM_BOT_TOKEN`
 
-### Setting Up the Webhook (Optional)
+### Setting Up the Webhook (Required)
 
-For production environments, you may want to set up a webhook for your Telegram bot:
+**IMPORTANT:** The webhook must be configured for Telegram connections to work. Without a webhook, clicking "Start Bot" in Telegram will not trigger the connection process.
 
-1. Configure your server URL in the Telegram Bot API
-2. The webhook endpoint is: `POST /api/telegram/webhook`
-3. Telegram will send updates to this endpoint when users interact with your bot
+The webhook endpoint is: `POST /api/telegram/webhook`
 
-**Note:** The webhook is automatically handled by the application. You only need to ensure your server URL is accessible to Telegram's servers.
+#### For Production Environments
+
+1. Ensure your server URL is publicly accessible (HTTPS required)
+2. Set up the webhook by calling the setup endpoint:
+   ```bash
+   curl -X POST https://your-server.com/api/telegram/set-webhook \
+     -H "Content-Type: application/json" \
+     -d '{"webhookUrl": "https://your-server.com"}'
+   ```
+3. Verify the webhook is set up:
+   ```bash
+   curl https://your-server.com/api/telegram/webhook-info
+   ```
+
+#### For Local Development
+
+For local development, you need to use a tunneling service like ngrok:
+
+1. Install ngrok: https://ngrok.com/download
+2. Start your backend server
+3. In a new terminal, run: `ngrok http 3005` (replace 3005 with your port)
+4. Copy the HTTPS URL provided by ngrok (e.g., `https://abc123.ngrok.io`)
+5. Set up the webhook:
+   ```bash
+   curl -X POST http://localhost:3005/api/telegram/set-webhook \
+     -H "Content-Type: application/json" \
+     -d '{"webhookUrl": "https://abc123.ngrok.io"}'
+   ```
+6. Verify the webhook is set up:
+   ```bash
+   curl http://localhost:3005/api/telegram/webhook-info
+   ```
+
+**Note:** Keep ngrok running while testing. If you restart ngrok, you'll get a new URL and need to update the webhook.
 
 ## User Configuration Flow
 
@@ -109,12 +140,17 @@ sequenceDiagram
 
 ### User Endpoints
 
-- `GET /api/users/telegram/start-link` - Generate a connection token and bot start link
-- `GET /api/users/telegram/status` - Check Telegram connection status
+- `GET /api/telegram/start-link` - Generate a connection token and bot start link (requires authentication)
+- `GET /api/telegram/status` - Check Telegram connection status (requires authentication)
+
+### Webhook Management
+
+- `POST /api/telegram/set-webhook` - Set up Telegram webhook URL (requires `webhookUrl` in request body)
+- `GET /api/telegram/webhook-info` - Get current webhook information from Telegram
 
 ### Telegram Webhook
 
-- `POST /api/telegram/webhook` - Handle Telegram bot webhook updates (used internally)
+- `POST /api/telegram/webhook` - Handle Telegram bot webhook updates (used internally by Telegram)
 
 ## Troubleshooting
 
@@ -130,10 +166,26 @@ If you see errors about the bot token:
 
 If you're having trouble connecting:
 
+- **Webhook not set up**: This is the most common issue. The webhook must be configured for Telegram to send updates to your server. Check webhook status:
+
+  ```bash
+  curl http://localhost:3005/api/telegram/webhook-info
+  ```
+
+  If the webhook URL is empty or incorrect, set it up using the instructions above.
+
+- **Local development**: If testing locally, you must use a tunneling service like ngrok. Localhost URLs won't work because Telegram can't reach them.
+
+- **Nothing happens when clicking "Start Bot"**: This usually means the webhook isn't set up. Check:
+
+  1. Is the webhook configured? (use `/api/telegram/webhook-info`)
+  2. Is your server accessible from the internet? (for production)
+  3. Are you using HTTPS? (Telegram requires HTTPS for webhooks)
+  4. Check server logs for webhook requests
+
 - Make sure you've started a conversation with your bot first
 - Verify that the connection link hasn't expired (tokens expire after 10 minutes)
 - Try generating a new connection link
-- Check that your server can receive webhook requests from Telegram (for production)
 
 ### Chat Not Found Errors
 
