@@ -169,6 +169,7 @@ export function NotificationsModal({
             setError(err instanceof Error ? err.message : 'Error generating Telegram link');
             setTelegramConnecting(false);
         } finally {
+            // Ensure isGeneratingLink is set to false after link generation
             setIsGeneratingLink(false);
         }
     };
