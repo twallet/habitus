@@ -342,4 +342,126 @@ describe("Telegram Webhook Routes", () => {
       expect(user?.telegram_chat_id).toBeNull();
     });
   });
+
+  describe("GET /api/telegram/start-link", () => {
+    let authToken: string;
+
+    beforeEach(async () => {
+      // Create a user and generate a token manually for testing
+      await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
+        "Test User",
+        "test@example.com",
+      ]);
+
+      // Generate a test token
+      const jwt = require("jsonwebtoken");
+      authToken = jwt.sign(
+        { userId: 1, email: "test@example.com" },
+        process.env.JWT_SECRET || "your-secret-key-change-in-production",
+        { expiresIn: "7d" }
+      );
+    });
+
+    it("should generate a start link with token and user ID", async () => {
+      const response = await request(app)
+        .get("/api/telegram/start-link")
+        .set("Authorization", `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty("link");
+      expect(response.body).toHaveProperty("token");
+      expect(response.body.link).toContain("t.me");
+      expect(response.body.link).toContain("start=");
+      expect(response.body.link).toContain(response.body.token);
+      expect(response.body.link).toContain("1"); // user ID
+
+      // Verify token was created in database
+      const tokenRow = await testDb.get(
+        "SELECT * FROM telegram_connection_tokens WHERE token = ?",
+        [response.body.token]
+      );
+      expect(tokenRow).toBeDefined();
+      expect(tokenRow?.user_id).toBe(1);
+    });
+
+    it("should return 401 if not authenticated", async () => {
+      const response = await request(app)
+        .get("/api/telegram/start-link")
+        .expect(401);
+
+      expect(response.body.error).toContain("token");
+    });
+
+    it("should generate different tokens for multiple calls", async () => {
+      const response1 = await request(app)
+        .get("/api/telegram/start-link")
+        .set("Authorization", `Bearer ${authToken}`)
+        .expect(200);
+
+      const response2 = await request(app)
+        .get("/api/telegram/start-link")
+        .set("Authorization", `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response1.body.token).not.toBe(response2.body.token);
+    });
+  });
+
+  describe("GET /api/telegram/status", () => {
+    let authToken: string;
+
+    beforeEach(async () => {
+      // Create a user and generate a token manually for testing
+      await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
+        "Test User",
+        "test@example.com",
+      ]);
+
+      // Generate a test token
+      const jwt = require("jsonwebtoken");
+      authToken = jwt.sign(
+        { userId: 1, email: "test@example.com" },
+        process.env.JWT_SECRET || "your-secret-key-change-in-production",
+        { expiresIn: "7d" }
+      );
+    });
+
+    it("should return connected status when user has telegram_chat_id", async () => {
+      // Set telegram_chat_id for user
+      await testDb.run("UPDATE users SET telegram_chat_id = ? WHERE id = ?", [
+        "123456789",
+        1,
+      ]);
+
+      const response = await request(app)
+        .get("/api/telegram/status")
+        .set("Authorization", `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body).toEqual({
+        connected: true,
+        chatId: "123456789",
+      });
+    });
+
+    it("should return not connected status when user has no telegram_chat_id", async () => {
+      const response = await request(app)
+        .get("/api/telegram/status")
+        .set("Authorization", `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body).toEqual({
+        connected: false,
+        chatId: null,
+      });
+    });
+
+    it("should return 401 if not authenticated", async () => {
+      const response = await request(app)
+        .get("/api/telegram/status")
+        .expect(401);
+
+      expect(response.body.error).toContain("token");
+    });
+  });
 });

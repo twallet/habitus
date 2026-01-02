@@ -1,6 +1,10 @@
 import { Router, Request, Response } from "express";
 import { ServiceManager } from "../services/index.js";
 import { ServerConfig } from "../setup/constants.js";
+import {
+  authenticateToken,
+  AuthRequest,
+} from "../middleware/authMiddleware.js";
 
 const router = Router();
 
@@ -156,5 +160,104 @@ async function processTelegramUpdate(update: TelegramUpdate): Promise<void> {
     );
   }
 }
+
+/**
+ * GET /api/telegram/start-link
+ * Generate a Telegram bot start link with connection token.
+ * @route GET /api/telegram/start-link
+ * @header {string} Authorization - Bearer token
+ * @returns {object} { link: string, token: string }
+ */
+router.get(
+  "/start-link",
+  authenticateToken,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId!;
+
+      // Generate connection token
+      const telegramConnectionService =
+        ServiceManager.getTelegramConnectionService();
+      const token = await telegramConnectionService.generateConnectionToken(
+        userId
+      );
+
+      // Get bot username from environment variable
+      const botUsername = process.env.TELEGRAM_BOT_USERNAME;
+
+      if (!botUsername) {
+        console.warn(
+          `[${new Date().toISOString()}] TELEGRAM_ROUTE | TELEGRAM_BOT_USERNAME not set, using placeholder`
+        );
+        // Return a link format that can be constructed on the frontend
+        return res.json({
+          link: `https://t.me/YOUR_BOT_USERNAME?start=${token}_${userId}`,
+          token: token,
+          userId: userId,
+          botUsername: null,
+        });
+      }
+
+      // Construct Telegram start link: https://t.me/<bot_username>?start=<token>_<userId>
+      const link = `https://t.me/${botUsername}?start=${token}_${userId}`;
+
+      console.log(
+        `[${new Date().toISOString()}] TELEGRAM_ROUTE | Generated start link for userId: ${userId}`
+      );
+
+      res.json({
+        link: link,
+        token: token,
+        userId: userId,
+        botUsername: botUsername,
+      });
+    } catch (error) {
+      console.error(
+        `[${new Date().toISOString()}] TELEGRAM_ROUTE | Error generating start link:`,
+        error
+      );
+      res.status(500).json({ error: "Error generating start link" });
+    }
+  }
+);
+
+/**
+ * GET /api/telegram/status
+ * Check if the user has connected their Telegram account.
+ * @route GET /api/telegram/status
+ * @header {string} Authorization - Bearer token
+ * @returns {object} { connected: boolean, chatId: string | null }
+ */
+router.get(
+  "/status",
+  authenticateToken,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId!;
+
+      const userService = ServiceManager.getUserService();
+      const user = await userService.getUserById(userId);
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const connected = !!user.telegram_chat_id;
+
+      res.json({
+        connected: connected,
+        chatId: user.telegram_chat_id || null,
+      });
+    } catch (error) {
+      console.error(
+        `[${new Date().toISOString()}] TELEGRAM_ROUTE | Error checking status:`,
+        error
+      );
+      res
+        .status(500)
+        .json({ error: "Error checking Telegram connection status" });
+    }
+  }
+);
 
 export default router;
