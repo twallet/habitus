@@ -82,26 +82,63 @@ export function NotificationsModal({
     const isCancelingRef = useRef(false);
 
     /**
+     * Load connecting state from localStorage on mount.
+     * @internal
+     */
+    useEffect(() => {
+        const savedConnecting = localStorage.getItem('telegramConnecting');
+        const savedKeyTime = localStorage.getItem('telegramKeyGenerationTime');
+        
+        if (savedConnecting === 'true' && savedKeyTime) {
+            const keyTime = parseInt(savedKeyTime, 10);
+            const elapsed = Date.now() - keyTime;
+            const remaining = 10 * 60 * 1000 - elapsed; // 10 minutes minus elapsed time
+
+            if (remaining > 0) {
+                // Restore connecting state
+                setTelegramConnecting(true);
+                keyGenerationTimeRef.current = keyTime;
+                
+                // Set timeout for remaining time
+                connectingTimeoutRef.current = setTimeout(() => {
+                    setTelegramConnecting(false);
+                    localStorage.removeItem('telegramConnecting');
+                    localStorage.removeItem('telegramKeyGenerationTime');
+                    keyGenerationTimeRef.current = null;
+                }, remaining);
+            } else {
+                // Key has expired, clear storage
+                localStorage.removeItem('telegramConnecting');
+                localStorage.removeItem('telegramKeyGenerationTime');
+            }
+        }
+    }, []);
+
+    /**
      * Record key generation time when modal opens.
      * @internal
      */
     useEffect(() => {
         if (showTelegramConnectionModal) {
             // Record when key generation starts (modal opens)
-            keyGenerationTimeRef.current = Date.now();
-        } else {
-            // Reset key generation time when modal closes
-            keyGenerationTimeRef.current = null;
+            const keyTime = Date.now();
+            keyGenerationTimeRef.current = keyTime;
+            // Persist to localStorage
+            localStorage.setItem('telegramKeyGenerationTime', keyTime.toString());
         }
     }, [showTelegramConnectionModal]);
 
     /**
      * Clear connecting status when key expires (10 minutes from generation).
      * The timeout starts when copy is clicked, but calculates remaining time from key generation.
+     * Persists state to localStorage so it survives modal close/reopen.
      * @internal
      */
     useEffect(() => {
         if (telegramConnecting && !telegramConnected && keyGenerationTimeRef.current) {
+            // Persist connecting state to localStorage
+            localStorage.setItem('telegramConnecting', 'true');
+            
             // Calculate remaining time from key generation
             const elapsed = Date.now() - keyGenerationTimeRef.current;
             const remaining = 10 * 60 * 1000 - elapsed; // 10 minutes minus elapsed time
@@ -114,11 +151,15 @@ export function NotificationsModal({
                 // Set timeout for remaining time
                 connectingTimeoutRef.current = setTimeout(() => {
                     setTelegramConnecting(false);
+                    localStorage.removeItem('telegramConnecting');
+                    localStorage.removeItem('telegramKeyGenerationTime');
                     keyGenerationTimeRef.current = null;
                 }, remaining);
             } else {
                 // Key has already expired, clear connecting status immediately
                 setTelegramConnecting(false);
+                localStorage.removeItem('telegramConnecting');
+                localStorage.removeItem('telegramKeyGenerationTime');
                 keyGenerationTimeRef.current = null;
             }
 
@@ -136,6 +177,8 @@ export function NotificationsModal({
                 connectingTimeoutRef.current = null;
             }
             if (telegramConnected) {
+                localStorage.removeItem('telegramConnecting');
+                localStorage.removeItem('telegramKeyGenerationTime');
                 keyGenerationTimeRef.current = null;
             }
         }
@@ -155,6 +198,9 @@ export function NotificationsModal({
                 setTelegramChatId(user.telegram_chat_id);
                 setTelegramConnected(true);
                 setTelegramConnecting(false);
+                // Clear connecting state from localStorage when connected
+                localStorage.removeItem('telegramConnecting');
+                localStorage.removeItem('telegramKeyGenerationTime');
                 // Fetch Telegram username
                 checkTelegramStatus().catch((err) => {
                     console.error('Error fetching Telegram username:', err);
