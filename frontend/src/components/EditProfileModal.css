@@ -164,6 +164,13 @@
 .email-change-btn {
   flex-shrink: 0;
   white-space: nowrap;
+  background: var(--primary-color) !important;
+  color: white !important;
+  border: none !important;
+}
+
+.email-change-btn:hover:not(:disabled) {
+  background: var(--primary-hover) !important;
 }
 
 .disabled-input {

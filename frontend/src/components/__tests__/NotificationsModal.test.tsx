@@ -15,7 +15,8 @@ describe('NotificationsModal', () => {
     const mockGetTelegramStatus = vi.fn().mockResolvedValue({
         connected: false,
         telegramChatId: null,
-        telegramUsername: null
+        telegramUsername: null,
+        hasActiveToken: false
     });
 
     const mockUser: UserData = {
@@ -291,7 +292,8 @@ describe('NotificationsModal', () => {
         const mockGetTelegramStatusConnected = vi.fn().mockResolvedValue({
             connected: true,
             telegramChatId: '123456789',
-            telegramUsername: 'testuser'
+            telegramUsername: 'testuser',
+            hasActiveToken: false
         });
 
         const userWithTelegram: UserData = {
@@ -430,7 +432,8 @@ describe('NotificationsModal', () => {
         const mockGetTelegramStatusConnected = vi.fn().mockResolvedValue({
             connected: true,
             telegramChatId: '123456789',
-            telegramUsername: 'testuser'
+            telegramUsername: 'testuser',
+            hasActiveToken: false
         });
 
         const userWithTelegram: UserData = {
@@ -671,6 +674,66 @@ describe('NotificationsModal', () => {
 
         // Verify that getTelegramStatus was NOT called repeatedly (no polling)
         expect(mockGetTelegramStatus).not.toHaveBeenCalled();
+
+        vi.useRealTimers();
+    });
+
+    it('should show "Connecting..." badge when hasActiveToken is true', async () => {
+        const mockGetTelegramStatusWithToken = vi.fn().mockResolvedValue({
+            connected: false,
+            telegramChatId: null,
+            telegramUsername: null,
+            hasActiveToken: true
+        });
+
+        render(
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatusWithToken}
+            />
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Connecting...')).toBeInTheDocument();
+        });
+    });
+
+    it('should poll for status when hasActiveToken is true', async () => {
+        vi.useFakeTimers();
+
+        const mockGetTelegramStatusWithToken = vi.fn().mockResolvedValue({
+            connected: false,
+            telegramChatId: null,
+            telegramUsername: null,
+            hasActiveToken: true
+        });
+
+        render(
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatusWithToken}
+            />
+        );
+
+        // Wait for initial status check
+        await waitFor(() => {
+            expect(mockGetTelegramStatusWithToken).toHaveBeenCalled();
+        });
+
+        // Clear initial call
+        mockGetTelegramStatusWithToken.mockClear();
+
+        // Advance time by 30 seconds (polling interval)
+        vi.advanceTimersByTime(30000);
+
+        // Verify that getTelegramStatus was called again (polling)
+        await waitFor(() => {
+            expect(mockGetTelegramStatusWithToken).toHaveBeenCalled();
+        });
 
         vi.useRealTimers();
     });
