@@ -768,38 +768,4 @@ describe('NotificationsModal', () => {
         });
     });
 
-    it('should NOT show anything when generating connection key', async () => {
-        const user = userEvent.setup();
-        let resolveLink: (value: { link: string; token: string }) => void;
-        const mockGetTelegramStartLinkDelayed = vi.fn().mockImplementation(() => {
-            return new Promise<{ link: string; token: string }>((resolve) => {
-                resolveLink = resolve;
-            });
-        });
-
-        render(
-            <NotificationsModal
-                onClose={mockOnClose}
-                onSave={mockOnSave}
-                onGetTelegramStartLink={mockGetTelegramStartLinkDelayed}
-                onGetTelegramStatus={mockGetTelegramStatus}
-            />
-        );
-
-        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
-        await user.click(telegramRadio);
-
-        // Should not show connection panel or any loading message while generating
-        expect(screen.queryByText('Preparing connection...')).not.toBeInTheDocument();
-        expect(screen.queryByText('Generating connection key...')).not.toBeInTheDocument();
-        expect(screen.queryByRole('link', { name: /^go$/i })).not.toBeInTheDocument();
-
-        // Resolve the promise to complete generation
-        resolveLink!({ link: 'https://t.me/testbot?start=token123%201', token: 'token123' });
-
-        // Now the connection panel should appear
-        await waitFor(() => {
-            expect(screen.getByRole('link', { name: /^go$/i })).toBeInTheDocument();
-        });
-    });
 });

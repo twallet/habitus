@@ -426,6 +426,7 @@ export function NotificationsModal({
                                                                 }}
                                                                 aria-label="Disconnect Telegram account"
                                                                 title="Disconnect Telegram account"
+                                                                style={{ backgroundColor: '#000000', color: '#ffffff' }}
                                                             >
                                                                 ×
                                                             </button>
