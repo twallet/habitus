@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './NotificationsModal.css';
 
 interface TelegramConnectionStepsModalProps {
@@ -24,13 +24,21 @@ export function TelegramConnectionStepsModal({
     const [isGeneratingLink, setIsGeneratingLink] = useState(false);
     const [keyCopied, setKeyCopied] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const hasGeneratedRef = useRef(false);
 
     /**
      * Generate Telegram connection link and extract start command.
+     * Only generate once when modal is mounted.
      * @internal
      */
     useEffect(() => {
+        // Only generate link once when component mounts
+        if (hasGeneratedRef.current) {
+            return;
+        }
+
         const generateLink = async () => {
+            hasGeneratedRef.current = true;
             setIsGeneratingLink(true);
             setError(null);
             try {
@@ -71,7 +79,8 @@ export function TelegramConnectionStepsModal({
         };
 
         generateLink();
-    }, [onGetTelegramStartLink]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Only run once on mount
 
     /**
      * Handle modal close.
@@ -79,6 +88,8 @@ export function TelegramConnectionStepsModal({
      */
     const handleModalClose = () => {
         setKeyCopied(false);
+        hasGeneratedRef.current = false; // Reset so token can be regenerated if modal reopens
+        setTelegramStartCommand(null); // Clear the command
         onClose();
     };
 
@@ -146,43 +157,36 @@ export function TelegramConnectionStepsModal({
                                         Copy your key by clicking the button below and paste it in the Habitus chat in Telegram:
                                     </p>
                                     {telegramStartCommand ? (
-                                        <>
-                                            <button
-                                                type="button"
-                                                onClick={async () => {
-                                                    if (telegramStartCommand) {
-                                                        try {
-                                                            await navigator.clipboard.writeText(telegramStartCommand);
-                                                            setKeyCopied(true);
-                                                            // Notify parent that copy was clicked
-                                                            if (onCopyClicked) {
-                                                                onCopyClicked();
-                                                            }
-                                                        } catch (err) {
-                                                            console.error('Error copying to clipboard:', err);
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                if (telegramStartCommand) {
+                                                    try {
+                                                        await navigator.clipboard.writeText(telegramStartCommand);
+                                                        setKeyCopied(true);
+                                                        // Notify parent that copy was clicked
+                                                        if (onCopyClicked) {
+                                                            onCopyClicked();
                                                         }
+                                                    } catch (err) {
+                                                        console.error('Error copying to clipboard:', err);
                                                     }
-                                                }}
-                                                className="btn-primary"
-                                                style={{
-                                                    display: 'inline-block',
-                                                    textAlign: 'center',
-                                                    marginTop: '8px',
-                                                    width: 'auto',
-                                                    height: 'auto',
-                                                    minHeight: '32px',
-                                                    lineHeight: '32px'
-                                                }}
-                                                title="Copy key to clipboard"
-                                            >
-                                                Copy key
-                                            </button>
-                                            {keyCopied && (
-                                                <p className="form-help-text" style={{ marginTop: '12px', color: '#25a85a', fontWeight: 'bold' }}>
-                                                    You can now close this window. Once you complete the 2 steps and we check everything, your Telegram account will appear as connected.
-                                                </p>
-                                            )}
-                                        </>
+                                                }
+                                            }}
+                                            className="btn-primary"
+                                            style={{
+                                                display: 'inline-block',
+                                                textAlign: 'center',
+                                                marginTop: '8px',
+                                                width: 'auto',
+                                                height: 'auto',
+                                                minHeight: '32px',
+                                                lineHeight: '32px'
+                                            }}
+                                            title="Copy key to clipboard"
+                                        >
+                                            Copy key
+                                        </button>
                                     ) : (
                                         <p className="form-help-text" style={{ marginTop: '8px', fontStyle: 'italic', color: '#666' }}>
                                             Generating key...
@@ -191,6 +195,12 @@ export function TelegramConnectionStepsModal({
                                 </div>
                             </div>
                         </div>
+                    )}
+
+                    {keyCopied && (
+                        <p className="form-help-text" style={{ marginTop: '24px', color: '#25a85a', fontWeight: 'bold' }}>
+                            Once checked you complete the 2 steps, your Telegram account will appear as connected. You can now close this window.
+                        </p>
                     )}
                 </div>
             </div>

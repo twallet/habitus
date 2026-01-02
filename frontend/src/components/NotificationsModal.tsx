@@ -78,21 +78,48 @@ export function NotificationsModal({
     const [showTelegramConnectionModal, setShowTelegramConnectionModal] = useState(false);
     const [telegramConnecting, setTelegramConnecting] = useState(false);
     const connectingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const keyGenerationTimeRef = useRef<number | null>(null);
 
     /**
-     * Clear connecting status when key expires (10 minutes).
+     * Record key generation time when modal opens.
      * @internal
      */
     useEffect(() => {
-        if (telegramConnecting && !telegramConnected) {
-            // Clear any existing timeout
-            if (connectingTimeoutRef.current) {
-                clearTimeout(connectingTimeoutRef.current);
-            }
-            // Set timeout to clear connecting status after 10 minutes (key expiration)
-            connectingTimeoutRef.current = setTimeout(() => {
+        if (showTelegramConnectionModal) {
+            // Record when key generation starts (modal opens)
+            keyGenerationTimeRef.current = Date.now();
+        } else {
+            // Reset key generation time when modal closes
+            keyGenerationTimeRef.current = null;
+        }
+    }, [showTelegramConnectionModal]);
+
+    /**
+     * Clear connecting status when key expires (10 minutes from generation).
+     * The timeout starts when copy is clicked, but calculates remaining time from key generation.
+     * @internal
+     */
+    useEffect(() => {
+        if (telegramConnecting && !telegramConnected && keyGenerationTimeRef.current) {
+            // Calculate remaining time from key generation
+            const elapsed = Date.now() - keyGenerationTimeRef.current;
+            const remaining = 10 * 60 * 1000 - elapsed; // 10 minutes minus elapsed time
+
+            if (remaining > 0) {
+                // Clear any existing timeout
+                if (connectingTimeoutRef.current) {
+                    clearTimeout(connectingTimeoutRef.current);
+                }
+                // Set timeout for remaining time
+                connectingTimeoutRef.current = setTimeout(() => {
+                    setTelegramConnecting(false);
+                    keyGenerationTimeRef.current = null;
+                }, remaining);
+            } else {
+                // Key has already expired, clear connecting status immediately
                 setTelegramConnecting(false);
-            }, 10 * 60 * 1000); // 10 minutes in milliseconds
+                keyGenerationTimeRef.current = null;
+            }
 
             // Cleanup timeout on unmount or when connecting state changes
             return () => {
@@ -102,10 +129,13 @@ export function NotificationsModal({
                 }
             };
         } else {
-            // Clear timeout if connecting state is cleared manually
+            // Clear timeout if connecting state is cleared manually or Telegram is connected
             if (connectingTimeoutRef.current) {
                 clearTimeout(connectingTimeoutRef.current);
                 connectingTimeoutRef.current = null;
+            }
+            if (telegramConnected) {
+                keyGenerationTimeRef.current = null;
             }
         }
     }, [telegramConnecting, telegramConnected]);
@@ -393,7 +423,13 @@ export function NotificationsModal({
                                                                         clearTimeout(connectingTimeoutRef.current);
                                                                         connectingTimeoutRef.current = null;
                                                                     }
+                                                                    keyGenerationTimeRef.current = null;
                                                                     setTelegramConnecting(false);
+                                                                    // Close the connection modal if it's open
+                                                                    setShowTelegramConnectionModal(false);
+                                                                    // Select Email channel
+                                                                    setSelectedChannel('Email');
+                                                                    selectedChannelRef.current = 'Email';
                                                                 }}
                                                                 aria-label="Cancel Telegram connection"
                                                                 title="Cancel Telegram connection"
