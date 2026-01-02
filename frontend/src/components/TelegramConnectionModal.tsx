@@ -4,6 +4,7 @@ import './NotificationsModal.css';
 interface TelegramConnectionModalProps {
     onClose: () => void;
     onCancel: () => void;
+    onLinkClicked: () => void;
     onGetTelegramStartLink: () => Promise<{ link: string; token: string }>;
     onGetTelegramStatus: () => Promise<{ connected: boolean; telegramChatId: string | null }>;
 }
@@ -33,6 +34,7 @@ function TelegramIcon({ className }: { className?: string }) {
  * @param props - Component props
  * @param props.onClose - Callback when connection is successful or modal is closed
  * @param props.onCancel - Callback when user cancels (should return to Email selection)
+ * @param props.onLinkClicked - Callback when user clicks the Telegram link (should close modal, select Email, and show "Configuration in progress" badge)
  * @param props.onGetTelegramStartLink - Callback to get Telegram connection link
  * @param props.onGetTelegramStatus - Callback to check Telegram connection status
  * @public
@@ -40,6 +42,7 @@ function TelegramIcon({ className }: { className?: string }) {
 export function TelegramConnectionModal({
     onClose,
     onCancel,
+    onLinkClicked,
     onGetTelegramStartLink,
     onGetTelegramStatus,
 }: TelegramConnectionModalProps) {
@@ -172,6 +175,7 @@ export function TelegramConnectionModal({
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="btn-primary"
+                                    onClick={onLinkClicked}
                                     style={{
                                         display: 'block',
                                         textAlign: 'center',

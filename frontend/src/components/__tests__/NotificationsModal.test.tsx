@@ -241,6 +241,52 @@ describe('NotificationsModal', () => {
         });
     });
 
+    it('should close modal, select Email, and show "Configuration in progress" badge when Telegram link is clicked', async () => {
+        const user = userEvent.setup();
+        vi.useFakeTimers();
+
+        render(
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+            />
+        );
+
+        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
+        await user.click(telegramRadio);
+
+        await waitFor(() => {
+            expect(screen.getByText('Connect Telegram')).toBeInTheDocument();
+        });
+
+        await waitFor(() => {
+            const link = screen.getByRole('link', { name: /open telegram/i });
+            expect(link).toBeInTheDocument();
+        });
+
+        // Click the Telegram link
+        const link = screen.getByRole('link', { name: /open telegram/i });
+        await user.click(link);
+
+        // Modal should close, Email should be selected, and badge should appear
+        await waitFor(() => {
+            expect(screen.queryByText('Connect Telegram')).not.toBeInTheDocument();
+            const emailRadio = screen.getByRole('radio', { name: /email/i });
+            expect(emailRadio).toBeChecked();
+            expect(screen.getByText('Configuration in progress')).toBeInTheDocument();
+        });
+
+        // Verify polling is active by checking that getTelegramStatus is called
+        await vi.advanceTimersByTimeAsync(2000);
+        await waitFor(() => {
+            expect(mockGetTelegramStatus).toHaveBeenCalled();
+        });
+
+        vi.useRealTimers();
+    });
+
     it('should return to Email when cancel button is clicked in Telegram modal', async () => {
         const user = userEvent.setup();
         render(
@@ -276,6 +322,8 @@ describe('NotificationsModal', () => {
             const emailRadio = screen.getByRole('radio', { name: /email/i });
             expect(emailRadio).toBeChecked();
             expect(screen.queryByText('Connect Telegram')).not.toBeInTheDocument();
+            // Badge should not appear when canceling
+            expect(screen.queryByText('Configuration in progress')).not.toBeInTheDocument();
         });
     });
 

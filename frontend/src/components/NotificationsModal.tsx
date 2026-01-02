@@ -109,6 +109,8 @@ export function NotificationsModal({
     const [showTelegramModal, setShowTelegramModal] = useState(false);
     const [telegramConnected, setTelegramConnected] = useState(false);
     const [telegramChatId, setTelegramChatId] = useState<string | null>(null);
+    const [telegramConfigInProgress, setTelegramConfigInProgress] = useState(false);
+    const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
     /**
      * Load existing preferences from user data.
@@ -135,11 +137,47 @@ export function NotificationsModal({
             if (status.connected && status.telegramChatId) {
                 setTelegramChatId(status.telegramChatId);
                 setTelegramConnected(true);
+                setTelegramConfigInProgress(false);
+                // Automatically select Telegram when connected
+                setSelectedChannel('Telegram');
+                // Stop polling
+                if (pollingInterval) {
+                    clearInterval(pollingInterval);
+                    setPollingInterval(null);
+                }
             }
         } catch (err) {
             console.error('Error checking Telegram status:', err);
         }
     };
+
+    /**
+     * Start polling for Telegram connection status.
+     * @internal
+     */
+    const startPolling = () => {
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+        }
+        const interval = setInterval(() => {
+            checkTelegramStatus();
+        }, 2000); // Poll every 2 seconds
+        setPollingInterval(interval);
+        // Check immediately
+        checkTelegramStatus();
+    };
+
+    /**
+     * Cleanup polling interval on unmount.
+     * @internal
+     */
+    useEffect(() => {
+        return () => {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+            }
+        };
+    }, [pollingInterval]);
 
     /**
      * Handle channel selection change.
@@ -172,12 +210,29 @@ export function NotificationsModal({
     };
 
     /**
+     * Handle link clicked in Telegram modal - close modal, select Email, show badge, and start polling.
+     * @internal
+     */
+    const handleTelegramLinkClicked = () => {
+        setShowTelegramModal(false);
+        setSelectedChannel('Email');
+        setTelegramConfigInProgress(true);
+        startPolling();
+    };
+
+    /**
      * Handle cancel from Telegram modal - return to Email.
      * @internal
      */
     const handleCancelTelegram = () => {
         setShowTelegramModal(false);
         setSelectedChannel('Email');
+        setTelegramConfigInProgress(false);
+        // Stop polling if active
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+            setPollingInterval(null);
+        }
     };
 
     /**
@@ -309,14 +364,21 @@ export function NotificationsModal({
                                         <span className="channel-description">{channel.description}</span>
                                     </div>
                                     {channel.enabled ? (
-                                        <input
-                                            type="radio"
-                                            name="notification-channel"
-                                            value={channel.id}
-                                            checked={selectedChannel === channel.id}
-                                            onChange={() => handleChannelChange(channel.id)}
-                                            disabled={isSubmitting}
-                                        />
+                                        <>
+                                            {channel.id === 'Telegram' && telegramConfigInProgress && (
+                                                <span className="coming-soon-badge" style={{ background: '#0088cc', color: 'white' }}>
+                                                    Configuration in progress
+                                                </span>
+                                            )}
+                                            <input
+                                                type="radio"
+                                                name="notification-channel"
+                                                value={channel.id}
+                                                checked={selectedChannel === channel.id}
+                                                onChange={() => handleChannelChange(channel.id)}
+                                                disabled={isSubmitting}
+                                            />
+                                        </>
                                     ) : (
                                         <span className="coming-soon-badge">Coming soon</span>
                                     )}
@@ -370,6 +432,7 @@ export function NotificationsModal({
                 <TelegramConnectionModal
                     onClose={handleTelegramConnected}
                     onCancel={handleCancelTelegram}
+                    onLinkClicked={handleTelegramLinkClicked}
                     onGetTelegramStartLink={onGetTelegramStartLink}
                     onGetTelegramStatus={onGetTelegramStatus}
                 />
