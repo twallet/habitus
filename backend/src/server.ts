@@ -20,6 +20,7 @@ import authRouter from "./routes/auth.js";
 import trackingsRouter from "./routes/trackings.js";
 import remindersRouter from "./routes/reminders.js";
 import adminRouter from "./routes/admin/admin.js";
+import telegramRouter from "./routes/telegram.js";
 import {
   getUploadsDirectory,
   isCloudinaryStorage,
@@ -128,6 +129,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/trackings", trackingsRouter);
 app.use("/api/reminders", remindersRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/telegram", telegramRouter);
 
 /**
  * Health check endpoint.

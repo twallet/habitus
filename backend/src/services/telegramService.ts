@@ -219,6 +219,90 @@ export class TelegramService {
   }
 
   /**
+   * Send a simple text message via Telegram.
+   * @param chatId - Telegram chat ID
+   * @param text - Message text
+   * @param parseMode - Optional parse mode (default: "Markdown")
+   * @returns Promise that resolves when message is sent
+   * @throws Error if message sending fails
+   * @public
+   */
+  async sendMessage(
+    chatId: string,
+    text: string,
+    parseMode: "Markdown" | "HTML" = "Markdown"
+  ): Promise<void> {
+    if (!this.config.botToken) {
+      throw new Error(
+        "Telegram bot token not configured. Please set TELEGRAM_BOT_TOKEN environment variable."
+      );
+    }
+
+    if (!chatId) {
+      throw new Error("Telegram chat ID is required");
+    }
+
+    try {
+      const url = `${this.apiBaseUrl}${this.config.botToken}/sendMessage`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: text,
+          parse_mode: parseMode,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = (await response
+          .json()
+          .catch(() => ({}))) as TelegramErrorResponse;
+        const errorMessage =
+          errorData.description ||
+          `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(`Telegram API error: ${errorMessage}`);
+      }
+
+      const result = (await response.json()) as TelegramSuccessResponse;
+      if (!result.ok) {
+        throw new Error(
+          `Telegram API error: ${result.description || "Unknown error"}`
+        );
+      }
+
+      console.log(
+        `[${new Date().toISOString()}] TELEGRAM | Message sent successfully to chatId: ${chatId}, messageId: ${
+          result.result?.message_id
+        }`
+      );
+    } catch (error: any) {
+      console.error(
+        `[${new Date().toISOString()}] TELEGRAM | Error sending message to ${chatId}:`,
+        error
+      );
+
+      if (error.message?.includes("chat not found")) {
+        throw new Error(
+          "Telegram chat not found. Please make sure you have started a conversation with the bot and provided the correct chat ID."
+        );
+      }
+
+      if (error.message?.includes("bot token")) {
+        throw new Error(
+          "Telegram bot token is invalid. Please verify your TELEGRAM_BOT_TOKEN environment variable."
+        );
+      }
+
+      throw new Error(
+        `Failed to send Telegram message: ${error.message || "Unknown error"}`
+      );
+    }
+  }
+
+  /**
    * Escape Markdown special characters to prevent formatting issues.
    * @param text - Text to escape
    * @returns Escaped text
