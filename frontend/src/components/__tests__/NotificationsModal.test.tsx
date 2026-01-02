@@ -167,7 +167,7 @@ describe('NotificationsModal', () => {
         expect(emailMessage.textContent).toContain(mockUser.email!);
     });
 
-    it('should show Telegram connection flow when Telegram is selected', async () => {
+    it('should show Telegram connection modal when Telegram is selected', async () => {
         const user = userEvent.setup();
         render(
             <NotificationsModal
@@ -180,41 +180,24 @@ describe('NotificationsModal', () => {
 
         const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
         await user.click(telegramRadio);
-
-        await waitFor(() => {
-            expect(screen.getByText(/telegram connection/i)).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: /generate telegram link/i })).toBeInTheDocument();
-        });
-    });
-
-    it('should generate Telegram link when button is clicked', async () => {
-        const user = userEvent.setup();
-        render(
-            <NotificationsModal
-                onClose={mockOnClose}
-                onSave={mockOnSave}
-                onGetTelegramStartLink={mockGetTelegramStartLink}
-                onGetTelegramStatus={mockGetTelegramStatus}
-            />
-        );
-
-        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
-        await user.click(telegramRadio);
-
-        await waitFor(() => {
-            expect(screen.getByRole('button', { name: /generate telegram link/i })).toBeInTheDocument();
-        });
-
-        const generateButton = screen.getByRole('button', { name: /generate telegram link/i });
-        await user.click(generateButton);
 
         await waitFor(() => {
             expect(mockGetTelegramStartLink).toHaveBeenCalledTimes(1);
-            expect(screen.getByText(/click the link below/i)).toBeInTheDocument();
+        });
+
+        // Check for modal title
+        await waitFor(() => {
+            expect(screen.getByText('Connect Telegram')).toBeInTheDocument();
+        });
+
+        // Check for the link in the modal
+        await waitFor(() => {
+            const link = screen.getByRole('link', { name: /connect telegram/i });
+            expect(link).toBeInTheDocument();
         });
     });
 
-    it('should show Telegram connection link after generating', async () => {
+    it('should show Telegram connection link in modal after selecting Telegram', async () => {
         const user = userEvent.setup();
         render(
             <NotificationsModal
@@ -227,13 +210,6 @@ describe('NotificationsModal', () => {
 
         const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
         await user.click(telegramRadio);
-
-        await waitFor(() => {
-            expect(screen.getByRole('button', { name: /generate telegram link/i })).toBeInTheDocument();
-        });
-
-        const generateButton = screen.getByRole('button', { name: /generate telegram link/i });
-        await user.click(generateButton);
 
         await waitFor(() => {
             const link = screen.getByRole('link', { name: /connect telegram/i });
@@ -242,7 +218,7 @@ describe('NotificationsModal', () => {
         });
     });
 
-    it('should check Telegram status after generating link', async () => {
+    it('should check Telegram status after selecting Telegram', async () => {
         const user = userEvent.setup();
         render(
             <NotificationsModal
@@ -257,14 +233,45 @@ describe('NotificationsModal', () => {
         await user.click(telegramRadio);
 
         await waitFor(() => {
-            expect(screen.getByRole('button', { name: /generate telegram link/i })).toBeInTheDocument();
+            expect(mockGetTelegramStatus).toHaveBeenCalled();
         });
+    });
 
-        const generateButton = screen.getByRole('button', { name: /generate telegram link/i });
-        await user.click(generateButton);
+    it('should return to Email when cancel button is clicked in Telegram modal', async () => {
+        const user = userEvent.setup();
+        render(
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+            />
+        );
+
+        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
+        await user.click(telegramRadio);
 
         await waitFor(() => {
-            expect(mockGetTelegramStatus).toHaveBeenCalled();
+            expect(screen.getByText('Connect Telegram')).toBeInTheDocument();
+        });
+
+        // Find the cancel button in the Telegram modal (there are multiple cancel buttons)
+        const cancelButtons = screen.getAllByRole('button', { name: /^cancel$/i });
+        // The cancel button in the Telegram modal should be the one inside the modal with title "Connect Telegram"
+        const telegramModal = screen.getByText('Connect Telegram').closest('.modal-content');
+        const cancelButton = telegramModal?.querySelector('button.btn-secondary');
+
+        if (cancelButton) {
+            await user.click(cancelButton);
+        } else {
+            // Fallback: click the last cancel button (should be the one in the Telegram modal)
+            await user.click(cancelButtons[cancelButtons.length - 1]);
+        }
+
+        await waitFor(() => {
+            const emailRadio = screen.getByRole('radio', { name: /email/i });
+            expect(emailRadio).toBeChecked();
+            expect(screen.queryByText('Connect Telegram')).not.toBeInTheDocument();
         });
     });
 
@@ -330,13 +337,65 @@ describe('NotificationsModal', () => {
         await user.click(telegramRadio);
 
         await waitFor(() => {
-            expect(screen.getByText(/telegram connection/i)).toBeInTheDocument();
+            expect(screen.getByText('Connect Telegram')).toBeInTheDocument();
         });
 
-        const saveButton = screen.getByRole('button', { name: /^save$/i });
-        expect(saveButton).toBeDisabled();
+        // Close the modal to see the save button in the main form
+        const cancelButtons = screen.getAllByRole('button', { name: /^cancel$/i });
+        const telegramModal = screen.getByText('Connect Telegram').closest('.modal-content');
+        const cancelButton = telegramModal?.querySelector('button.btn-secondary');
+
+        if (cancelButton) {
+            await user.click(cancelButton);
+        } else {
+            await user.click(cancelButtons[cancelButtons.length - 1]);
+        }
+
+        await waitFor(() => {
+            // Telegram is still selected but not connected, so save should be disabled
+            const telegramRadioAfterCancel = screen.getByRole('radio', { name: /telegram/i });
+            expect(telegramRadioAfterCancel).toBeChecked();
+
+            // The save button in the main form should be disabled
+            const mainForm = document.querySelector('.notifications-form');
+            const saveButton = mainForm?.querySelector('button[type="submit"]') as HTMLButtonElement;
+            expect(saveButton).toBeDisabled();
+        });
 
         expect(mockOnSave).not.toHaveBeenCalled();
+    });
+
+    it('should close Telegram modal when connection is established', async () => {
+        const user = userEvent.setup();
+        let resolveStatus: (value: { connected: boolean; telegramChatId: string | null }) => void;
+        const mockGetTelegramStatusDelayed = vi.fn().mockImplementation(() => {
+            return new Promise<{ connected: boolean; telegramChatId: string | null }>((resolve) => {
+                resolveStatus = resolve;
+            });
+        });
+
+        render(
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatusDelayed}
+            />
+        );
+
+        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
+        await user.click(telegramRadio);
+
+        await waitFor(() => {
+            expect(screen.getByText('Connect Telegram')).toBeInTheDocument();
+        });
+
+        // Simulate connection
+        resolveStatus!({ connected: true, telegramChatId: '123456789' });
+
+        await waitFor(() => {
+            expect(screen.queryByText('Connect Telegram')).not.toBeInTheDocument();
+        });
     });
 
     it('should submit form with Email channel', async () => {

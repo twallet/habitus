@@ -113,6 +113,7 @@ export function NotificationsModal({
     const [telegramConnected, setTelegramConnected] = useState(false);
     const [telegramChatId, setTelegramChatId] = useState<string | null>(null);
     const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+    const [showTelegramModal, setShowTelegramModal] = useState(false);
 
     /**
      * Load existing preferences from user data.
@@ -142,7 +143,8 @@ export function NotificationsModal({
             setTelegramConnected(status.connected);
             if (status.connected && status.telegramChatId) {
                 setTelegramChatId(status.telegramChatId);
-                // Stop polling once connected
+                // Close modal and stop polling once connected
+                setShowTelegramModal(false);
                 if (pollingInterval) {
                     clearInterval(pollingInterval);
                     setPollingInterval(null);
@@ -165,6 +167,7 @@ export function NotificationsModal({
         try {
             const result = await onGetTelegramStartLink();
             setTelegramLink(result.link);
+            setShowTelegramModal(true);
 
             // Start polling for connection status
             if (pollingInterval) {
@@ -181,8 +184,45 @@ export function NotificationsModal({
             await checkTelegramStatus();
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Error generating Telegram link');
+            setShowTelegramModal(false);
         } finally {
             setIsGeneratingLink(false);
+        }
+    };
+
+    /**
+     * Handle channel selection change.
+     * @param channelId - The selected channel ID
+     * @internal
+     */
+    const handleChannelChange = async (channelId: string) => {
+        if (channelId === 'Telegram') {
+            // If Telegram is already connected, just select it
+            if (telegramConnected) {
+                setSelectedChannel('Telegram');
+                return;
+            }
+            // Otherwise, generate link and show modal
+            setSelectedChannel('Telegram');
+            await handleGenerateTelegramLink();
+        } else {
+            setSelectedChannel(channelId);
+            setShowTelegramModal(false);
+        }
+    };
+
+    /**
+     * Handle cancel from Telegram modal - return to Email.
+     * @internal
+     */
+    const handleCancelTelegram = () => {
+        setShowTelegramModal(false);
+        setTelegramLink(null);
+        setSelectedChannel('Email');
+        // Stop polling if active
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+            setPollingInterval(null);
         }
     };
 
@@ -332,8 +372,8 @@ export function NotificationsModal({
                                             name="notification-channel"
                                             value={channel.id}
                                             checked={selectedChannel === channel.id}
-                                            onChange={() => setSelectedChannel(channel.id)}
-                                            disabled={isSubmitting}
+                                            onChange={() => handleChannelChange(channel.id)}
+                                            disabled={isSubmitting || isGeneratingLink}
                                         />
                                     ) : (
                                         <span className="coming-soon-badge">Coming soon</span>
@@ -353,7 +393,7 @@ export function NotificationsModal({
                         </div>
                     )}
 
-                    {selectedChannel === 'Telegram' && (
+                    {selectedChannel === 'Telegram' && !showTelegramModal && (
                         <div className="form-group">
                             <label className="notifications-label">Telegram connection</label>
                             {telegramConnected ? (
@@ -363,42 +403,11 @@ export function NotificationsModal({
                                     </span>
                                 </div>
                             ) : (
-                                <>
-                                    {telegramLink ? (
-                                        <div className="telegram-connection-flow">
-                                            <p className="form-help-text">
-                                                Click the link below to connect your Telegram account:
-                                            </p>
-                                            <a
-                                                href={telegramLink}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="btn-primary"
-                                                style={{ display: 'inline-block', marginTop: '0.5rem', textDecoration: 'none' }}
-                                            >
-                                                Connect Telegram
-                                            </a>
-                                            <p className="form-help-text" style={{ marginTop: '0.5rem' }}>
-                                                After clicking the link and starting the bot, your account will be connected automatically.
-                                                {isCheckingStatus && ' Checking connection status...'}
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <div className="telegram-connection-flow">
-                                            <p className="form-help-text">
-                                                Click the button below to generate a connection link for your Telegram account.
-                                            </p>
-                                            <button
-                                                type="button"
-                                                className="btn-primary"
-                                                onClick={handleGenerateTelegramLink}
-                                                disabled={isGeneratingLink || isSubmitting}
-                                            >
-                                                {isGeneratingLink ? 'Generating link...' : 'Generate Telegram link'}
-                                            </button>
-                                        </div>
-                                    )}
-                                </>
+                                <div className="telegram-connection-flow">
+                                    <p className="form-help-text">
+                                        {isGeneratingLink ? 'Generating connection link...' : 'Click the link in the modal to connect your Telegram account.'}
+                                    </p>
+                                </div>
                             )}
                         </div>
                     )}
@@ -422,6 +431,55 @@ export function NotificationsModal({
                     </div>
                 </form>
             </div>
+
+            {/* Telegram Connection Modal */}
+            {showTelegramModal && telegramLink && (
+                <div className="modal-overlay" onClick={handleCancelTelegram}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>Connect Telegram</h2>
+                            <button
+                                type="button"
+                                className="modal-close"
+                                onClick={handleCancelTelegram}
+                                aria-label="Close"
+                            >
+                                ×
+                            </button>
+                        </div>
+                        <div className="notifications-form">
+                            <div className="form-group">
+                                <p className="form-help-text">
+                                    Click the link below to connect your Telegram account:
+                                </p>
+                                <a
+                                    href={telegramLink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="btn-primary"
+                                    style={{ display: 'inline-block', marginTop: '0.5rem', textDecoration: 'none', width: '100%', textAlign: 'center' }}
+                                >
+                                    Connect Telegram
+                                </a>
+                                <p className="form-help-text" style={{ marginTop: '0.5rem' }}>
+                                    After clicking the link and starting the bot, your account will be connected automatically.
+                                    {isCheckingStatus && ' Checking connection status...'}
+                                </p>
+                            </div>
+                            <div className="modal-actions">
+                                <button
+                                    type="button"
+                                    className="btn-secondary"
+                                    onClick={handleCancelTelegram}
+                                    disabled={isSubmitting}
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
