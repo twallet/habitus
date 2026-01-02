@@ -6,7 +6,7 @@ interface TelegramConnectionModalProps {
     onCancel: () => void;
     onLinkClicked: () => void;
     onGetTelegramStartLink: () => Promise<{ link: string; token: string }>;
-    onGetTelegramStatus: () => Promise<{ connected: boolean; telegramChatId: string | null }>;
+    onGetTelegramStatus: () => Promise<{ connected: boolean; telegramChatId: string | null; telegramUsername: string | null }>;
 }
 
 /**

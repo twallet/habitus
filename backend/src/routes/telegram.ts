@@ -257,7 +257,7 @@ router.get(
  * Get Telegram connection status for the authenticated user.
  * @route GET /api/telegram/status
  * @header {string} Authorization - Bearer token
- * @returns {object} { connected: boolean, telegramChatId: string | null }
+ * @returns {object} { connected: boolean, telegramChatId: string | null, telegramUsername: string | null }
  */
 router.get(
   "/status",
@@ -274,10 +274,29 @@ router.get(
       }
 
       const connected = !!user.telegram_chat_id;
+      let telegramUsername: string | null = null;
+
+      // Try to get Telegram username if connected
+      if (connected && user.telegram_chat_id) {
+        try {
+          const telegramService = ServiceManager.getTelegramService();
+          const chatInfo = await telegramService.getChatInfo(
+            user.telegram_chat_id
+          );
+          telegramUsername = chatInfo.username || chatInfo.first_name || null;
+        } catch (error) {
+          // Log error but don't fail the request
+          console.error(
+            `[${new Date().toISOString()}] TELEGRAM_ROUTE | Error getting Telegram username:`,
+            error
+          );
+        }
+      }
 
       res.json({
         connected,
         telegramChatId: user.telegram_chat_id || null,
+        telegramUsername,
       });
     } catch (error) {
       console.error(

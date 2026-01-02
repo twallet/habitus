@@ -362,7 +362,7 @@ describe('NotificationsModal', () => {
         expect(telegramRadio).toBeChecked();
     });
 
-    it('should disable save button when Telegram is selected but not connected', async () => {
+    it('should open Telegram modal when Telegram is selected but not connected', async () => {
         const user = userEvent.setup();
         render(
             <NotificationsModal
@@ -530,14 +530,13 @@ describe('NotificationsModal', () => {
             />
         );
 
-        // Switch to Telegram first, then back to Email to trigger save
+        // Switch to Telegram first, then cancel to trigger save with error
         const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
         await user.click(telegramRadio);
 
-        // Wait for Telegram modal, then cancel
         await waitFor(() => {
             expect(screen.getByText('Connect Telegram')).toBeInTheDocument();
-        }, { timeout: 3000 });
+        });
 
         const telegramModal = screen.getByText('Connect Telegram').closest('.modal-content');
         const cancelButton = telegramModal?.querySelector('button.btn-secondary');
@@ -545,18 +544,10 @@ describe('NotificationsModal', () => {
             await user.click(cancelButton);
         }
 
-        // Wait for modal to close
-        await waitFor(() => {
-            expect(screen.queryByText('Connect Telegram')).not.toBeInTheDocument();
-        }, { timeout: 3000 });
-
-        // Now click Email to trigger save with error
-        const emailRadio = screen.getByRole('radio', { name: /email/i });
-        await user.click(emailRadio);
-
+        // After canceling, Email should be saved, which will trigger the error
         await waitFor(() => {
             expect(screen.getByText(errorMessage)).toBeInTheDocument();
-        }, { timeout: 3000 });
+        });
     });
 
     it('should disable radio buttons during submission', async () => {
@@ -577,14 +568,13 @@ describe('NotificationsModal', () => {
             />
         );
 
-        // Switch to Telegram first, then back to Email to trigger save
+        // Switch to Telegram first, then cancel to trigger save
         const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
         await user.click(telegramRadio);
 
-        // Wait for Telegram modal, then cancel
         await waitFor(() => {
             expect(screen.getByText('Connect Telegram')).toBeInTheDocument();
-        }, { timeout: 3000 });
+        });
 
         const telegramModal = screen.getByText('Connect Telegram').closest('.modal-content');
         const cancelButton = telegramModal?.querySelector('button.btn-secondary');
@@ -592,21 +582,13 @@ describe('NotificationsModal', () => {
             await user.click(cancelButton);
         }
 
-        // Wait for modal to close
-        await waitFor(() => {
-            expect(screen.queryByText('Connect Telegram')).not.toBeInTheDocument();
-        }, { timeout: 3000 });
-
-        // Now click Email to trigger save
-        const emailRadio = screen.getByRole('radio', { name: /email/i });
-        await user.click(emailRadio);
-
+        // After canceling, Email should be saved, which should disable radio buttons
         await waitFor(() => {
             const radioButtons = screen.getAllByRole('radio');
             radioButtons.forEach(radio => {
                 expect(radio).toBeDisabled();
             });
-        }, { timeout: 3000 });
+        });
 
         resolveSave!();
         await waitFor(() => {
@@ -614,7 +596,7 @@ describe('NotificationsModal', () => {
             radioButtons.forEach(radio => {
                 expect(radio).not.toBeDisabled();
             });
-        }, { timeout: 3000 });
+        });
     });
 
 

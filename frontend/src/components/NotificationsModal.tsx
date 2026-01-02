@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import './NotificationsModal.css';
 import { UserData } from '../models/User';
 import { TelegramConnectionModal } from './TelegramConnectionModal';
@@ -7,7 +7,7 @@ interface NotificationsModalProps {
     onClose: () => void;
     onSave: (notificationChannel: string, telegramChatId?: string) => Promise<void>;
     onGetTelegramStartLink: () => Promise<{ link: string; token: string }>;
-    onGetTelegramStatus: () => Promise<{ connected: boolean; telegramChatId: string | null }>;
+    onGetTelegramStatus: () => Promise<{ connected: boolean; telegramChatId: string | null; telegramUsername: string | null }>;
     user?: UserData | null;
 }
 
@@ -74,6 +74,7 @@ export function NotificationsModal({
     const [showTelegramModal, setShowTelegramModal] = useState(false);
     const [telegramConnected, setTelegramConnected] = useState(false);
     const [telegramChatId, setTelegramChatId] = useState<string | null>(null);
+    const [telegramUsername, setTelegramUsername] = useState<string | null>(null);
     const [telegramConfigInProgress, setTelegramConfigInProgress] = useState(false);
     const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
@@ -94,6 +95,10 @@ export function NotificationsModal({
                     setPollingInterval(null);
                 }
                 setTelegramConfigInProgress(false);
+                // Fetch Telegram username
+                checkTelegramStatus().catch((err) => {
+                    console.error('Error fetching Telegram username:', err);
+                });
             }
         }
     }, [user, pollingInterval]);
@@ -108,6 +113,7 @@ export function NotificationsModal({
             if (status.connected && status.telegramChatId) {
                 setTelegramChatId(status.telegramChatId);
                 setTelegramConnected(true);
+                setTelegramUsername(status.telegramUsername || null);
                 setTelegramConfigInProgress(false);
                 // Automatically select Telegram when connected
                 setSelectedChannel('Telegram');
@@ -229,10 +235,16 @@ export function NotificationsModal({
             setSelectedChannel('Telegram');
             setShowTelegramModal(true);
         } else {
-            setSelectedChannel(channelId);
-            setShowTelegramModal(false);
-            // Save immediately for non-Telegram channels
-            await savePreferences(channelId);
+            // Only save if it's a different channel or if we're switching back from Telegram
+            if (selectedChannel !== channelId || (selectedChannel === 'Email' && channelId === 'Email' && showTelegramModal === false)) {
+                setSelectedChannel(channelId);
+                setShowTelegramModal(false);
+                // Save immediately for non-Telegram channels
+                await savePreferences(channelId);
+            } else {
+                setSelectedChannel(channelId);
+                setShowTelegramModal(false);
+            }
         }
     };
 
@@ -261,10 +273,10 @@ export function NotificationsModal({
     };
 
     /**
-     * Handle cancel from Telegram modal - return to Email.
+     * Handle cancel from Telegram modal - return to Email and save.
      * @internal
      */
-    const handleCancelTelegram = () => {
+    const handleCancelTelegram = async () => {
         setShowTelegramModal(false);
         setSelectedChannel('Email');
         setTelegramConfigInProgress(false);
@@ -273,6 +285,8 @@ export function NotificationsModal({
             clearInterval(pollingInterval);
             setPollingInterval(null);
         }
+        // Save Email preference when canceling Telegram
+        await savePreferences('Email');
     };
 
     /**
@@ -290,22 +304,37 @@ export function NotificationsModal({
     };
 
 
-    const channels = [
+    // Get display labels for channels based on selection
+    const emailLabel = useMemo(() => {
+        if (selectedChannel === 'Email') {
+            return user?.email || 'Email';
+        }
+        return 'Email';
+    }, [selectedChannel, user?.email]);
+
+    const telegramLabel = useMemo(() => {
+        if (selectedChannel === 'Telegram' && telegramUsername) {
+            return telegramUsername;
+        }
+        return 'Telegram';
+    }, [selectedChannel, telegramUsername]);
+
+    const channels = useMemo(() => [
         {
             id: 'Email',
-            label: 'Email',
+            label: emailLabel,
             enabled: true,
             icon: '📧',
             color: '#005A7F',
-            description: `Reminders will be sent to ${user?.email || 'your email address'}`
+            description: 'Send reminders by email'
         },
         {
             id: 'Telegram',
-            label: 'Telegram',
+            label: telegramLabel,
             enabled: true,
             icon: <TelegramIcon className="channel-icon-svg" />,
             color: '#0088cc',
-            description: 'Connect your Telegram account to receive reminders'
+            description: 'Send reminders by Telegram'
         },
         {
             id: 'WhatsApp',
@@ -315,7 +344,7 @@ export function NotificationsModal({
             color: '#25D366',
             description: 'Coming soon'
         },
-    ];
+    ], [emailLabel, telegramLabel]);
 
     return (
         <div className="modal-overlay" onClick={handleModalClose}>

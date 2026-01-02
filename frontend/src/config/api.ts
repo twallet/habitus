@@ -563,17 +563,19 @@ export class ApiClient {
 
   /**
    * Get Telegram connection status for the authenticated user.
-   * @returns Promise resolving to object with connected status and telegramChatId
+   * @returns Promise resolving to object with connected status, telegramChatId, and telegramUsername
    * @throws Error if request fails
    * @public
    */
   async getTelegramStatus(): Promise<{
     connected: boolean;
     telegramChatId: string | null;
+    telegramUsername: string | null;
   }> {
     return this.get<{
       connected: boolean;
       telegramChatId: string | null;
+      telegramUsername: string | null;
     }>(`${this.baseUrl}/api/telegram/status`);
   }
 

@@ -311,6 +311,92 @@ export class TelegramService {
   }
 
   /**
+   * Get chat information from Telegram API.
+   * @param chatId - Telegram chat ID
+   * @returns Promise resolving to chat information including username
+   * @throws Error if chat info retrieval fails
+   * @public
+   */
+  async getChatInfo(
+    chatId: string
+  ): Promise<{ username?: string; first_name?: string }> {
+    if (!this.config.botToken) {
+      throw new Error(
+        "Telegram bot token not configured. Please set TELEGRAM_BOT_TOKEN environment variable."
+      );
+    }
+
+    if (!chatId) {
+      throw new Error("Telegram chat ID is required");
+    }
+
+    try {
+      const url = `${this.apiBaseUrl}${this.config.botToken}/getChat`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = (await response
+          .json()
+          .catch(() => ({}))) as TelegramErrorResponse;
+        const errorMessage =
+          errorData.description ||
+          `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(`Telegram API error: ${errorMessage}`);
+      }
+
+      const result = (await response.json()) as {
+        ok: boolean;
+        result?: {
+          username?: string;
+          first_name?: string;
+          [key: string]: unknown;
+        };
+        description?: string;
+      };
+
+      if (!result.ok) {
+        throw new Error(
+          `Telegram API error: ${result.description || "Unknown error"}`
+        );
+      }
+
+      return {
+        username: result.result?.username,
+        first_name: result.result?.first_name,
+      };
+    } catch (error: any) {
+      console.error(
+        `[${new Date().toISOString()}] TELEGRAM | Error getting chat info for ${chatId}:`,
+        error
+      );
+
+      if (error.message?.includes("chat not found")) {
+        throw new Error(
+          "Telegram chat not found. Please make sure you have started a conversation with the bot."
+        );
+      }
+
+      if (error.message?.includes("bot token")) {
+        throw new Error(
+          "Telegram bot token is invalid. Please verify your TELEGRAM_BOT_TOKEN environment variable."
+        );
+      }
+
+      throw new Error(
+        `Failed to get Telegram chat info: ${error.message || "Unknown error"}`
+      );
+    }
+  }
+
+  /**
    * Escape Markdown special characters to prevent formatting issues.
    * @param text - Text to escape
    * @returns Escaped text
