@@ -56,8 +56,11 @@ router.post("/webhook", async (req: Request, res: Response) => {
           headers: Object.keys(req.headers),
           method: req.method,
           path: req.path,
+          originalUrl: req.originalUrl,
           ip: req.ip,
-          rawBody: JSON.stringify(req.body).substring(0, 500),
+          ips: req.ips,
+          hostname: req.hostname,
+          rawBody: JSON.stringify(req.body).substring(0, 1000),
         },
         timestamp: Date.now(),
         sessionId: "debug-session",
@@ -863,6 +866,41 @@ router.get("/webhook-info", async (req: Request, res: Response) => {
       details: error instanceof Error ? error.message : String(error),
     });
   }
+});
+
+/**
+ * GET /api/telegram/webhook/test
+ * Test endpoint to verify webhook route is accessible.
+ * @route GET /api/telegram/webhook/test
+ * @returns {object} { ok: true, message: string, timestamp: string }
+ */
+router.get("/webhook/test", async (req: Request, res: Response) => {
+  // #region agent log
+  fetch("http://127.0.0.1:7242/ingest/44241464-0bc0-4530-b46d-6424cd84bcb5", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      location: "telegram.ts:test",
+      message: "Webhook test endpoint called",
+      data: {
+        method: req.method,
+        path: req.path,
+        originalUrl: req.originalUrl,
+        ip: req.ip,
+        hostname: req.hostname,
+      },
+      timestamp: Date.now(),
+      sessionId: "debug-session",
+      runId: "run2",
+      hypothesisId: "A",
+    }),
+  }).catch(() => {});
+  // #endregion
+  res.json({
+    ok: true,
+    message: "Webhook endpoint is accessible",
+    timestamp: new Date().toISOString(),
+  });
 });
 
 export default router;
