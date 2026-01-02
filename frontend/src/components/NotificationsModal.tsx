@@ -122,7 +122,7 @@ export function NotificationsModal({
                 }
                 // Automatically save when connected
                 if (selectedChannel === 'Telegram') {
-                    await savePreferences('Telegram');
+                    await savePreferences('Telegram', status.telegramChatId);
                 }
             } else {
                 // Keep connecting state if not yet connected
@@ -201,9 +201,10 @@ export function NotificationsModal({
     /**
      * Save notification preferences.
      * @param channelId - The selected channel ID
+     * @param providedTelegramChatId - Optional Telegram chat ID (used when saving immediately after connection)
      * @internal
      */
-    const savePreferences = async (channelId: string) => {
+    const savePreferences = async (channelId: string, providedTelegramChatId?: string | null) => {
         // Prevent double submission
         if (isSubmitting) {
             return;
@@ -212,8 +213,11 @@ export function NotificationsModal({
         setIsSubmitting(true);
         setError(null);
 
+        // Use provided chat ID if available, otherwise use state
+        const chatIdToUse = providedTelegramChatId !== undefined ? providedTelegramChatId : telegramChatId;
+        
         // Validate that Telegram is connected if Telegram is selected
-        if (channelId === 'Telegram' && !telegramConnected) {
+        if (channelId === 'Telegram' && !chatIdToUse) {
             setError('Please connect your Telegram account before saving');
             setIsSubmitting(false);
             return;
@@ -222,7 +226,7 @@ export function NotificationsModal({
         try {
             await onSave(
                 channelId,
-                channelId === 'Telegram' && telegramChatId ? telegramChatId : undefined
+                channelId === 'Telegram' && chatIdToUse ? chatIdToUse : undefined
             );
             // Stop polling after saving
             if (pollingInterval) {
