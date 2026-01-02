@@ -450,13 +450,11 @@ export function NotificationsModal({
                                                                 href={telegramLink}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
-                                                                className="btn-primary"
+                                                                className="btn-primary telegram-link-button"
                                                                 style={{
                                                                     display: 'inline-block',
                                                                     textAlign: 'center',
                                                                     textDecoration: 'none',
-                                                                    padding: '12px 24px',
-                                                                    fontSize: '1rem',
                                                                     marginTop: '8px'
                                                                 }}
                                                             >
@@ -524,97 +522,6 @@ export function NotificationsModal({
                             <div className="message info show">
                                 <span className="message-text">
                                     Reminders will be sent to <strong>{user?.email || 'your email address'}</strong>
-                                </span>
-                            </div>
-                        </div>
-                    )}
-
-                    {selectedChannel === 'Telegram' && !telegramConnected && (
-                        <div className="form-group">
-                            <div className="telegram-connection-panel">
-                                {isGeneratingLink ? (
-                                    <div className="connection-step">
-                                        <div className="step-indicator loading">
-                                            <span className="spinner"></span>
-                                        </div>
-                                        <div className="step-content">
-                                            <h4>Preparing connection...</h4>
-                                            <p className="form-help-text">Generating your unique Telegram connection link</p>
-                                        </div>
-                                    </div>
-                                ) : telegramLink ? (
-                                    <>
-                                        <div className="connection-step">
-                                            <div className="step-indicator active">1</div>
-                                            <div className="step-content">
-                                                <h4>Open Telegram</h4>
-                                                <p className="form-help-text">Click the button below to open Telegram and start the bot</p>
-                                                <a
-                                                    href={telegramLink}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="btn-primary"
-                                                    style={{
-                                                        display: 'inline-block',
-                                                        textAlign: 'center',
-                                                        textDecoration: 'none',
-                                                        padding: '12px 24px',
-                                                        fontSize: '1rem',
-                                                        marginTop: '8px'
-                                                    }}
-                                                >
-                                                    Open Telegram
-                                                </a>
-                                            </div>
-                                        </div>
-                                        <div className="connection-step">
-                                            <div className={`step-indicator ${telegramConnecting ? 'active' : ''}`}>2</div>
-                                            <div className="step-content">
-                                                <h4>Start the bot</h4>
-                                                <p className="form-help-text">
-                                                    In Telegram, tap the "Start" button to connect your account
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="connection-step">
-                                            <div className={`step-indicator ${telegramConnecting ? 'checking' : ''}`}>3</div>
-                                            <div className="step-content">
-                                                <h4>Waiting for connection...</h4>
-                                                {telegramConnecting && (
-                                                    <p className="form-help-text">
-                                                        <span className="spinner-inline"></span>
-                                                        Checking connection status...
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="connection-actions">
-                                            <button
-                                                type="button"
-                                                className="btn-secondary"
-                                                onClick={handleCancelTelegram}
-                                                disabled={isSubmitting}
-                                            >
-                                                Cancel
-                                            </button>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div className="connection-step">
-                                        <div className="step-content">
-                                            <p className="form-help-text">Click the Telegram option above to start connecting</p>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {selectedChannel === 'Telegram' && telegramConnected && (
-                        <div className="form-group">
-                            <div className="message success show">
-                                <span className="message-text">
-                                    ✓ Telegram account connected{telegramUsername ? ` (@${telegramUsername.replace('@', '')})` : ''}
                                 </span>
                             </div>
                         </div>
