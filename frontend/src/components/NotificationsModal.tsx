@@ -671,29 +671,10 @@ export function NotificationsModal({
                                             )}
                                         </div>
                                     )}
-                                    {channel.id === 'Telegram' && selectedChannel === 'Telegram' && telegramConnected && (
-                                        <div className="telegram-success-message-inline">
-                                            <div className="message success show">
-                                                <span className="message-text">
-                                                    ✓ Telegram account connected{telegramUsername ? ` (@${telegramUsername.replace('@', '')})` : ''}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                             ))}
                         </div>
                     </div>
-
-                    {selectedChannel === 'Email' && (
-                        <div className="form-group">
-                            <div className="message info show">
-                                <span className="message-text">
-                                    Reminders will be sent to <strong>{user?.email || 'your email address'}</strong>
-                                </span>
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
         </div>
