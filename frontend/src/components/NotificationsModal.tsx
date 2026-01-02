@@ -81,7 +81,7 @@ export function NotificationsModal({
     const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
     /**
-     * Load existing preferences from user data.
+     * Load existing preferences from user data and check Telegram status.
      * @internal
      */
     useEffect(() => {
@@ -102,6 +102,11 @@ export function NotificationsModal({
                 // Fetch Telegram username
                 checkTelegramStatus().catch((err) => {
                     console.error('Error fetching Telegram username:', err);
+                });
+            } else {
+                // Check Telegram status even if not connected to get current state
+                checkTelegramStatus().catch((err) => {
+                    console.error('Error checking Telegram status:', err);
                 });
             }
         }
@@ -324,6 +329,25 @@ export function NotificationsModal({
     };
 
     /**
+     * Handle disconnecting Telegram account.
+     * @internal
+     */
+    const handleDisconnectTelegram = async () => {
+        try {
+            // Switch to Email and save (this will clear telegram_chat_id)
+            setSelectedChannel('Email');
+            selectedChannelRef.current = 'Email';
+            await savePreferences('Email');
+            // Clear Telegram connection state
+            setTelegramConnected(false);
+            setTelegramChatId(null);
+            setTelegramUsername(null);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Error disconnecting Telegram account');
+        }
+    };
+
+    /**
      * Handle modal close - stop polling before closing.
      * @internal
      */
@@ -341,14 +365,20 @@ export function NotificationsModal({
 
     // Get display values for badges
     const emailBadge = useMemo(() => {
-        if (selectedChannel === 'Email' && user?.email) {
+        // Always show email badge if user email exists
+        if (user?.email) {
             return user.email;
         }
         return null;
-    }, [selectedChannel, user?.email]);
+    }, [user?.email]);
 
     const telegramBadge = useMemo(() => {
-        if (selectedChannel === 'Telegram' && telegramUsername) {
+        // Show "No account connected" if Telegram is not connected
+        if (!telegramConnected) {
+            return 'No account connected';
+        }
+        // Show Telegram username if connected
+        if (telegramUsername) {
             // If it's already prefixed with @, use as is
             // If it looks like a username (no spaces, alphanumeric/underscores), add @
             // Otherwise (likely first_name), use as is
@@ -359,8 +389,9 @@ export function NotificationsModal({
             }
             return displayUsername;
         }
-        return null;
-    }, [selectedChannel, telegramUsername]);
+        // If connected but no username available, show generic message
+        return 'Connected';
+    }, [telegramConnected, telegramUsername]);
 
     const channels = useMemo(() => [
         {
@@ -455,7 +486,23 @@ export function NotificationsModal({
                                             <span className="channel-label">
                                                 {channel.label}
                                                 {channel.badge && (
-                                                    <span className="user-badge">{channel.badge}</span>
+                                                    <span className="user-badge">
+                                                        {channel.badge}
+                                                        {channel.id === 'Telegram' && telegramConnected && (
+                                                            <button
+                                                                type="button"
+                                                                className="badge-disconnect-btn"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleDisconnectTelegram();
+                                                                }}
+                                                                aria-label="Disconnect Telegram account"
+                                                                title="Disconnect Telegram account"
+                                                            >
+                                                                ×
+                                                            </button>
+                                                        )}
+                                                    </span>
                                                 )}
                                             </span>
                                             {channel.enabled ? (

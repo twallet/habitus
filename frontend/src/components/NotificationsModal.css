@@ -155,7 +155,9 @@
 }
 
 .user-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   margin-left: 8px;
   padding: 2px 8px;
   background: #808080;
@@ -164,6 +166,34 @@
   font-size: 0.75rem;
   font-weight: 500;
   vertical-align: middle;
+}
+
+.badge-disconnect-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  margin: 0;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.badge-disconnect-btn:hover {
+  background: #c82333;
+}
+
+.badge-disconnect-btn:active {
+  background: #bd2130;
 }
 
 .telegram-connection-panel {
