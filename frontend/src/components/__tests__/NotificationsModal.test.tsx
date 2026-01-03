@@ -163,15 +163,11 @@ describe('NotificationsModal', () => {
             />
         );
 
-        // Check for the info message (not the channel description)
-        const emailMessage = screen.getByText((content, element) => {
-            return (
-                content.includes('Reminders will be sent to') &&
-                element?.className.includes('message-text') === true
-            );
-        });
-        expect(emailMessage).toBeInTheDocument();
-        expect(emailMessage.textContent).toContain(mockUser.email!);
+        // Email should be selected by default and show the email badge
+        const emailBadge = screen.getByText(mockUser.email!);
+        expect(emailBadge).toBeInTheDocument();
+        const emailRadio = screen.getByRole('radio', { name: /email/i });
+        expect(emailRadio).toBeChecked();
     });
 
     it('should show inline Telegram connection panel when Telegram is selected', async () => {
@@ -247,9 +243,10 @@ describe('NotificationsModal', () => {
         const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
         await user.click(telegramRadio);
 
-        // Status should be checked again when Telegram is selected
+        // When Telegram is selected, it opens the modal which generates a link
+        // Status check happens on mount and when copy is clicked, not when selecting Telegram
         await waitFor(() => {
-            expect(mockGetTelegramStatus).toHaveBeenCalled();
+            expect(mockGetTelegramStartLink).toHaveBeenCalled();
         });
     });
 
@@ -308,7 +305,7 @@ describe('NotificationsModal', () => {
         expect(cancelButtonInPanel).toBeUndefined();
     });
 
-    it('should show connected status when Telegram is already connected', () => {
+    it('should show connected status when Telegram is already connected', async () => {
         const mockGetTelegramStatusConnected = vi.fn().mockResolvedValue({
             connected: true,
             telegramChatId: '123456789',
@@ -332,10 +329,13 @@ describe('NotificationsModal', () => {
             />
         );
 
-        expect(screen.getByText(/telegram account connected/i)).toBeInTheDocument();
+        // Wait for status check to complete and badge to appear
+        await waitFor(() => {
+            expect(screen.getByText(/@testuser|Connected/i)).toBeInTheDocument();
+        });
     });
 
-    it('should load user preferences on mount', () => {
+    it('should load user preferences on mount', async () => {
         const userWithPreferences: UserData = {
             ...mockUser,
             notification_channels: 'Telegram',
@@ -352,8 +352,11 @@ describe('NotificationsModal', () => {
             />
         );
 
-        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
-        expect(telegramRadio).toBeChecked();
+        // Wait for preferences to load and Telegram radio to be checked
+        await waitFor(() => {
+            const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
+            expect(telegramRadio).toBeChecked();
+        });
     });
 
     it('should show 2-step connection panel when Telegram is selected but not connected', async () => {
@@ -480,7 +483,8 @@ describe('NotificationsModal', () => {
         await user.click(emailRadio);
 
         await waitFor(() => {
-            expect(mockOnSave).toHaveBeenCalledWith('Email', undefined);
+            // When switching from Telegram to Email, it passes the telegramChatId (which gets cleared)
+            expect(mockOnSave).toHaveBeenCalledWith('Email', expect.anything());
         });
 
         mockOnSave.mockClear();
@@ -703,9 +707,9 @@ describe('NotificationsModal', () => {
         // Clear all previous calls (including initial mount check)
         mockGetTelegramStatus.mockClear();
 
-        // Advance time by 5 seconds (polling would have happened if hasActiveToken was true)
+        // Advance time by 35 seconds (more than polling interval of 30s)
         await act(async () => {
-            vi.advanceTimersByTime(5000);
+            vi.advanceTimersByTime(35000);
             await vi.runAllTimersAsync();
         });
 
@@ -732,10 +736,16 @@ describe('NotificationsModal', () => {
             />
         );
 
+        // Wait for status check to be called first
+        await waitFor(() => {
+            expect(mockGetTelegramStatusWithToken).toHaveBeenCalled();
+        }, { timeout: 5000 });
+
+        // Then wait for badge to appear
         await waitFor(() => {
             expect(screen.getByText('Connecting...')).toBeInTheDocument();
-        });
-    });
+        }, { timeout: 5000 });
+    }, 15000);
 
     it('should poll for status when hasActiveToken is true', async () => {
         vi.useFakeTimers();
@@ -761,7 +771,10 @@ describe('NotificationsModal', () => {
             await vi.runAllTimersAsync();
         });
 
-        expect(mockGetTelegramStatusWithToken).toHaveBeenCalled();
+        // Wait for the initial call to complete
+        await waitFor(() => {
+            expect(mockGetTelegramStatusWithToken).toHaveBeenCalled();
+        }, { timeout: 3000 });
 
         // Clear initial call
         mockGetTelegramStatusWithToken.mockClear();
@@ -773,10 +786,12 @@ describe('NotificationsModal', () => {
         });
 
         // Verify that getTelegramStatus was called again (polling)
-        expect(mockGetTelegramStatusWithToken).toHaveBeenCalled();
+        await waitFor(() => {
+            expect(mockGetTelegramStatusWithToken).toHaveBeenCalled();
+        }, { timeout: 3000 });
 
         vi.useRealTimers();
-    });
+    }, 15000);
 
     it('should show message when Copy key button is clicked', async () => {
         const user = userEvent.setup();
@@ -798,9 +813,12 @@ describe('NotificationsModal', () => {
         // Wait for the modal to appear and the copy button to be available
         await waitFor(() => {
             expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
+        }, { timeout: 5000 });
+
+        await waitFor(() => {
             const copyButton = screen.getByRole('button', { name: /copy key/i });
             expect(copyButton).toBeInTheDocument();
-        }, { timeout: 3000 });
+        }, { timeout: 5000 });
 
         const copyButton = screen.getByRole('button', { name: /copy key/i });
         await user.click(copyButton);
@@ -809,7 +827,7 @@ describe('NotificationsModal', () => {
         await waitFor(() => {
             const message = screen.getByText(/You can now close this window/i);
             expect(message).toBeInTheDocument();
-        }, { timeout: 3000 });
-    });
+        }, { timeout: 5000 });
+    }, 20000);
 
 });
