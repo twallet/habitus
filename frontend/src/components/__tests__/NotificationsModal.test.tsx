@@ -825,11 +825,15 @@ describe('NotificationsModal', () => {
 
         await user.click(copyButton);
 
-        // Wait for clipboard write and success message to appear
+        // Wait for clipboard write to be called
         await waitFor(() => {
             expect(writeTextSpy).toHaveBeenCalled();
-            expect(screen.getByText(/You can now close this window/i)).toBeInTheDocument();
         });
+
+        // Wait for success message to appear (state update happens after clipboard write)
+        await waitFor(() => {
+            expect(screen.getByText(/You can now close this window/i)).toBeInTheDocument();
+        }, { timeout: 5000 });
 
         writeTextSpy.mockRestore();
     });
