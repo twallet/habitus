@@ -38,6 +38,7 @@ describe('VerifyMagicLinkPage', () => {
         updateNotificationPreferences: vi.fn(),
         getTelegramStartLink: vi.fn(),
         getTelegramStatus: vi.fn(),
+        cancelTelegramConnection: vi.fn(),
         updateUserPreferences: vi.fn(),
         deleteUser: vi.fn(),
     });
