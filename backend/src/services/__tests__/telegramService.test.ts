@@ -137,10 +137,7 @@ describe("TelegramService", () => {
       expect(messageText).toContain("🎉");
       expect(messageText).toContain("*Welcome to 🌱 Habitus!*");
       expect(messageText).toContain(
-        "Your Telegram account has been successfully connected"
-      );
-      expect(messageText).toContain(
-        "You will now receive reminders via Telegram"
+        "Your Telegram account has been successfully connected, so you will now receive reminders via Telegram"
       );
       expect(messageText).toContain("[Go to 🌱 Habitus Dashboard](http://test.com)");
       expect(body.parse_mode).toBe("Markdown");
