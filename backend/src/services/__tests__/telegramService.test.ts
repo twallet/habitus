@@ -85,7 +85,7 @@ describe("TelegramService", () => {
       const body = JSON.parse(callArgs[1].body);
       expect(body.chat_id).toBe("123456789");
       expect(body.parse_mode).toBe("Markdown");
-      expect(body.text).toContain("Welcome to Habitus!");
+      expect(body.text).toContain("Welcome to 🌱 Habitus!");
     });
 
     it("should include app link in welcome message", async () => {
@@ -107,7 +107,7 @@ describe("TelegramService", () => {
       const callArgs = mockFetch.mock.calls[0];
       const body = JSON.parse(callArgs[1].body);
       expect(body.text).toContain(frontendUrl);
-      expect(body.text).toContain("Go to Dashboard");
+      expect(body.text).toContain("Go to 🌱 Habitus Dashboard");
     });
 
     it("should format welcome message correctly", async () => {
@@ -135,14 +135,14 @@ describe("TelegramService", () => {
 
       // Check message formatting
       expect(messageText).toContain("🎉");
-      expect(messageText).toContain("*Welcome to Habitus!*");
+      expect(messageText).toContain("*Welcome to 🌱 Habitus!*");
       expect(messageText).toContain(
         "Your Telegram account has been successfully connected"
       );
       expect(messageText).toContain(
         "You will now receive reminders via Telegram"
       );
-      expect(messageText).toContain("[Go to Dashboard](http://test.com)");
+      expect(messageText).toContain("[Go to 🌱 Habitus Dashboard](http://test.com)");
       expect(body.parse_mode).toBe("Markdown");
     });
 

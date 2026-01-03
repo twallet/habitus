@@ -229,10 +229,11 @@ describe('NotificationsModal', () => {
                 onSave={mockOnSave}
                 onGetTelegramStartLink={mockGetTelegramStartLink}
                 onGetTelegramStatus={mockGetTelegramStatus}
+                user={mockUser}
             />
         );
 
-        // Wait for initial status check on mount to complete
+        // Wait for initial status check on mount to complete (only happens if user is provided)
         await waitFor(() => {
             expect(mockGetTelegramStatus).toHaveBeenCalled();
         });
@@ -490,7 +491,9 @@ describe('NotificationsModal', () => {
         mockOnSave.mockClear();
 
         // Now click Telegram to trigger save
-        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
+        // Find by value since the accessible name might include badge text
+        const telegramRadio = document.querySelector('input[type="radio"][value="Telegram"]') as HTMLElement;
+        expect(telegramRadio).toBeInTheDocument();
         await user.click(telegramRadio);
 
         await waitFor(() => {
@@ -638,7 +641,7 @@ describe('NotificationsModal', () => {
 
         await waitFor(() => {
             // Should NOT display the command text
-            expect(screen.queryByText(/^start\s+token123\s+1$/)).not.toBeInTheDocument();
+            expect(screen.queryByText(/^\/?start\s+token123\s+1$/)).not.toBeInTheDocument();
 
             // Should only show the Copy Key button
             const copyButton = screen.getByRole('button', { name: /copy key/i });
@@ -672,7 +675,7 @@ describe('NotificationsModal', () => {
         await user.click(copyButton);
 
         await waitFor(() => {
-            expect(writeTextSpy).toHaveBeenCalledWith('start token123 1');
+            expect(writeTextSpy).toHaveBeenCalledWith('/start token123 1');
         });
 
         writeTextSpy.mockRestore();
@@ -689,15 +692,21 @@ describe('NotificationsModal', () => {
                 onSave={mockOnSave}
                 onGetTelegramStartLink={mockGetTelegramStartLink}
                 onGetTelegramStatus={mockGetTelegramStatus}
+                user={mockUser}
             />
         );
 
         // Wait for initial status check on mount to complete
+        await waitFor(() => {
+            expect(mockGetTelegramStatus).toHaveBeenCalled();
+        });
+
         await act(async () => {
             await vi.runAllTimersAsync();
         });
 
-        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
+        const telegramRadio = document.querySelector('input[type="radio"][value="Telegram"]') as HTMLElement;
+        expect(telegramRadio).toBeInTheDocument();
         await user.click(telegramRadio);
 
         await waitFor(() => {
@@ -733,6 +742,7 @@ describe('NotificationsModal', () => {
                 onSave={mockOnSave}
                 onGetTelegramStartLink={mockGetTelegramStartLink}
                 onGetTelegramStatus={mockGetTelegramStatusWithToken}
+                user={mockUser}
             />
         );
 
@@ -763,18 +773,18 @@ describe('NotificationsModal', () => {
                 onSave={mockOnSave}
                 onGetTelegramStartLink={mockGetTelegramStartLink}
                 onGetTelegramStatus={mockGetTelegramStatusWithToken}
+                user={mockUser}
             />
         );
 
         // Wait for initial status check and let it complete
-        await act(async () => {
-            await vi.runAllTimersAsync();
-        });
-
-        // Wait for the initial call to complete
         await waitFor(() => {
             expect(mockGetTelegramStatusWithToken).toHaveBeenCalled();
         }, { timeout: 3000 });
+
+        await act(async () => {
+            await vi.runAllTimersAsync();
+        });
 
         // Clear initial call
         mockGetTelegramStatusWithToken.mockClear();
@@ -807,7 +817,8 @@ describe('NotificationsModal', () => {
             />
         );
 
-        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
+        const telegramRadio = document.querySelector('input[type="radio"][value="Telegram"]') as HTMLElement;
+        expect(telegramRadio).toBeInTheDocument();
         await user.click(telegramRadio);
 
         // Wait for the modal to appear and the copy button to be available

@@ -58,14 +58,14 @@ export function TelegramConnectionStepsModal({
                     return;
                 }
 
-                // Extract start command from link: format is "start <token> <userId>"
+                // Extract start command from link: format is "/start <token> <userId>"
                 try {
                     const url = new URL(result.link);
                     const startParam = url.searchParams.get('start');
                     if (startParam) {
                         const decoded = decodeURIComponent(startParam);
-                        // Build command as "start <token> <userId>" (remove leading /start if present)
-                        const command = decoded.startsWith('/start ') ? decoded.substring(7) : `start ${decoded}`;
+                        // Build command as "/start <token> <userId>" (ensure leading /start)
+                        const command = decoded.startsWith('/start ') ? decoded : `/start ${decoded}`;
                         setTelegramStartCommand(command);
                     }
                 } catch (e) {

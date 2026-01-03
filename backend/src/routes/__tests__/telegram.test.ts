@@ -472,6 +472,7 @@ describe("Telegram Webhook Routes", () => {
         connected: true,
         telegramChatId: "123456789",
         telegramUsername: "test_bot",
+        hasActiveToken: false,
       });
     });
 
@@ -485,6 +486,7 @@ describe("Telegram Webhook Routes", () => {
         connected: false,
         telegramChatId: null,
         telegramUsername: null,
+        hasActiveToken: false,
       });
     });
 
