@@ -13,4 +13,9 @@ export default defineConfig({
   clearScreen: false,
   // Load .env from config folder to unify environment variables
   envDir: path.resolve(__dirname, "../config"),
+  build: {
+    cssMinify: false,
+    minify: "esbuild",
+    cssCodeSplit: true,
+  },
 });
