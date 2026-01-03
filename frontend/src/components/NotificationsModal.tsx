@@ -8,6 +8,7 @@ interface NotificationsModalProps {
     onSave: (notificationChannel: string, telegramChatId?: string) => Promise<void>;
     onGetTelegramStartLink: () => Promise<{ link: string; token: string }>;
     onGetTelegramStatus: () => Promise<{ connected: boolean; telegramChatId: string | null; telegramUsername: string | null; hasActiveToken: boolean }>;
+    onCancelTelegramConnection?: () => Promise<{ success: boolean; message?: string }>;
     user?: UserData | null;
 }
 
@@ -66,6 +67,7 @@ export function NotificationsModal({
     onSave,
     onGetTelegramStartLink,
     onGetTelegramStatus,
+    onCancelTelegramConnection,
     user,
 }: NotificationsModalProps) {
     const [selectedChannel, setSelectedChannel] = useState<string>('Email');
@@ -358,15 +360,7 @@ export function NotificationsModal({
                                         style={selectedChannel === channel.id ? { '--channel-color': channel.color } as React.CSSProperties : undefined}
                                         title={channel.description}
                                     >
-                                        {channel.enabled ? (
-                                            <>
-                                                {channel.id === 'Telegram' && telegramConnected && (
-                                                    <span className="coming-soon-badge config-progress-badge" style={{ background: '#25a85a', color: 'white' }}>
-                                                        ✓ Connected
-                                                    </span>
-                                                )}
-                                            </>
-                                        ) : (
+                                        {channel.enabled ? null : (
                                             <span className="coming-soon-badge">Coming soon</span>
                                         )}
                                         <div className="channel-header">
@@ -391,19 +385,27 @@ export function NotificationsModal({
                                                             <button
                                                                 type="button"
                                                                 className="badge-disconnect-btn"
-                                                                onClick={(e) => {
+                                                                onClick={async (e) => {
                                                                     e.stopPropagation();
                                                                     e.preventDefault();
                                                                     // Set canceling flag to prevent modal from opening
                                                                     isCancelingRef.current = true;
+                                                                    // Cancel the connection on the backend
+                                                                    if (onCancelTelegramConnection) {
+                                                                        try {
+                                                                            await onCancelTelegramConnection();
+                                                                        } catch (err) {
+                                                                            console.error('Error cancelling Telegram connection:', err);
+                                                                        }
+                                                                    }
                                                                     setTelegramConnecting(false);
                                                                     // Close the connection modal if it's open
                                                                     setShowTelegramConnectionModal(false);
                                                                     // Select Email channel
                                                                     setSelectedChannel('Email');
                                                                     selectedChannelRef.current = 'Email';
-                                                                    // Re-check status to sync with backend (will clear hasActiveToken state)
-                                                                    checkTelegramStatus();
+                                                                    // Re-check status to sync with backend (should now show hasActiveToken as false)
+                                                                    await checkTelegramStatus();
                                                                     // Reset canceling flag after a short delay
                                                                     setTimeout(() => {
                                                                         isCancelingRef.current = false;
@@ -456,11 +458,9 @@ export function NotificationsModal({
                 <TelegramConnectionStepsModal
                     onClose={() => {
                         setShowTelegramConnectionModal(false);
-                        // If connecting, switch back to Email but keep connecting state
-                        if (telegramConnecting && !telegramConnected) {
-                            setSelectedChannel('Email');
-                            selectedChannelRef.current = 'Email';
-                        }
+                        // Always switch back to Email when closing the modal
+                        setSelectedChannel('Email');
+                        selectedChannelRef.current = 'Email';
                     }}
                     onGetTelegramStartLink={onGetTelegramStartLink}
                     onCopyClicked={() => {

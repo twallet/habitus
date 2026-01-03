@@ -582,6 +582,23 @@ export class ApiClient {
   }
 
   /**
+   * Cancel active Telegram connection tokens for the authenticated user.
+   * Used when user cancels the connection process before completing it.
+   * @returns Promise resolving to object with success status
+   * @throws Error if request fails
+   * @public
+   */
+  async cancelTelegramConnection(): Promise<{
+    success: boolean;
+    message?: string;
+  }> {
+    return this.delete<{
+      success: boolean;
+      message?: string;
+    }>(`${this.baseUrl}/api/telegram/cancel-connection`);
+  }
+
+  /**
    * Update locale and timezone preferences for the authenticated user.
    * @param locale - Optional locale (BCP 47 format like 'en-US', 'es-AR')
    * @param timezone - Optional timezone (IANA timezone like 'America/Buenos_Aires')

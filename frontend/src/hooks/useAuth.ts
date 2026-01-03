@@ -399,6 +399,23 @@ export function useAuth() {
   };
 
   /**
+   * Cancel active Telegram connection tokens for the authenticated user.
+   * Used when user cancels the connection process before completing it.
+   * @returns Promise resolving to object with success status
+   * @throws Error if request fails
+   * @public
+   */
+  const cancelTelegramConnection = async (): Promise<{
+    success: boolean;
+    message?: string;
+  }> => {
+    if (!token) {
+      throw new Error("Not authenticated");
+    }
+    return apiClient.cancelTelegramConnection();
+  };
+
+  /**
    * Update locale and timezone preferences.
    * @param locale - Optional locale (BCP 47 format like 'en-US', 'es-AR')
    * @param timezone - Optional timezone (IANA timezone like 'America/Buenos_Aires')
@@ -490,6 +507,7 @@ export function useAuth() {
     updateNotificationPreferences,
     getTelegramStartLink,
     getTelegramStatus,
+    cancelTelegramConnection,
     updateUserPreferences,
     deleteUser,
   };

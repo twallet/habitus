@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NotificationsModal } from '../NotificationsModal';
 import { UserData } from '../../models/User';
@@ -39,6 +39,7 @@ describe('NotificationsModal', () => {
                 onSave={mockOnSave}
                 onGetTelegramStartLink={mockGetTelegramStartLink}
                 onGetTelegramStatus={mockGetTelegramStatus}
+                user={mockUser}
             />
         );
 
@@ -52,6 +53,7 @@ describe('NotificationsModal', () => {
                 onSave={mockOnSave}
                 onGetTelegramStartLink={mockGetTelegramStartLink}
                 onGetTelegramStatus={mockGetTelegramStatus}
+                user={mockUser}
             />
         );
 
@@ -67,6 +69,7 @@ describe('NotificationsModal', () => {
                 onSave={mockOnSave}
                 onGetTelegramStartLink={mockGetTelegramStartLink}
                 onGetTelegramStatus={mockGetTelegramStatus}
+                user={mockUser}
             />
         );
 
@@ -81,6 +84,7 @@ describe('NotificationsModal', () => {
                 onSave={mockOnSave}
                 onGetTelegramStartLink={mockGetTelegramStartLink}
                 onGetTelegramStatus={mockGetTelegramStatus}
+                user={mockUser}
             />
         );
 
@@ -99,6 +103,7 @@ describe('NotificationsModal', () => {
                 onSave={mockOnSave}
                 onGetTelegramStartLink={mockGetTelegramStartLink}
                 onGetTelegramStatus={mockGetTelegramStatus}
+                user={mockUser}
             />
         );
 
@@ -116,6 +121,7 @@ describe('NotificationsModal', () => {
                 onSave={mockOnSave}
                 onGetTelegramStartLink={mockGetTelegramStartLink}
                 onGetTelegramStatus={mockGetTelegramStatus}
+                user={mockUser}
             />
         );
 
@@ -134,6 +140,7 @@ describe('NotificationsModal', () => {
                 onSave={mockOnSave}
                 onGetTelegramStartLink={mockGetTelegramStartLink}
                 onGetTelegramStatus={mockGetTelegramStatus}
+                user={mockUser}
             />
         );
 
@@ -175,6 +182,7 @@ describe('NotificationsModal', () => {
                 onSave={mockOnSave}
                 onGetTelegramStartLink={mockGetTelegramStartLink}
                 onGetTelegramStatus={mockGetTelegramStatus}
+                user={mockUser}
             />
         );
 
@@ -201,6 +209,7 @@ describe('NotificationsModal', () => {
                 onSave={mockOnSave}
                 onGetTelegramStartLink={mockGetTelegramStartLink}
                 onGetTelegramStatus={mockGetTelegramStatus}
+                user={mockUser}
             />
         );
 
@@ -227,9 +236,18 @@ describe('NotificationsModal', () => {
             />
         );
 
+        // Wait for initial status check on mount to complete
+        await waitFor(() => {
+            expect(mockGetTelegramStatus).toHaveBeenCalled();
+        });
+
+        // Clear the initial call
+        mockGetTelegramStatus.mockClear();
+
         const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
         await user.click(telegramRadio);
 
+        // Status should be checked again when Telegram is selected
         await waitFor(() => {
             expect(mockGetTelegramStatus).toHaveBeenCalled();
         });
@@ -244,6 +262,7 @@ describe('NotificationsModal', () => {
                 onSave={mockOnSave}
                 onGetTelegramStartLink={mockGetTelegramStartLink}
                 onGetTelegramStatus={mockGetTelegramStatus}
+                user={mockUser}
             />
         );
 
@@ -270,6 +289,7 @@ describe('NotificationsModal', () => {
                 onSave={mockOnSave}
                 onGetTelegramStartLink={mockGetTelegramStartLink}
                 onGetTelegramStatus={mockGetTelegramStatus}
+                user={mockUser}
             />
         );
 
@@ -344,6 +364,7 @@ describe('NotificationsModal', () => {
                 onSave={mockOnSave}
                 onGetTelegramStartLink={mockGetTelegramStartLink}
                 onGetTelegramStatus={mockGetTelegramStatus}
+                user={mockUser}
             />
         );
 
@@ -382,6 +403,7 @@ describe('NotificationsModal', () => {
                 onSave={mockOnSave}
                 onGetTelegramStartLink={mockGetTelegramStartLink}
                 onGetTelegramStatus={mockGetTelegramStatus}
+                user={mockUser}
             />
         );
 
@@ -406,6 +428,7 @@ describe('NotificationsModal', () => {
                 onSave={mockOnSave}
                 onGetTelegramStartLink={mockGetTelegramStartLink}
                 onGetTelegramStatus={mockGetTelegramStatus}
+                user={mockUser}
             />
         );
 
@@ -482,6 +505,7 @@ describe('NotificationsModal', () => {
                 onSave={mockOnSaveWithError}
                 onGetTelegramStartLink={mockGetTelegramStartLink}
                 onGetTelegramStatus={mockGetTelegramStatus}
+                user={mockUser}
             />
         );
 
@@ -518,6 +542,7 @@ describe('NotificationsModal', () => {
                 onSave={mockOnSaveDelayed}
                 onGetTelegramStartLink={mockGetTelegramStartLink}
                 onGetTelegramStatus={mockGetTelegramStatus}
+                user={mockUser}
             />
         );
 
@@ -558,6 +583,7 @@ describe('NotificationsModal', () => {
                 onSave={mockOnSave}
                 onGetTelegramStartLink={mockGetTelegramStartLink}
                 onGetTelegramStatus={mockGetTelegramStatus}
+                user={mockUser}
             />
         );
 
@@ -578,6 +604,7 @@ describe('NotificationsModal', () => {
                 onSave={mockOnSave}
                 onGetTelegramStartLink={mockGetTelegramStartLink}
                 onGetTelegramStatus={mockGetTelegramStatus}
+                user={mockUser}
             />
         );
 
@@ -598,6 +625,7 @@ describe('NotificationsModal', () => {
                 onSave={mockOnSave}
                 onGetTelegramStartLink={mockGetTelegramStartLink}
                 onGetTelegramStatus={mockGetTelegramStatus}
+                user={mockUser}
             />
         );
 
@@ -624,6 +652,7 @@ describe('NotificationsModal', () => {
                 onSave={mockOnSave}
                 onGetTelegramStartLink={mockGetTelegramStartLink}
                 onGetTelegramStatus={mockGetTelegramStatus}
+                user={mockUser}
             />
         );
 
@@ -646,7 +675,7 @@ describe('NotificationsModal', () => {
     });
 
 
-    it('should NOT poll for Telegram connection status', async () => {
+    it('should NOT poll for Telegram connection status when hasActiveToken is false', async () => {
         const user = userEvent.setup();
         vi.useFakeTimers();
 
@@ -659,6 +688,11 @@ describe('NotificationsModal', () => {
             />
         );
 
+        // Wait for initial status check on mount to complete
+        await act(async () => {
+            await vi.runAllTimersAsync();
+        });
+
         const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
         await user.click(telegramRadio);
 
@@ -666,13 +700,16 @@ describe('NotificationsModal', () => {
             expect(mockGetTelegramStartLink).toHaveBeenCalledTimes(1);
         });
 
-        // Clear the initial call
+        // Clear all previous calls (including initial mount check)
         mockGetTelegramStatus.mockClear();
 
-        // Advance time by 5 seconds (polling would have happened multiple times)
-        vi.advanceTimersByTime(5000);
+        // Advance time by 5 seconds (polling would have happened if hasActiveToken was true)
+        await act(async () => {
+            vi.advanceTimersByTime(5000);
+            await vi.runAllTimersAsync();
+        });
 
-        // Verify that getTelegramStatus was NOT called repeatedly (no polling)
+        // Verify that getTelegramStatus was NOT called repeatedly (no polling when hasActiveToken is false)
         expect(mockGetTelegramStatus).not.toHaveBeenCalled();
 
         vi.useRealTimers();
@@ -719,21 +756,24 @@ describe('NotificationsModal', () => {
             />
         );
 
-        // Wait for initial status check
-        await waitFor(() => {
-            expect(mockGetTelegramStatusWithToken).toHaveBeenCalled();
+        // Wait for initial status check and let it complete
+        await act(async () => {
+            await vi.runAllTimersAsync();
         });
+
+        expect(mockGetTelegramStatusWithToken).toHaveBeenCalled();
 
         // Clear initial call
         mockGetTelegramStatusWithToken.mockClear();
 
-        // Advance time by 30 seconds (polling interval)
-        vi.advanceTimersByTime(30000);
+        // Advance time by 30 seconds (polling interval) and run all async timers
+        await act(async () => {
+            vi.advanceTimersByTime(30000);
+            await vi.runAllTimersAsync();
+        });
 
         // Verify that getTelegramStatus was called again (polling)
-        await waitFor(() => {
-            expect(mockGetTelegramStatusWithToken).toHaveBeenCalled();
-        });
+        expect(mockGetTelegramStatusWithToken).toHaveBeenCalled();
 
         vi.useRealTimers();
     });
@@ -748,6 +788,7 @@ describe('NotificationsModal', () => {
                 onSave={mockOnSave}
                 onGetTelegramStartLink={mockGetTelegramStartLink}
                 onGetTelegramStatus={mockGetTelegramStatus}
+                user={mockUser}
             />
         );
 

@@ -129,6 +129,30 @@ export class TelegramConnectionService {
   }
 
   /**
+   * Cancel all active connection tokens for a user.
+   * Used when user cancels the connection process.
+   * @param userId - The user ID to cancel tokens for
+   * @returns Promise resolving when cancellation is complete
+   * @public
+   */
+  async cancelActiveTokens(userId: number): Promise<void> {
+    const now = new Date().toISOString();
+
+    const result = await this.db.run(
+      "DELETE FROM telegram_connection_tokens WHERE user_id = ? AND expires_at > ?",
+      [userId, now]
+    );
+
+    if (result.changes > 0) {
+      console.log(
+        `[${new Date().toISOString()}] TELEGRAM_CONNECTION | Cancelled ${
+          result.changes
+        } active token(s) for userId: ${userId}`
+      );
+    }
+  }
+
+  /**
    * Clean up expired tokens from the database.
    * Should be called periodically to prevent database bloat.
    * @returns Promise resolving when cleanup is complete

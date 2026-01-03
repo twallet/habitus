@@ -135,10 +135,6 @@
   z-index: 1;
 }
 
-.config-progress-badge {
-  z-index: 2;
-}
-
 .telegram-connection-flow {
   margin-top: 8px;
   padding: 16px;
@@ -221,7 +217,7 @@
   border: none;
   border-radius: 50%;
   font-size: 14px;
-  font-weight: bold;
+  font-weight: normal;
   line-height: 1;
   cursor: pointer;
   transition: background-color 0.2s ease;

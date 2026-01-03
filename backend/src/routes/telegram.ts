@@ -416,6 +416,38 @@ router.get(
 );
 
 /**
+ * DELETE /api/telegram/cancel-connection
+ * Cancel active Telegram connection tokens for the authenticated user.
+ * Used when user cancels the connection process before completing it.
+ * @route DELETE /api/telegram/cancel-connection
+ * @returns {object} { success: boolean, message?: string }
+ */
+router.delete(
+  "/cancel-connection",
+  authenticateToken,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId!;
+
+      const telegramConnectionService =
+        ServiceManager.getTelegramConnectionService();
+      await telegramConnectionService.cancelActiveTokens(userId);
+
+      res.json({
+        success: true,
+        message: "Connection cancelled successfully",
+      });
+    } catch (error) {
+      console.error(
+        `[${new Date().toISOString()}] TELEGRAM_ROUTE | Error cancelling connection:`,
+        error
+      );
+      res.status(500).json({ error: "Error cancelling connection" });
+    }
+  }
+);
+
+/**
  * POST /api/telegram/set-webhook
  * Set up Telegram webhook URL.
  * This endpoint registers the webhook with Telegram so the bot can receive updates.
