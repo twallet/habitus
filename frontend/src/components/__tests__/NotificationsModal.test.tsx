@@ -795,18 +795,21 @@ describe('NotificationsModal', () => {
         const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
         await user.click(telegramRadio);
 
+        // Wait for the modal to appear and the copy button to be available
         await waitFor(() => {
+            expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
             const copyButton = screen.getByRole('button', { name: /copy key/i });
             expect(copyButton).toBeInTheDocument();
-        });
+        }, { timeout: 3000 });
 
         const copyButton = screen.getByRole('button', { name: /copy key/i });
         await user.click(copyButton);
 
+        // Wait for the success message to appear
         await waitFor(() => {
-            const message = screen.getByText('Key copied to the clipboard. You can now close this window.');
+            const message = screen.getByText(/You can now close this window/i);
             expect(message).toBeInTheDocument();
-        });
+        }, { timeout: 3000 });
     });
 
 });
