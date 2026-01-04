@@ -136,7 +136,7 @@
 
 .channel-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
   width: 100%;
 }
@@ -149,7 +149,6 @@
   flex-shrink: 0;
   margin: 0;
   margin-left: auto;
-  margin-top: 4px;
 }
 
 .channel-option.disabled input[type="radio"] {
@@ -164,7 +163,6 @@
   height: 32px;
   font-size: 1.5rem;
   flex-shrink: 0;
-  margin-top: 2px;
 }
 
 .channel-icon-svg {
@@ -190,15 +188,16 @@
 }
 
 .channel-label {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: flex-start;
-  gap: 4px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
   font-size: 1rem;
   font-weight: 500;
   color: var(--text-primary);
   user-select: none;
   flex: 1;
+  flex-wrap: wrap;
 }
 
 .channel-label-text {
@@ -281,21 +280,17 @@
 }
 
 .channel-label .user-badge {
-  display: inline-flex !important;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-left: 0 !important;
-  margin-top: 2px;
   padding: 2px 8px;
   background: #808080;
   color: white;
   border-radius: 12px;
   font-size: 0.75rem;
   font-weight: 500;
-  vertical-align: middle;
-  align-self: flex-start;
   white-space: nowrap;
-  width: fit-content;
+  flex-shrink: 0;
 }
 
 .user-badge.badge-green {
@@ -320,9 +315,9 @@
   color: white;
   border: none;
   border-radius: 50%;
-  font-size: 14px;
-  font-weight: bold;
-  line-height: 1;
+  font-size: 12px;
+  font-weight: normal;
+  line-height: 16px;
   cursor: pointer;
   transition: background-color 0.2s ease;
   flex-shrink: 0;

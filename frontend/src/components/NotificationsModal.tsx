@@ -421,7 +421,7 @@ export function NotificationsModal({
                                                                 title="Cancel Telegram connection"
                                                                 style={{ backgroundColor: '#000000', color: '#ffffff' }}
                                                             >
-                                                                X
+                                                                x
                                                             </button>
                                                         )}
                                                         {channel.id === 'Telegram' && telegramConnected && !telegramConnecting && (
