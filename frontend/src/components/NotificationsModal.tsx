@@ -436,7 +436,7 @@ export function NotificationsModal({
                                                                 title="Disconnect Telegram account"
                                                                 style={{ backgroundColor: '#000000', color: '#ffffff' }}
                                                             >
-                                                                ×
+                                                                x
                                                             </button>
                                                         )}
                                                     </span>
