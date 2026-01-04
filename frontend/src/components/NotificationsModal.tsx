@@ -374,7 +374,7 @@ export function NotificationsModal({
                                                 {typeof channel.icon === 'string' ? channel.icon : channel.icon}
                                             </span>
                                             <span className="channel-label">
-                                                {channel.label}
+                                                <span className="channel-label-text">{channel.label}</span>
                                                 {channel.badge && (
                                                     <span className={`user-badge ${channel.id === 'Email'
                                                         ? 'badge-green'
