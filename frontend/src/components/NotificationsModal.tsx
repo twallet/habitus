@@ -80,6 +80,7 @@ export function NotificationsModal({
     const selectedChannelRef = useRef<string>('Email');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [telegramConnected, setTelegramConnected] = useState(false);
     const [telegramChatId, setTelegramChatId] = useState<string | null>(null);
     const [telegramUsername, setTelegramUsername] = useState<string | null>(null);
@@ -87,6 +88,7 @@ export function NotificationsModal({
     const [telegramConnecting, setTelegramConnecting] = useState(false);
     const isCancelingRef = useRef(false);
     const checkStatusIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const justSavedRef = useRef(false);
 
     /**
      * Save notification preferences.
@@ -114,11 +116,21 @@ export function NotificationsModal({
         }
 
         try {
-            await onSave(channelId, chatIdToUse || undefined);
+            // Update state immediately to prevent blinking
             setSelectedChannel(channelId);
             selectedChannelRef.current = channelId;
+            // Mark that we just saved to prevent useEffect from overriding
+            justSavedRef.current = true;
+            // Then save to backend
+            await onSave(channelId, chatIdToUse || undefined);
+            // Reset flag after a short delay
+            setTimeout(() => {
+                justSavedRef.current = false;
+            }, 500);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Error saving notification preferences');
+            justSavedRef.current = false;
+            // Revert on error (this will be overwritten by useEffect when user prop updates)
         } finally {
             setIsSubmitting(false);
         }
@@ -138,9 +150,16 @@ export function NotificationsModal({
                 if (status.telegramUsername) {
                     setTelegramUsername(status.telegramUsername);
                 }
-                // Automatically save when connected (use ref to get current value)
+                // Automatically select Telegram and save when newly connected
                 if (selectedChannelRef.current === 'Telegram') {
+                    // User was trying to connect, now save
                     await savePreferences('Telegram', status.telegramChatId);
+                    // Show success message temporarily
+                    const successMsg = `Telegram connected successfully as ${status.telegramUsername || 'user'}!`;
+                    setSuccessMessage(successMsg);
+                    setTimeout(() => {
+                        setSuccessMessage(null);
+                    }, 4000);
                 }
             } else {
                 setTelegramChatId(null);
@@ -158,7 +177,7 @@ export function NotificationsModal({
      * @internal
      */
     useEffect(() => {
-        if (user) {
+        if (user && !justSavedRef.current) {
             const channel = user.notification_channels || 'Email';
             setSelectedChannel(channel);
             selectedChannelRef.current = channel;
@@ -356,6 +375,20 @@ export function NotificationsModal({
                         </div>
                     )}
 
+                    {successMessage && (
+                        <div className="message success show">
+                            <span className="message-text">{successMessage}</span>
+                            <button
+                                type="button"
+                                className="message-close"
+                                onClick={() => setSuccessMessage(null)}
+                                aria-label="Close"
+                            >
+                                ×
+                            </button>
+                        </div>
+                    )}
+
                     <div className="form-group">
                         <label className="notifications-label">Select one notification channel for reminders</label>
                         <div className="notification-channels">
@@ -385,6 +418,12 @@ export function NotificationsModal({
                                                         style={channel.id === 'Telegram' && telegramConnecting && !telegramConnected
                                                             ? { backgroundColor: '#fff9c4', color: '#856404' }
                                                             : undefined
+                                                        }
+                                                        title={channel.id === 'Telegram' && telegramConnected
+                                                            ? `Connected as ${channel.badge}. Click the x to disconnect.`
+                                                            : channel.id === 'Telegram' && telegramConnecting
+                                                                ? 'Waiting for you to start the Telegram bot. Click the x to cancel.'
+                                                                : undefined
                                                         }>
                                                         {channel.badge}
                                                         {channel.id === 'Telegram' && telegramConnecting && !telegramConnected && (
@@ -418,7 +457,7 @@ export function NotificationsModal({
                                                                     }, 100);
                                                                 }}
                                                                 aria-label="Cancel Telegram connection"
-                                                                title="Cancel Telegram connection"
+                                                                title="Cancel the connection process and return to Email notifications"
                                                                 style={{ backgroundColor: '#000000', color: '#ffffff' }}
                                                             >
                                                                 x
@@ -433,7 +472,7 @@ export function NotificationsModal({
                                                                     handleDisconnectTelegram();
                                                                 }}
                                                                 aria-label="Disconnect Telegram account"
-                                                                title="Disconnect Telegram account"
+                                                                title="Disconnect your Telegram account and switch to Email notifications"
                                                                 style={{ backgroundColor: '#000000', color: '#ffffff' }}
                                                             >
                                                                 x
