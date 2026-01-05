@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import './NotificationsModal.css';
 import { UserData } from '../models/User';
 import { TelegramConnectionStepsModal } from './TelegramConnectionStepsModal';
+import { SseConnectionManager, SseEventHandlers } from '../utils/sseConnectionManager';
 
 interface NotificationsModalProps {
     onClose: () => void;
@@ -89,10 +90,31 @@ export function NotificationsModal({
     const [showTelegramConnectionModal, setShowTelegramConnectionModal] = useState(false);
     const [telegramConnecting, setTelegramConnecting] = useState(false);
     const isCancelingRef = useRef(false);
-    const eventSourceRef = useRef<EventSource | null>(null);
+    const sseManagerRef = useRef<SseConnectionManager | null>(null);
+    const telegramConnectingRef = useRef(false);
+    const telegramConnectedRef = useRef(false);
     const justSavedRef = useRef(false);
     const hasShownSuccessRef = useRef(false);
-    const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    /**
+     * Update telegramConnecting state and ref.
+     * @param value - New connecting state
+     * @internal
+     */
+    const updateTelegramConnecting = useCallback((value: boolean) => {
+        setTelegramConnecting(value);
+        telegramConnectingRef.current = value;
+    }, []);
+
+    /**
+     * Update telegramConnected state and ref.
+     * @param value - New connected state
+     * @internal
+     */
+    const updateTelegramConnected = useCallback((value: boolean) => {
+        setTelegramConnected(value);
+        telegramConnectedRef.current = value;
+    }, []);
 
     /**
      * Save notification preferences.
@@ -159,8 +181,8 @@ export function NotificationsModal({
             if (status.connected && status.telegramChatId) {
                 console.log('[NotificationsModal] Telegram is connected, updating state');
                 setTelegramChatId(status.telegramChatId);
-                setTelegramConnected(true);
-                setTelegramConnecting(false);
+                updateTelegramConnected(true);
+                updateTelegramConnecting(false);
                 if (status.telegramUsername) {
                     setTelegramUsername(status.telegramUsername);
                 }
@@ -182,14 +204,14 @@ export function NotificationsModal({
             } else {
                 console.log('[NotificationsModal] Telegram not connected, hasActiveToken:', status.hasActiveToken);
                 setTelegramChatId(null);
-                setTelegramConnected(false);
+                updateTelegramConnected(false);
                 // Set connecting state based on hasActiveToken from backend
-                setTelegramConnecting(status.hasActiveToken);
+                updateTelegramConnecting(status.hasActiveToken);
             }
         } catch (err) {
             console.error('[NotificationsModal] Error checking Telegram status:', err);
         }
-    }, [onGetTelegramStatus, telegramConnected, telegramConnecting, selectedChannelRef, savePreferences, setSuccessMessage, hasShownSuccessRef]);
+    }, [onGetTelegramStatus, telegramConnected, telegramConnecting, savePreferences, updateTelegramConnected, updateTelegramConnecting]);
 
     /**
      * Load existing preferences from user data and check Telegram status.
@@ -211,8 +233,8 @@ export function NotificationsModal({
                 // Only update if changed to prevent re-renders
                 if (telegramChatId !== user.telegram_chat_id) {
                     setTelegramChatId(user.telegram_chat_id);
-                    setTelegramConnected(true);
-                    setTelegramConnecting(false);
+                    updateTelegramConnected(true);
+                    updateTelegramConnecting(false);
                 }
                 // Fetch Telegram username only if we don't have it yet
                 if (!telegramUsername) {
@@ -231,94 +253,97 @@ export function NotificationsModal({
     }, [user]);
 
     /**
-     * Connect to SSE for real-time Telegram connection updates.
+     * Initialize SSE connection manager.
      * @internal
      */
-    const connectToSse = useCallback(() => {
-        if (eventSourceRef.current) {
-            console.log('[NotificationsModal] SSE already connected, skipping');
-            return; // Already connected
+    const initializeSseManager = useCallback(() => {
+        if (sseManagerRef.current) {
+            return; // Already initialized
         }
 
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
         const url = `${apiUrl}/api/telegram/connection-events`;
 
-        console.log('[NotificationsModal] Connecting to SSE:', url);
+        const handlers: SseEventHandlers = {
+            onConnected: (data) => {
+                console.log('[NotificationsModal] SSE connected:', data);
+            },
+            onTelegramConnected: (data) => {
+                console.log('[NotificationsModal] Telegram connected via SSE:', data);
+                console.log('[NotificationsModal] Current state before update:', {
+                    telegramConnected: telegramConnectedRef.current,
+                    telegramConnecting: telegramConnectingRef.current,
+                    showTelegramConnectionModal,
+                    selectedChannel: selectedChannelRef.current
+                });
 
-        // EventSource automatically sends cookies
-        const eventSource = new EventSource(url, { withCredentials: true });
-
-        eventSource.addEventListener('connected', (e) => {
-            console.log('SSE connected:', e.data);
-        });
-
-        eventSource.addEventListener('telegram-connected', (e) => {
-            const data = JSON.parse(e.data);
-            console.log('[NotificationsModal] Telegram connected via SSE:', data);
-            console.log('[NotificationsModal] Current state before update:', {
-                telegramConnected,
-                telegramConnecting,
-                showTelegramConnectionModal,
-                selectedChannel: selectedChannelRef.current
-            });
-
-            // Update state
-            setTelegramChatId(data.chatId);
-            setTelegramConnected(true);
-            setTelegramConnecting(false);
-            if (data.username) {
-                setTelegramUsername(data.username);
-            }
-
-            console.log('[NotificationsModal] State updated after SSE event, telegramConnected should now be true');
-
-            // Auto-save if Telegram was selected
-            if (selectedChannelRef.current === 'Telegram') {
-                savePreferences('Telegram', data.chatId);
-
-                if (!hasShownSuccessRef.current) {
-                    const successMsg = `Telegram connected successfully as ${data.username || 'user'}!`;
-                    setSuccessMessage(successMsg);
-                    hasShownSuccessRef.current = true;
-                    setTimeout(() => {
-                        setSuccessMessage(null);
-                    }, 4000);
+                // Update state
+                setTelegramChatId(data.chatId);
+                updateTelegramConnected(true);
+                updateTelegramConnecting(false);
+                if (data.username) {
+                    setTelegramUsername(data.username);
                 }
-            }
 
-            // Close SSE connection after successful connection
-            disconnectFromSse();
-        });
+                console.log('[NotificationsModal] State updated after SSE event, telegramConnected should now be true');
 
-        eventSource.addEventListener('heartbeat', () => {
-            // Keep connection alive
-        });
+                // Auto-save if Telegram was selected
+                if (selectedChannelRef.current === 'Telegram') {
+                    savePreferences('Telegram', data.chatId);
 
-        eventSource.onerror = (error) => {
-            console.error('SSE error:', error);
-            eventSource.close();
-            eventSourceRef.current = null;
-
-            // Retry connection after delay if still connecting
-            setTimeout(() => {
-                if (telegramConnecting && !telegramConnected) {
-                    connectToSse();
+                    if (!hasShownSuccessRef.current) {
+                        const successMsg = `Telegram connected successfully as ${data.username || 'user'}!`;
+                        setSuccessMessage(successMsg);
+                        hasShownSuccessRef.current = true;
+                        setTimeout(() => {
+                            setSuccessMessage(null);
+                        }, 4000);
+                    }
                 }
-            }, 5000);
+
+                // Close SSE connection after successful connection
+                disconnectFromSse();
+            },
+            onHeartbeat: () => {
+                // Keep connection alive - handled by manager
+            },
+            onError: (error) => {
+                console.error('[NotificationsModal] SSE error:', error);
+                setError(error.message);
+            },
+            onMaxRetriesReached: () => {
+                console.error('[NotificationsModal] Max SSE retry attempts reached');
+                setError('Connection failed after multiple attempts. Please try again or refresh the page.');
+            },
         };
 
-        eventSourceRef.current = eventSource;
-    }, [telegramConnecting, telegramConnected, savePreferences]);
+        sseManagerRef.current = new SseConnectionManager(
+            url,
+            handlers,
+            () => telegramConnectingRef.current && !telegramConnectedRef.current
+        );
+    }, [savePreferences, showTelegramConnectionModal]);
+
+    /**
+     * Connect to SSE for real-time Telegram connection updates.
+     * @internal
+     */
+    const connectToSse = useCallback(() => {
+        if (!sseManagerRef.current) {
+            initializeSseManager();
+        }
+        if (sseManagerRef.current) {
+            sseManagerRef.current.connect();
+        }
+    }, [initializeSseManager]);
 
     /**
      * Disconnect from SSE.
      * @internal
      */
     const disconnectFromSse = useCallback(() => {
-        if (eventSourceRef.current) {
-            eventSourceRef.current.close();
-            eventSourceRef.current = null;
-            console.log('SSE disconnected');
+        if (sseManagerRef.current) {
+            sseManagerRef.current.disconnect();
         }
     }, []);
 
@@ -331,36 +356,24 @@ export function NotificationsModal({
             telegramConnecting,
             telegramConnected
         });
+        
+        // Initialize manager if needed
+        if (!sseManagerRef.current) {
+            initializeSseManager();
+        }
+
         if (telegramConnecting && !telegramConnected) {
             console.log('[NotificationsModal] Conditions met, connecting to SSE');
             connectToSse();
-            
-            // Start polling as fallback in case SSE fails
-            console.log('[NotificationsModal] Starting polling as fallback');
-            pollingIntervalRef.current = setInterval(() => {
-                console.log('[NotificationsModal] Polling for connection status...');
-                checkTelegramStatus();
-            }, 3000); // Poll every 3 seconds
         } else {
             console.log('[NotificationsModal] Conditions not met or already connected, disconnecting from SSE');
             disconnectFromSse();
-            
-            // Stop polling
-            if (pollingIntervalRef.current) {
-                console.log('[NotificationsModal] Stopping polling');
-                clearInterval(pollingIntervalRef.current);
-                pollingIntervalRef.current = null;
-            }
         }
 
         return () => {
             disconnectFromSse();
-            if (pollingIntervalRef.current) {
-                clearInterval(pollingIntervalRef.current);
-                pollingIntervalRef.current = null;
-            }
         };
-    }, [telegramConnecting, telegramConnected, connectToSse, disconnectFromSse, checkTelegramStatus]);
+    }, [telegramConnecting, telegramConnected, connectToSse, disconnectFromSse, initializeSseManager]);
 
     /**
      * Check status when modal opens (to detect expired tokens).
@@ -429,7 +442,7 @@ export function NotificationsModal({
             setSelectedChannel('Email');
             selectedChannelRef.current = 'Email';
             // Clear Telegram connection state
-            setTelegramConnected(false);
+            updateTelegramConnected(false);
             setTelegramChatId(null);
             setTelegramUsername(null);
             // Reset success message flag so it can be shown again on reconnection
@@ -613,7 +626,7 @@ export function NotificationsModal({
                                                                             console.error('Error cancelling Telegram connection:', err);
                                                                         }
                                                                     }
-                                                                    setTelegramConnecting(false);
+                                                                    updateTelegramConnecting(false);
                                                                     // Close the connection modal if it's open
                                                                     setShowTelegramConnectionModal(false);
                                                                     // Select Email channel
@@ -677,7 +690,7 @@ export function NotificationsModal({
                         setSelectedChannel('Email');
                         selectedChannelRef.current = 'Email';
                         // Reset connecting state when closing without completion
-                        setTelegramConnecting(false);
+                        updateTelegramConnecting(false);
                     }}
                     onCancel={async () => {
                         setShowTelegramConnectionModal(false);
@@ -687,7 +700,7 @@ export function NotificationsModal({
                             await onCancelTelegramConnection();
                         }
                         // Reset connecting state after cancel
-                        setTelegramConnecting(false);
+                        updateTelegramConnecting(false);
                         // Re-check status to sync with backend
                         await checkTelegramStatus();
                     }}

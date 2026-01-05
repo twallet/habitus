@@ -31,15 +31,29 @@ describe('NotificationsModal', () => {
     beforeEach(() => {
         vi.clearAllMocks();
 
+        // Define EventSource constants first
+        const EventSourceConstants = {
+            CONNECTING: 0,
+            OPEN: 1,
+            CLOSED: 2,
+        };
+
         // Mock EventSource globally for all tests
+        // The SSE manager uses onopen, onerror, and readyState
         const mockEventSource = {
             addEventListener: vi.fn(),
             close: vi.fn(),
             onerror: null,
+            onopen: null,
+            readyState: EventSourceConstants.CONNECTING, // 0 = CONNECTING, 1 = OPEN, 2 = CLOSED
         };
         global.EventSource = vi.fn(function (this: any) {
             return mockEventSource;
         }) as any;
+        // Add EventSource constants for tests
+        (global.EventSource as any).CONNECTING = EventSourceConstants.CONNECTING;
+        (global.EventSource as any).OPEN = EventSourceConstants.OPEN;
+        (global.EventSource as any).CLOSED = EventSourceConstants.CLOSED;
     });
 
     it('should render modal with title', () => {
@@ -701,14 +715,24 @@ describe('NotificationsModal', () => {
         const user = userEvent.setup();
 
         // Mock EventSource
+        const EventSourceConstants = {
+            CONNECTING: 0,
+            OPEN: 1,
+            CLOSED: 2,
+        };
         const mockEventSource = {
             addEventListener: vi.fn(),
             close: vi.fn(),
             onerror: null,
+            onopen: null,
+            readyState: EventSourceConstants.CONNECTING,
         };
         global.EventSource = vi.fn(function (this: any) {
             return mockEventSource;
         }) as any;
+        (global.EventSource as any).CONNECTING = EventSourceConstants.CONNECTING;
+        (global.EventSource as any).OPEN = EventSourceConstants.OPEN;
+        (global.EventSource as any).CLOSED = EventSourceConstants.CLOSED;
 
         render(
             <NotificationsModal
@@ -790,14 +814,24 @@ describe('NotificationsModal', () => {
         });
 
         // Mock EventSource
+        const EventSourceConstants = {
+            CONNECTING: 0,
+            OPEN: 1,
+            CLOSED: 2,
+        };
         const mockEventSource = {
             addEventListener: vi.fn(),
             close: vi.fn(),
             onerror: null,
+            onopen: null,
+            readyState: EventSourceConstants.CONNECTING,
         };
         global.EventSource = vi.fn(function (this: any) {
             return mockEventSource;
         }) as any;
+        (global.EventSource as any).CONNECTING = EventSourceConstants.CONNECTING;
+        (global.EventSource as any).OPEN = EventSourceConstants.OPEN;
+        (global.EventSource as any).CLOSED = EventSourceConstants.CLOSED;
 
         render(
             <NotificationsModal
@@ -835,6 +869,11 @@ describe('NotificationsModal', () => {
         });
 
         // Mock EventSource
+        const EventSourceConstants = {
+            CONNECTING: 0,
+            OPEN: 1,
+            CLOSED: 2,
+        };
         let telegramConnectedHandler: Function | null = null;
         const mockEventSource = {
             addEventListener: vi.fn((event: string, handler: Function) => {
@@ -844,10 +883,15 @@ describe('NotificationsModal', () => {
             }),
             close: vi.fn(),
             onerror: null,
+            onopen: null,
+            readyState: EventSourceConstants.CONNECTING,
         };
         global.EventSource = vi.fn(function (this: any) {
             return mockEventSource;
         }) as any;
+        (global.EventSource as any).CONNECTING = EventSourceConstants.CONNECTING;
+        (global.EventSource as any).OPEN = EventSourceConstants.OPEN;
+        (global.EventSource as any).CLOSED = EventSourceConstants.CLOSED;
 
         // Create a user that already selected Telegram (to trigger auto-save on connection)
         const telegramUser = {
@@ -1151,14 +1195,24 @@ describe('NotificationsModal', () => {
         const user = userEvent.setup();
 
         // Mock EventSource
+        const EventSourceConstants = {
+            CONNECTING: 0,
+            OPEN: 1,
+            CLOSED: 2,
+        };
         const mockEventSource = {
             addEventListener: vi.fn(),
             close: vi.fn(),
             onerror: null,
+            onopen: null,
+            readyState: EventSourceConstants.CONNECTING,
         };
         global.EventSource = vi.fn(function (this: any) {
             return mockEventSource;
         }) as any;
+        (global.EventSource as any).CONNECTING = EventSourceConstants.CONNECTING;
+        (global.EventSource as any).OPEN = EventSourceConstants.OPEN;
+        (global.EventSource as any).CLOSED = EventSourceConstants.CLOSED;
 
         vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
 
