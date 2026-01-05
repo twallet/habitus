@@ -77,7 +77,8 @@ When a tracking transitions to `Paused`:
 When a tracking transitions to `Archived`:
 
 - The `Upcoming` reminder is deleted
-- All `Pending` reminders are deleted
+- **For recurring trackings:** All `Pending` reminders are deleted
+- **For one-time trackings:** `Pending` reminders are preserved (so users can still complete them)
 - `Answered` reminders are preserved
 - No new reminders are generated while archived
 
@@ -138,9 +139,10 @@ Pending → Upcoming
 
 - Only one `Upcoming` reminder exists per tracking at any time (for both recurring and one-time trackings)
 - `Upcoming` → `Pending` transition happens automatically when `scheduled_time` passes
+- **For one-time trackings:** When the last scheduled time arrives (Upcoming → Pending), the tracking is automatically archived
 - When a reminder is completed or dismissed:
   - **For recurring trackings:** A new `Upcoming` reminder is automatically created
-  - **For one-time trackings:** The next reminder is created if there are more schedule times on the same date. If it's the last reminder, the tracking is automatically archived.
+  - **For one-time trackings:** The next reminder is created if there are more schedule times on the same date
 - Only `Pending` reminders can be snoozed (not `Answered` reminders)
 - The value field is `null` when reminders are created (for Pending and Upcoming reminders)
 
@@ -191,12 +193,12 @@ When a reminder is updated, the following fields can be changed:
 **When a reminder is completed** (status changes to `"Answered"`, value set to `"Completed"`):
 
 - **For recurring trackings:** A new `Upcoming` reminder is automatically created for the tracking
-- **For one-time trackings:** The next reminder is created if there are more schedule times on the same date. If it's the last reminder, the tracking is automatically archived.
+- **For one-time trackings:** The next reminder is created if there are more schedule times on the same date
 
 **When a reminder is dismissed** (status changes to `"Answered"`, value set to `"Dismissed"`):
 
 - **For recurring trackings:** A new `Upcoming` reminder is automatically created for the tracking
-- **For one-time trackings:** The next reminder is created if there are more schedule times on the same date. If it's the last reminder, the tracking is automatically archived.
+- **For one-time trackings:** The next reminder is created if there are more schedule times on the same date
 
 ### Reminder Snoozing
 
@@ -209,14 +211,17 @@ When a reminder is dismissed by the user:
 1. The reminder's status changes to `"Answered"` and value is set to `"Dismissed"`
 2. **For recurring trackings:** A new `Upcoming` reminder is automatically created for the tracking
 3. **For recurring trackings:** The `Upcoming` reminder time is calculated, with the dismissed reminder's `scheduled_time` excluded from next reminder calculation
-4. **For one-time trackings:** The next reminder is created if there are more schedule times on the same date. If it's the last reminder, the tracking is automatically archived.
+4. **For one-time trackings:** The next reminder is created if there are more schedule times on the same date
 
 ### Reminder Deletion
 
 Reminders are only deleted in the following scenarios:
 
 1. **When a tracking is deleted:** All reminders associated with the tracking are deleted
-2. **When a tracking is archived:** All `Pending` and `Upcoming` reminders are deleted
+2. **When a tracking is archived:**
+   - `Upcoming` reminders are deleted
+   - **For recurring trackings:** `Pending` reminders are deleted
+   - **For one-time trackings:** `Pending` reminders are preserved
 3. **When a tracking is paused:** Its `Upcoming` reminder is deleted
 4. **Orphaned reminders:** Reminders whose tracking no longer exists are automatically deleted when detected
 
@@ -360,13 +365,13 @@ One-time trackings create reminders that occur only once on a specific date:
 - **`date`:** Required date in YYYY-MM-DD format (must be today or in the future)
 - **Reminder creation:** Only the earliest reminder is created initially. Subsequent reminders are created sequentially as previous reminders go pending or are answered.
 - **Sequential creation:** When a reminder goes from `Upcoming` to `Pending` or is answered, the next reminder (if available) is automatically created
-- **Automatic archiving:** When the last reminder is answered, the tracking is automatically archived
+- **Automatic archiving:** When the last scheduled time arrives (Upcoming → Pending), the tracking is automatically archived. Pending reminders are preserved so users can still complete them.
 
 **Example:**
 
 - Frequency: `{ type: "one-time", date: "2024-12-25" }`
 - Times: `09:00`, `18:00`
-- Result: Initially, only the 09:00 reminder is created. When it goes pending or is answered, the 18:00 reminder is created. When the 18:00 reminder is answered, the tracking is automatically archived.
+- Result: Initially, only the 09:00 reminder is created. When it goes pending, the 18:00 reminder is created. When the 18:00 reminder goes pending (last scheduled time arrives), the tracking is automatically archived. Users can still complete both pending reminders.
 
 **Conversion:**
 
@@ -417,7 +422,11 @@ Reminders are automatically created when:
 ### Automatic Reminder Cleanup
 
 - **Tracking Paused:** The `Upcoming` reminder is deleted; `Pending` and `Answered` reminders are preserved
-- **Tracking Archived:** The `Upcoming` reminder and all `Pending` reminders are deleted; `Answered` reminders are preserved
+- **Tracking Archived:**
+  - `Upcoming` reminders are deleted
+  - **For recurring trackings:** `Pending` reminders are deleted
+  - **For one-time trackings:** `Pending` reminders are preserved
+  - `Answered` reminders are preserved
 - **Tracking Deleted:** All reminders are deleted
 - **Orphaned Reminders:** Automatically detected and deleted when reminders are fetched
 
@@ -466,11 +475,11 @@ Upcoming → Pending (automatic when time passes)
     ↓
 [Next reminder created if more schedule times exist]
     ↓
+[If last scheduled time: Tracking → Archived automatically]
+    ↓
 Pending → Answered (Complete: value=Completed, or Dismiss: value=Dismissed)
     ↓
-[Next reminder created if more schedule times exist, otherwise tracking archived]
-    ↓
-[If last reminder: Tracking → Archived automatically]
+[Pending reminders preserved even after tracking is archived]
 ```
 
 ### Key Principles
@@ -478,20 +487,22 @@ Pending → Answered (Complete: value=Completed, or Dismiss: value=Dismissed)
 1. Trackings must be `Running` to generate reminders
 2. New reminders are automatically created when needed (for recurring trackings always, for one-time trackings sequentially)
 3. One-time trackings create reminders sequentially: only the next reminder is created when the current one goes pending or is answered
-4. When the last reminder of a one-time tracking is answered, the tracking is automatically archived
-5. Only one `Upcoming` reminder per tracking at any time (for both recurring and one-time trackings)
-6. `Answered` reminders are preserved even when tracking is archived
-7. Orphaned and expired reminders are automatically handled
-8. Deleted trackings are permanently removed from the database
-9. Trackings can be converted between recurring and one-time types
+4. When the last scheduled time of a one-time tracking arrives (Upcoming → Pending), the tracking is automatically archived
+5. For one-time trackings, `Pending` reminders are preserved when archived so users can still complete them
+6. Only one `Upcoming` reminder per tracking at any time (for both recurring and one-time trackings)
+7. `Answered` reminders are preserved even when tracking is archived
+8. Orphaned and expired reminders are automatically handled
+9. Deleted trackings are permanently removed from the database
+10. Trackings can be converted between recurring and one-time types
 
 ### Automatic Archiving for One-Time Trackings
 
-When a one-time tracking's last reminder is answered (completed or dismissed), the tracking is automatically transitioned to `Archived` state. This provides a clean completion state for one-time trackings without requiring manual archiving.
+When a one-time tracking's last scheduled time arrives (Upcoming → Pending transition), the tracking is automatically transitioned to `Archived` state. This provides a clean completion state for one-time trackings without requiring manual archiving.
 
 **Behavior:**
 
-- The system checks if there are more schedule times available after a reminder is answered
-- If no more reminders can be created (all schedule times have been used), the tracking is automatically archived
+- When a reminder transitions from `Upcoming` to `Pending`, the system checks if there are any remaining `Upcoming` reminders
+- If no more `Upcoming` reminders exist (meaning all scheduled times have arrived), the tracking is automatically archived
 - This only applies to one-time trackings
-- The archiving happens automatically and preserves all `Answered` reminders for historical reference
+- The archiving happens automatically and preserves all `Pending` and `Answered` reminders
+- Users can still complete any `Pending` reminders after the tracking is archived

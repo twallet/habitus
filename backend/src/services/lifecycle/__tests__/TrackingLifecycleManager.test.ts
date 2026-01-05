@@ -46,7 +46,7 @@ async function createTestDatabase(): Promise<Database> {
               question TEXT NOT NULL CHECK(length(question) <= 100),
               notes TEXT,
               icon TEXT,
-              days TEXT,
+              frequency TEXT NOT NULL,
               state TEXT NOT NULL DEFAULT 'Running' CHECK(state IN ('Running', 'Paused', 'Archived')),
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -113,8 +113,13 @@ describe("TrackingLifecycleManager", () => {
 
     // Create a test tracking
     const trackingResult = await testDb.run(
-      "INSERT INTO trackings (user_id, question, state) VALUES (?, ?, ?)",
-      [testUserId, "Test tracking", "Running"]
+      "INSERT INTO trackings (user_id, question, state, frequency) VALUES (?, ?, ?, ?)",
+      [
+        testUserId,
+        "Test tracking",
+        "Running",
+        JSON.stringify({ type: "daily" }),
+      ]
     );
     testTrackingId = trackingResult.lastID!;
   });
@@ -180,6 +185,198 @@ describe("TrackingLifecycleManager", () => {
         [testTrackingId, ReminderStatus.UPCOMING]
       );
       expect(reminders.length).toBe(0);
+    });
+  });
+
+  describe("archived state reminder handling", () => {
+    it("should preserve Pending reminders for one-time trackings when archived", async () => {
+      const { Reminder, ReminderValue } = await import(
+        "../../../models/Reminder.js"
+      );
+
+      // Create a one-time tracking
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 7);
+      const dateString = futureDate.toISOString().split("T")[0];
+
+      const trackingResult = await testDb.run(
+        "INSERT INTO trackings (user_id, question, state, frequency) VALUES (?, ?, ?, ?)",
+        [
+          testUserId,
+          "One-time task",
+          "Running",
+          JSON.stringify({ type: "one-time", date: dateString }),
+        ]
+      );
+      const oneTimeTrackingId = trackingResult.lastID!;
+
+      // Create reminders in different statuses
+      const upcomingReminder = new Reminder({
+        id: 0,
+        tracking_id: oneTimeTrackingId,
+        user_id: testUserId,
+        scheduled_time: new Date(Date.now() + 3600000).toISOString(),
+        status: ReminderStatus.UPCOMING,
+        value: null,
+      });
+      await upcomingReminder.save(testDb);
+
+      const pendingReminder = new Reminder({
+        id: 0,
+        tracking_id: oneTimeTrackingId,
+        user_id: testUserId,
+        scheduled_time: new Date(Date.now() - 3600000).toISOString(),
+        status: ReminderStatus.PENDING,
+        value: null,
+      });
+      await pendingReminder.save(testDb);
+
+      const answeredReminder = new Reminder({
+        id: 0,
+        tracking_id: oneTimeTrackingId,
+        user_id: testUserId,
+        scheduled_time: new Date(Date.now() - 7200000).toISOString(),
+        status: ReminderStatus.ANSWERED,
+        value: ReminderValue.COMPLETED,
+      });
+      await answeredReminder.save(testDb);
+
+      // Archive the tracking
+      const tracking: TrackingData = {
+        id: oneTimeTrackingId,
+        user_id: testUserId,
+        question: "One-time task",
+        frequency: { type: "one-time", date: dateString },
+        state: TrackingState.RUNNING,
+      };
+
+      await lifecycleManager.transition(tracking, TrackingState.ARCHIVED);
+
+      const archivedTracking: TrackingData = {
+        ...tracking,
+        state: TrackingState.ARCHIVED,
+      };
+      await lifecycleManager.afterStateChange(
+        archivedTracking,
+        TrackingState.RUNNING,
+        TrackingState.ARCHIVED
+      );
+
+      // Verify Upcoming reminder was deleted
+      const upcomingAfter = await Reminder.loadById(
+        upcomingReminder.id,
+        testUserId,
+        testDb
+      );
+      expect(upcomingAfter).toBeNull();
+
+      // Verify Pending reminder was preserved
+      const pendingAfter = await Reminder.loadById(
+        pendingReminder.id,
+        testUserId,
+        testDb
+      );
+      expect(pendingAfter).not.toBeNull();
+      expect(pendingAfter!.status).toBe(ReminderStatus.PENDING);
+
+      // Verify Answered reminder was preserved
+      const answeredAfter = await Reminder.loadById(
+        answeredReminder.id,
+        testUserId,
+        testDb
+      );
+      expect(answeredAfter).not.toBeNull();
+      expect(answeredAfter!.status).toBe(ReminderStatus.ANSWERED);
+    });
+
+    it("should delete Pending reminders for recurring trackings when archived", async () => {
+      const { Reminder, ReminderValue } = await import(
+        "../../../models/Reminder.js"
+      );
+
+      // Create a recurring tracking
+      const trackingResult = await testDb.run(
+        "INSERT INTO trackings (user_id, question, state, frequency) VALUES (?, ?, ?, ?)",
+        [testUserId, "Daily task", "Running", JSON.stringify({ type: "daily" })]
+      );
+      const recurringTrackingId = trackingResult.lastID!;
+
+      // Create reminders in different statuses
+      const upcomingReminder = new Reminder({
+        id: 0,
+        tracking_id: recurringTrackingId,
+        user_id: testUserId,
+        scheduled_time: new Date(Date.now() + 3600000).toISOString(),
+        status: ReminderStatus.UPCOMING,
+        value: null,
+      });
+      await upcomingReminder.save(testDb);
+
+      const pendingReminder = new Reminder({
+        id: 0,
+        tracking_id: recurringTrackingId,
+        user_id: testUserId,
+        scheduled_time: new Date(Date.now() - 3600000).toISOString(),
+        status: ReminderStatus.PENDING,
+        value: null,
+      });
+      await pendingReminder.save(testDb);
+
+      const answeredReminder = new Reminder({
+        id: 0,
+        tracking_id: recurringTrackingId,
+        user_id: testUserId,
+        scheduled_time: new Date(Date.now() - 7200000).toISOString(),
+        status: ReminderStatus.ANSWERED,
+        value: ReminderValue.COMPLETED,
+      });
+      await answeredReminder.save(testDb);
+
+      // Archive the tracking
+      const tracking: TrackingData = {
+        id: recurringTrackingId,
+        user_id: testUserId,
+        question: "Daily task",
+        frequency: { type: "daily" },
+        state: TrackingState.RUNNING,
+      };
+
+      await lifecycleManager.transition(tracking, TrackingState.ARCHIVED);
+
+      const archivedTracking: TrackingData = {
+        ...tracking,
+        state: TrackingState.ARCHIVED,
+      };
+      await lifecycleManager.afterStateChange(
+        archivedTracking,
+        TrackingState.RUNNING,
+        TrackingState.ARCHIVED
+      );
+
+      // Verify Upcoming reminder was deleted
+      const upcomingAfter = await Reminder.loadById(
+        upcomingReminder.id,
+        testUserId,
+        testDb
+      );
+      expect(upcomingAfter).toBeNull();
+
+      // Verify Pending reminder was deleted (for recurring trackings)
+      const pendingAfter = await Reminder.loadById(
+        pendingReminder.id,
+        testUserId,
+        testDb
+      );
+      expect(pendingAfter).toBeNull();
+
+      // Verify Answered reminder was preserved
+      const answeredAfter = await Reminder.loadById(
+        answeredReminder.id,
+        testUserId,
+        testDb
+      );
+      expect(answeredAfter).not.toBeNull();
+      expect(answeredAfter!.status).toBe(ReminderStatus.ANSWERED);
     });
   });
 });

@@ -141,7 +141,8 @@ export class TrackingLifecycleManager extends LifecycleManager<
 
   /**
    * Handle tracking archived state transition.
-   * Deletes Upcoming and Pending reminders (keeps Answered).
+   * Deletes Upcoming reminders (keeps Answered).
+   * For one-time trackings, also keeps Pending reminders.
    * @param tracking - The tracking entity
    * @private
    */
@@ -157,21 +158,27 @@ export class TrackingLifecycleManager extends LifecycleManager<
       this.db
     );
 
-    // Delete all Pending reminders
-    const result = await this.db.run(
-      `DELETE FROM reminders 
-       WHERE tracking_id = ? 
-       AND user_id = ? 
-       AND status = ?`,
-      [tracking.id, tracking.user_id, ReminderStatus.PENDING]
-    );
+    let deletedPending = 0;
 
-    const totalDeleted = deletedUpcoming + result.changes;
+    // Only delete Pending reminders for recurring trackings
+    // For one-time trackings, keep Pending reminders so users can still complete them
+    if (tracking.frequency.type !== "one-time") {
+      const result = await this.db.run(
+        `DELETE FROM reminders 
+         WHERE tracking_id = ? 
+         AND user_id = ? 
+         AND status = ?`,
+        [tracking.id, tracking.user_id, ReminderStatus.PENDING]
+      );
+      deletedPending = result.changes;
+    }
+
+    const totalDeleted = deletedUpcoming + deletedPending;
     if (totalDeleted > 0) {
       console.log(
-        `[${new Date().toISOString()}] TRACKING_LIFECYCLE | Deleted ${totalDeleted} Upcoming/Pending reminder(s) for archived tracking ${
+        `[${new Date().toISOString()}] TRACKING_LIFECYCLE | Deleted ${totalDeleted} reminder(s) for archived tracking ${
           tracking.id
-        }`
+        } (${deletedUpcoming} Upcoming, ${deletedPending} Pending)`
       );
     }
   }

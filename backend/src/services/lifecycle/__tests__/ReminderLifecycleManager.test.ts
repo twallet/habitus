@@ -163,13 +163,14 @@ describe("ReminderLifecycleManager", () => {
   });
 
   describe("one-time tracking archiving", () => {
-    it("should archive one-time tracking when last reminder is answered", async () => {
+    it("should archive one-time tracking when last scheduled time becomes Pending", async () => {
       const { Tracking, TrackingState } = await import(
         "../../../models/Tracking.js"
       );
       const { TrackingSchedule } = await import(
         "../../../models/TrackingSchedule.js"
       );
+      const { Reminder } = await import("../../../models/Reminder.js");
 
       // Create a one-time tracking
       const futureDate = new Date();
@@ -194,7 +195,7 @@ describe("ReminderLifecycleManager", () => {
       });
       await schedule.save(testDb);
 
-      // Create the first (and only) reminder
+      // Create the first (and only) reminder as Upcoming
       const reminderTime = `${dateString}T09:00:00`;
       const reminder = await reminderService.createReminder(
         trackingData.id,
@@ -202,10 +203,12 @@ describe("ReminderLifecycleManager", () => {
         reminderTime
       );
 
-      // Answer the reminder (which should trigger archiving)
+      // Verify reminder is Upcoming
+      expect(reminder.status).toBe(ReminderStatus.UPCOMING);
+
+      // Simulate the reminder transitioning to Pending (last scheduled time arrives)
       await reminderService.updateReminder(reminder.id, testUserId, {
-        status: ReminderStatus.ANSWERED,
-        value: "Completed" as any,
+        status: ReminderStatus.PENDING,
       });
 
       // Verify tracking was archived
@@ -216,6 +219,29 @@ describe("ReminderLifecycleManager", () => {
       );
       expect(updatedTracking).not.toBeNull();
       expect(updatedTracking!.state).toBe(TrackingState.ARCHIVED);
+
+      // Verify Pending reminder still exists and can be answered
+      const pendingReminder = await Reminder.loadById(
+        reminder.id,
+        testUserId,
+        testDb
+      );
+      expect(pendingReminder).not.toBeNull();
+      expect(pendingReminder!.status).toBe(ReminderStatus.PENDING);
+
+      // User can still answer the Pending reminder
+      await reminderService.updateReminder(reminder.id, testUserId, {
+        status: ReminderStatus.ANSWERED,
+        value: "Completed" as any,
+      });
+
+      const answeredReminder = await Reminder.loadById(
+        reminder.id,
+        testUserId,
+        testDb
+      );
+      expect(answeredReminder).not.toBeNull();
+      expect(answeredReminder!.status).toBe(ReminderStatus.ANSWERED);
     });
 
     it("should create next reminder for one-time tracking when not last", async () => {
@@ -290,6 +316,122 @@ describe("ReminderLifecycleManager", () => {
       const nextReminderDate = new Date(nextReminder.scheduled_time);
       expect(nextReminderDate.getHours()).toBe(12);
       expect(nextReminderDate.getMinutes()).toBe(0);
+    });
+
+    it("should allow answering Pending reminder after one-time tracking is archived", async () => {
+      const { Tracking, TrackingState } = await import(
+        "../../../models/Tracking.js"
+      );
+      const { TrackingSchedule } = await import(
+        "../../../models/TrackingSchedule.js"
+      );
+      const { Reminder } = await import("../../../models/Reminder.js");
+
+      // Create a one-time tracking with two schedules
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 7);
+      const dateString = futureDate.toISOString().split("T")[0];
+
+      const tracking = new Tracking({
+        id: 0,
+        user_id: testUserId,
+        question: "One-time task",
+        frequency: { type: "one-time", date: dateString },
+        state: TrackingState.RUNNING,
+      });
+      const trackingData = await tracking.save(testDb);
+
+      // Create two schedules: 9:00 and 12:00
+      const schedule1 = new TrackingSchedule({
+        id: 0,
+        tracking_id: trackingData.id,
+        hour: 9,
+        minutes: 0,
+      });
+      await schedule1.save(testDb);
+
+      const schedule2 = new TrackingSchedule({
+        id: 0,
+        tracking_id: trackingData.id,
+        hour: 12,
+        minutes: 0,
+      });
+      await schedule2.save(testDb);
+
+      // Create first reminder as Upcoming
+      const reminder1Time = `${dateString}T09:00:00`;
+      const reminder1 = await reminderService.createReminder(
+        trackingData.id,
+        testUserId,
+        reminder1Time
+      );
+
+      // Transition first reminder to Pending and create second Upcoming
+      await reminderService.updateReminder(reminder1.id, testUserId, {
+        status: ReminderStatus.PENDING,
+      });
+
+      // Create second reminder as Upcoming
+      const reminder2Time = `${dateString}T12:00:00`;
+      const reminder2 = await reminderService.createReminder(
+        trackingData.id,
+        testUserId,
+        reminder2Time
+      );
+
+      // Transition second reminder to Pending (should archive tracking)
+      await reminderService.updateReminder(reminder2.id, testUserId, {
+        status: ReminderStatus.PENDING,
+      });
+
+      // Verify tracking is archived
+      const archivedTracking = await Tracking.loadById(
+        trackingData.id,
+        testUserId,
+        testDb
+      );
+      expect(archivedTracking).not.toBeNull();
+      expect(archivedTracking!.state).toBe(TrackingState.ARCHIVED);
+
+      // Verify both Pending reminders still exist
+      const pendingReminder1 = await Reminder.loadById(
+        reminder1.id,
+        testUserId,
+        testDb
+      );
+      const pendingReminder2 = await Reminder.loadById(
+        reminder2.id,
+        testUserId,
+        testDb
+      );
+      expect(pendingReminder1).not.toBeNull();
+      expect(pendingReminder2).not.toBeNull();
+      expect(pendingReminder1!.status).toBe(ReminderStatus.PENDING);
+      expect(pendingReminder2!.status).toBe(ReminderStatus.PENDING);
+
+      // User can still answer both Pending reminders
+      await reminderService.updateReminder(reminder1.id, testUserId, {
+        status: ReminderStatus.ANSWERED,
+        value: "Completed" as any,
+      });
+      await reminderService.updateReminder(reminder2.id, testUserId, {
+        status: ReminderStatus.ANSWERED,
+        value: "Dismissed" as any,
+      });
+
+      // Verify both are answered
+      const answeredReminder1 = await Reminder.loadById(
+        reminder1.id,
+        testUserId,
+        testDb
+      );
+      const answeredReminder2 = await Reminder.loadById(
+        reminder2.id,
+        testUserId,
+        testDb
+      );
+      expect(answeredReminder1!.status).toBe(ReminderStatus.ANSWERED);
+      expect(answeredReminder2!.status).toBe(ReminderStatus.ANSWERED);
     });
   });
 });
