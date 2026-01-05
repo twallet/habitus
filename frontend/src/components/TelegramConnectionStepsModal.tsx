@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import './NotificationsModal.css';
 
 interface TelegramConnectionStepsModalProps {
-    onClose: () => void;
-    onCancel?: () => void;
+    onClose: () => void | Promise<void>;
+    onCancel?: () => void | Promise<void>;
     onGetTelegramStartLink: () => Promise<{ link: string; token: string }>;
     onCopyClicked?: () => void;
     onGetTelegramStatus?: () => Promise<{ connected: boolean; telegramChatId: string | null; telegramUsername: string | null; hasActiveToken: boolean }>;
@@ -112,6 +112,10 @@ export function TelegramConnectionStepsModal({
             const pollStatus = async () => {
                 try {
                     const status = await onGetTelegramStatusRef.current!();
+                    console.log('[TelegramConnectionStepsModal] Polling status:', { 
+                        connected: status.connected, 
+                        telegramChatId: status.telegramChatId 
+                    });
                     if (status.connected && status.telegramChatId) {
                         // Connection complete, stop polling first
                         console.log('[TelegramConnectionStepsModal] Connection detected via polling, closing modal');
@@ -126,7 +130,13 @@ export function TelegramConnectionStepsModal({
                         setTelegramStartCommand(null);
                         setTelegramBotLink(null);
                         // Close the modal (parent will handle state updates)
-                        onClose();
+                        // Wrap in try-catch to ensure modal closes even if onClose fails
+                        try {
+                            await onClose();
+                        } catch (closeErr) {
+                            console.error('[TelegramConnectionStepsModal] Error in onClose callback:', closeErr);
+                            // Still close the modal even if callback fails
+                        }
                     }
                 } catch (err) {
                     console.error('[TelegramConnectionStepsModal] Error polling status:', err);

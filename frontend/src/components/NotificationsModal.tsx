@@ -560,12 +560,22 @@ export function NotificationsModal({
             {showTelegramConnectionModal && (
                 <TelegramConnectionStepsModal
                     onClose={async () => {
-                        // Check connection status before closing to see if connection was successful
+                        console.log('[NotificationsModal] onClose called from TelegramConnectionStepsModal');
+                        // Always close the modal first to ensure UI updates
+                        setShowTelegramConnectionModal(false);
+                        
+                        // Check connection status to see if connection was successful
                         try {
                             const status = await onGetTelegramStatus();
+                            console.log('[NotificationsModal] Status check result:', {
+                                connected: status.connected,
+                                telegramChatId: status.telegramChatId,
+                                telegramUsername: status.telegramUsername
+                            });
+                            
                             if (status.connected && status.telegramChatId) {
                                 // Connection was successful - update parent state and keep Telegram selected
-                                console.log('[NotificationsModal] Connection successful, updating state and closing modal');
+                                console.log('[NotificationsModal] Connection successful, updating state');
                                 setTelegramChatId(status.telegramChatId);
                                 updateTelegramConnected(true);
                                 updateTelegramConnecting(false);
@@ -576,7 +586,12 @@ export function NotificationsModal({
                                 setSelectedChannel('Telegram');
                                 selectedChannelRef.current = 'Telegram';
                                 // Auto-save preferences with Telegram
-                                await savePreferences('Telegram', status.telegramChatId);
+                                try {
+                                    await savePreferences('Telegram', status.telegramChatId);
+                                } catch (saveErr) {
+                                    console.error('[NotificationsModal] Error saving preferences:', saveErr);
+                                    // Continue even if save fails
+                                }
                                 // Show success message
                                 if (!hasShownSuccessRef.current) {
                                     const successMsg = `Telegram connected successfully as ${status.telegramUsername || 'user'}!`;
@@ -588,6 +603,7 @@ export function NotificationsModal({
                                 }
                             } else {
                                 // Connection was not successful - switch back to Email
+                                console.log('[NotificationsModal] Connection not successful, switching to Email');
                                 setSelectedChannel('Email');
                                 selectedChannelRef.current = 'Email';
                                 updateTelegramConnecting(false);
@@ -599,8 +615,6 @@ export function NotificationsModal({
                             selectedChannelRef.current = 'Email';
                             updateTelegramConnecting(false);
                         }
-                        // Always close the modal
-                        setShowTelegramConnectionModal(false);
                     }}
                     onCancel={async () => {
                         setShowTelegramConnectionModal(false);
