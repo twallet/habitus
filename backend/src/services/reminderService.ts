@@ -794,6 +794,13 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       return await this.calculateNextOneTimeReminderTime(tracking, excludeTime);
     }
 
+    // Fetch user's timezone from database
+    const userRow = await this.db.get<{ timezone: string | null }>(
+      "SELECT timezone FROM users WHERE id = ?",
+      [tracking.user_id]
+    );
+    const userTimezone = userRow?.timezone || undefined;
+
     const now = new Date();
     const excludeDate = excludeTime ? new Date(excludeTime) : null;
     const candidateTimes: Date[] = [];
@@ -811,7 +818,8 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
         schedule.hour,
         schedule.minutes,
         now,
-        excludeDate
+        excludeDate,
+        userTimezone
       );
       if (nextTime) {
         candidateTimes.push(nextTime);
@@ -837,12 +845,14 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
 
   /**
    * Calculate next occurrence for a specific schedule time based on frequency.
+   * Uses user's timezone to determine day boundaries, weekdays, etc.
    * @param frequency - The frequency pattern
-   * @param hour - Hour (0-23)
+   * @param hour - Hour (0-23) in user's timezone
    * @param minutes - Minutes (0-59)
-   * @param fromDate - Start date to search from
-   * @param excludeDate - Optional date to exclude
-   * @returns Next occurrence date or null if not found
+   * @param fromDate - Start date to search from (UTC)
+   * @param excludeDate - Optional date to exclude (UTC)
+   * @param userTimezone - User's timezone (optional, defaults to UTC)
+   * @returns Next occurrence date (UTC) or null if not found
    * @private
    */
   private calculateNextOccurrence(
@@ -850,72 +860,228 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
     hour: number,
     minutes: number,
     fromDate: Date,
-    excludeDate: Date | null
+    excludeDate: Date | null,
+    userTimezone?: string
   ): Date | null {
     // Handle daily frequency - every day
     if (frequency.type === "daily") {
-      const candidateDate = new Date(fromDate);
-      candidateDate.setHours(hour, minutes, 0, 0);
+      // Get current date in user's timezone
+      const currentDateParts = this.getDatePartsInTimezone(
+        fromDate,
+        userTimezone
+      );
 
-      // If candidate is in the past, move to tomorrow
-      if (candidateDate <= fromDate) {
-        candidateDate.setDate(candidateDate.getDate() + 1);
+      // Create candidate date with user's current date and desired time
+      let candidateUtc = this.createUtcDateFromTimezone(
+        currentDateParts.year,
+        currentDateParts.month,
+        currentDateParts.day,
+        hour,
+        minutes,
+        userTimezone
+      );
+
+      // If candidate is in the past, move to tomorrow (in user's timezone)
+      if (candidateUtc <= fromDate) {
+        candidateUtc = this.createUtcDateFromTimezone(
+          currentDateParts.year,
+          currentDateParts.month,
+          currentDateParts.day + 1,
+          hour,
+          minutes,
+          userTimezone
+        );
       }
 
       // Check if this date matches the excludeDate
-      if (excludeDate && candidateDate.getTime() === excludeDate.getTime()) {
-        candidateDate.setDate(candidateDate.getDate() + 1);
+      if (excludeDate && candidateUtc.getTime() === excludeDate.getTime()) {
+        candidateUtc = this.createUtcDateFromTimezone(
+          currentDateParts.year,
+          currentDateParts.month,
+          currentDateParts.day + 2,
+          hour,
+          minutes,
+          userTimezone
+        );
       }
 
-      return candidateDate;
+      return candidateUtc;
     }
 
     const maxIterations = 1000; // Prevent infinite loops
-    let currentDate = new Date(fromDate);
+    let currentDateParts = this.getDatePartsInTimezone(fromDate, userTimezone);
     let iterations = 0;
 
     while (iterations < maxIterations) {
       iterations++;
 
-      // Set the time for this date
-      const candidateDate = new Date(currentDate);
-      candidateDate.setHours(hour, minutes, 0, 0);
+      // Create candidate date with current date and desired time in user's timezone
+      const candidateUtc = this.createUtcDateFromTimezone(
+        currentDateParts.year,
+        currentDateParts.month,
+        currentDateParts.day,
+        hour,
+        minutes,
+        userTimezone
+      );
 
-      // If candidate is in the past or equals excludeDate, move to next day
-      if (candidateDate <= fromDate) {
-        currentDate = new Date(currentDate);
-        currentDate.setDate(currentDate.getDate() + 1);
+      // If candidate is in the past, move to next day
+      if (candidateUtc <= fromDate) {
+        currentDateParts = this.getDatePartsInTimezone(
+          new Date(candidateUtc.getTime() + 24 * 60 * 60 * 1000),
+          userTimezone
+        );
         continue;
       }
 
       // Check if this date matches the excludeDate
-      if (excludeDate && candidateDate.getTime() === excludeDate.getTime()) {
-        currentDate = new Date(currentDate);
-        currentDate.setDate(currentDate.getDate() + 1);
+      if (excludeDate && candidateUtc.getTime() === excludeDate.getTime()) {
+        currentDateParts = this.getDatePartsInTimezone(
+          new Date(candidateUtc.getTime() + 24 * 60 * 60 * 1000),
+          userTimezone
+        );
         continue;
       }
 
       // Check if this date matches the frequency pattern
-      if (this.matchesFrequency(candidateDate, frequency)) {
-        return candidateDate;
+      if (this.matchesFrequency(candidateUtc, frequency, userTimezone)) {
+        return candidateUtc;
       }
 
       // Move to next day
-      currentDate = new Date(currentDate);
-      currentDate.setDate(currentDate.getDate() + 1);
+      currentDateParts = this.getDatePartsInTimezone(
+        new Date(candidateUtc.getTime() + 24 * 60 * 60 * 1000),
+        userTimezone
+      );
     }
 
     return null;
   }
 
   /**
+   * Get date parts (year, month, day, weekday) in a specific timezone.
+   * @param date - UTC date
+   * @param timezone - Target timezone (optional, defaults to UTC)
+   * @returns Date parts in the target timezone
+   * @private
+   */
+  private getDatePartsInTimezone(
+    date: Date,
+    timezone?: string
+  ): { year: number; month: number; day: number; weekday: number } {
+    if (!timezone) {
+      return {
+        year: date.getUTCFullYear(),
+        month: date.getUTCMonth() + 1,
+        day: date.getUTCDate(),
+        weekday: date.getUTCDay(),
+      };
+    }
+
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      weekday: "short",
+    });
+
+    const parts = formatter.formatToParts(date);
+    const year = parseInt(parts.find((p) => p.type === "year")!.value);
+    const month = parseInt(parts.find((p) => p.type === "month")!.value);
+    const day = parseInt(parts.find((p) => p.type === "day")!.value);
+    const weekdayName = parts.find((p) => p.type === "weekday")!.value;
+
+    // Convert weekday name to number (0=Sunday, 6=Saturday)
+    const weekdayMap: { [key: string]: number } = {
+      Sun: 0,
+      Mon: 1,
+      Tue: 2,
+      Wed: 3,
+      Thu: 4,
+      Fri: 5,
+      Sat: 6,
+    };
+    const weekday = weekdayMap[weekdayName];
+
+    return { year, month, day, weekday };
+  }
+
+  /**
+   * Create a UTC date from date/time components in a specific timezone.
+   * @param year - Year
+   * @param month - Month (1-12)
+   * @param day - Day of month
+   * @param hour - Hour (0-23)
+   * @param minutes - Minutes (0-59)
+   * @param timezone - Source timezone (optional, defaults to UTC)
+   * @returns UTC Date object
+   * @private
+   */
+  private createUtcDateFromTimezone(
+    year: number,
+    month: number,
+    day: number,
+    hour: number,
+    minutes: number,
+    timezone?: string
+  ): Date {
+    if (!timezone) {
+      return new Date(Date.UTC(year, month - 1, day, hour, minutes, 0));
+    }
+
+    // Use same approach as DateUtils.createDateTimeInTimezone
+    const referenceUtc = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+
+    const referenceParts = formatter.formatToParts(referenceUtc);
+    const refLocalHour = parseInt(
+      referenceParts.find((p) => p.type === "hour")!.value
+    );
+    const refLocalMin = parseInt(
+      referenceParts.find((p) => p.type === "minute")!.value
+    );
+
+    // Calculate offset
+    const offsetHours = 12 - refLocalHour;
+    const offsetMinutes = 0 - refLocalMin;
+    const offsetMs = (offsetHours * 60 + offsetMinutes) * 60 * 1000;
+
+    // Create target date as if in UTC
+    const targetAsUtc = new Date(
+      Date.UTC(year, month - 1, day, hour, minutes, 0)
+    );
+
+    // Apply offset to convert from local time to UTC
+    return new Date(targetAsUtc.getTime() + offsetMs);
+  }
+
+  /**
    * Check if a date matches the frequency pattern.
-   * @param date - The date to check
+   * Uses user's timezone to determine day-of-week, day-of-month, etc.
+   * @param date - The UTC date to check
    * @param frequency - The frequency pattern
+   * @param userTimezone - User's timezone (optional, defaults to UTC)
    * @returns True if date matches frequency pattern
    * @private
    */
-  private matchesFrequency(date: Date, frequency: Frequency): boolean {
+  private matchesFrequency(
+    date: Date,
+    frequency: Frequency,
+    userTimezone?: string
+  ): boolean {
+    // Get date parts in user's timezone
+    const dateParts = this.getDatePartsInTimezone(date, userTimezone);
+
     switch (frequency.type) {
       case "daily":
         // Daily matches any day
@@ -925,8 +1091,8 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
         if (!frequency.days || frequency.days.length === 0) {
           return false;
         }
-        const dayOfWeek = date.getDay(); // 0=Sunday, 6=Saturday
-        return frequency.days.includes(dayOfWeek);
+        // Use weekday from user's timezone
+        return frequency.days.includes(dateParts.weekday);
 
       case "monthly":
         if (!frequency.kind) {
@@ -936,15 +1102,16 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
           if (!frequency.day_numbers || frequency.day_numbers.length === 0) {
             return false;
           }
-          const dayOfMonth = date.getDate();
-          return frequency.day_numbers.includes(dayOfMonth);
+          // Use day of month from user's timezone
+          return frequency.day_numbers.includes(dateParts.day);
         } else if (frequency.kind === "last_day") {
-          const lastDayOfMonth = new Date(
-            date.getFullYear(),
-            date.getMonth() + 1,
-            0
-          ).getDate();
-          return date.getDate() === lastDayOfMonth;
+          // Check if this is the last day of the month in user's timezone
+          const lastDay = this.getLastDayOfMonth(
+            dateParts.year,
+            dateParts.month,
+            userTimezone
+          );
+          return dateParts.day === lastDay;
         } else if (frequency.kind === "weekday_ordinal") {
           if (
             frequency.weekday === undefined ||
@@ -953,9 +1120,13 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
             return false;
           }
           return this.isNthWeekdayOfMonth(
-            date,
+            dateParts.year,
+            dateParts.month,
+            dateParts.day,
+            dateParts.weekday,
             frequency.weekday,
-            frequency.ordinal
+            frequency.ordinal,
+            userTimezone
           );
         }
         return false;
@@ -968,9 +1139,10 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
           if (frequency.month === undefined || frequency.day === undefined) {
             return false;
           }
+          // Use month and day from user's timezone
           return (
-            date.getMonth() + 1 === frequency.month &&
-            date.getDate() === frequency.day
+            dateParts.month === frequency.month &&
+            dateParts.day === frequency.day
           );
         } else if (frequency.kind === "weekday_ordinal") {
           if (
@@ -980,9 +1152,13 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
             return false;
           }
           return this.isNthWeekdayOfYear(
-            date,
+            dateParts.year,
+            dateParts.month,
+            dateParts.day,
+            dateParts.weekday,
             frequency.weekday,
-            frequency.ordinal
+            frequency.ordinal,
+            userTimezone
           );
         }
         return false;
@@ -997,60 +1173,143 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
   }
 
   /**
+   * Get the last day of a month in a specific timezone.
+   * @param year - Year
+   * @param month - Month (1-12)
+   * @param timezone - Timezone (optional, defaults to UTC)
+   * @returns Last day of the month
+   * @private
+   */
+  private getLastDayOfMonth(
+    year: number,
+    month: number,
+    timezone?: string
+  ): number {
+    // Create a date for the first day of the next month, then subtract one day
+    const nextMonth = month === 12 ? 1 : month + 1;
+    const nextYear = month === 12 ? year + 1 : year;
+    const firstOfNextMonth = this.createUtcDateFromTimezone(
+      nextYear,
+      nextMonth,
+      1,
+      0,
+      0,
+      timezone
+    );
+    const lastOfMonth = new Date(
+      firstOfNextMonth.getTime() - 24 * 60 * 60 * 1000
+    );
+    const lastDayParts = this.getDatePartsInTimezone(lastOfMonth, timezone);
+    return lastDayParts.day;
+  }
+
+  /**
    * Check if a date is the nth weekday of the month.
-   * @param date - The date to check
-   * @param weekday - Weekday (0=Sunday, 6=Saturday)
+   * @param year - Year
+   * @param month - Month (1-12)
+   * @param day - Day of month
+   * @param actualWeekday - Actual weekday of the date (0=Sunday, 6=Saturday)
+   * @param targetWeekday - Target weekday to match (0=Sunday, 6=Saturday)
    * @param ordinal - Ordinal (1-5)
+   * @param timezone - Timezone (optional, defaults to UTC)
    * @returns True if date is the nth weekday of the month
    * @private
    */
   private isNthWeekdayOfMonth(
-    date: Date,
-    weekday: number,
-    ordinal: number
+    year: number,
+    month: number,
+    day: number,
+    actualWeekday: number,
+    targetWeekday: number,
+    ordinal: number,
+    timezone?: string
   ): boolean {
-    if (date.getDay() !== weekday) {
+    // Check if the actual weekday matches the target weekday
+    if (actualWeekday !== targetWeekday) {
       return false;
     }
 
-    const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-    const firstWeekday = firstDayOfMonth.getDay();
-    const daysToFirstOccurrence = (weekday - firstWeekday + 7) % 7;
-    const firstOccurrence = new Date(firstDayOfMonth);
-    firstOccurrence.setDate(firstDayOfMonth.getDate() + daysToFirstOccurrence);
+    // Get the first day of the month
+    const firstDayUtc = this.createUtcDateFromTimezone(
+      year,
+      month,
+      1,
+      0,
+      0,
+      timezone
+    );
+    const firstDayParts = this.getDatePartsInTimezone(firstDayUtc, timezone);
+    const firstWeekday = firstDayParts.weekday;
 
-    const occurrenceNumber =
-      Math.floor((date.getDate() - firstOccurrence.getDate()) / 7) + 1;
+    // Calculate how many days until the first occurrence of the target weekday
+    const daysToFirstOccurrence = (targetWeekday - firstWeekday + 7) % 7;
+    const firstOccurrenceDay = 1 + daysToFirstOccurrence;
+
+    // Calculate which occurrence this is
+    const occurrenceNumber = Math.floor((day - firstOccurrenceDay) / 7) + 1;
 
     return occurrenceNumber === ordinal;
   }
 
   /**
    * Check if a date is the nth weekday of the year.
-   * @param date - The date to check
-   * @param weekday - Weekday (0=Sunday, 6=Saturday)
+   * @param year - Year
+   * @param month - Month (1-12)
+   * @param day - Day of month
+   * @param actualWeekday - Actual weekday of the date (0=Sunday, 6=Saturday)
+   * @param targetWeekday - Target weekday to match (0=Sunday, 6=Saturday)
    * @param ordinal - Ordinal (1-5)
+   * @param timezone - Timezone (optional, defaults to UTC)
    * @returns True if date is the nth weekday of the year
    * @private
    */
   private isNthWeekdayOfYear(
-    date: Date,
-    weekday: number,
-    ordinal: number
+    year: number,
+    month: number,
+    day: number,
+    actualWeekday: number,
+    targetWeekday: number,
+    ordinal: number,
+    timezone?: string
   ): boolean {
-    if (date.getDay() !== weekday) {
+    // Check if the actual weekday matches the target weekday
+    if (actualWeekday !== targetWeekday) {
       return false;
     }
 
-    const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-    const firstWeekday = firstDayOfYear.getDay();
-    const daysToFirstOccurrence = (weekday - firstWeekday + 7) % 7;
-    const firstOccurrence = new Date(firstDayOfYear);
-    firstOccurrence.setDate(firstDayOfYear.getDate() + daysToFirstOccurrence);
-
-    const dayOfYear = Math.floor(
-      (date.getTime() - firstDayOfYear.getTime()) / (1000 * 60 * 60 * 24)
+    // Get the first day of the year
+    const firstDayOfYearUtc = this.createUtcDateFromTimezone(
+      year,
+      1,
+      1,
+      0,
+      0,
+      timezone
     );
+    const firstDayParts = this.getDatePartsInTimezone(
+      firstDayOfYearUtc,
+      timezone
+    );
+    const firstWeekday = firstDayParts.weekday;
+
+    // Calculate how many days until the first occurrence of the target weekday
+    const daysToFirstOccurrence = (targetWeekday - firstWeekday + 7) % 7;
+
+    // Calculate the day of year for the current date
+    const currentDateUtc = this.createUtcDateFromTimezone(
+      year,
+      month,
+      day,
+      0,
+      0,
+      timezone
+    );
+    const dayOfYear = Math.floor(
+      (currentDateUtc.getTime() - firstDayOfYearUtc.getTime()) /
+        (1000 * 60 * 60 * 24)
+    );
+
+    // Calculate which occurrence this is
     const occurrenceNumber =
       Math.floor((dayOfYear - daysToFirstOccurrence) / 7) + 1;
 

@@ -43,14 +43,18 @@ export class AdminController {
   }
 
   /**
-   * Format a date string to GMT-3 (Buenos Aires timezone).
+   * Format a date string to a specific timezone.
    * SQLite stores dates as UTC strings without timezone info, so we need to
-   * explicitly treat them as UTC before converting to Buenos Aires timezone.
+   * explicitly treat them as UTC before converting to the target timezone.
    * @param dateString - ISO date string or date string from database (UTC, no timezone)
-   * @returns Formatted date string in YYYY-MM-DD HH:mm:ss format (GMT-3)
+   * @param timezone - Target timezone (optional, defaults to UTC)
+   * @returns Formatted date string in YYYY-MM-DD HH:mm:ss format
    * @internal
    */
-  private formatDateGMT3(dateString: string | null | undefined): string {
+  private formatDateInTimezone(
+    dateString: string | null | undefined,
+    timezone?: string
+  ): string {
     if (!dateString) {
       return "null";
     }
@@ -87,9 +91,10 @@ export class AdminController {
         return dateString; // Return original if invalid
       }
 
-      // Convert to Buenos Aires timezone (GMT-3, handles DST automatically)
+      // Convert to target timezone (defaults to UTC if not specified)
+      const targetTimezone = timezone || "UTC";
       const formatted = date.toLocaleString("en-US", {
-        timeZone: "America/Buenos_Aires",
+        timeZone: targetTimezone,
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
@@ -204,7 +209,7 @@ export class AdminController {
 
   /**
    * Generate formatted admin log output showing all users, trackings and their reminders.
-   * All dates are displayed in GMT-3 (Buenos Aires timezone).
+   * Dates are displayed in each user's configured timezone.
    * @returns Promise resolving to formatted log text
    * @internal
    */
@@ -221,6 +226,12 @@ export class AdminController {
         remindersByTracking.get(reminder.tracking_id) || [];
       trackingReminders.push(reminder);
       remindersByTracking.set(reminder.tracking_id, trackingReminders);
+    });
+
+    // Create a map of user_id to user timezone
+    const userTimezones = new Map<number, string | undefined>();
+    users.forEach((user) => {
+      userTimezones.set(user.id, user.timezone || undefined);
     });
 
     // ANSI color codes matching PowerShell colors
@@ -253,6 +264,9 @@ export class AdminController {
         // Format telegram chat ID
         const telegramChatIdStr = user.telegram_chat_id || "null";
 
+        // Use user's timezone for formatting their dates
+        const userTimezone = user.timezone || undefined;
+
         const userAttrs = [
           `ID=${user.id}`,
           `Name=${user.name}`,
@@ -262,8 +276,11 @@ export class AdminController {
           `TelegramChatID=${telegramChatIdStr}`,
           `Locale=${user.locale || "null"}`,
           `Timezone=${user.timezone || "null"}`,
-          `LastAccess=${this.formatDateGMT3(user.last_access)}`,
-          `Created=${this.formatDateGMT3(user.created_at)}`,
+          `LastAccess=${this.formatDateInTimezone(
+            user.last_access,
+            userTimezone
+          )}`,
+          `Created=${this.formatDateInTimezone(user.created_at, userTimezone)}`,
         ];
 
         lines.push(
@@ -291,6 +308,9 @@ export class AdminController {
           lines.push("");
         }
 
+        // Get user's timezone for this tracking
+        const userTimezone = userTimezones.get(tracking.user_id);
+
         // Format schedules
         const schedulesStr =
           tracking.schedules && tracking.schedules.length > 0
@@ -316,8 +336,14 @@ export class AdminController {
           }`,
           `Schedules=[${schedulesStr}]`,
           `Notes=${tracking.notes || "null"}`,
-          `Created=${this.formatDateGMT3(tracking.created_at)}`,
-          `Updated=${this.formatDateGMT3(tracking.updated_at)}`,
+          `Created=${this.formatDateInTimezone(
+            tracking.created_at,
+            userTimezone
+          )}`,
+          `Updated=${this.formatDateInTimezone(
+            tracking.updated_at,
+            userTimezone
+          )}`,
         ];
 
         // Determine color based on tracking state
@@ -339,8 +365,11 @@ export class AdminController {
         const trackingReminders = remindersByTracking.get(tracking.id) || [];
         if (trackingReminders.length > 0) {
           trackingReminders.forEach((reminder) => {
-            // Format scheduled time in GMT-3
-            const scheduledTime = this.formatDateGMT3(reminder.scheduled_time);
+            // Format scheduled time in user's timezone
+            const scheduledTime = this.formatDateInTimezone(
+              reminder.scheduled_time,
+              userTimezone
+            );
 
             // Format notes
             const notesStr = reminder.notes || "null";
@@ -357,8 +386,14 @@ export class AdminController {
               `Status=${reminder.status}`,
               `Answer=${answerStr}`,
               `Notes=${notesStr}`,
-              `Created=${this.formatDateGMT3(reminder.created_at)}`,
-              `Updated=${this.formatDateGMT3(reminder.updated_at)}`,
+              `Created=${this.formatDateInTimezone(
+                reminder.created_at,
+                userTimezone
+              )}`,
+              `Updated=${this.formatDateInTimezone(
+                reminder.updated_at,
+                userTimezone
+              )}`,
             ];
 
             // Determine color based on reminder status
@@ -389,7 +424,7 @@ export class AdminController {
   /**
    * Handle GET /api/admin request.
    * Get formatted admin log output showing all users, trackings and their reminders.
-   * All dates are displayed in GMT-3 (Buenos Aires timezone).
+   * Dates are displayed in each user's configured timezone.
    * Requires admin authentication (email must match ADMIN_EMAIL).
    * @param req - Express request object
    * @param res - Express response object
