@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { flushSync } from 'react-dom';
 import './NotificationsModal.css';
 import { UserData } from '../models/User';
 import { TelegramConnectionStepsModal } from './TelegramConnectionStepsModal';
@@ -118,17 +119,21 @@ export function NotificationsModal({
      * Save notification preferences.
      * @param channelId - The selected channel ID
      * @param providedTelegramChatId - Optional Telegram chat ID (used when saving immediately after connection)
+     * @param skipSubmittingCheck - Skip the isSubmitting check (used when isSubmitting is already set)
      * @internal
      */
-    const savePreferences = async (channelId: string, providedTelegramChatId?: string | null) => {
-        // Prevent double submission
-        if (isSubmitting) {
+    const savePreferences = async (channelId: string, providedTelegramChatId?: string | null, skipSubmittingCheck = false) => {
+        // Prevent double submission (unless we're explicitly skipping the check)
+        if (!skipSubmittingCheck && isSubmitting) {
             return;
         }
 
         // Set submitting state first, synchronously, before any async operations
         // This ensures React applies the state update and disables the radio buttons immediately
-        setIsSubmitting(true);
+        // Only set if not already set (when skipSubmittingCheck is true, it's already set)
+        if (!skipSubmittingCheck) {
+            setIsSubmitting(true);
+        }
         setError(null);
 
         // Use provided chat ID if available, otherwise use state
@@ -302,7 +307,13 @@ export function NotificationsModal({
             if (telegramConnected) {
                 setSelectedChannel('Telegram');
                 selectedChannelRef.current = 'Telegram';
-                await savePreferences('Telegram');
+                // Set isSubmitting synchronously before async save
+                // Use flushSync to force React to flush the state update synchronously
+                // Always set it, flushSync will handle the state update efficiently
+                flushSync(() => {
+                    setIsSubmitting(true);
+                });
+                await savePreferences('Telegram', undefined, true);
                 return;
             }
             // If not connected, open connection modal but don't select Telegram yet
@@ -312,9 +323,16 @@ export function NotificationsModal({
             // Update selected channel immediately for UI responsiveness
             setSelectedChannel(channelId);
             selectedChannelRef.current = channelId;
+            // Set isSubmitting synchronously before async save to ensure UI updates immediately
+            // Use flushSync to force React to flush the state update synchronously
+            // This ensures the disabled state is applied before the async save operation starts
+            // Always set it, flushSync will handle the state update efficiently
+            flushSync(() => {
+                setIsSubmitting(true);
+            });
             // Save immediately for non-Telegram channels
-            // savePreferences will set isSubmitting state
-            await savePreferences(channelId);
+            // savePreferences will reset isSubmitting when done
+            await savePreferences(channelId, undefined, true);
         }
     };
 
@@ -513,7 +531,17 @@ export function NotificationsModal({
                                                     name="notification-channel"
                                                     value={channel.id}
                                                     checked={selectedChannel === channel.id}
-                                                    onChange={() => handleChannelChange(channel.id)}
+                                                    onChange={() => {
+                                                        // Set isSubmitting synchronously in the event handler
+                                                        // before calling the async function to ensure React processes the state update
+                                                        // Only set it if we're going to save (non-Telegram or Telegram that's connected)
+                                                        if (!isSubmitting && (channel.id !== 'Telegram' || telegramConnected)) {
+                                                            flushSync(() => {
+                                                                setIsSubmitting(true);
+                                                            });
+                                                        }
+                                                        handleChannelChange(channel.id);
+                                                    }}
                                                     disabled={isSubmitting}
                                                 />
                                             ) : null}

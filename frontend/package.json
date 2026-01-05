@@ -7,9 +7,9 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint . --config ../config/eslint.config.js --max-warnings 0",
-    "test": "vitest run --config ../config/vitest.config.ts --include frontend/** --coverage",
-    "test:watch": "vitest --config ../config/vitest.config.ts --include frontend/**",
-    "test:coverage": "vitest run --config ../config/vitest.config.ts --include frontend/** --coverage"
+    "test": "vitest run --config ../config/vitest.config.ts --coverage",
+    "test:watch": "vitest --config ../config/vitest.config.ts",
+    "test:coverage": "vitest run --config ../config/vitest.config.ts --coverage"
   },
   "dependencies": {
     "@habitus/shared": "^1.0.0",
