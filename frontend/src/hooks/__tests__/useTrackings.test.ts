@@ -383,41 +383,36 @@ describe("useTrackings", () => {
     window.addEventListener("trackingDeleted", eventListener);
 
     let callCount = 0;
-    (global.fetch as Mock).mockImplementation(
-      async (url: string | URL | Request) => {
-        const urlString =
-          typeof url === "string"
-            ? url
-            : url instanceof Request
-            ? url.url
-            : url.toString();
-        if (
-          urlString.includes("/api/trackings") &&
-          !urlString.match(/\/\d+$/)
-        ) {
-          callCount++;
-          if (callCount === 1) {
-            return {
-              ok: true,
-              json: async () => [existingTracking],
-            };
-          }
-        } else if (
-          urlString.includes("/api/trackings") &&
-          urlString.match(/\/\d+$/) &&
-          !urlString.includes("/state")
-        ) {
-          return {
+    (global.fetch as Mock).mockImplementation((url: string | URL | Request) => {
+      const urlString =
+        typeof url === "string"
+          ? url
+          : url instanceof Request
+          ? url.url
+          : url.toString();
+      if (urlString.includes("/api/trackings") && !urlString.match(/\/\d+$/)) {
+        callCount++;
+        if (callCount === 1) {
+          return Promise.resolve({
             ok: true,
-            json: async () => ({}),
-          };
+            json: async () => [existingTracking],
+          });
         }
-        return {
+      } else if (
+        urlString.includes("/api/trackings") &&
+        urlString.match(/\/\d+$/) &&
+        !urlString.includes("/state")
+      ) {
+        return Promise.resolve({
           ok: true,
           json: async () => ({}),
-        };
+        });
       }
-    );
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({}),
+      });
+    });
 
     const { result } = renderHook(() => useTrackings());
 
