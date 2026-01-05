@@ -382,6 +382,12 @@
   color: #0088cc;
 }
 
+.step-indicator.completed {
+  background: var(--border-color);
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
 .step-content {
   flex: 1;
 }

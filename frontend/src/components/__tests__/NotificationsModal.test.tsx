@@ -200,11 +200,11 @@ describe('NotificationsModal', () => {
         });
 
         // Check for inline connection panel (not a separate modal)
-        // Check for the Copy Key button (Step 1) and Go to Bot button (Step 2) in the inline panel
+        // Check for the Copy Key button (Step 1) and Go to chat button (Step 2) in the inline panel
         await waitFor(() => {
             const copyButton = screen.getByRole('button', { name: /copy key/i });
             expect(copyButton).toBeInTheDocument();
-            const goButton = screen.getByRole('button', { name: /go to bot/i });
+            const goButton = screen.getByRole('button', { name: /go to chat/i });
             expect(goButton).toBeInTheDocument();
         });
     });
@@ -225,9 +225,9 @@ describe('NotificationsModal', () => {
         await user.click(telegramRadio);
 
         await waitFor(() => {
-            const goButton = screen.getByRole('button', { name: /go to bot/i });
+            const goButton = screen.getByRole('button', { name: /go to chat/i });
             expect(goButton).toBeInTheDocument();
-            // In the new implementation, there's no direct link - users copy the key first, then go to bot
+            // In the new implementation, there's no direct link - users copy the key first, then go to chat
         });
     });
 
@@ -393,8 +393,8 @@ describe('NotificationsModal', () => {
             const copyButton = screen.getByRole('button', { name: /copy key/i });
             expect(copyButton).toBeInTheDocument();
 
-            // Step 2: Go to Bot button (now second, and should be disabled initially)
-            const goButton = screen.getByRole('button', { name: /go to bot/i });
+            // Step 2: Go to chat button (now second, and should be disabled initially)
+            const goButton = screen.getByRole('button', { name: /go to chat/i });
             expect(goButton).toBeInTheDocument();
             expect(goButton).toBeDisabled();
         });
@@ -681,7 +681,7 @@ describe('NotificationsModal', () => {
         });
 
         // Verify step 2 is disabled initially
-        const goButton = screen.getByRole('button', { name: /go to bot/i });
+        const goButton = screen.getByRole('button', { name: /go to chat/i });
         expect(goButton).toBeDisabled();
 
         const copyButton = screen.getByRole('button', { name: /copy key/i });
@@ -897,7 +897,7 @@ describe('NotificationsModal', () => {
         expect(mockEventSource.close).toHaveBeenCalled();
     });
 
-    it('should enable Go to Bot button when Copy key button is clicked', async () => {
+    it('should enable Go to chat button when Copy key button is clicked', async () => {
         const user = userEvent.setup();
         const writeTextSpy = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
 
@@ -925,8 +925,8 @@ describe('NotificationsModal', () => {
             return screen.getByRole('button', { name: /copy key/i });
         });
 
-        // Verify Go to Bot button is disabled initially
-        const goButton = screen.getByRole('button', { name: /go to bot/i });
+        // Verify Go to chat button is disabled initially
+        const goButton = screen.getByRole('button', { name: /go to chat/i });
         expect(goButton).toBeDisabled();
 
         await user.click(copyButton);
@@ -936,7 +936,7 @@ describe('NotificationsModal', () => {
             expect(writeTextSpy).toHaveBeenCalled();
         });
 
-        // Verify Go to Bot button becomes enabled after copying
+        // Verify Go to chat button becomes enabled after copying
         await waitFor(() => {
             expect(goButton).not.toBeDisabled();
         });
@@ -944,7 +944,7 @@ describe('NotificationsModal', () => {
         writeTextSpy.mockRestore();
     });
 
-    it('should show waiting view when Go to Bot button is clicked', async () => {
+    it('should show waiting view when Go to chat button is clicked', async () => {
         const user = userEvent.setup();
         vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
 
@@ -969,8 +969,8 @@ describe('NotificationsModal', () => {
         const copyButton = screen.getByRole('button', { name: /copy key/i });
         await user.click(copyButton);
 
-        // Click Go to Bot button
-        const goButton = screen.getByRole('button', { name: /go to bot/i });
+        // Click Go to chat button
+        const goButton = screen.getByRole('button', { name: /go to chat/i });
         await user.click(goButton);
 
         // Verify waiting view appears
@@ -1005,7 +1005,7 @@ describe('NotificationsModal', () => {
 
         // Navigate to waiting view
         await user.click(screen.getByRole('button', { name: /copy key/i }));
-        await user.click(screen.getByRole('button', { name: /go to bot/i }));
+        await user.click(screen.getByRole('button', { name: /go to chat/i }));
 
         await waitFor(() => {
             expect(screen.getByRole('button', { name: /cancel connection/i })).toBeInTheDocument();
@@ -1047,7 +1047,7 @@ describe('NotificationsModal', () => {
 
         // Navigate to waiting view
         await user.click(screen.getByRole('button', { name: /copy key/i }));
-        await user.click(screen.getByRole('button', { name: /go to bot/i }));
+        await user.click(screen.getByRole('button', { name: /go to chat/i }));
 
         await waitFor(() => {
             expect(screen.getByText(/Waiting for you to paste the key/i)).toBeInTheDocument();
@@ -1059,7 +1059,7 @@ describe('NotificationsModal', () => {
         await user.click(telegramModalCloseButton);
 
         // Verify confirmation dialog was shown
-        expect(confirmSpy).toHaveBeenCalledWith('Do you want to cancel the Telegram connection?');
+        expect(confirmSpy).toHaveBeenCalledWith('Are you sure you want to close? Your Telegram connection is not complete yet.');
         // Modal should stay open because we returned false
         expect(mockOnClose).not.toHaveBeenCalled();
 
@@ -1092,7 +1092,7 @@ describe('NotificationsModal', () => {
 
         // Navigate to waiting view
         await user.click(screen.getByRole('button', { name: /copy key/i }));
-        await user.click(screen.getByRole('button', { name: /go to bot/i }));
+        await user.click(screen.getByRole('button', { name: /go to chat/i }));
 
         await waitFor(() => {
             expect(screen.getByText(/Waiting for you to paste the key/i)).toBeInTheDocument();
@@ -1104,7 +1104,7 @@ describe('NotificationsModal', () => {
         await user.click(telegramModalCloseButton);
 
         // Verify confirmation was shown and connection modal closed
-        expect(confirmSpy).toHaveBeenCalledWith('Do you want to cancel the Telegram connection?');
+        expect(confirmSpy).toHaveBeenCalledWith('Are you sure you want to close? Your Telegram connection is not complete yet.');
         await waitFor(() => {
             expect(mockCancelTelegramConnection).toHaveBeenCalled();
             // Connection modal should close (not the main NotificationsModal)
@@ -1185,11 +1185,11 @@ describe('NotificationsModal', () => {
 
         // Wait for step 2 button to be enabled
         await waitFor(() => {
-            const goButton = screen.getByRole('button', { name: /go to bot/i });
+            const goButton = screen.getByRole('button', { name: /go to chat/i });
             expect(goButton).not.toBeDisabled();
         });
 
-        await user.click(screen.getByRole('button', { name: /go to bot/i }));
+        await user.click(screen.getByRole('button', { name: /go to chat/i }));
 
         await waitFor(() => {
             expect(screen.getByText(/Waiting for you to paste the key/i)).toBeInTheDocument();
@@ -1221,7 +1221,7 @@ describe('NotificationsModal', () => {
         }, { timeout: 3000 });
     });
 
-    it('should disable Go to Bot button until Copy Key is clicked', async () => {
+    it('should disable Go to chat button until Copy Key is clicked', async () => {
         const user = userEvent.setup();
 
         render(
@@ -1237,7 +1237,7 @@ describe('NotificationsModal', () => {
         await user.click(screen.getByRole('radio', { name: /telegram/i }));
 
         await waitFor(() => {
-            const goButton = screen.getByRole('button', { name: /go to bot/i });
+            const goButton = screen.getByRole('button', { name: /go to chat/i });
             expect(goButton).toBeDisabled();
         });
 
@@ -1245,7 +1245,7 @@ describe('NotificationsModal', () => {
         await user.click(copyButton);
 
         await waitFor(() => {
-            const goButton = screen.getByRole('button', { name: /go to bot/i });
+            const goButton = screen.getByRole('button', { name: /go to chat/i });
             expect(goButton).not.toBeDisabled();
         });
     });

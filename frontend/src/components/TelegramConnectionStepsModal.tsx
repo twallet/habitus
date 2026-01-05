@@ -23,6 +23,7 @@ export function TelegramConnectionStepsModal({
     onCopyClicked,
 }: TelegramConnectionStepsModalProps) {
     const [telegramStartCommand, setTelegramStartCommand] = useState<string | null>(null);
+    const [telegramBotLink, setTelegramBotLink] = useState<string | null>(null);
     const [isGeneratingLink, setIsGeneratingLink] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [connectionStep, setConnectionStep] = useState<'steps' | 'waiting'>('steps');
@@ -61,6 +62,9 @@ export function TelegramConnectionStepsModal({
                     return;
                 }
 
+                // Store the bot link and extract start command from link
+                setTelegramBotLink(result.link);
+
                 // Extract start command from link: format is "/start <token> <userId>"
                 try {
                     const url = new URL(result.link);
@@ -86,30 +90,32 @@ export function TelegramConnectionStepsModal({
     }, []); // Only run once on mount
 
     /**
-     * Handle modal close with confirmation if in waiting state.
+     * Handle modal close with confirmation if in waiting state or if step 1 was completed.
      * @internal
      */
     const handleModalClose = () => {
-        if (connectionStep === 'waiting') {
-            // Show confirmation dialog
-            if (window.confirm('Do you want to cancel the Telegram connection?')) {
+        if (connectionStep === 'waiting' || step1Completed) {
+            // Show confirmation dialog with clearer wording
+            if (window.confirm('Are you sure you want to close? Your Telegram connection is not complete yet.')) {
                 setStep1Completed(false);
                 setConnectionStep('steps');
                 hasGeneratedRef.current = false;
                 setTelegramStartCommand(null);
+                setTelegramBotLink(null);
                 if (onCancel) {
                     onCancel(); // Parent will handle closing
                 } else {
                     onClose(); // Fallback to close
                 }
             }
-            // If user clicks "No", do nothing - stay on waiting view
+            // If user clicks "Cancel", do nothing - stay on current view
         } else {
-            // Close immediately when not in waiting state
+            // Close immediately when not in waiting state and step 1 not completed
             setStep1Completed(false);
             setConnectionStep('steps');
             hasGeneratedRef.current = false;
             setTelegramStartCommand(null);
+            setTelegramBotLink(null);
             onClose();
         }
     };
@@ -123,6 +129,7 @@ export function TelegramConnectionStepsModal({
         setConnectionStep('steps');
         hasGeneratedRef.current = false;
         setTelegramStartCommand(null);
+        setTelegramBotLink(null);
         if (onCancel) {
             onCancel(); // Parent will handle closing the modal
         } else {
@@ -163,7 +170,7 @@ export function TelegramConnectionStepsModal({
                     {!isGeneratingLink && connectionStep === 'steps' && (
                         <div className="telegram-connection-panel-inline">
                             <div className="connection-step">
-                                <div className={`step-indicator ${telegramStartCommand ? 'active' : ''}`}>1</div>
+                                <div className={`step-indicator ${telegramStartCommand && !step1Completed ? 'active' : ''} ${step1Completed ? 'completed' : ''}`}>1</div>
                                 <div className="step-content">
                                     <h4>Copy your key</h4>
                                     <p className="form-help-text">
@@ -187,6 +194,7 @@ export function TelegramConnectionStepsModal({
                                                 }
                                             }}
                                             className="btn-primary"
+                                            disabled={step1Completed}
                                             style={{
                                                 display: 'inline-block',
                                                 textAlign: 'center',
@@ -194,9 +202,11 @@ export function TelegramConnectionStepsModal({
                                                 width: 'auto',
                                                 height: 'auto',
                                                 minHeight: '32px',
-                                                lineHeight: '32px'
+                                                lineHeight: '32px',
+                                                opacity: step1Completed ? 0.5 : 1,
+                                                cursor: step1Completed ? 'not-allowed' : 'pointer'
                                             }}
-                                            title="Copy key to clipboard"
+                                            title={step1Completed ? "Key already copied" : "Copy key to clipboard"}
                                         >
                                             Copy key
                                         </button>
@@ -211,11 +221,15 @@ export function TelegramConnectionStepsModal({
                                 <div className={`step-indicator ${step1Completed ? 'active' : ''}`}>2</div>
                                 <div className="step-content">
                                     <h4>Go to 🌱 Habitus in Telegram</h4>
-                                    <p className="form-help-text">Paste the key in the Habitus bot chat:</p>
+                                    <p className="form-help-text">Paste the key in the Telegram Habitus chat:</p>
                                     <button
                                         type="button"
                                         disabled={!step1Completed}
                                         onClick={() => {
+                                            // Open Telegram bot in new tab
+                                            if (telegramBotLink) {
+                                                window.open(telegramBotLink, '_blank', 'noopener,noreferrer');
+                                            }
                                             setConnectionStep('waiting');
                                         }}
                                         className="btn-primary telegram-link-button"
@@ -229,9 +243,9 @@ export function TelegramConnectionStepsModal({
                                             opacity: step1Completed ? 1 : 0.5,
                                             cursor: step1Completed ? 'pointer' : 'not-allowed'
                                         }}
-                                        title={step1Completed ? "Open Telegram bot to paste the key" : "Copy the key first"}
+                                        title={step1Completed ? "Open Telegram chat to paste the key" : "Copy the key first"}
                                     >
-                                        Go to Bot
+                                        Go to chat
                                     </button>
                                 </div>
                             </div>
@@ -251,7 +265,7 @@ export function TelegramConnectionStepsModal({
                                     margin: '0 auto 20px'
                                 }}></div>
                                 <p className="form-help-text" style={{ fontSize: '16px', marginBottom: '10px' }}>
-                                    Waiting for you to paste the key in Habitus bot chat in Telegram...
+                                    Waiting for you to paste the key in the Telegram Habitus chat...
                                 </p>
                                 <p className="form-help-text" style={{ color: '#666', fontSize: '14px' }}>
                                     Once you paste the key, your account will be connected automatically.

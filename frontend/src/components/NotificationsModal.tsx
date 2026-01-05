@@ -627,6 +627,8 @@ export function NotificationsModal({
                         // Always switch back to Email when closing the modal
                         setSelectedChannel('Email');
                         selectedChannelRef.current = 'Email';
+                        // Reset connecting state when closing without completion
+                        setTelegramConnecting(false);
                     }}
                     onCancel={async () => {
                         setShowTelegramConnectionModal(false);
@@ -635,6 +637,10 @@ export function NotificationsModal({
                         if (onCancelTelegramConnection) {
                             await onCancelTelegramConnection();
                         }
+                        // Reset connecting state after cancel
+                        setTelegramConnecting(false);
+                        // Re-check status to sync with backend
+                        await checkTelegramStatus();
                     }}
                     onGetTelegramStartLink={async () => {
                         // Generate the link
