@@ -126,6 +126,8 @@ export function NotificationsModal({
             return;
         }
 
+        // Set submitting state first, synchronously, before any async operations
+        // This ensures React applies the state update and disables the radio buttons immediately
         setIsSubmitting(true);
         setError(null);
 
@@ -140,8 +142,10 @@ export function NotificationsModal({
         }
 
         try {
-            // Update state immediately to prevent blinking
-            setSelectedChannel(channelId);
+            // Only update selectedChannel if it's different to avoid unnecessary re-renders
+            if (selectedChannel !== channelId) {
+                setSelectedChannel(channelId);
+            }
             selectedChannelRef.current = channelId;
             // Mark that we just saved to prevent useEffect from overriding
             justSavedRef.current = true;
@@ -305,9 +309,11 @@ export function NotificationsModal({
             // Telegram will only be selected after successful connection
             setShowTelegramConnectionModal(true);
         } else {
+            // Update selected channel immediately for UI responsiveness
             setSelectedChannel(channelId);
             selectedChannelRef.current = channelId;
             // Save immediately for non-Telegram channels
+            // savePreferences will set isSubmitting state
             await savePreferences(channelId);
         }
     };
