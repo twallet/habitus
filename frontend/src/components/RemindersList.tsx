@@ -435,15 +435,15 @@ export function RemindersList({
     const filteredReminders = ReminderFilter.applyFilters(remindersWithValidTrackings, filterState, getTracking, user);
     const filteredAndSortedReminders = ReminderSorter.sortReminders(filteredReminders, sortColumn, sortDirection, getTracking);
 
-    // Find the next upcoming reminder (PENDING with future time or UPCOMING status)
+    // Find the next upcoming reminder (PENDING or UPCOMING with future time)
     const nextReminder = useMemo(() => {
         const now = new Date();
         const futureReminders = reminders
             .filter(reminder => {
                 const scheduledTime = new Date(reminder.scheduled_time);
                 return (
-                    (reminder.status === ReminderStatus.PENDING && scheduledTime > now) ||
-                    reminder.status === ReminderStatus.UPCOMING
+                    (reminder.status === ReminderStatus.PENDING || reminder.status === ReminderStatus.UPCOMING) &&
+                    scheduledTime > now
                 );
             })
             .sort((a, b) => new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime());
