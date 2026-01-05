@@ -335,6 +335,9 @@ export function NotificationsModal({
         return 'Connected';
     }, [telegramConnected, telegramUsername, telegramConnecting]);
 
+    // Check globalThis first for test compatibility, then fall back to import.meta.env
+    const isDev = (globalThis as any).import?.meta?.env?.DEV ?? import.meta.env.DEV;
+
     const channels = useMemo(() => [
         {
             id: 'Email',
@@ -348,10 +351,10 @@ export function NotificationsModal({
         {
             id: 'Telegram',
             label: 'Telegram',
-            enabled: !import.meta.env.DEV,
+            enabled: !isDev,
             icon: <TelegramIcon className="channel-icon-svg" />,
             color: '#0088cc',
-            description: import.meta.env.DEV ? 'Disabled in development' : 'Send reminders by Telegram',
+            description: isDev ? 'Disabled in development' : 'Send reminders by Telegram',
             badge: telegramBadge
         },
         {
@@ -363,7 +366,7 @@ export function NotificationsModal({
             description: 'Coming soon',
             badge: null
         },
-    ], [emailBadge, telegramBadge]);
+    ], [emailBadge, telegramBadge, isDev]);
 
     return (
         <div className="modal-overlay" onClick={handleModalClose}>
