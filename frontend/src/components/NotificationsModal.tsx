@@ -329,6 +329,16 @@ export function NotificationsModal({
     }, []); // Run only once on mount
 
     /**
+     * Auto-close connection modal when Telegram connects via SSE.
+     * @internal
+     */
+    useEffect(() => {
+        if (telegramConnected && showTelegramConnectionModal) {
+            setShowTelegramConnectionModal(false);
+        }
+    }, [telegramConnected, showTelegramConnectionModal]);
+
+    /**
      * Handle channel selection change.
      * @param channelId - The selected channel ID
      * @internal
@@ -617,6 +627,14 @@ export function NotificationsModal({
                         // Always switch back to Email when closing the modal
                         setSelectedChannel('Email');
                         selectedChannelRef.current = 'Email';
+                    }}
+                    onCancel={async () => {
+                        setShowTelegramConnectionModal(false);
+                        setSelectedChannel('Email');
+                        selectedChannelRef.current = 'Email';
+                        if (onCancelTelegramConnection) {
+                            await onCancelTelegramConnection();
+                        }
                     }}
                     onGetTelegramStartLink={async () => {
                         // Generate the link

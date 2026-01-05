@@ -30,7 +30,7 @@ describe('NotificationsModal', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        
+
         // Mock EventSource globally for all tests
         const mockEventSource = {
             addEventListener: vi.fn(),
@@ -200,10 +200,12 @@ describe('NotificationsModal', () => {
         });
 
         // Check for inline connection panel (not a separate modal)
-        // Check for the link in the inline panel
+        // Check for the Copy Key button (Step 1) and Go to Bot button (Step 2) in the inline panel
         await waitFor(() => {
-            const link = screen.getByRole('link', { name: /^go$/i });
-            expect(link).toBeInTheDocument();
+            const copyButton = screen.getByRole('button', { name: /copy key/i });
+            expect(copyButton).toBeInTheDocument();
+            const goButton = screen.getByRole('button', { name: /go to bot/i });
+            expect(goButton).toBeInTheDocument();
         });
     });
 
@@ -223,11 +225,9 @@ describe('NotificationsModal', () => {
         await user.click(telegramRadio);
 
         await waitFor(() => {
-            const link = screen.getByRole('link', { name: /^go$/i });
-            // Should use hardcoded URL, not the API link
-            expect(link).toHaveAttribute('href', 'https://t.me/abitus_robot');
-            expect(link).toHaveAttribute('target', '_blank');
-            expect(link).toHaveTextContent('Go');
+            const goButton = screen.getByRole('button', { name: /go to bot/i });
+            expect(goButton).toBeInTheDocument();
+            // In the new implementation, there's no direct link - users copy the key first, then go to bot
         });
     });
 
@@ -278,8 +278,8 @@ describe('NotificationsModal', () => {
         await user.click(telegramRadio);
 
         await waitFor(() => {
-            const link = screen.getByRole('link', { name: /^go$/i });
-            expect(link).toBeInTheDocument();
+            const copyButton = screen.getByRole('button', { name: /copy key/i });
+            expect(copyButton).toBeInTheDocument();
         });
 
         // Telegram should remain selected but NOT show connecting badge
@@ -305,7 +305,7 @@ describe('NotificationsModal', () => {
         await user.click(telegramRadio);
 
         await waitFor(() => {
-            expect(screen.getByRole('link', { name: /^go$/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /copy key/i })).toBeInTheDocument();
         });
 
         // Cancel button should NOT exist in the connection panel
@@ -389,15 +389,14 @@ describe('NotificationsModal', () => {
             // Title should be shown
             expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
 
-            // Step 1: Button to open Telegram
-            const telegramLink = screen.getByRole('link', { name: /^go$/i });
-            expect(telegramLink).toBeInTheDocument();
-            expect(telegramLink).toHaveAttribute('href', 'https://t.me/abitus_robot');
-            expect(telegramLink).toHaveTextContent('Go');
-
-            // Step 2: Copy key button
+            // Step 1: Copy key button (now first)
             const copyButton = screen.getByRole('button', { name: /copy key/i });
             expect(copyButton).toBeInTheDocument();
+
+            // Step 2: Go to Bot button (now second, and should be disabled initially)
+            const goButton = screen.getByRole('button', { name: /go to bot/i });
+            expect(goButton).toBeInTheDocument();
+            expect(goButton).toBeDisabled();
         });
 
         // Should NOT show "Preparing connection..." or "Waiting for connection..."
@@ -425,13 +424,13 @@ describe('NotificationsModal', () => {
         await user.click(telegramRadio);
 
         await waitFor(() => {
-            expect(screen.getByRole('link', { name: /^go$/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /copy key/i })).toBeInTheDocument();
         });
 
         // Connection panel should remain visible
         // Connection will happen via webhook when user sends /start command in Telegram
         // No automatic polling or connection detection
-        expect(screen.getByRole('link', { name: /^go$/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /copy key/i })).toBeInTheDocument();
     });
 
     it('should save automatically when switching to Email channel', async () => {
@@ -452,7 +451,7 @@ describe('NotificationsModal', () => {
 
         // Wait for connection panel to appear
         await waitFor(() => {
-            expect(screen.getByRole('link', { name: /^go$/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /copy key/i })).toBeInTheDocument();
         }, { timeout: 3000 });
 
         // Now click Email to trigger save
@@ -531,7 +530,7 @@ describe('NotificationsModal', () => {
         await user.click(telegramRadio);
 
         await waitFor(() => {
-            expect(screen.getByRole('link', { name: /^go$/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /copy key/i })).toBeInTheDocument();
         });
 
         // Switch back to Email to trigger save
@@ -568,7 +567,7 @@ describe('NotificationsModal', () => {
         await user.click(telegramRadio);
 
         await waitFor(() => {
-            expect(screen.getByRole('link', { name: /^go$/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /copy key/i })).toBeInTheDocument();
         });
 
         // Switch back to Email to trigger save
@@ -681,11 +680,17 @@ describe('NotificationsModal', () => {
             expect(copyButton).toBeInTheDocument();
         });
 
+        // Verify step 2 is disabled initially
+        const goButton = screen.getByRole('button', { name: /go to bot/i });
+        expect(goButton).toBeDisabled();
+
         const copyButton = screen.getByRole('button', { name: /copy key/i });
         await user.click(copyButton);
 
         await waitFor(() => {
             expect(writeTextSpy).toHaveBeenCalledWith('/start token123 1');
+            // Verify step 2 becomes enabled after copying
+            expect(goButton).not.toBeDisabled();
         });
 
         writeTextSpy.mockRestore();
@@ -892,7 +897,7 @@ describe('NotificationsModal', () => {
         expect(mockEventSource.close).toHaveBeenCalled();
     });
 
-    it('should show message when Copy key button is clicked', async () => {
+    it('should enable Go to Bot button when Copy key button is clicked', async () => {
         const user = userEvent.setup();
         const writeTextSpy = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
 
@@ -920,6 +925,10 @@ describe('NotificationsModal', () => {
             return screen.getByRole('button', { name: /copy key/i });
         });
 
+        // Verify Go to Bot button is disabled initially
+        const goButton = screen.getByRole('button', { name: /go to bot/i });
+        expect(goButton).toBeDisabled();
+
         await user.click(copyButton);
 
         // Wait for clipboard write to be called
@@ -927,12 +936,318 @@ describe('NotificationsModal', () => {
             expect(writeTextSpy).toHaveBeenCalled();
         });
 
-        // Wait for success message to appear (state update happens after clipboard write)
+        // Verify Go to Bot button becomes enabled after copying
         await waitFor(() => {
-            expect(screen.getByText(/You can now close this window/i)).toBeInTheDocument();
-        }, { timeout: 5000 });
+            expect(goButton).not.toBeDisabled();
+        });
 
         writeTextSpy.mockRestore();
+    });
+
+    it('should show waiting view when Go to Bot button is clicked', async () => {
+        const user = userEvent.setup();
+        vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+
+        render(
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+                user={mockUser}
+            />
+        );
+
+        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
+        await user.click(telegramRadio);
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /copy key/i })).toBeInTheDocument();
+        });
+
+        // Click copy key to enable step 2
+        const copyButton = screen.getByRole('button', { name: /copy key/i });
+        await user.click(copyButton);
+
+        // Click Go to Bot button
+        const goButton = screen.getByRole('button', { name: /go to bot/i });
+        await user.click(goButton);
+
+        // Verify waiting view appears
+        await waitFor(() => {
+            expect(screen.getByText(/Waiting for you to paste the key/i)).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /cancel connection/i })).toBeInTheDocument();
+        });
+    });
+
+    it('should call cancel handler when Cancel Connection button is clicked', async () => {
+        const user = userEvent.setup();
+        const mockCancelTelegramConnection = vi.fn().mockResolvedValue({ success: true });
+        vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+
+        render(
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+                onCancelTelegramConnection={mockCancelTelegramConnection}
+                user={mockUser}
+            />
+        );
+
+        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
+        await user.click(telegramRadio);
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /copy key/i })).toBeInTheDocument();
+        });
+
+        // Navigate to waiting view
+        await user.click(screen.getByRole('button', { name: /copy key/i }));
+        await user.click(screen.getByRole('button', { name: /go to bot/i }));
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /cancel connection/i })).toBeInTheDocument();
+        });
+
+        // Click Cancel Connection
+        const cancelButton = screen.getByRole('button', { name: /cancel connection/i });
+        await user.click(cancelButton);
+
+        // Verify cancel handler was called and modal closed
+        await waitFor(() => {
+            expect(mockCancelTelegramConnection).toHaveBeenCalled();
+            // Connection modal should close (not the main NotificationsModal)
+            expect(screen.queryByText(/Waiting for you to paste the key/i)).not.toBeInTheDocument();
+        });
+    });
+
+    it('should show confirmation dialog when closing modal in waiting state', async () => {
+        const user = userEvent.setup();
+        const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+        vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+
+        render(
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+                user={mockUser}
+            />
+        );
+
+        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
+        await user.click(telegramRadio);
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /copy key/i })).toBeInTheDocument();
+        });
+
+        // Navigate to waiting view
+        await user.click(screen.getByRole('button', { name: /copy key/i }));
+        await user.click(screen.getByRole('button', { name: /go to bot/i }));
+
+        await waitFor(() => {
+            expect(screen.getByText(/Waiting for you to paste the key/i)).toBeInTheDocument();
+        });
+
+        // Click close button (X) in the TelegramConnectionStepsModal (the second one)
+        const closeButtons = screen.getAllByRole('button', { name: /close/i });
+        const telegramModalCloseButton = closeButtons[closeButtons.length - 1]; // Get the last close button (inner modal)
+        await user.click(telegramModalCloseButton);
+
+        // Verify confirmation dialog was shown
+        expect(confirmSpy).toHaveBeenCalledWith('Do you want to cancel the Telegram connection?');
+        // Modal should stay open because we returned false
+        expect(mockOnClose).not.toHaveBeenCalled();
+
+        confirmSpy.mockRestore();
+    });
+
+    it('should close modal when user confirms cancellation in waiting state', async () => {
+        const user = userEvent.setup();
+        const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+        const mockCancelTelegramConnection = vi.fn().mockResolvedValue({ success: true });
+        vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+
+        render(
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+                onCancelTelegramConnection={mockCancelTelegramConnection}
+                user={mockUser}
+            />
+        );
+
+        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
+        await user.click(telegramRadio);
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /copy key/i })).toBeInTheDocument();
+        });
+
+        // Navigate to waiting view
+        await user.click(screen.getByRole('button', { name: /copy key/i }));
+        await user.click(screen.getByRole('button', { name: /go to bot/i }));
+
+        await waitFor(() => {
+            expect(screen.getByText(/Waiting for you to paste the key/i)).toBeInTheDocument();
+        });
+
+        // Click close button (X) in the TelegramConnectionStepsModal (the second one)
+        const closeButtons = screen.getAllByRole('button', { name: /close/i });
+        const telegramModalCloseButton = closeButtons[closeButtons.length - 1]; // Get the last close button (inner modal)
+        await user.click(telegramModalCloseButton);
+
+        // Verify confirmation was shown and connection modal closed
+        expect(confirmSpy).toHaveBeenCalledWith('Do you want to cancel the Telegram connection?');
+        await waitFor(() => {
+            expect(mockCancelTelegramConnection).toHaveBeenCalled();
+            // Connection modal should close (not the main NotificationsModal)
+            expect(screen.queryByText(/Waiting for you to paste the key/i)).not.toBeInTheDocument();
+        });
+
+        confirmSpy.mockRestore();
+    });
+
+    it('should close modal immediately when clicking X in steps view (no confirmation)', async () => {
+        const user = userEvent.setup();
+        const confirmSpy = vi.spyOn(window, 'confirm');
+
+        render(
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+                user={mockUser}
+            />
+        );
+
+        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
+        await user.click(telegramRadio);
+
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /copy key/i })).toBeInTheDocument();
+        });
+
+        // Click close button while still in steps view
+        const closeButton = screen.getAllByRole('button', { name: /close/i })[0];
+        await user.click(closeButton);
+
+        // Verify NO confirmation dialog was shown
+        expect(confirmSpy).not.toHaveBeenCalled();
+        // Modal should close immediately
+        expect(mockOnClose).toHaveBeenCalled();
+
+        confirmSpy.mockRestore();
+    });
+
+    it('should auto-close connection modal when SSE triggers telegram connection', async () => {
+        const user = userEvent.setup();
+
+        // Mock EventSource
+        const mockEventSource = {
+            addEventListener: vi.fn(),
+            close: vi.fn(),
+            onerror: null,
+        };
+        global.EventSource = vi.fn(function (this: any) {
+            return mockEventSource;
+        }) as any;
+
+        vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+
+        const { rerender } = render(
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+                user={mockUser}
+            />
+        );
+
+        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
+        await user.click(telegramRadio);
+
+        // Wait for the connection modal to open
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /copy key/i })).toBeInTheDocument();
+        });
+
+        // Navigate to waiting view
+        await user.click(screen.getByRole('button', { name: /copy key/i }));
+
+        // Wait for step 2 button to be enabled
+        await waitFor(() => {
+            const goButton = screen.getByRole('button', { name: /go to bot/i });
+            expect(goButton).not.toBeDisabled();
+        });
+
+        await user.click(screen.getByRole('button', { name: /go to bot/i }));
+
+        await waitFor(() => {
+            expect(screen.getByText(/Waiting for you to paste the key/i)).toBeInTheDocument();
+        });
+
+        // Simulate telegram connection: update user prop to reflect connection
+        const connectedUser = {
+            ...mockUser,
+            telegram_chat_id: '123456789',
+            notification_channels: 'Telegram'
+        };
+
+        // Rerender with connected user to trigger the auto-close effect
+        rerender(
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+                user={connectedUser}
+            />
+        );
+
+        // Wait for modal to close - it should auto-close when telegramConnected becomes true
+        await waitFor(() => {
+            // The connection modal should close
+            expect(screen.queryByText(/Waiting for you to paste the key/i)).not.toBeInTheDocument();
+            expect(screen.queryByText('Connect your Telegram account')).not.toBeInTheDocument();
+        }, { timeout: 3000 });
+    });
+
+    it('should disable Go to Bot button until Copy Key is clicked', async () => {
+        const user = userEvent.setup();
+
+        render(
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatus}
+                user={mockUser}
+            />
+        );
+
+        await user.click(screen.getByRole('radio', { name: /telegram/i }));
+
+        await waitFor(() => {
+            const goButton = screen.getByRole('button', { name: /go to bot/i });
+            expect(goButton).toBeDisabled();
+        });
+
+        const copyButton = screen.getByRole('button', { name: /copy key/i });
+        await user.click(copyButton);
+
+        await waitFor(() => {
+            const goButton = screen.getByRole('button', { name: /go to bot/i });
+            expect(goButton).not.toBeDisabled();
+        });
     });
 
 });

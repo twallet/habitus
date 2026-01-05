@@ -3,6 +3,7 @@ import './NotificationsModal.css';
 
 interface TelegramConnectionStepsModalProps {
     onClose: () => void;
+    onCancel?: () => void;
     onGetTelegramStartLink: () => Promise<{ link: string; token: string }>;
     onCopyClicked?: () => void;
 }
@@ -17,13 +18,15 @@ interface TelegramConnectionStepsModalProps {
  */
 export function TelegramConnectionStepsModal({
     onClose,
+    onCancel,
     onGetTelegramStartLink,
     onCopyClicked,
 }: TelegramConnectionStepsModalProps) {
     const [telegramStartCommand, setTelegramStartCommand] = useState<string | null>(null);
     const [isGeneratingLink, setIsGeneratingLink] = useState(false);
-    const [keyCopied, setKeyCopied] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [connectionStep, setConnectionStep] = useState<'steps' | 'waiting'>('steps');
+    const [step1Completed, setStep1Completed] = useState(false);
     const hasGeneratedRef = useRef(false);
 
     /**
@@ -83,14 +86,48 @@ export function TelegramConnectionStepsModal({
     }, []); // Only run once on mount
 
     /**
-     * Handle modal close.
+     * Handle modal close with confirmation if in waiting state.
      * @internal
      */
     const handleModalClose = () => {
-        setKeyCopied(false);
-        hasGeneratedRef.current = false; // Reset so token can be regenerated if modal reopens
-        setTelegramStartCommand(null); // Clear the command
-        onClose();
+        if (connectionStep === 'waiting') {
+            // Show confirmation dialog
+            if (window.confirm('Do you want to cancel the Telegram connection?')) {
+                setStep1Completed(false);
+                setConnectionStep('steps');
+                hasGeneratedRef.current = false;
+                setTelegramStartCommand(null);
+                if (onCancel) {
+                    onCancel(); // Parent will handle closing
+                } else {
+                    onClose(); // Fallback to close
+                }
+            }
+            // If user clicks "No", do nothing - stay on waiting view
+        } else {
+            // Close immediately when not in waiting state
+            setStep1Completed(false);
+            setConnectionStep('steps');
+            hasGeneratedRef.current = false;
+            setTelegramStartCommand(null);
+            onClose();
+        }
+    };
+
+    /**
+     * Handle cancel button click (no confirmation needed).
+     * @internal
+     */
+    const handleCancel = () => {
+        setStep1Completed(false);
+        setConnectionStep('steps');
+        hasGeneratedRef.current = false;
+        setTelegramStartCommand(null);
+        if (onCancel) {
+            onCancel(); // Parent will handle closing the modal
+        } else {
+            onClose(); // Fallback to close if no onCancel handler
+        }
     };
 
     return (
@@ -123,38 +160,14 @@ export function TelegramConnectionStepsModal({
                         </div>
                     )}
 
-                    {!isGeneratingLink && (
+                    {!isGeneratingLink && connectionStep === 'steps' && (
                         <div className="telegram-connection-panel-inline">
                             <div className="connection-step">
                                 <div className={`step-indicator ${telegramStartCommand ? 'active' : ''}`}>1</div>
                                 <div className="step-content">
-                                    <h4>Go to 🌱 Habitus in Telegram</h4>
-                                    <p className="form-help-text">Click the button below to open Habitus in Telegram:</p>
-                                    <a
-                                        href="https://t.me/abitus_robot"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="btn-primary telegram-link-button"
-                                        style={{
-                                            display: 'inline-block',
-                                            textAlign: 'center',
-                                            textDecoration: 'none',
-                                            marginTop: '8px',
-                                            height: 'auto',
-                                            minHeight: '32px',
-                                            lineHeight: '32px'
-                                        }}
-                                    >
-                                        Go
-                                    </a>
-                                </div>
-                            </div>
-                            <div className="connection-step">
-                                <div className={`step-indicator ${telegramStartCommand ? 'active' : ''}`}>2</div>
-                                <div className="step-content">
-                                    <h4>Copy/Paste your key</h4>
+                                    <h4>Copy your key</h4>
                                     <p className="form-help-text">
-                                        Copy your key by clicking the button below and paste it in the Habitus chat in Telegram:
+                                        Copy your key by clicking the button below:
                                     </p>
                                     {telegramStartCommand ? (
                                         <button
@@ -163,7 +176,7 @@ export function TelegramConnectionStepsModal({
                                                 if (telegramStartCommand) {
                                                     try {
                                                         await navigator.clipboard.writeText(telegramStartCommand);
-                                                        setKeyCopied(true);
+                                                        setStep1Completed(true);
                                                         // Notify parent that copy was clicked
                                                         if (onCopyClicked) {
                                                             onCopyClicked();
@@ -194,13 +207,68 @@ export function TelegramConnectionStepsModal({
                                     )}
                                 </div>
                             </div>
+                            <div className="connection-step">
+                                <div className={`step-indicator ${step1Completed ? 'active' : ''}`}>2</div>
+                                <div className="step-content">
+                                    <h4>Go to 🌱 Habitus in Telegram</h4>
+                                    <p className="form-help-text">Paste the key in the Habitus bot chat:</p>
+                                    <button
+                                        type="button"
+                                        disabled={!step1Completed}
+                                        onClick={() => {
+                                            setConnectionStep('waiting');
+                                        }}
+                                        className="btn-primary telegram-link-button"
+                                        style={{
+                                            display: 'inline-block',
+                                            textAlign: 'center',
+                                            marginTop: '8px',
+                                            height: 'auto',
+                                            minHeight: '32px',
+                                            lineHeight: '32px',
+                                            opacity: step1Completed ? 1 : 0.5,
+                                            cursor: step1Completed ? 'pointer' : 'not-allowed'
+                                        }}
+                                        title={step1Completed ? "Open Telegram bot to paste the key" : "Copy the key first"}
+                                    >
+                                        Go to Bot
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     )}
 
-                    {keyCopied && (
-                        <p className="form-help-text" style={{ marginTop: '24px', color: '#25a85a', fontWeight: 'bold' }}>
-                            Once checked you complete the 2 steps, your Telegram account will appear as connected. You can now close this window.
-                        </p>
+                    {connectionStep === 'waiting' && (
+                        <div className="telegram-waiting-view" style={{ padding: '20px', textAlign: 'center' }}>
+                            <div style={{ marginBottom: '20px' }}>
+                                <div className="spinner" style={{
+                                    border: '4px solid #f3f3f3',
+                                    borderTop: '4px solid #25a85a',
+                                    borderRadius: '50%',
+                                    width: '40px',
+                                    height: '40px',
+                                    animation: 'spin 1s linear infinite',
+                                    margin: '0 auto 20px'
+                                }}></div>
+                                <p className="form-help-text" style={{ fontSize: '16px', marginBottom: '10px' }}>
+                                    Waiting for you to paste the key in Habitus bot chat in Telegram...
+                                </p>
+                                <p className="form-help-text" style={{ color: '#666', fontSize: '14px' }}>
+                                    Once you paste the key, your account will be connected automatically.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleCancel}
+                                className="btn-secondary"
+                                style={{
+                                    marginTop: '20px',
+                                    padding: '10px 20px'
+                                }}
+                            >
+                                Cancel Connection
+                            </button>
+                        </div>
                     )}
                 </div>
             </div>
