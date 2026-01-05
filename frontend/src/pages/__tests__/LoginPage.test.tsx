@@ -39,6 +39,7 @@ describe('LoginPage', () => {
             getTelegramStartLink: vi.fn(),
             getTelegramStatus: vi.fn(),
             cancelTelegramConnection: vi.fn(),
+            disconnectTelegram: vi.fn(),
             updateUserPreferences: vi.fn(),
             deleteUser: vi.fn(),
         });

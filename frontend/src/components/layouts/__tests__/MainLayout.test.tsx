@@ -76,6 +76,7 @@ describe('MainLayout', () => {
             getTelegramStartLink: vi.fn(),
             getTelegramStatus: vi.fn(),
             cancelTelegramConnection: vi.fn(),
+            disconnectTelegram: vi.fn(),
             updateUserPreferences: vi.fn(),
             deleteUser: vi.fn(),
         });
@@ -127,6 +128,7 @@ describe('MainLayout', () => {
             getTelegramStartLink: vi.fn(),
             getTelegramStatus: vi.fn(),
             cancelTelegramConnection: vi.fn(),
+            disconnectTelegram: vi.fn(),
             updateUserPreferences: vi.fn(),
             deleteUser: vi.fn(),
         });
@@ -153,6 +155,7 @@ describe('MainLayout', () => {
             getTelegramStartLink: vi.fn(),
             getTelegramStatus: vi.fn(),
             cancelTelegramConnection: vi.fn(),
+            disconnectTelegram: vi.fn(),
             updateUserPreferences: vi.fn(),
             deleteUser: vi.fn(),
         });
@@ -410,6 +413,7 @@ describe('MainLayout', () => {
             getTelegramStartLink: vi.fn(),
             getTelegramStatus: vi.fn(),
             cancelTelegramConnection: vi.fn(),
+            disconnectTelegram: vi.fn(),
             updateUserPreferences: vi.fn(),
             deleteUser: vi.fn(),
         });
@@ -452,6 +456,7 @@ describe('MainLayout', () => {
             getTelegramStartLink: vi.fn(),
             getTelegramStatus: vi.fn(),
             cancelTelegramConnection: vi.fn(),
+            disconnectTelegram: vi.fn(),
             updateUserPreferences: vi.fn(),
             deleteUser: vi.fn(),
         });
@@ -495,6 +500,7 @@ describe('MainLayout', () => {
             getTelegramStartLink: vi.fn(),
             getTelegramStatus: vi.fn(),
             cancelTelegramConnection: vi.fn(),
+            disconnectTelegram: vi.fn(),
             updateUserPreferences: vi.fn(),
             deleteUser: vi.fn(),
         });
@@ -545,6 +551,7 @@ describe('MainLayout', () => {
             getTelegramStartLink: vi.fn(),
             getTelegramStatus: vi.fn(),
             cancelTelegramConnection: vi.fn(),
+            disconnectTelegram: vi.fn(),
             updateUserPreferences: vi.fn(),
             deleteUser: mockDeleteUser,
         });
@@ -869,6 +876,7 @@ describe('MainLayout', () => {
             getTelegramStartLink: vi.fn(),
             getTelegramStatus: vi.fn(),
             cancelTelegramConnection: vi.fn(),
+            disconnectTelegram: vi.fn(),
             updateUserPreferences: vi.fn(),
             deleteUser: vi.fn(),
         });

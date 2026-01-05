@@ -9,7 +9,7 @@ interface NotificationsModalProps {
     onGetTelegramStartLink: () => Promise<{ link: string; token: string }>;
     onGetTelegramStatus: () => Promise<{ connected: boolean; telegramChatId: string | null; telegramUsername: string | null; hasActiveToken: boolean }>;
     onCancelTelegramConnection?: () => Promise<{ success: boolean; message?: string }>;
-    onDisconnectTelegram?: () => Promise<void>;
+    onDisconnectTelegram?: () => Promise<UserData | void>;
     user?: UserData | null;
 }
 
