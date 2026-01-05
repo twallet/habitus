@@ -508,7 +508,7 @@ export function NotificationsModal({
                                                     value={channel.id}
                                                     checked={selectedChannel === channel.id}
                                                     onChange={() => handleChannelChange(channel.id)}
-                                                    disabled={isSubmitting || (channel.id === 'Telegram' && !telegramConnected)}
+                                                    disabled={isSubmitting}
                                                 />
                                             ) : null}
                                         </div>
