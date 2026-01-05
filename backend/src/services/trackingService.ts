@@ -109,7 +109,16 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
     if (!frequency) {
       throw new TypeError("Frequency is required");
     }
-    const validatedFrequency = Tracking.validateFrequency(frequency);
+    
+    // Get user's timezone for validation (needed for one-time frequency date validation)
+    const userRow = await this.db.get<{ timezone: string | null }>(
+      "SELECT timezone FROM users WHERE id = ?",
+      [validatedUserId]
+    );
+    const userTimezone = userRow?.timezone || undefined;
+    
+    // Pass timezone to validation
+    const validatedFrequency = Tracking.validateFrequency(frequency, userTimezone);
 
     // Validate schedules
     if (!schedules || schedules.length === 0) {
@@ -274,7 +283,14 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
 
     // Handle frequency update
     if (frequency !== undefined) {
-      const validatedFrequency = Tracking.validateFrequency(frequency);
+      // Get user's timezone for validation (needed for one-time frequency date validation)
+      const userRow = await this.db.get<{ timezone: string | null }>(
+        "SELECT timezone FROM users WHERE id = ?",
+        [userId]
+      );
+      const userTimezone = userRow?.timezone || undefined;
+      
+      const validatedFrequency = Tracking.validateFrequency(frequency, userTimezone);
       updates.push("frequency = ?");
       values.push(JSON.stringify(validatedFrequency));
     }

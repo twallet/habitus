@@ -283,11 +283,12 @@ export class Tracking {
   /**
    * Validates frequency pattern (required).
    * @param frequency - The frequency pattern to validate
+   * @param timezone - Optional user timezone (IANA timezone) for one-time date validation
    * @returns The validated frequency pattern
    * @throws {@link TypeError} If the frequency pattern is invalid
    * @public
    */
-  static validateFrequency(frequency: Frequency): Frequency {
+  static validateFrequency(frequency: Frequency, timezone?: string): Frequency {
     if (frequency === null || frequency === undefined) {
       throw new TypeError("Frequency is required");
     }
@@ -471,20 +472,44 @@ export class Tracking {
       if (!datePattern.test(frequency.date)) {
         throw new TypeError("date must be in YYYY-MM-DD format");
       }
-      const dateObj = new Date(frequency.date + "T00:00:00");
+      
+      // Parse the date components
+      const [year, month, day] = frequency.date.split("-").map(Number);
+      const dateObj = new Date(year, month - 1, day);
       if (isNaN(dateObj.getTime())) {
         throw new TypeError("date must be a valid date");
       }
-      // Validate that the date is today or in the future
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const selectedDateOnly = new Date(
-        dateObj.getFullYear(),
-        dateObj.getMonth(),
-        dateObj.getDate()
-      );
-      if (selectedDateOnly < today) {
-        throw new TypeError("date must be today or in the future");
+      
+      // Validate that the date is today or in the future IN USER'S TIMEZONE
+      if (timezone) {
+        // Get current date in user's timezone
+        const now = new Date();
+        const formatter = new Intl.DateTimeFormat("en-US", {
+          timeZone: timezone,
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        });
+        const parts = formatter.formatToParts(now);
+        const userYear = parseInt(parts.find((p) => p.type === "year")!.value);
+        const userMonth = parseInt(parts.find((p) => p.type === "month")!.value);
+        const userDay = parseInt(parts.find((p) => p.type === "day")!.value);
+        
+        const userToday = new Date(userYear, userMonth - 1, userDay);
+        const selectedDateOnly = new Date(year, month - 1, day);
+        
+        if (selectedDateOnly < userToday) {
+          throw new TypeError("date must be today or in the future");
+        }
+      } else {
+        // Fallback to server timezone if no user timezone provided
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const selectedDateOnly = new Date(year, month - 1, day);
+        
+        if (selectedDateOnly < today) {
+          throw new TypeError("date must be today or in the future");
+        }
       }
       return frequency;
     }
