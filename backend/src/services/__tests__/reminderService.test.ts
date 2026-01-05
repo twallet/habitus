@@ -1466,4 +1466,124 @@ describe("ReminderService", () => {
       expect(mockFunctions.sendReminderMessage).not.toHaveBeenCalled();
     });
   });
+
+  describe("processExpiredReminders", () => {
+    it("should update expired upcoming reminders to Pending status", async () => {
+      // Create an expired upcoming reminder
+      const pastTime = new Date(Date.now() - 60000).toISOString(); // 1 minute ago
+      const created = await reminderService.createReminder(
+        testTrackingId,
+        testUserId,
+        pastTime
+      );
+
+      // Manually set status to UPCOMING with past scheduled_time
+      await testDb.run(
+        "UPDATE reminders SET status = ?, scheduled_time = ? WHERE id = ?",
+        [ReminderStatus.UPCOMING, pastTime, created.id]
+      );
+
+      // Process expired reminders
+      await reminderService.processExpiredReminders();
+
+      // Verify the reminder was updated to Pending
+      const reminder = await Reminder.loadById(
+        created.id,
+        testUserId,
+        testDb
+      );
+      expect(reminder).not.toBeNull();
+      expect(reminder!.status).toBe(ReminderStatus.PENDING);
+    });
+
+    it("should not update non-expired upcoming reminders", async () => {
+      // Create a future upcoming reminder
+      const futureTime = new Date(Date.now() + 3600000).toISOString(); // 1 hour from now
+      const created = await reminderService.createReminder(
+        testTrackingId,
+        testUserId,
+        futureTime
+      );
+
+      // Manually set status to UPCOMING with future scheduled_time
+      await testDb.run(
+        "UPDATE reminders SET status = ?, scheduled_time = ? WHERE id = ?",
+        [ReminderStatus.UPCOMING, futureTime, created.id]
+      );
+
+      // Process expired reminders
+      await reminderService.processExpiredReminders();
+
+      // Verify the reminder remains Upcoming
+      const reminder = await Reminder.loadById(
+        created.id,
+        testUserId,
+        testDb
+      );
+      expect(reminder).not.toBeNull();
+      expect(reminder!.status).toBe(ReminderStatus.UPCOMING);
+    });
+
+    it("should handle multiple expired reminders", async () => {
+      // Create multiple expired upcoming reminders
+      const pastTime1 = new Date(Date.now() - 120000).toISOString(); // 2 minutes ago
+      const pastTime2 = new Date(Date.now() - 60000).toISOString(); // 1 minute ago
+
+      const created1 = await reminderService.createReminder(
+        testTrackingId,
+        testUserId,
+        pastTime1
+      );
+      const created2 = await reminderService.createReminder(
+        testTrackingId,
+        testUserId,
+        pastTime2
+      );
+
+      // Manually set both to UPCOMING
+      await testDb.run(
+        "UPDATE reminders SET status = ?, scheduled_time = ? WHERE id = ?",
+        [ReminderStatus.UPCOMING, pastTime1, created1.id]
+      );
+      await testDb.run(
+        "UPDATE reminders SET status = ?, scheduled_time = ? WHERE id = ?",
+        [ReminderStatus.UPCOMING, pastTime2, created2.id]
+      );
+
+      // Process expired reminders
+      await reminderService.processExpiredReminders();
+
+      // Verify both reminders were updated to Pending
+      const reminder1 = await Reminder.loadById(
+        created1.id,
+        testUserId,
+        testDb
+      );
+      const reminder2 = await Reminder.loadById(
+        created2.id,
+        testUserId,
+        testDb
+      );
+
+      expect(reminder1).not.toBeNull();
+      expect(reminder1!.status).toBe(ReminderStatus.PENDING);
+      expect(reminder2).not.toBeNull();
+      expect(reminder2!.status).toBe(ReminderStatus.PENDING);
+    });
+
+    it("should handle empty result when no expired reminders exist", async () => {
+      // Create a future upcoming reminder
+      const futureTime = new Date(Date.now() + 3600000).toISOString();
+      await reminderService.createReminder(
+        testTrackingId,
+        testUserId,
+        futureTime
+      );
+
+      // Process expired reminders - should not throw
+      await expect(
+        reminderService.processExpiredReminders()
+      ).resolves.not.toThrow();
+    });
+  });
 });

@@ -1397,7 +1397,11 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
    * @public
    */
   async processExpiredReminders(): Promise<void> {
-    const expiredReminderRows = await this.db.all<{
+    const now = new Date();
+    
+    // Fetch all UPCOMING reminders and filter in JavaScript for more reliable comparison
+    // This ensures we catch all expired reminders regardless of database type or datetime format
+    const upcomingReminderRows = await this.db.all<{
       id: number;
       tracking_id: number;
       user_id: number;
@@ -1410,13 +1414,27 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
     }>(
       `SELECT id, tracking_id, user_id, scheduled_time, notes, status, value, created_at, updated_at 
        FROM reminders 
-       WHERE status = ? AND scheduled_time <= ?`,
-      [ReminderStatus.UPCOMING, new Date().toISOString()]
+       WHERE status = ?`,
+      [ReminderStatus.UPCOMING]
     );
+
+    if (upcomingReminderRows.length === 0) {
+      return;
+    }
+
+    // Filter expired reminders in JavaScript for reliable datetime comparison
+    const expiredReminderRows = upcomingReminderRows.filter((row) => {
+      const scheduledTime = new Date(row.scheduled_time);
+      return scheduledTime <= now;
+    });
 
     if (expiredReminderRows.length === 0) {
       return;
     }
+
+    console.log(
+      `[${new Date().toISOString()}] REMINDER_POLL | Found ${expiredReminderRows.length} expired Upcoming reminder(s) out of ${upcomingReminderRows.length} total`
+    );
 
     // Convert rows to Reminder instances
     const expiredReminders = expiredReminderRows.map(
