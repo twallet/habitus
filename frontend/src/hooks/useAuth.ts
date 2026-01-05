@@ -416,6 +416,37 @@ export function useAuth() {
   };
 
   /**
+   * Disconnect Telegram account for the authenticated user.
+   * Clears the telegram_chat_id and switches to Email notifications.
+   * @returns Promise resolving to updated user data
+   * @throws Error if request fails
+   * @public
+   */
+  const disconnectTelegram = async (): Promise<UserData> => {
+    if (!token) {
+      console.error(
+        `[${new Date().toISOString()}] FRONTEND_AUTH | Disconnect Telegram failed: not authenticated`
+      );
+      throw new Error("Not authenticated");
+    }
+
+    console.log(
+      `[${new Date().toISOString()}] FRONTEND_AUTH | Disconnecting Telegram for user ID: ${
+        user?.id
+      }`
+    );
+
+    const updatedUser = await apiClient.disconnectTelegram();
+    console.log(
+      `[${new Date().toISOString()}] FRONTEND_AUTH | Telegram disconnected successfully for user ID: ${
+        updatedUser.id
+      }`
+    );
+    setUser(updatedUser);
+    return updatedUser;
+  };
+
+  /**
    * Update locale and timezone preferences.
    * @param locale - Optional locale (BCP 47 format like 'en-US', 'es-AR')
    * @param timezone - Optional timezone (IANA timezone like 'America/Buenos_Aires')
@@ -508,6 +539,7 @@ export function useAuth() {
     getTelegramStartLink,
     getTelegramStatus,
     cancelTelegramConnection,
+    disconnectTelegram,
     updateUserPreferences,
     deleteUser,
   };

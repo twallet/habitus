@@ -329,6 +329,53 @@ export class UserService {
   }
 
   /**
+   * Disconnect Telegram account for a user.
+   * Clears the telegram_chat_id and switches to Email notifications.
+   * @param userId - The user ID
+   * @returns Promise resolving to updated user data
+   * @throws Error if user not found
+   * @public
+   */
+  async disconnectTelegram(userId: number): Promise<UserData> {
+    console.log(
+      `[${new Date().toISOString()}] USER | Disconnecting Telegram for userId: ${userId}`
+    );
+
+    // Get current user
+    const user = await User.loadById(userId, this.db);
+    if (!user) {
+      console.warn(
+        `[${new Date().toISOString()}] USER | Disconnect Telegram failed: user not found for userId: ${userId}`
+      );
+      throw new Error("User not found");
+    }
+
+    // Clear Telegram connection and switch to Email
+    await user.update(
+      {
+        telegram_chat_id: "",
+        notification_channels: "Email",
+      },
+      this.db
+    );
+
+    // Retrieve updated user
+    const updatedUser = await this.getUserById(userId);
+    if (!updatedUser) {
+      console.error(
+        `[${new Date().toISOString()}] USER | Failed to retrieve updated user after disconnecting Telegram for userId: ${userId}`
+      );
+      throw new Error("Failed to retrieve updated user");
+    }
+
+    console.log(
+      `[${new Date().toISOString()}] USER | Telegram disconnected successfully for userId: ${userId}`
+    );
+
+    return updatedUser;
+  }
+
+  /**
    * Update locale and timezone preferences for a user.
    * @param userId - The user ID
    * @param locale - Optional locale (BCP 47 format like 'en-US', 'es-AR')

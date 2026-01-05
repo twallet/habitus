@@ -1139,6 +1139,44 @@ describe("UserService", () => {
     });
   });
 
+  describe("disconnectTelegram", () => {
+    it("should disconnect Telegram and switch to Email", async () => {
+      // Create user with Telegram connected
+      await testDb.run(
+        "INSERT INTO users (name, email, telegram_chat_id, notification_channels) VALUES (?, ?, ?, ?)",
+        ["Test User", "test@example.com", "123456789", "Telegram"]
+      );
+      const users = await userService.getAllUsers();
+      const user = users[0];
+
+      const updatedUser = await userService.disconnectTelegram(user.id);
+
+      expect(updatedUser.telegram_chat_id).toBeUndefined();
+      expect(updatedUser.notification_channels).toBe("Email");
+    });
+
+    it("should work even if Telegram is not connected", async () => {
+      // Create user without Telegram
+      await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
+        "Test User",
+        "test@example.com",
+      ]);
+      const users = await userService.getAllUsers();
+      const user = users[0];
+
+      const updatedUser = await userService.disconnectTelegram(user.id);
+
+      expect(updatedUser.telegram_chat_id).toBeUndefined();
+      expect(updatedUser.notification_channels).toBe("Email");
+    });
+
+    it("should throw error if user not found", async () => {
+      await expect(userService.disconnectTelegram(999)).rejects.toThrow(
+        "User not found"
+      );
+    });
+  });
+
   describe("updateLocaleAndTimezone", () => {
     let userId: number;
 

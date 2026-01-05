@@ -547,6 +547,17 @@ export class ApiClient {
   }
 
   /**
+   * Disconnect Telegram account.
+   * Clears the telegram_chat_id and switches to Email notifications.
+   * @returns Promise resolving to updated user data
+   * @throws Error if request fails
+   * @public
+   */
+  async disconnectTelegram(): Promise<UserData> {
+    return this.delete<UserData>(`${API_ENDPOINTS.users}/telegram`);
+  }
+
+  /**
    * Get Telegram bot start link for connecting Telegram account.
    * @returns Promise resolving to object with link and token
    * @throws Error if request fails

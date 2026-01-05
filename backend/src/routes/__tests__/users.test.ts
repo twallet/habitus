@@ -505,6 +505,60 @@ describe("Users Routes", () => {
     });
   });
 
+  describe("DELETE /api/users/telegram", () => {
+    let userId: number;
+
+    beforeEach(async () => {
+      const result = await testDb.run(
+        "INSERT INTO users (name, email, telegram_chat_id, notification_channels) VALUES (?, ?, ?, ?)",
+        ["Test User", "test@example.com", "123456789", "Telegram"]
+      );
+      userId = result.lastID;
+
+      vi.clearAllMocks();
+      (authMiddleware.authenticateToken as Mock).mockImplementation(
+        (req: any, _res: any, next: any) => {
+          req.userId = userId;
+          next();
+        }
+      );
+    });
+
+    it("should disconnect Telegram successfully", async () => {
+      const response = await request(app).delete("/api/users/telegram");
+
+      expect(response.status).toBe(200);
+      expect(response.body.telegram_chat_id).toBeUndefined();
+      expect(response.body.notification_channels).toBe("Email");
+    });
+
+    it("should return 404 if user not found", async () => {
+      (authMiddleware.authenticateToken as Mock).mockImplementation(
+        (req: any, _res: any, next: any) => {
+          req.userId = 999;
+          next();
+        }
+      );
+
+      const response = await request(app).delete("/api/users/telegram");
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe("User not found");
+    });
+
+    it("should return 500 if service throws unexpected error", async () => {
+      vi.spyOn(
+        servicesModule.ServiceManager.getUserService(),
+        "disconnectTelegram"
+      ).mockRejectedValueOnce(new Error("Database error"));
+
+      const response = await request(app).delete("/api/users/telegram");
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe("Error disconnecting Telegram");
+    });
+  });
+
   describe("DELETE /api/users/profile", () => {
     let userId: number;
 

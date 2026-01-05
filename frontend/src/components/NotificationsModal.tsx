@@ -9,6 +9,7 @@ interface NotificationsModalProps {
     onGetTelegramStartLink: () => Promise<{ link: string; token: string }>;
     onGetTelegramStatus: () => Promise<{ connected: boolean; telegramChatId: string | null; telegramUsername: string | null; hasActiveToken: boolean }>;
     onCancelTelegramConnection?: () => Promise<{ success: boolean; message?: string }>;
+    onDisconnectTelegram?: () => Promise<void>;
     user?: UserData | null;
 }
 
@@ -74,6 +75,7 @@ export function NotificationsModal({
     onGetTelegramStartLink,
     onGetTelegramStatus,
     onCancelTelegramConnection,
+    onDisconnectTelegram,
     user,
 }: NotificationsModalProps) {
     const [selectedChannel, setSelectedChannel] = useState<string>(user?.notification_channels || 'Email');
@@ -360,10 +362,13 @@ export function NotificationsModal({
      */
     const handleDisconnectTelegram = async () => {
         try {
-            // Switch to Email and save (this will clear telegram_chat_id in DB)
+            // Call the disconnect endpoint
+            if (onDisconnectTelegram) {
+                await onDisconnectTelegram();
+            }
+            // Switch to Email
             setSelectedChannel('Email');
             selectedChannelRef.current = 'Email';
-            await savePreferences('Email');
             // Clear Telegram connection state
             setTelegramConnected(false);
             setTelegramChatId(null);

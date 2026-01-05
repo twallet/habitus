@@ -214,6 +214,36 @@ router.put(
 );
 
 /**
+ * DELETE /api/users/telegram
+ * Disconnect Telegram account for authenticated user.
+ * @route DELETE /api/users/telegram
+ * @header {string} Authorization - Bearer token
+ * @returns {UserData} Updated user data with Telegram disconnected
+ */
+router.delete(
+  "/telegram",
+  authenticateToken,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId!;
+
+      const user = await getUserServiceInstance().disconnectTelegram(userId);
+
+      res.json(user);
+    } catch (error) {
+      if (error instanceof Error && error.message === "User not found") {
+        return res.status(404).json({ error: error.message });
+      }
+      console.error(
+        `[${new Date().toISOString()}] USER_ROUTE | Error disconnecting Telegram:`,
+        error
+      );
+      res.status(500).json({ error: "Error disconnecting Telegram" });
+    }
+  }
+);
+
+/**
  * PUT /api/users/preferences
  * Update authenticated user's locale and timezone preferences.
  * @route PUT /api/users/preferences

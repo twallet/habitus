@@ -17,7 +17,7 @@ import { NotificationsModal } from '../../components/NotificationsModal';
 import { OutletContextType } from '../../context/AppContext';
 
 export function MainLayout() {
-    const { isAuthenticated, isLoading, user, logout, updateProfile, updateNotificationPreferences, deleteUser, requestEmailChange, getTelegramStartLink, getTelegramStatus, cancelTelegramConnection } = useAuth();
+    const { isAuthenticated, isLoading, user, logout, updateProfile, updateNotificationPreferences, deleteUser, requestEmailChange, getTelegramStartLink, getTelegramStatus, cancelTelegramConnection, disconnectTelegram } = useAuth();
     const [searchParams, setSearchParams] = useSearchParams();
     const location = useLocation();
     const isAdminPage = location.pathname === '/admin';
@@ -353,6 +353,7 @@ export function MainLayout() {
                         onGetTelegramStartLink={getTelegramStartLink}
                         onGetTelegramStatus={getTelegramStatus}
                         onCancelTelegramConnection={cancelTelegramConnection}
+                        onDisconnectTelegram={disconnectTelegram}
                         user={user}
                     />
                 )}
