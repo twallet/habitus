@@ -6,7 +6,7 @@ import { TelegramConnectionStepsModal } from './TelegramConnectionStepsModal';
 interface NotificationsModalProps {
     onClose: () => void;
     onSave: (notificationChannel: string, telegramChatId?: string) => Promise<void>;
-    onGetTelegramStartLink: () => Promise<{ link: string; token: string }>;
+    onGetTelegramStartLink: () => Promise<{ link: string; token: string; userId?: number }>;
     onGetTelegramStatus: () => Promise<{ connected: boolean; telegramChatId: string | null; telegramUsername: string | null; hasActiveToken: boolean }>;
     onCancelTelegramConnection?: () => Promise<{ success: boolean; message?: string }>;
     onDisconnectTelegram?: () => Promise<UserData | void>;
