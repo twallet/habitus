@@ -943,7 +943,7 @@ describe("Server Configuration - Integration Tests", () => {
       vi.restoreAllMocks();
     });
 
-    it.skip("should import server.ts with VERBOSE_LOGGING enabled", async () => {
+    it("should import server.ts with VERBOSE_LOGGING enabled", async () => {
       process.env.NODE_ENV = "development";
       process.env.VERBOSE_LOGGING = "true";
       vi.clearAllMocks();
@@ -983,7 +983,7 @@ describe("Server Configuration - Integration Tests", () => {
       vi.restoreAllMocks();
     });
 
-    it.skip("should handle server.ts import in production mode", async () => {
+    it("should handle server.ts import in production mode", async () => {
       process.env.NODE_ENV = "production";
       vi.clearAllMocks();
       mockDbInitialize.mockResolvedValue(undefined);
@@ -2060,7 +2060,7 @@ describe("Server Configuration - Integration Tests", () => {
       expect(response.body.status).toBe("ok");
     });
 
-    it.skip("should include error message in development mode", async () => {
+    it("should include error message in development mode", async () => {
       process.env.NODE_ENV = "development";
 
       await setupAndImportServer();
@@ -2091,7 +2091,7 @@ describe("Server Configuration - Integration Tests", () => {
       }
     });
 
-    it.skip("should not include error message in production mode", async () => {
+    it("should not include error message in production mode", async () => {
       process.env.NODE_ENV = "production";
 
       await setupAndImportServer();
