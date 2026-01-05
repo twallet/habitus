@@ -274,16 +274,6 @@ export class UserService {
       );
     }
 
-    // Validate that Telegram chat ID is provided if Telegram is enabled
-    if (
-      notificationChannel === "Telegram" &&
-      (!telegramChatId || telegramChatId.trim() === "")
-    ) {
-      throw new TypeError(
-        "Telegram chat ID is required when Telegram notifications are enabled"
-      );
-    }
-
     // Get current user
     const user = await User.loadById(userId, this.db);
     if (!user) {
@@ -291,6 +281,20 @@ export class UserService {
         `[${new Date().toISOString()}] USER | Update notification preferences failed: user not found for userId: ${userId}`
       );
       throw new Error("User not found");
+    }
+
+    // Validate that Telegram chat ID is available if Telegram is enabled
+    // Either a new one must be provided, or an existing one must be present
+    if (notificationChannel === "Telegram") {
+      const hasTelegramChatId =
+        (telegramChatId && telegramChatId.trim() !== "") ||
+        (user.telegram_chat_id && user.telegram_chat_id.trim() !== "");
+
+      if (!hasTelegramChatId) {
+        throw new TypeError(
+          "Telegram chat ID is required when Telegram notifications are enabled"
+        );
+      }
     }
 
     // Update notification preferences
