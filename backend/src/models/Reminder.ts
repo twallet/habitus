@@ -352,7 +352,7 @@ export class Reminder extends BaseReminder {
       id: row.id,
       tracking_id: row.tracking_id,
       user_id: row.user_id,
-      scheduled_time: row.scheduled_time,
+      scheduled_time: typeof row.scheduled_time === 'string' ? row.scheduled_time : String(row.scheduled_time),
       notes: row.notes || undefined,
       status: (row.status as ReminderStatus) || ReminderStatus.PENDING,
       value: (row.value as ReminderValue) || null,
