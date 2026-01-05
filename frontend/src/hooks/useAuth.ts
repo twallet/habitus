@@ -366,13 +366,14 @@ export function useAuth() {
 
   /**
    * Get Telegram bot start link for connecting Telegram account.
-   * @returns Promise resolving to object with link and token
+   * @returns Promise resolving to object with link, token, and userId
    * @throws Error if request fails
    * @public
    */
   const getTelegramStartLink = async (): Promise<{
     link: string;
     token: string;
+    userId?: number;
   }> => {
     if (!token) {
       throw new Error("Not authenticated");

@@ -58,7 +58,13 @@ export function TelegramConnectionStepsModal({
             setIsGeneratingLink(true);
             setError(null);
             try {
+                console.log('[TelegramConnectionStepsModal] Generating link...');
                 const result = await onGetTelegramStartLink();
+                console.log('[TelegramConnectionStepsModal] Link generated:', { 
+                    hasLink: !!result.link, 
+                    hasToken: !!result.token, 
+                    hasUserId: !!result.userId 
+                });
 
                 // Check if webhook is configured
                 if (result && typeof result === 'object' && 'webhookConfigured' in result && !(result as any).webhookConfigured) {
@@ -74,6 +80,14 @@ export function TelegramConnectionStepsModal({
                     return;
                 }
 
+                // Validate required fields
+                if (!result || !result.link) {
+                    throw new Error('Invalid response: link is missing');
+                }
+                if (!result.token) {
+                    throw new Error('Invalid response: token is missing');
+                }
+
                 // Store the bot link
                 setTelegramBotLink(result.link);
 
@@ -81,9 +95,11 @@ export function TelegramConnectionStepsModal({
                 // Format: "/start <token> <userId>"
                 if (result.token && result.userId) {
                     const command = `/start ${result.token} ${result.userId}`;
+                    console.log('[TelegramConnectionStepsModal] Command constructed:', command.substring(0, 20) + '...');
                     setTelegramStartCommand(command);
                 } else if (result.token) {
                     // Fallback: if userId not provided, try to extract from link (backward compatibility)
+                    console.warn('[TelegramConnectionStepsModal] userId not provided, trying to extract from link');
                     try {
                         const url = new URL(result.link);
                         const startParam = url.searchParams.get('start');
@@ -91,12 +107,18 @@ export function TelegramConnectionStepsModal({
                             const decoded = decodeURIComponent(startParam);
                             const command = decoded.startsWith('/start ') ? decoded : `/start ${decoded}`;
                             setTelegramStartCommand(command);
+                        } else {
+                            throw new Error('Cannot construct command: userId missing and link has no start parameter');
                         }
                     } catch (e) {
-                        console.error('Error constructing command:', e);
+                        console.error('[TelegramConnectionStepsModal] Error constructing command:', e);
+                        throw new Error('Cannot construct command: userId is required');
                     }
+                } else {
+                    throw new Error('Token is missing from response');
                 }
             } catch (err) {
+                console.error('[TelegramConnectionStepsModal] Error generating link:', err);
                 setError(err instanceof Error ? err.message : 'Error generating Telegram link');
             } finally {
                 setIsGeneratingLink(false);

@@ -594,7 +594,13 @@ export function NotificationsModal({
                         // Generate the link
                         const result = await onGetTelegramStartLink();
                         // Immediately check status to detect the new active token
-                        await checkTelegramStatus();
+                        // Don't let status check errors prevent link generation
+                        try {
+                            await checkTelegramStatus();
+                        } catch (err) {
+                            console.error('[NotificationsModal] Error checking status after link generation:', err);
+                            // Continue even if status check fails
+                        }
                         return result;
                     }}
                     onCopyClicked={() => {
