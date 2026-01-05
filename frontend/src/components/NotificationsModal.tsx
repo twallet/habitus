@@ -203,8 +203,16 @@ export function NotificationsModal({
                 console.log('[NotificationsModal] Telegram not connected, hasActiveToken:', status.hasActiveToken);
                 setTelegramChatId(null);
                 updateTelegramConnected(false);
-                // Set connecting state based on hasActiveToken from backend
+                // Set connecting state based on hasActiveToken from backend (for internal logic)
                 updateTelegramConnecting(status.hasActiveToken);
+                // If Telegram is selected but not connected, switch back to Email
+                if (selectedChannelRef.current === 'Telegram' && !status.connected) {
+                    console.log('[NotificationsModal] Telegram not connected, switching to Email');
+                    setSelectedChannel('Email');
+                    selectedChannelRef.current = 'Email';
+                    // Save Email preference
+                    await savePreferences('Email');
+                }
             }
         } catch (err) {
             console.error('[NotificationsModal] Error checking Telegram status:', err);
@@ -286,14 +294,15 @@ export function NotificationsModal({
             return;
         }
         if (channelId === 'Telegram') {
-            setSelectedChannel('Telegram');
-            selectedChannelRef.current = 'Telegram';
-            // If Telegram is already connected, save immediately
+            // If Telegram is already connected, select and save immediately
             if (telegramConnected) {
+                setSelectedChannel('Telegram');
+                selectedChannelRef.current = 'Telegram';
                 await savePreferences('Telegram');
                 return;
             }
-            // Otherwise, open the connection steps modal
+            // If not connected, open connection modal but don't select Telegram yet
+            // Telegram will only be selected after successful connection
             setShowTelegramConnectionModal(true);
         } else {
             setSelectedChannel(channelId);
@@ -346,10 +355,6 @@ export function NotificationsModal({
     }, [user?.email]);
 
     const telegramBadge = useMemo(() => {
-        // Show "Connecting..." if copy button was clicked but not yet connected
-        if (telegramConnecting && !telegramConnected) {
-            return 'Connecting...';
-        }
         // Show "No account connected" if Telegram is not connected
         if (!telegramConnected) {
             return 'No account connected';
@@ -368,7 +373,7 @@ export function NotificationsModal({
         }
         // If connected but no username available, show generic message
         return 'Connected';
-    }, [telegramConnected, telegramUsername, telegramConnecting]);
+    }, [telegramConnected, telegramUsername]);
 
     // Check globalThis first for test compatibility, then fall back to import.meta.env
     const isDev = (globalThis as any).import?.meta?.env?.DEV ?? import.meta.env.DEV;
@@ -470,58 +475,15 @@ export function NotificationsModal({
                                                     <span className={`user-badge ${channel.id === 'Email'
                                                         ? 'badge-green'
                                                         : channel.id === 'Telegram'
-                                                            ? (telegramConnected ? 'badge-green' : telegramConnecting ? 'badge-yellow' : 'badge-red')
+                                                            ? (telegramConnected ? 'badge-green' : 'badge-red')
                                                             : ''
                                                         }`}
-                                                        style={channel.id === 'Telegram' && telegramConnecting && !telegramConnected
-                                                            ? { backgroundColor: '#fff9c4', color: '#856404' }
-                                                            : undefined
-                                                        }
                                                         title={channel.id === 'Telegram' && telegramConnected
                                                             ? `Connected as ${channel.badge}. Click the x to disconnect.`
-                                                            : channel.id === 'Telegram' && telegramConnecting
-                                                                ? 'Waiting for you to start the Telegram bot. Click the x to cancel.'
-                                                                : undefined
+                                                            : undefined
                                                         }>
                                                         {channel.badge}
-                                                        {channel.id === 'Telegram' && telegramConnecting && !telegramConnected && (
-                                                            <button
-                                                                type="button"
-                                                                className="badge-disconnect-btn"
-                                                                onClick={async (e) => {
-                                                                    e.stopPropagation();
-                                                                    e.preventDefault();
-                                                                    // Set canceling flag to prevent modal from opening
-                                                                    isCancelingRef.current = true;
-                                                                    // Cancel the connection on the backend
-                                                                    if (onCancelTelegramConnection) {
-                                                                        try {
-                                                                            await onCancelTelegramConnection();
-                                                                        } catch (err) {
-                                                                            console.error('Error cancelling Telegram connection:', err);
-                                                                        }
-                                                                    }
-                                                                    updateTelegramConnecting(false);
-                                                                    // Close the connection modal if it's open
-                                                                    setShowTelegramConnectionModal(false);
-                                                                    // Select Email channel
-                                                                    setSelectedChannel('Email');
-                                                                    selectedChannelRef.current = 'Email';
-                                                                    // Re-check status to sync with backend (should now show hasActiveToken as false)
-                                                                    await checkTelegramStatus();
-                                                                    // Reset canceling flag after a short delay
-                                                                    setTimeout(() => {
-                                                                        isCancelingRef.current = false;
-                                                                    }, 100);
-                                                                }}
-                                                                aria-label="Cancel Telegram connection"
-                                                                title="Cancel the connection process and return to Email notifications"
-                                                                style={{ backgroundColor: '#000000', color: '#ffffff' }}
-                                                            >
-                                                                x
-                                                            </button>
-                                                        )}
-                                                        {channel.id === 'Telegram' && telegramConnected && !telegramConnecting && (
+                                                        {channel.id === 'Telegram' && telegramConnected && (
                                                             <button
                                                                 type="button"
                                                                 className="badge-disconnect-btn"
@@ -546,7 +508,7 @@ export function NotificationsModal({
                                                     value={channel.id}
                                                     checked={selectedChannel === channel.id}
                                                     onChange={() => handleChannelChange(channel.id)}
-                                                    disabled={isSubmitting || (channel.id === 'Telegram' && telegramConnecting && !telegramConnected)}
+                                                    disabled={isSubmitting || (channel.id === 'Telegram' && !telegramConnected)}
                                                 />
                                             ) : null}
                                         </div>

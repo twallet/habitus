@@ -252,7 +252,7 @@ describe('NotificationsModal', () => {
         });
     });
 
-    it('should NOT show "Connecting..." badge when Telegram link is generated', async () => {
+    it('should open connection modal when Telegram is clicked but not connected', async () => {
         const user = userEvent.setup();
 
         render(
@@ -273,11 +273,13 @@ describe('NotificationsModal', () => {
             expect(copyButton).toBeInTheDocument();
         });
 
-        // Telegram should remain selected but NOT show connecting badge
-        await waitFor(() => {
-            expect(telegramRadio).toBeChecked();
-            expect(screen.queryByText('Connecting...')).not.toBeInTheDocument();
-        });
+        // Email should remain selected (Telegram not connected yet)
+        const emailRadio = screen.getByRole('radio', { name: /email/i });
+        expect(emailRadio).toBeChecked();
+        // Connection modal should be open
+        expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
+        // Should NOT show connecting badge
+        expect(screen.queryByText('Connecting...')).not.toBeInTheDocument();
     });
 
     it('should NOT show cancel button in Telegram connection panel', async () => {
@@ -688,7 +690,7 @@ describe('NotificationsModal', () => {
     });
 
 
-    it('should show "Connecting..." badge when hasActiveToken is true', async () => {
+    it('should select Email when hasActiveToken is true but not connected', async () => {
         const mockGetTelegramStatusWithToken = vi.fn().mockResolvedValue({
             connected: false,
             telegramChatId: null,
@@ -711,9 +713,14 @@ describe('NotificationsModal', () => {
             expect(mockGetTelegramStatusWithToken).toHaveBeenCalled();
         });
 
-        // Wait for badge to appear - the badge appears when telegramConnecting is true (set by hasActiveToken)
+        // Email should be selected (Telegram not connected)
         await waitFor(() => {
-            expect(screen.getByText('Connecting...')).toBeInTheDocument();
+            const emailRadio = screen.getByRole('radio', { name: /email/i });
+            expect(emailRadio).toBeChecked();
+            // Should NOT show connecting badge
+            expect(screen.queryByText('Connecting...')).not.toBeInTheDocument();
+            // Should show "No account connected" badge
+            expect(screen.getByText('No account connected')).toBeInTheDocument();
         });
     });
 
