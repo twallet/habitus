@@ -618,10 +618,16 @@ export function NotificationsModal({
                         setSelectedChannel('Email');
                         selectedChannelRef.current = 'Email';
                     }}
-                    onGetTelegramStartLink={onGetTelegramStartLink}
+                    onGetTelegramStartLink={async () => {
+                        // Generate the link
+                        const result = await onGetTelegramStartLink();
+                        // Immediately check status to detect the new active token and establish SSE
+                        // This ensures SSE connection is ready before user can paste the key
+                        await checkTelegramStatus();
+                        return result;
+                    }}
                     onCopyClicked={() => {
-                        // Check status to get hasActiveToken from backend
-                        checkTelegramStatus();
+                        // No additional action needed - SSE is already connected from the status check
                     }}
                 />
             )}

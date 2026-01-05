@@ -30,6 +30,16 @@ describe('NotificationsModal', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        
+        // Mock EventSource globally for all tests
+        const mockEventSource = {
+            addEventListener: vi.fn(),
+            close: vi.fn(),
+            onerror: null,
+        };
+        global.EventSource = vi.fn(function (this: any) {
+            return mockEventSource;
+        }) as any;
     });
 
     it('should render modal with title', () => {
