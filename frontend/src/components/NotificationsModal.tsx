@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import './NotificationsModal.css';
 import { UserData } from '../models/User';
 import { TelegramConnectionStepsModal } from './TelegramConnectionStepsModal';
-import { SseConnectionManager, SseEventHandlers } from '../utils/sseConnectionManager';
 
 interface NotificationsModalProps {
     onClose: () => void;
@@ -90,7 +89,6 @@ export function NotificationsModal({
     const [showTelegramConnectionModal, setShowTelegramConnectionModal] = useState(false);
     const [telegramConnecting, setTelegramConnecting] = useState(false);
     const isCancelingRef = useRef(false);
-    const sseManagerRef = useRef<SseConnectionManager | null>(null);
     const telegramConnectingRef = useRef(false);
     const telegramConnectedRef = useRef(false);
     const justSavedRef = useRef(false);
@@ -251,129 +249,6 @@ export function NotificationsModal({
             }
         }
     }, [user]);
-
-    /**
-     * Initialize SSE connection manager.
-     * @internal
-     */
-    const initializeSseManager = useCallback(() => {
-        if (sseManagerRef.current) {
-            return; // Already initialized
-        }
-
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-        const url = `${apiUrl}/api/telegram/connection-events`;
-
-        const handlers: SseEventHandlers = {
-            onConnected: (data) => {
-                console.log('[NotificationsModal] SSE connected:', data);
-            },
-            onTelegramConnected: (data) => {
-                console.log('[NotificationsModal] Telegram connected via SSE:', data);
-                console.log('[NotificationsModal] Current state before update:', {
-                    telegramConnected: telegramConnectedRef.current,
-                    telegramConnecting: telegramConnectingRef.current,
-                    showTelegramConnectionModal,
-                    selectedChannel: selectedChannelRef.current
-                });
-
-                // Update state
-                setTelegramChatId(data.chatId);
-                updateTelegramConnected(true);
-                updateTelegramConnecting(false);
-                if (data.username) {
-                    setTelegramUsername(data.username);
-                }
-
-                console.log('[NotificationsModal] State updated after SSE event, telegramConnected should now be true');
-
-                // Auto-save if Telegram was selected
-                if (selectedChannelRef.current === 'Telegram') {
-                    savePreferences('Telegram', data.chatId);
-
-                    if (!hasShownSuccessRef.current) {
-                        const successMsg = `Telegram connected successfully as ${data.username || 'user'}!`;
-                        setSuccessMessage(successMsg);
-                        hasShownSuccessRef.current = true;
-                        setTimeout(() => {
-                            setSuccessMessage(null);
-                        }, 4000);
-                    }
-                }
-
-                // Close SSE connection after successful connection
-                disconnectFromSse();
-            },
-            onHeartbeat: () => {
-                // Keep connection alive - handled by manager
-            },
-            onError: (error) => {
-                console.error('[NotificationsModal] SSE error:', error);
-                setError(error.message);
-            },
-            onMaxRetriesReached: () => {
-                console.error('[NotificationsModal] Max SSE retry attempts reached');
-                setError('Connection failed after multiple attempts. Please try again or refresh the page.');
-            },
-        };
-
-        sseManagerRef.current = new SseConnectionManager(
-            url,
-            handlers,
-            () => telegramConnectingRef.current && !telegramConnectedRef.current
-        );
-    }, [savePreferences, showTelegramConnectionModal]);
-
-    /**
-     * Connect to SSE for real-time Telegram connection updates.
-     * @internal
-     */
-    const connectToSse = useCallback(() => {
-        if (!sseManagerRef.current) {
-            initializeSseManager();
-        }
-        if (sseManagerRef.current) {
-            sseManagerRef.current.connect();
-        }
-    }, [initializeSseManager]);
-
-    /**
-     * Disconnect from SSE.
-     * @internal
-     */
-    const disconnectFromSse = useCallback(() => {
-        if (sseManagerRef.current) {
-            sseManagerRef.current.disconnect();
-        }
-    }, []);
-
-    /**
-     * Connect to SSE when telegram connecting starts.
-     * @internal
-     */
-    useEffect(() => {
-        console.log('[NotificationsModal] SSE connection effect triggered:', {
-            telegramConnecting,
-            telegramConnected
-        });
-        
-        // Initialize manager if needed
-        if (!sseManagerRef.current) {
-            initializeSseManager();
-        }
-
-        if (telegramConnecting && !telegramConnected) {
-            console.log('[NotificationsModal] Conditions met, connecting to SSE');
-            connectToSse();
-        } else {
-            console.log('[NotificationsModal] Conditions not met or already connected, disconnecting from SSE');
-            disconnectFromSse();
-        }
-
-        return () => {
-            disconnectFromSse();
-        };
-    }, [telegramConnecting, telegramConnected, connectToSse, disconnectFromSse, initializeSseManager]);
 
     /**
      * Check status when modal opens (to detect expired tokens).
@@ -707,14 +582,14 @@ export function NotificationsModal({
                     onGetTelegramStartLink={async () => {
                         // Generate the link
                         const result = await onGetTelegramStartLink();
-                        // Immediately check status to detect the new active token and establish SSE
-                        // This ensures SSE connection is ready before user can paste the key
+                        // Immediately check status to detect the new active token
                         await checkTelegramStatus();
                         return result;
                     }}
                     onCopyClicked={() => {
-                        // No additional action needed - SSE is already connected from the status check
+                        // No additional action needed
                     }}
+                    onGetTelegramStatus={onGetTelegramStatus}
                 />
             )}
         </div>

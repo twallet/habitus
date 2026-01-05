@@ -183,22 +183,6 @@ async function processTelegramUpdate(update: TelegramUpdate): Promise<void> {
     `[${new Date().toISOString()}] TELEGRAM_WEBHOOK | Successfully connected Telegram account for userId: ${userId}, chatId: ${chatId}`
   );
 
-  // Notify SSE clients about the successful connection
-  try {
-    const sseService = ServiceManager.getSseService();
-    const username = update.message?.from?.username;
-    sseService.notifyTelegramConnected(userId, chatId, username);
-    console.log(
-      `[${new Date().toISOString()}] TELEGRAM_WEBHOOK | SSE notification sent for userId: ${userId}`
-    );
-  } catch (error) {
-    console.error(
-      `[${new Date().toISOString()}] TELEGRAM_WEBHOOK | Error sending SSE notification:`,
-      error
-    );
-    // Don't fail the webhook if SSE notification fails
-  }
-
   // Send welcome message
   const telegramService = ServiceManager.getTelegramService();
   // Construct frontend URL without port for production (custom domain)
@@ -627,28 +611,5 @@ router.get("/webhook/test", async (req: Request, res: Response) => {
     timestamp: new Date().toISOString(),
   });
 });
-
-/**
- * GET /api/telegram/connection-events
- * Server-Sent Events endpoint for real-time Telegram connection updates.
- * @route GET /api/telegram/connection-events
- * @auth Required (via cookie or Bearer token)
- * @returns SSE stream with events: connected, telegram-connected, heartbeat
- * @public
- */
-router.get(
-  "/connection-events",
-  authenticateToken,
-  async (req: AuthRequest, res: Response) => {
-    const userId = req.userId!;
-
-    console.log(
-      `[${new Date().toISOString()}] TELEGRAM_SSE | Setting up SSE connection for userId: ${userId}`
-    );
-
-    const sseService = ServiceManager.getSseService();
-    sseService.addClient(userId, res);
-  }
-);
 
 export default router;

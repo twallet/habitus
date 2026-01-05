@@ -7,7 +7,6 @@ import { TelegramService } from "./telegramService.js";
 import { TelegramConnectionService } from "./telegramConnectionService.js";
 import { AiService } from "./aiService.js";
 import { ReminderService } from "./reminderService.js";
-import { SseService } from "./sseService.js";
 
 /**
  * Service manager class for managing service instances.
@@ -24,7 +23,6 @@ export class ServiceManager {
     null;
   private static aiService: AiService | null = null;
   private static reminderService: ReminderService | null = null;
-  private static sseService: SseService | null = null;
 
   /**
    * Initialize all service instances.
@@ -41,7 +39,6 @@ export class ServiceManager {
     this.trackingService = new TrackingService(db);
     this.aiService = new AiService();
     this.reminderService = new ReminderService(db);
-    this.sseService = new SseService();
   }
 
   /**
@@ -162,20 +159,5 @@ export class ServiceManager {
       );
     }
     return this.telegramConnectionService;
-  }
-
-  /**
-   * Get SseService instance.
-   * @returns SseService instance
-   * @throws Error if services not initialized
-   * @public
-   */
-  static getSseService(): SseService {
-    if (!this.sseService) {
-      throw new Error(
-        "Services not initialized. Call ServiceManager.initializeServices() first."
-      );
-    }
-    return this.sseService;
   }
 }

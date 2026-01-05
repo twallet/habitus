@@ -30,30 +30,6 @@ describe('NotificationsModal', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-
-        // Define EventSource constants first
-        const EventSourceConstants = {
-            CONNECTING: 0,
-            OPEN: 1,
-            CLOSED: 2,
-        };
-
-        // Mock EventSource globally for all tests
-        // The SSE manager uses onopen, onerror, and readyState
-        const mockEventSource = {
-            addEventListener: vi.fn(),
-            close: vi.fn(),
-            onerror: null,
-            onopen: null,
-            readyState: EventSourceConstants.CONNECTING, // 0 = CONNECTING, 1 = OPEN, 2 = CLOSED
-        };
-        global.EventSource = vi.fn(function (this: any) {
-            return mockEventSource;
-        }) as any;
-        // Add EventSource constants for tests
-        (global.EventSource as any).CONNECTING = EventSourceConstants.CONNECTING;
-        (global.EventSource as any).OPEN = EventSourceConstants.OPEN;
-        (global.EventSource as any).CLOSED = EventSourceConstants.CLOSED;
     });
 
     it('should render modal with title', () => {
@@ -711,61 +687,6 @@ describe('NotificationsModal', () => {
     });
 
 
-    it('should NOT connect to SSE when hasActiveToken is false', async () => {
-        const user = userEvent.setup();
-
-        // Mock EventSource
-        const EventSourceConstants = {
-            CONNECTING: 0,
-            OPEN: 1,
-            CLOSED: 2,
-        };
-        const mockEventSource = {
-            addEventListener: vi.fn(),
-            close: vi.fn(),
-            onerror: null,
-            onopen: null,
-            readyState: EventSourceConstants.CONNECTING,
-        };
-        global.EventSource = vi.fn(function (this: any) {
-            return mockEventSource;
-        }) as any;
-        (global.EventSource as any).CONNECTING = EventSourceConstants.CONNECTING;
-        (global.EventSource as any).OPEN = EventSourceConstants.OPEN;
-        (global.EventSource as any).CLOSED = EventSourceConstants.CLOSED;
-
-        render(
-            <NotificationsModal
-                onClose={mockOnClose}
-                onSave={mockOnSave}
-                onGetTelegramStartLink={mockGetTelegramStartLink}
-                onGetTelegramStatus={mockGetTelegramStatus}
-                user={mockUser}
-            />
-        );
-
-        // Wait for initial status check on mount to complete
-        await waitFor(() => {
-            expect(mockGetTelegramStatus).toHaveBeenCalled();
-        });
-
-        const telegramRadio = document.querySelector('input[type="radio"][value="Telegram"]') as HTMLElement;
-        expect(telegramRadio).toBeInTheDocument();
-        await user.click(telegramRadio);
-
-        await waitFor(() => {
-            expect(mockGetTelegramStartLink).toHaveBeenCalledTimes(1);
-        });
-
-        // Wait a bit to ensure no SSE connection is established (only happens when hasActiveToken is true)
-        await act(async () => {
-            await new Promise(resolve => setTimeout(resolve, 100));
-        });
-
-        // Verify that EventSource was NOT created (no SSE when hasActiveToken is false)
-        expect(global.EventSource).not.toHaveBeenCalled();
-    });
-
     it('should show "Connecting..." badge when hasActiveToken is true', async () => {
         const mockGetTelegramStatusWithToken = vi.fn().mockResolvedValue({
             connected: false,
@@ -773,16 +694,6 @@ describe('NotificationsModal', () => {
             telegramUsername: null,
             hasActiveToken: true
         });
-
-        // Mock EventSource (required for SSE connection)
-        const mockEventSource = {
-            addEventListener: vi.fn(),
-            close: vi.fn(),
-            onerror: null,
-        };
-        global.EventSource = vi.fn(function (this: any) {
-            return mockEventSource;
-        }) as any;
 
         render(
             <NotificationsModal
@@ -803,142 +714,6 @@ describe('NotificationsModal', () => {
         await waitFor(() => {
             expect(screen.getByText('Connecting...')).toBeInTheDocument();
         });
-    });
-
-    it('should connect to SSE when hasActiveToken is true', async () => {
-        const mockGetTelegramStatusWithToken = vi.fn().mockResolvedValue({
-            connected: false,
-            telegramChatId: null,
-            telegramUsername: null,
-            hasActiveToken: true
-        });
-
-        // Mock EventSource
-        const EventSourceConstants = {
-            CONNECTING: 0,
-            OPEN: 1,
-            CLOSED: 2,
-        };
-        const mockEventSource = {
-            addEventListener: vi.fn(),
-            close: vi.fn(),
-            onerror: null,
-            onopen: null,
-            readyState: EventSourceConstants.CONNECTING,
-        };
-        global.EventSource = vi.fn(function (this: any) {
-            return mockEventSource;
-        }) as any;
-        (global.EventSource as any).CONNECTING = EventSourceConstants.CONNECTING;
-        (global.EventSource as any).OPEN = EventSourceConstants.OPEN;
-        (global.EventSource as any).CLOSED = EventSourceConstants.CLOSED;
-
-        render(
-            <NotificationsModal
-                onClose={mockOnClose}
-                onSave={mockOnSave}
-                onGetTelegramStartLink={mockGetTelegramStartLink}
-                onGetTelegramStatus={mockGetTelegramStatusWithToken}
-                user={mockUser}
-            />
-        );
-
-        // Wait for initial status check and let it complete
-        await waitFor(() => {
-            expect(mockGetTelegramStatusWithToken).toHaveBeenCalled();
-        });
-
-        // Wait for SSE connection to be established
-        await waitFor(() => {
-            expect(global.EventSource).toHaveBeenCalled();
-        }, { timeout: 3000 });
-
-        // Verify event listeners were registered
-        expect(mockEventSource.addEventListener).toHaveBeenCalledWith('connected', expect.any(Function));
-        expect(mockEventSource.addEventListener).toHaveBeenCalledWith('telegram-connected', expect.any(Function));
-        expect(mockEventSource.addEventListener).toHaveBeenCalledWith('heartbeat', expect.any(Function));
-    });
-
-    it('should handle telegram-connected SSE event and auto-save', async () => {
-        // Start with hasActiveToken=true so SSE connects immediately
-        const mockGetTelegramStatusWithToken = vi.fn().mockResolvedValue({
-            connected: false,
-            telegramChatId: null,
-            telegramUsername: null,
-            hasActiveToken: true
-        });
-
-        // Mock EventSource
-        const EventSourceConstants = {
-            CONNECTING: 0,
-            OPEN: 1,
-            CLOSED: 2,
-        };
-        let telegramConnectedHandler: Function | null = null;
-        const mockEventSource = {
-            addEventListener: vi.fn((event: string, handler: Function) => {
-                if (event === 'telegram-connected') {
-                    telegramConnectedHandler = handler;
-                }
-            }),
-            close: vi.fn(),
-            onerror: null,
-            onopen: null,
-            readyState: EventSourceConstants.CONNECTING,
-        };
-        global.EventSource = vi.fn(function (this: any) {
-            return mockEventSource;
-        }) as any;
-        (global.EventSource as any).CONNECTING = EventSourceConstants.CONNECTING;
-        (global.EventSource as any).OPEN = EventSourceConstants.OPEN;
-        (global.EventSource as any).CLOSED = EventSourceConstants.CLOSED;
-
-        // Create a user that already selected Telegram (to trigger auto-save on connection)
-        const telegramUser = {
-            ...mockUser,
-            notification_channels: 'Telegram'
-        };
-
-        render(
-            <NotificationsModal
-                onClose={mockOnClose}
-                onSave={mockOnSave}
-                onGetTelegramStartLink={mockGetTelegramStartLink}
-                onGetTelegramStatus={mockGetTelegramStatusWithToken}
-                user={telegramUser}
-            />
-        );
-
-        // Wait for SSE connection to be established
-        await waitFor(() => {
-            expect(global.EventSource).toHaveBeenCalled();
-        }, { timeout: 3000 });
-
-        // Verify event listeners were registered
-        expect(mockEventSource.addEventListener).toHaveBeenCalledWith('telegram-connected', expect.any(Function));
-
-        // Simulate receiving telegram-connected event
-        const eventData = {
-            chatId: '123456789',
-            username: 'testuser',
-            timestamp: new Date().toISOString()
-        };
-
-        await act(async () => {
-            if (telegramConnectedHandler) {
-                telegramConnectedHandler({
-                    data: JSON.stringify(eventData)
-                });
-            }
-        });
-
-        // Verify auto-save was called with correct data
-        await waitFor(() => {
-            expect(mockOnSave).toHaveBeenCalledWith('Telegram', '123456789');
-        }, { timeout: 3000 });
-
-        // Verify SSE connection was closed after successful connection
-        expect(mockEventSource.close).toHaveBeenCalled();
     });
 
     it('should enable Go to chat button when Copy key button is clicked', async () => {
@@ -1191,89 +966,6 @@ describe('NotificationsModal', () => {
         confirmSpy.mockRestore();
     });
 
-    it('should auto-close connection modal when SSE triggers telegram connection', async () => {
-        const user = userEvent.setup();
-
-        // Mock EventSource
-        const EventSourceConstants = {
-            CONNECTING: 0,
-            OPEN: 1,
-            CLOSED: 2,
-        };
-        const mockEventSource = {
-            addEventListener: vi.fn(),
-            close: vi.fn(),
-            onerror: null,
-            onopen: null,
-            readyState: EventSourceConstants.CONNECTING,
-        };
-        global.EventSource = vi.fn(function (this: any) {
-            return mockEventSource;
-        }) as any;
-        (global.EventSource as any).CONNECTING = EventSourceConstants.CONNECTING;
-        (global.EventSource as any).OPEN = EventSourceConstants.OPEN;
-        (global.EventSource as any).CLOSED = EventSourceConstants.CLOSED;
-
-        vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
-
-        const { rerender } = render(
-            <NotificationsModal
-                onClose={mockOnClose}
-                onSave={mockOnSave}
-                onGetTelegramStartLink={mockGetTelegramStartLink}
-                onGetTelegramStatus={mockGetTelegramStatus}
-                user={mockUser}
-            />
-        );
-
-        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
-        await user.click(telegramRadio);
-
-        // Wait for the connection modal to open
-        await waitFor(() => {
-            expect(screen.getByRole('button', { name: /copy key/i })).toBeInTheDocument();
-        });
-
-        // Navigate to waiting view
-        await user.click(screen.getByRole('button', { name: /copy key/i }));
-
-        // Wait for step 2 button to be enabled
-        await waitFor(() => {
-            const goButton = screen.getByRole('button', { name: /go to chat/i });
-            expect(goButton).not.toBeDisabled();
-        });
-
-        await user.click(screen.getByRole('button', { name: /go to chat/i }));
-
-        await waitFor(() => {
-            expect(screen.getByText(/Waiting for you to paste the key/i)).toBeInTheDocument();
-        });
-
-        // Simulate telegram connection: update user prop to reflect connection
-        const connectedUser = {
-            ...mockUser,
-            telegram_chat_id: '123456789',
-            notification_channels: 'Telegram'
-        };
-
-        // Rerender with connected user to trigger the auto-close effect
-        rerender(
-            <NotificationsModal
-                onClose={mockOnClose}
-                onSave={mockOnSave}
-                onGetTelegramStartLink={mockGetTelegramStartLink}
-                onGetTelegramStatus={mockGetTelegramStatus}
-                user={connectedUser}
-            />
-        );
-
-        // Wait for modal to close - it should auto-close when telegramConnected becomes true
-        await waitFor(() => {
-            // The connection modal should close
-            expect(screen.queryByText(/Waiting for you to paste the key/i)).not.toBeInTheDocument();
-            expect(screen.queryByText('Connect your Telegram account')).not.toBeInTheDocument();
-        }, { timeout: 3000 });
-    });
 
     it('should disable Go to chat button until Copy Key is clicked', async () => {
         const user = userEvent.setup();

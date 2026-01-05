@@ -6,6 +6,7 @@ interface TelegramConnectionStepsModalProps {
     onCancel?: () => void;
     onGetTelegramStartLink: () => Promise<{ link: string; token: string }>;
     onCopyClicked?: () => void;
+    onGetTelegramStatus?: () => Promise<{ connected: boolean; telegramChatId: string | null; telegramUsername: string | null; hasActiveToken: boolean }>;
 }
 
 /**
@@ -21,6 +22,7 @@ export function TelegramConnectionStepsModal({
     onCancel,
     onGetTelegramStartLink,
     onCopyClicked,
+    onGetTelegramStatus,
 }: TelegramConnectionStepsModalProps) {
     const [telegramStartCommand, setTelegramStartCommand] = useState<string | null>(null);
     const [telegramBotLink, setTelegramBotLink] = useState<string | null>(null);
@@ -29,6 +31,16 @@ export function TelegramConnectionStepsModal({
     const [connectionStep, setConnectionStep] = useState<'steps' | 'waiting'>('steps');
     const [step1Completed, setStep1Completed] = useState(false);
     const hasGeneratedRef = useRef(false);
+    const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const onGetTelegramStatusRef = useRef(onGetTelegramStatus || null);
+
+    /**
+     * Update ref when prop changes.
+     * @internal
+     */
+    useEffect(() => {
+        onGetTelegramStatusRef.current = onGetTelegramStatus || null;
+    }, [onGetTelegramStatus]);
 
     /**
      * Generate Telegram connection link and extract start command.
@@ -90,6 +102,51 @@ export function TelegramConnectionStepsModal({
     }, []); // Only run once on mount
 
     /**
+     * Poll for Telegram connection status when in waiting state.
+     * This is a fallback in case SSE events are not received.
+     * @internal
+     */
+    useEffect(() => {
+        if (connectionStep === 'waiting' && onGetTelegramStatusRef.current) {
+            // Start polling every 2 seconds
+            const pollStatus = async () => {
+                try {
+                    const status = await onGetTelegramStatusRef.current!();
+                    if (status.connected && status.telegramChatId) {
+                        // Connection complete, close the modal
+                        console.log('[TelegramConnectionStepsModal] Connection detected via polling, closing modal');
+                        setConnectionStep('steps');
+                        setStep1Completed(false);
+                        hasGeneratedRef.current = false;
+                        setTelegramStartCommand(null);
+                        setTelegramBotLink(null);
+                        onClose();
+                    }
+                } catch (err) {
+                    console.error('[TelegramConnectionStepsModal] Error polling status:', err);
+                }
+            };
+
+            // Poll immediately, then every 2 seconds
+            pollStatus();
+            pollingIntervalRef.current = setInterval(pollStatus, 2000);
+
+            return () => {
+                if (pollingIntervalRef.current) {
+                    clearInterval(pollingIntervalRef.current);
+                    pollingIntervalRef.current = null;
+                }
+            };
+        } else {
+            // Stop polling when not in waiting state
+            if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current);
+                pollingIntervalRef.current = null;
+            }
+        }
+    }, [connectionStep, onClose]);
+
+    /**
      * Handle modal close with confirmation if in waiting state or if step 1 was completed.
      * @internal
      */
@@ -102,6 +159,11 @@ export function TelegramConnectionStepsModal({
                 hasGeneratedRef.current = false;
                 setTelegramStartCommand(null);
                 setTelegramBotLink(null);
+                // Stop polling if active
+                if (pollingIntervalRef.current) {
+                    clearInterval(pollingIntervalRef.current);
+                    pollingIntervalRef.current = null;
+                }
                 if (onCancel) {
                     onCancel(); // Parent will handle closing
                 } else {
@@ -116,6 +178,11 @@ export function TelegramConnectionStepsModal({
             hasGeneratedRef.current = false;
             setTelegramStartCommand(null);
             setTelegramBotLink(null);
+            // Stop polling if active
+            if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current);
+                pollingIntervalRef.current = null;
+            }
             onClose();
         }
     };
@@ -130,6 +197,11 @@ export function TelegramConnectionStepsModal({
         hasGeneratedRef.current = false;
         setTelegramStartCommand(null);
         setTelegramBotLink(null);
+        // Stop polling if active
+        if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+        }
         if (onCancel) {
             onCancel(); // Parent will handle closing the modal
         } else {
