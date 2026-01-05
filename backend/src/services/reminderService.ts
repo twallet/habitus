@@ -1389,6 +1389,55 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
   }
 
   /**
+   * Process expired Upcoming reminders for all users.
+   * Checks database for expired reminders and updates them to Pending status.
+   * Also creates new Upcoming reminders and sends notifications.
+   * This method is called by the background polling job.
+   * @returns Promise resolving when all updates are complete
+   * @public
+   */
+  async processExpiredReminders(): Promise<void> {
+    const expiredReminderRows = await this.db.all<{
+      id: number;
+      tracking_id: number;
+      user_id: number;
+      scheduled_time: string;
+      notes: string | null;
+      status: string;
+      value: string | null;
+      created_at: string;
+      updated_at: string;
+    }>(
+      `SELECT id, tracking_id, user_id, scheduled_time, notes, status, value, created_at, updated_at 
+       FROM reminders 
+       WHERE status = ? AND scheduled_time <= ?`,
+      [ReminderStatus.UPCOMING, new Date().toISOString()]
+    );
+
+    if (expiredReminderRows.length === 0) {
+      return;
+    }
+
+    // Convert rows to Reminder instances
+    const expiredReminders = expiredReminderRows.map(
+      (row) =>
+        new Reminder({
+          id: row.id,
+          tracking_id: row.tracking_id,
+          user_id: row.user_id,
+          scheduled_time: row.scheduled_time,
+          notes: row.notes || undefined,
+          status: row.status as ReminderStatus,
+          value: (row.value as any) || null,
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+        })
+    );
+
+    await this.updateExpiredUpcomingReminders(expiredReminders);
+  }
+
+  /**
    * Check and update expired upcoming reminders to Pending status.
    * Also creates new Upcoming reminders for trackings whose reminders became Pending.
    * Sends email notifications when reminders become Pending.

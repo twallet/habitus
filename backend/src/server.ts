@@ -28,6 +28,7 @@ import {
 } from "./middleware/upload.js";
 import { ServerConfig } from "./setup/constants.js";
 import { PathConfig } from "./config/paths.js";
+import { ReminderStatus } from "./models/Reminder.js";
 
 const isDevelopment = process.env.NODE_ENV !== "production";
 
@@ -229,6 +230,43 @@ async function initializeViteDevServer() {
  * Initialize database and start server.
  */
 const db = new Database();
+let reminderPollTimeout: NodeJS.Timeout | null = null;
+
+/**
+ * Schedule the next reminder poll to run at :01 seconds of the next minute.
+ * Checks for expired Upcoming reminders and transitions them to Pending status.
+ * @internal
+ */
+const scheduleNextReminderPoll = () => {
+  const now = new Date();
+  const nextMinute = new Date(now);
+  nextMinute.setMinutes(now.getMinutes() + 1);
+  nextMinute.setSeconds(1);
+  nextMinute.setMilliseconds(0);
+
+  const delay = nextMinute.getTime() - now.getTime();
+
+  reminderPollTimeout = setTimeout(async () => {
+    try {
+      console.log(
+        `[${new Date().toISOString()}] REMINDER_POLL | Checking for expired Upcoming reminders...`
+      );
+
+      // Use the service method to process expired reminders
+      const reminderService = ServiceManager.getReminderService();
+      await reminderService.processExpiredReminders();
+    } catch (error) {
+      console.error(
+        `[${new Date().toISOString()}] REMINDER_POLL | Error in polling job:`,
+        error
+      );
+    }
+
+    // Schedule the next poll
+    scheduleNextReminderPoll();
+  }, delay);
+};
+
 db.initialize()
   .then(async () => {
     console.log(
@@ -238,6 +276,13 @@ db.initialize()
     console.log(
       `[${new Date().toISOString()}] Services initialized successfully`
     );
+
+    // Start reminder polling job (runs at :01 seconds each minute)
+    console.log(
+      `[${new Date().toISOString()}] Starting reminder polling job (runs at :01 seconds each minute)...`
+    );
+    scheduleNextReminderPoll();
+    console.log(`[${new Date().toISOString()}] Reminder polling job scheduled`);
 
     // Initialize Vite dev server in development
     const viteServer = await initializeViteDevServer();
@@ -467,6 +512,12 @@ db.initialize()
           } catch (error) {
             console.error("Error closing Vite server:", error);
           }
+        }
+
+        // Clear reminder polling timeout
+        if (reminderPollTimeout) {
+          clearTimeout(reminderPollTimeout);
+          console.log("Reminder polling job stopped");
         }
 
         // Close database
