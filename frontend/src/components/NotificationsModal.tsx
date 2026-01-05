@@ -348,10 +348,10 @@ export function NotificationsModal({
         {
             id: 'Telegram',
             label: 'Telegram',
-            enabled: true,
+            enabled: !import.meta.env.DEV,
             icon: <TelegramIcon className="channel-icon-svg" />,
             color: '#0088cc',
-            description: 'Send reminders by Telegram',
+            description: import.meta.env.DEV ? 'Disabled in development' : 'Send reminders by Telegram',
             badge: telegramBadge
         },
         {

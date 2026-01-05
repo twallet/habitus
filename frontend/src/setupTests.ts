@@ -62,6 +62,7 @@ Object.defineProperty(globalThis, "import", {
       env: {
         VITE_SERVER_URL: process.env.VITE_SERVER_URL,
         VITE_PORT: process.env.VITE_PORT,
+        DEV: process.env.NODE_ENV !== "production",
       },
     },
   },
