@@ -494,6 +494,39 @@ const adminController = new AdminController();
  * @header {string} Authorization - Bearer token
  * @returns {Object} Object with formatted log text
  */
+/**
+ * POST /api/admin/process-expired-reminders
+ * Manually trigger processing of expired reminders (for testing/debugging).
+ * @route POST /api/admin/process-expired-reminders
+ * @header {string} Authorization - Bearer token
+ * @returns {object} Result of processing
+ */
+router.post(
+  "/process-expired-reminders",
+  requireAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const reminderService = ServiceManager.getReminderService();
+      await reminderService.processExpiredReminders();
+      res.json({
+        success: true,
+        message: "Processed expired reminders",
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error(
+        `[${new Date().toISOString()}] ADMIN | Error processing expired reminders:`,
+        error
+      );
+      res.status(500).json({
+        error: "Error processing expired reminders",
+        message:
+          error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+);
+
 router.get("/", requireAdmin, async (req: AuthRequest, res: Response) => {
   await adminController.getAdminLog(req, res);
 });
