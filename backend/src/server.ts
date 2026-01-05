@@ -12,6 +12,7 @@ dotenv.config({ path: join(__dirname, "../../config/.env") });
 // Now import everything else (constants will read from process.env)
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import { readFileSync, existsSync } from "fs";
 import { Database } from "./db/database.js";
 import { ServiceManager } from "./services/index.js";
@@ -107,11 +108,15 @@ app.use(
  */
 if (isDevelopment) {
   // In development, same origin so CORS is not needed, but keep it for API testing
-  app.use(cors({ origin: true }));
+  // Enable credentials for SSE with cookie authentication
+  app.use(cors({ origin: true, credentials: true }));
 } else {
-  app.use(cors());
+  // In production, enable credentials for cookie-based authentication
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+  app.use(cors({ origin: frontendUrl, credentials: true }));
 }
 app.use(express.json());
+app.use(cookieParser());
 
 /**
  * Serve uploaded files statically (local storage only).

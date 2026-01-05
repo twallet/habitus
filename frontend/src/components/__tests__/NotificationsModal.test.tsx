@@ -682,8 +682,18 @@ describe('NotificationsModal', () => {
     });
 
 
-    it('should NOT poll for Telegram connection status when hasActiveToken is false', async () => {
+    it('should NOT connect to SSE when hasActiveToken is false', async () => {
         const user = userEvent.setup();
+
+        // Mock EventSource
+        const mockEventSource = {
+            addEventListener: vi.fn(),
+            close: vi.fn(),
+            onerror: null,
+        };
+        global.EventSource = vi.fn(function (this: any) {
+            return mockEventSource;
+        }) as any;
 
         render(
             <NotificationsModal
@@ -708,16 +718,13 @@ describe('NotificationsModal', () => {
             expect(mockGetTelegramStartLink).toHaveBeenCalledTimes(1);
         });
 
-        // Clear all previous calls (including initial mount check)
-        mockGetTelegramStatus.mockClear();
-
-        // Wait a bit to ensure no polling happens (polling only happens when hasActiveToken is true)
+        // Wait a bit to ensure no SSE connection is established (only happens when hasActiveToken is true)
         await act(async () => {
             await new Promise(resolve => setTimeout(resolve, 100));
         });
 
-        // Verify that getTelegramStatus was NOT called repeatedly (no polling when hasActiveToken is false)
-        expect(mockGetTelegramStatus).not.toHaveBeenCalled();
+        // Verify that EventSource was NOT created (no SSE when hasActiveToken is false)
+        expect(global.EventSource).not.toHaveBeenCalled();
     });
 
     it('should show "Connecting..." badge when hasActiveToken is true', async () => {
@@ -727,6 +734,16 @@ describe('NotificationsModal', () => {
             telegramUsername: null,
             hasActiveToken: true
         });
+
+        // Mock EventSource (required for SSE connection)
+        const mockEventSource = {
+            addEventListener: vi.fn(),
+            close: vi.fn(),
+            onerror: null,
+        };
+        global.EventSource = vi.fn(function (this: any) {
+            return mockEventSource;
+        }) as any;
 
         render(
             <NotificationsModal
@@ -749,15 +766,23 @@ describe('NotificationsModal', () => {
         });
     });
 
-    it('should poll for status when hasActiveToken is true', async () => {
-        vi.useFakeTimers();
-
+    it('should connect to SSE when hasActiveToken is true', async () => {
         const mockGetTelegramStatusWithToken = vi.fn().mockResolvedValue({
             connected: false,
             telegramChatId: null,
             telegramUsername: null,
             hasActiveToken: true
         });
+
+        // Mock EventSource
+        const mockEventSource = {
+            addEventListener: vi.fn(),
+            close: vi.fn(),
+            onerror: null,
+        };
+        global.EventSource = vi.fn(function (this: any) {
+            return mockEventSource;
+        }) as any;
 
         render(
             <NotificationsModal
@@ -774,25 +799,87 @@ describe('NotificationsModal', () => {
             expect(mockGetTelegramStatusWithToken).toHaveBeenCalled();
         });
 
-        // Let the async status check complete
-        await act(async () => {
-            await vi.runAllTimersAsync();
+        // Wait for SSE connection to be established
+        await waitFor(() => {
+            expect(global.EventSource).toHaveBeenCalled();
+        }, { timeout: 3000 });
+
+        // Verify event listeners were registered
+        expect(mockEventSource.addEventListener).toHaveBeenCalledWith('connected', expect.any(Function));
+        expect(mockEventSource.addEventListener).toHaveBeenCalledWith('telegram-connected', expect.any(Function));
+        expect(mockEventSource.addEventListener).toHaveBeenCalledWith('heartbeat', expect.any(Function));
+    });
+
+    it('should handle telegram-connected SSE event and auto-save', async () => {
+        // Start with hasActiveToken=true so SSE connects immediately
+        const mockGetTelegramStatusWithToken = vi.fn().mockResolvedValue({
+            connected: false,
+            telegramChatId: null,
+            telegramUsername: null,
+            hasActiveToken: true
         });
 
-        // Clear initial call
-        mockGetTelegramStatusWithToken.mockClear();
+        // Mock EventSource
+        let telegramConnectedHandler: Function | null = null;
+        const mockEventSource = {
+            addEventListener: vi.fn((event: string, handler: Function) => {
+                if (event === 'telegram-connected') {
+                    telegramConnectedHandler = handler;
+                }
+            }),
+            close: vi.fn(),
+            onerror: null,
+        };
+        global.EventSource = vi.fn(function (this: any) {
+            return mockEventSource;
+        }) as any;
 
-        // Advance time by 30 seconds (polling interval) and run all async timers
+        // Create a user that already selected Telegram (to trigger auto-save on connection)
+        const telegramUser = {
+            ...mockUser,
+            notification_channels: 'Telegram'
+        };
+
+        render(
+            <NotificationsModal
+                onClose={mockOnClose}
+                onSave={mockOnSave}
+                onGetTelegramStartLink={mockGetTelegramStartLink}
+                onGetTelegramStatus={mockGetTelegramStatusWithToken}
+                user={telegramUser}
+            />
+        );
+
+        // Wait for SSE connection to be established
+        await waitFor(() => {
+            expect(global.EventSource).toHaveBeenCalled();
+        }, { timeout: 3000 });
+
+        // Verify event listeners were registered
+        expect(mockEventSource.addEventListener).toHaveBeenCalledWith('telegram-connected', expect.any(Function));
+
+        // Simulate receiving telegram-connected event
+        const eventData = {
+            chatId: '123456789',
+            username: 'testuser',
+            timestamp: new Date().toISOString()
+        };
+
         await act(async () => {
-            vi.advanceTimersByTime(30000);
-            await vi.runAllTimersAsync();
+            if (telegramConnectedHandler) {
+                telegramConnectedHandler({
+                    data: JSON.stringify(eventData)
+                });
+            }
         });
 
-        // Verify that getTelegramStatus was called again (polling)
-        // The polling happens via setInterval when telegramConnecting is true
-        expect(mockGetTelegramStatusWithToken).toHaveBeenCalled();
+        // Verify auto-save was called with correct data
+        await waitFor(() => {
+            expect(mockOnSave).toHaveBeenCalledWith('Telegram', '123456789');
+        }, { timeout: 3000 });
 
-        vi.useRealTimers();
+        // Verify SSE connection was closed after successful connection
+        expect(mockEventSource.close).toHaveBeenCalled();
     });
 
     it('should show message when Copy key button is clicked', async () => {

@@ -230,6 +230,7 @@ describe("useTrackings", () => {
       headers: {
         Authorization: "Bearer test-token",
       },
+      credentials: "include",
     });
   });
 

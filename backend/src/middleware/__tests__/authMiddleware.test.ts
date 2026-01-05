@@ -241,10 +241,7 @@ describe("authMiddleware", () => {
       mockReq.headers = {
         authorization: "Bearer ",
       } as any;
-      // Empty token should cause verifyToken to fail
-      mockAuthService.verifyToken.mockRejectedValue(
-        new Error("Invalid or expired token")
-      );
+      mockReq.cookies = {};
 
       await authenticateToken(
         mockReq,
@@ -252,10 +249,11 @@ describe("authMiddleware", () => {
         mockNext as unknown as NextFunction
       );
 
-      expect(mockAuthService.verifyToken).toHaveBeenCalledWith("");
+      // With the new cookie support, empty Bearer token and no cookie should return 401 immediately
+      expect(mockAuthService.verifyToken).not.toHaveBeenCalled();
       expect(mockRes.status).toHaveBeenCalledWith(401);
       expect(mockRes.json).toHaveBeenCalledWith({
-        error: "Invalid or expired token",
+        error: "Authorization token required",
       });
       expect(mockNext).not.toHaveBeenCalled();
     });

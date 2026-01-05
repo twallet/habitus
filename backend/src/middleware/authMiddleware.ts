@@ -13,6 +13,7 @@ export interface AuthRequest extends Request {
  * Optional authentication middleware that allows requests without auth in development mode.
  * In production, requires authentication. In development, authentication is optional.
  * Adds userId to the request object if token is valid, otherwise leaves it undefined.
+ * Supports both Bearer token (Authorization header) and cookie-based authentication.
  * @param req - Express request object
  * @param res - Express response object
  * @param next - Express next function
@@ -32,9 +33,20 @@ export async function authenticateTokenOptional(
 
   // In development, authentication is optional
   try {
-    const authHeader = req.headers.authorization;
+    let token: string | null = null;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    // Try Bearer token first (existing behavior)
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.substring(7);
+    }
+
+    // Fallback to cookie
+    if (!token && req.cookies?.auth_token) {
+      token = req.cookies.auth_token;
+    }
+
+    if (!token) {
       // No token provided - allow request to proceed without userId
       console.log(
         `[${new Date().toISOString()}] AUTH_MIDDLEWARE | Optional auth: no token provided for ${
@@ -46,7 +58,6 @@ export async function authenticateTokenOptional(
       return;
     }
 
-    const token = authHeader.substring(7);
     const authService = ServiceManager.getAuthService();
     const userId = await authService.verifyToken(token);
     req.userId = userId;
@@ -83,6 +94,7 @@ export async function authenticateTokenOptional(
  * Middleware to authenticate requests using JWT tokens.
  * Adds userId to the request object if token is valid.
  * Updates last_access timestamp on each authenticated request.
+ * Supports both Bearer token (Authorization header) and cookie-based authentication.
  * @param req - Express request object
  * @param res - Express response object
  * @param next - Express next function
@@ -94,11 +106,22 @@ export async function authenticateToken(
   next: NextFunction
 ): Promise<void> {
   try {
-    const authHeader = req.headers.authorization;
+    let token: string | null = null;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    // Try Bearer token first (existing behavior)
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.substring(7);
+    }
+
+    // Fallback to cookie
+    if (!token && req.cookies?.auth_token) {
+      token = req.cookies.auth_token;
+    }
+
+    if (!token) {
       console.warn(
-        `[${new Date().toISOString()}] AUTH_MIDDLEWARE | Authentication failed: no Bearer token in request to ${
+        `[${new Date().toISOString()}] AUTH_MIDDLEWARE | Authentication failed: no token in request to ${
           req.path
         }`
       );
@@ -106,7 +129,6 @@ export async function authenticateToken(
       return;
     }
 
-    const token = authHeader.substring(7);
     console.log(
       `[${new Date().toISOString()}] AUTH_MIDDLEWARE | Authenticating request to ${
         req.path

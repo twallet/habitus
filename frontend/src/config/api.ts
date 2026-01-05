@@ -381,6 +381,7 @@ export class ApiClient {
     const response = await fetch(fullUrl, {
       ...options,
       headers,
+      credentials: "include", // Send cookies for SSE authentication
     });
 
     if (!response.ok) {

@@ -183,6 +183,15 @@ router.get("/verify-magic-link", async (req: Request, res: Response) => {
     }
 
     const result = await getAuthServiceInstance().verifyMagicLink(token);
+
+    // Set HTTP-only cookie with the JWT token
+    res.cookie("auth_token", result.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    });
+
     res.json(result);
   } catch (error) {
     if (
