@@ -277,7 +277,7 @@ export function NotificationsModal({
      */
     const handleDisconnectTelegram = async () => {
         try {
-            // Switch to Email and save (this will clear telegram_chat_id)
+            // Switch to Email and save (this will clear telegram_chat_id in DB)
             setSelectedChannel('Email');
             selectedChannelRef.current = 'Email';
             await savePreferences('Email');
@@ -285,6 +285,8 @@ export function NotificationsModal({
             setTelegramConnected(false);
             setTelegramChatId(null);
             setTelegramUsername(null);
+            // Reset success message flag so it can be shown again on reconnection
+            hasShownSuccessRef.current = false;
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Error disconnecting Telegram account');
         }
