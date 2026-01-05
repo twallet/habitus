@@ -135,20 +135,42 @@ describe('NotificationsModal', () => {
 
     it('should change selected channel when radio button is clicked', async () => {
         const user = userEvent.setup();
+        // Use a user with Telegram already connected to test channel switching
+        const mockGetTelegramStatusConnected = vi.fn().mockResolvedValue({
+            connected: true,
+            telegramChatId: '123456789',
+            telegramUsername: 'testuser',
+            hasActiveToken: false
+        });
+
+        const userWithTelegram: UserData = {
+            ...mockUser,
+            notification_channels: 'Email',
+            telegram_chat_id: '123456789',
+        };
+
         render(
             <NotificationsModal
                 onClose={mockOnClose}
                 onSave={mockOnSave}
                 onGetTelegramStartLink={mockGetTelegramStartLink}
-                onGetTelegramStatus={mockGetTelegramStatus}
-                user={mockUser}
+                onGetTelegramStatus={mockGetTelegramStatusConnected}
+                user={userWithTelegram}
             />
         );
+
+        // Wait for initial status check
+        await waitFor(() => {
+            expect(mockGetTelegramStatusConnected).toHaveBeenCalled();
+        });
 
         const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
         await user.click(telegramRadio);
 
-        expect(telegramRadio).toBeChecked();
+        // When Telegram is connected, clicking it should select it
+        await waitFor(() => {
+            expect(telegramRadio).toBeChecked();
+        });
         const emailRadio = screen.getByRole('radio', { name: /email/i });
         expect(emailRadio).not.toBeChecked();
     });
@@ -340,6 +362,13 @@ describe('NotificationsModal', () => {
     });
 
     it('should load user preferences on mount', async () => {
+        const mockGetTelegramStatusConnected = vi.fn().mockResolvedValue({
+            connected: true,
+            telegramChatId: '123456789',
+            telegramUsername: 'testuser',
+            hasActiveToken: false
+        });
+
         const userWithPreferences: UserData = {
             ...mockUser,
             notification_channels: 'Telegram',
@@ -351,7 +380,7 @@ describe('NotificationsModal', () => {
                 onClose={mockOnClose}
                 onSave={mockOnSave}
                 onGetTelegramStartLink={mockGetTelegramStartLink}
-                onGetTelegramStatus={mockGetTelegramStatus}
+                onGetTelegramStatus={mockGetTelegramStatusConnected}
                 user={userWithPreferences}
             />
         );
@@ -396,8 +425,10 @@ describe('NotificationsModal', () => {
         expect(screen.queryByText('Preparing connection...')).not.toBeInTheDocument();
         expect(screen.queryByText('Waiting for connection...')).not.toBeInTheDocument();
 
-        // Telegram should remain selected
-        expect(telegramRadio).toBeChecked();
+        // When Telegram is not connected, Email should remain selected (Telegram is not actually selected until connected)
+        const emailRadio = screen.getByRole('radio', { name: /email/i });
+        expect(emailRadio).toBeChecked();
+        expect(telegramRadio).not.toBeChecked();
     });
 
     it('should show connection panel when Telegram is selected (connection happens via webhook)', async () => {
@@ -428,24 +459,40 @@ describe('NotificationsModal', () => {
 
     it('should save automatically when switching to Email channel', async () => {
         const user = userEvent.setup();
+        // Use a user with Telegram connected to test switching from Telegram to Email
+        const mockGetTelegramStatusConnected = vi.fn().mockResolvedValue({
+            connected: true,
+            telegramChatId: '123456789',
+            telegramUsername: 'testuser',
+            hasActiveToken: false
+        });
+
+        const userWithTelegram: UserData = {
+            ...mockUser,
+            notification_channels: 'Telegram',
+            telegram_chat_id: '123456789',
+        };
+
         render(
             <NotificationsModal
                 onClose={mockOnClose}
                 onSave={mockOnSave}
                 onGetTelegramStartLink={mockGetTelegramStartLink}
-                onGetTelegramStatus={mockGetTelegramStatus}
-                user={mockUser}
+                onGetTelegramStatus={mockGetTelegramStatusConnected}
+                user={userWithTelegram}
             />
         );
 
-        // Select Telegram first to change from default Email
-        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
-        await user.click(telegramRadio);
-
-        // Wait for connection panel to appear
+        // Wait for initial status check to complete
         await waitFor(() => {
-            expect(screen.getByRole('button', { name: /copy key/i })).toBeInTheDocument();
-        }, { timeout: 3000 });
+            expect(mockGetTelegramStatusConnected).toHaveBeenCalled();
+        });
+
+        // Wait for Telegram to be selected
+        await waitFor(() => {
+            const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
+            expect(telegramRadio).toBeChecked();
+        });
 
         // Now click Email to trigger save
         const emailRadio = screen.getByRole('radio', { name: /email/i });
@@ -508,25 +555,42 @@ describe('NotificationsModal', () => {
         const errorMessage = 'Failed to save notification settings';
         const mockOnSaveWithError = vi.fn().mockRejectedValue(new Error(errorMessage));
 
+        // Use a user with Telegram connected to test switching from Telegram to Email with error
+        const mockGetTelegramStatusConnected = vi.fn().mockResolvedValue({
+            connected: true,
+            telegramChatId: '123456789',
+            telegramUsername: 'testuser',
+            hasActiveToken: false
+        });
+
+        const userWithTelegram: UserData = {
+            ...mockUser,
+            notification_channels: 'Telegram',
+            telegram_chat_id: '123456789',
+        };
+
         render(
             <NotificationsModal
                 onClose={mockOnClose}
                 onSave={mockOnSaveWithError}
                 onGetTelegramStartLink={mockGetTelegramStartLink}
-                onGetTelegramStatus={mockGetTelegramStatus}
-                user={mockUser}
+                onGetTelegramStatus={mockGetTelegramStatusConnected}
+                user={userWithTelegram}
             />
         );
 
-        // Switch to Telegram first, then switch back to Email to trigger save with error
-        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
-        await user.click(telegramRadio);
-
+        // Wait for initial status check to complete
         await waitFor(() => {
-            expect(screen.getByRole('button', { name: /copy key/i })).toBeInTheDocument();
+            expect(mockGetTelegramStatusConnected).toHaveBeenCalled();
         });
 
-        // Switch back to Email to trigger save
+        // Wait for Telegram to be selected
+        await waitFor(() => {
+            const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
+            expect(telegramRadio).toBeChecked();
+        });
+
+        // Switch to Email to trigger save with error
         const emailRadio = screen.getByRole('radio', { name: /email/i });
         await user.click(emailRadio);
 
