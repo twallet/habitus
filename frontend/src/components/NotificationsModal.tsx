@@ -76,19 +76,20 @@ export function NotificationsModal({
     onCancelTelegramConnection,
     user,
 }: NotificationsModalProps) {
-    const [selectedChannel, setSelectedChannel] = useState<string>('Email');
-    const selectedChannelRef = useRef<string>('Email');
+    const [selectedChannel, setSelectedChannel] = useState<string>(user?.notification_channels || 'Email');
+    const selectedChannelRef = useRef<string>(user?.notification_channels || 'Email');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
-    const [telegramConnected, setTelegramConnected] = useState(false);
-    const [telegramChatId, setTelegramChatId] = useState<string | null>(null);
+    const [telegramConnected, setTelegramConnected] = useState(!!user?.telegram_chat_id);
+    const [telegramChatId, setTelegramChatId] = useState<string | null>(user?.telegram_chat_id || null);
     const [telegramUsername, setTelegramUsername] = useState<string | null>(null);
     const [showTelegramConnectionModal, setShowTelegramConnectionModal] = useState(false);
     const [telegramConnecting, setTelegramConnecting] = useState(false);
     const isCancelingRef = useRef(false);
     const checkStatusIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const justSavedRef = useRef(false);
+    const hasShownSuccessRef = useRef(false);
 
     /**
      * Save notification preferences.
@@ -143,6 +144,8 @@ export function NotificationsModal({
     const checkTelegramStatus = async () => {
         try {
             const status = await onGetTelegramStatus();
+            const wasConnected = telegramConnected;
+
             if (status.connected && status.telegramChatId) {
                 setTelegramChatId(status.telegramChatId);
                 setTelegramConnected(true);
@@ -150,16 +153,19 @@ export function NotificationsModal({
                 if (status.telegramUsername) {
                     setTelegramUsername(status.telegramUsername);
                 }
-                // Automatically select Telegram and save when newly connected
-                if (selectedChannelRef.current === 'Telegram') {
+                // Automatically select Telegram and save when newly connected (not already connected)
+                if (selectedChannelRef.current === 'Telegram' && !wasConnected) {
                     // User was trying to connect, now save
                     await savePreferences('Telegram', status.telegramChatId);
-                    // Show success message temporarily
-                    const successMsg = `Telegram connected successfully as ${status.telegramUsername || 'user'}!`;
-                    setSuccessMessage(successMsg);
-                    setTimeout(() => {
-                        setSuccessMessage(null);
-                    }, 4000);
+                    // Show success message only once for new connections
+                    if (!hasShownSuccessRef.current) {
+                        const successMsg = `Telegram connected successfully as ${status.telegramUsername || 'user'}!`;
+                        setSuccessMessage(successMsg);
+                        hasShownSuccessRef.current = true;
+                        setTimeout(() => {
+                            setSuccessMessage(null);
+                        }, 4000);
+                    }
                 }
             } else {
                 setTelegramChatId(null);
@@ -177,21 +183,33 @@ export function NotificationsModal({
      * @internal
      */
     useEffect(() => {
-        if (user && !justSavedRef.current) {
-            const channel = user.notification_channels || 'Email';
-            setSelectedChannel(channel);
-            selectedChannelRef.current = channel;
+        if (user) {
+            // Only update if not in the middle of saving to prevent blinking
+            if (!justSavedRef.current) {
+                const channel = user.notification_channels || 'Email';
+                // Only update if different to prevent unnecessary re-renders
+                if (selectedChannel !== channel) {
+                    setSelectedChannel(channel);
+                    selectedChannelRef.current = channel;
+                }
+            }
 
             if (user.telegram_chat_id) {
-                setTelegramChatId(user.telegram_chat_id);
-                setTelegramConnected(true);
-                setTelegramConnecting(false);
-                // Fetch Telegram username
-                checkTelegramStatus().catch((err) => {
-                    console.error('Error fetching Telegram username:', err);
-                });
-            } else {
+                // Only update if changed to prevent re-renders
+                if (telegramChatId !== user.telegram_chat_id) {
+                    setTelegramChatId(user.telegram_chat_id);
+                    setTelegramConnected(true);
+                    setTelegramConnecting(false);
+                }
+                // Fetch Telegram username only if we don't have it yet
+                if (!telegramUsername) {
+                    checkTelegramStatus().catch((err) => {
+                        console.error('Error fetching Telegram username:', err);
+                    });
+                }
+            } else if (!telegramConnecting) {
                 // Check Telegram status even if not connected to get current state (including hasActiveToken)
+                // But only if not already checking
                 checkTelegramStatus().catch((err) => {
                     console.error('Error checking Telegram status:', err);
                 });
