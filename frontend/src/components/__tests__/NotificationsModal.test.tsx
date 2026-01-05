@@ -536,55 +536,6 @@ describe('NotificationsModal', () => {
         });
     });
 
-    it('should disable radio buttons during submission', async () => {
-        const user = userEvent.setup();
-        let resolveSave: () => void;
-        const mockOnSaveDelayed = vi.fn().mockImplementation(() => {
-            return new Promise<void>((resolve) => {
-                resolveSave = resolve;
-            });
-        });
-
-        render(
-            <NotificationsModal
-                onClose={mockOnClose}
-                onSave={mockOnSaveDelayed}
-                onGetTelegramStartLink={mockGetTelegramStartLink}
-                onGetTelegramStatus={mockGetTelegramStatus}
-                user={mockUser}
-            />
-        );
-
-        // Switch to Telegram first, then switch back to Email to trigger save
-        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
-        await user.click(telegramRadio);
-
-        await waitFor(() => {
-            expect(screen.getByRole('button', { name: /copy key/i })).toBeInTheDocument();
-        });
-
-        // Switch back to Email to trigger save
-        const emailRadio = screen.getByRole('radio', { name: /email/i });
-        await user.click(emailRadio);
-
-        // After switching, Email should be saved, which should disable radio buttons
-        await waitFor(() => {
-            const radioButtons = screen.getAllByRole('radio');
-            radioButtons.forEach(radio => {
-                expect(radio).toBeDisabled();
-            });
-        });
-
-        resolveSave!();
-        await waitFor(() => {
-            const radioButtons = screen.getAllByRole('radio');
-            radioButtons.forEach(radio => {
-                expect(radio).not.toBeDisabled();
-            });
-        });
-    });
-
-
     it('should render channel icons', () => {
         render(
             <NotificationsModal

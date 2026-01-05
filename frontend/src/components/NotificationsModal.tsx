@@ -132,7 +132,11 @@ export function NotificationsModal({
         // This ensures React applies the state update and disables the radio buttons immediately
         // Only set if not already set (when skipSubmittingCheck is true, it's already set)
         if (!skipSubmittingCheck) {
-            setIsSubmitting(true);
+            // Use flushSync to ensure the state update is applied synchronously
+            // This is critical for tests that check the disabled state immediately
+            flushSync(() => {
+                setIsSubmitting(true);
+            });
         }
         setError(null);
 
@@ -532,14 +536,17 @@ export function NotificationsModal({
                                                     value={channel.id}
                                                     checked={selectedChannel === channel.id}
                                                     onChange={() => {
-                                                        // Set isSubmitting synchronously in the event handler
-                                                        // before calling the async function to ensure React processes the state update
+                                                        // Set isSubmitting synchronously in the event handler before calling async function
+                                                        // This ensures the UI is disabled immediately, which is critical for tests
                                                         // Only set it if we're going to save (non-Telegram or Telegram that's connected)
-                                                        if (!isSubmitting && (channel.id !== 'Telegram' || telegramConnected)) {
+                                                        if (channel.id !== 'Telegram' || telegramConnected) {
+                                                            // Use flushSync to force React to apply the state update synchronously
+                                                            // This is critical for tests that check the disabled state immediately
                                                             flushSync(() => {
                                                                 setIsSubmitting(true);
                                                             });
                                                         }
+                                                        // handleChannelChange will also ensure isSubmitting is set and handle the save
                                                         handleChannelChange(channel.id);
                                                     }}
                                                     disabled={isSubmitting}
