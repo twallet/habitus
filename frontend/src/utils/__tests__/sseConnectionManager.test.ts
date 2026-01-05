@@ -15,8 +15,8 @@ class MockEventSource {
   withCredentials: boolean;
   readyState: number = 0; // CONNECTING
   listeners: Map<string, Array<(e: MessageEvent) => void>> = new Map();
-  onopen: ((this: EventSource, ev: Event) => void) | null = null;
-  onerror: ((this: EventSource, ev: Event) => void) | null = null;
+  onopen: ((ev: Event) => void) | null = null;
+  onerror: ((ev: Event) => void) | null = null;
 
   static CONNECTING = 0;
   static OPEN = 1;
@@ -394,7 +394,6 @@ describe("sseConnectionManager", () => {
       manager.connect();
       mockEventSource!.simulateEvent("connected");
 
-      const initialRetryCount = (manager as any).retryCount;
       (manager as any).retryCount = 5; // Set to non-zero
       (manager as any).hasReceivedInitialConnection = true;
 
@@ -890,8 +889,6 @@ describe("sseConnectionManager", () => {
 
       manager.connect();
       mockEventSource!.simulateEvent("connected");
-
-      const initialEventSource = (manager as any).eventSource;
 
       // Advance time past heartbeat timeout
       vi.advanceTimersByTime(1500);
