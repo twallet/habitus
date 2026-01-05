@@ -309,4 +309,71 @@ describe("FrequencyBuilder", () => {
       expect(builder.validate()).toBeNull();
     });
   });
+
+  describe("validateScheduledTime", () => {
+    it("should return error when one-time scheduled time is in the past", () => {
+      // Get today's date
+      const today = new Date();
+      const dateStr = `${today.getFullYear()}-${String(
+        today.getMonth() + 1
+      ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+      builder.setPreset("one-time");
+      builder.setOneTimeDate(dateStr);
+
+      // Schedule for an hour ago
+      const pastHour = today.getHours() - 1;
+      const schedules = [{ hour: pastHour < 0 ? 23 : pastHour, minutes: 0 }];
+
+      const error = builder.validateScheduledTime(schedules);
+      expect(error).toBe("At least one scheduled time must be in the future");
+    });
+
+    it("should return null when one-time scheduled time is in the future", () => {
+      // Get tomorrow's date
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const dateStr = `${tomorrow.getFullYear()}-${String(
+        tomorrow.getMonth() + 1
+      ).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+
+      builder.setPreset("one-time");
+      builder.setOneTimeDate(dateStr);
+
+      const schedules = [{ hour: 14, minutes: 0 }];
+
+      const error = builder.validateScheduledTime(schedules);
+      expect(error).toBeNull();
+    });
+
+    it("should return null when at least one scheduled time is in the future", () => {
+      // Use tomorrow to avoid timezone/hour wrapping issues
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const dateStr = `${tomorrow.getFullYear()}-${String(
+        tomorrow.getMonth() + 1
+      ).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+
+      builder.setPreset("one-time");
+      builder.setOneTimeDate(dateStr);
+
+      // Mix of early and later times (all will be in the future since it's tomorrow)
+      const schedules = [
+        { hour: 0, minutes: 0 }, // Midnight tomorrow
+        { hour: 14, minutes: 0 }, // 2 PM tomorrow
+      ];
+
+      const error = builder.validateScheduledTime(schedules);
+      expect(error).toBeNull();
+    });
+
+    it("should return null for non-one-time frequencies", () => {
+      builder.setPreset("daily");
+
+      const schedules = [{ hour: 0, minutes: 0 }];
+
+      const error = builder.validateScheduledTime(schedules);
+      expect(error).toBeNull();
+    });
+  });
 });

@@ -427,4 +427,41 @@ export class FrequencyBuilder {
       return error instanceof Error ? error.message : "Invalid frequency";
     }
   }
+
+  /**
+   * Validate that at least one scheduled time is in the future for one-time frequency.
+   * @param schedules - Array of schedules to validate
+   * @returns Error message if validation fails, null otherwise
+   * @public
+   */
+  validateScheduledTime(schedules: Array<{ hour: number; minutes: number }>): string | null {
+    if (this.preset !== "one-time") {
+      return null; // Only validate for one-time frequency
+    }
+
+    if (!this.oneTimeDate) {
+      return "One-time date is required";
+    }
+
+    const [year, month, day] = this.oneTimeDate.split("-").map(Number);
+    const now = new Date();
+
+    const hasValidTime = schedules.some((schedule) => {
+      const scheduledDateTime = new Date(
+        year,
+        month - 1,
+        day,
+        schedule.hour,
+        schedule.minutes,
+        0
+      );
+      return scheduledDateTime > now;
+    });
+
+    if (!hasValidTime) {
+      return "At least one scheduled time must be in the future";
+    }
+
+    return null;
+  }
 }

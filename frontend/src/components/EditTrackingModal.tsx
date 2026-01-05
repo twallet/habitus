@@ -1,5 +1,6 @@
 import { useState, FormEvent, useEffect, useRef } from "react";
 import { TrackingData, Frequency } from "../models/Tracking";
+import { FrequencyBuilder } from "../models/FrequencyBuilder";
 import { ApiClient } from "../config/api";
 import { FrequencyInput } from "./FrequencyInput";
 import "./EditTrackingModal.css";
@@ -231,6 +232,17 @@ export function EditTrackingModal({
             setError(frequencyError);
             setIsSubmitting(false);
             return;
+        }
+
+        // For one-time frequency, validate that at least one scheduled time is in the future
+        if (frequency.type === "one-time") {
+            const builder = new FrequencyBuilder(frequency);
+            const scheduleTimeError = builder.validateScheduledTime(schedules);
+            if (scheduleTimeError) {
+                setError(scheduleTimeError);
+                setIsSubmitting(false);
+                return;
+            }
         }
 
         const finalSchedules = sortSchedules(schedules);
