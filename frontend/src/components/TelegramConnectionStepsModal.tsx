@@ -59,11 +59,22 @@ export function TelegramConnectionStepsModal({
             setError(null);
             try {
                 console.log('[TelegramConnectionStepsModal] Generating link...');
-                const result = await onGetTelegramStartLink();
+                
+                // Add timeout to prevent hanging
+                const timeoutPromise = new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error('Link generation timed out after 10 seconds')), 10000);
+                });
+                
+                const result = await Promise.race([
+                    onGetTelegramStartLink(),
+                    timeoutPromise
+                ]) as Awaited<ReturnType<typeof onGetTelegramStartLink>>;
+                
                 console.log('[TelegramConnectionStepsModal] Link generated:', { 
-                    hasLink: !!result.link, 
-                    hasToken: !!result.token, 
-                    hasUserId: !!result.userId 
+                    hasLink: !!result?.link, 
+                    hasToken: !!result?.token, 
+                    hasUserId: !!result?.userId,
+                    result: result
                 });
 
                 // Check if webhook is configured
@@ -119,7 +130,12 @@ export function TelegramConnectionStepsModal({
                 }
             } catch (err) {
                 console.error('[TelegramConnectionStepsModal] Error generating link:', err);
-                setError(err instanceof Error ? err.message : 'Error generating Telegram link');
+                const errorMessage = err instanceof Error ? err.message : 'Error generating Telegram link';
+                setError(errorMessage);
+                // Make sure we stop the loading state even on error
+                setIsGeneratingLink(false);
+                // Reset the ref so user can try again
+                hasGeneratedRef.current = false;
             } finally {
                 setIsGeneratingLink(false);
             }
@@ -275,11 +291,23 @@ export function TelegramConnectionStepsModal({
                             <button
                                 type="button"
                                 className="message-close"
-                                onClick={() => setError(null)}
+                                onClick={() => {
+                                    setError(null);
+                                    // Reset so user can try again
+                                    hasGeneratedRef.current = false;
+                                }}
                                 aria-label="Close"
                             >
                                 ×
                             </button>
+                        </div>
+                    )}
+
+                    {isGeneratingLink && (
+                        <div style={{ padding: '20px', textAlign: 'center' }}>
+                            <p className="form-help-text" style={{ fontStyle: 'italic', color: '#666' }}>
+                                Generating key...
+                            </p>
                         </div>
                     )}
 

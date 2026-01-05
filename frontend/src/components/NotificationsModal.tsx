@@ -591,17 +591,28 @@ export function NotificationsModal({
                         await checkTelegramStatus();
                     }}
                     onGetTelegramStartLink={async () => {
-                        // Generate the link
-                        const result = await onGetTelegramStartLink();
-                        // Immediately check status to detect the new active token
-                        // Don't let status check errors prevent link generation
+                        console.log('[NotificationsModal] onGetTelegramStartLink called');
                         try {
-                            await checkTelegramStatus();
+                            // Generate the link first
+                            const result = await onGetTelegramStartLink();
+                            console.log('[NotificationsModal] Link received:', { 
+                                hasLink: !!result?.link, 
+                                hasToken: !!result?.token, 
+                                hasUserId: !!result?.userId 
+                            });
+                            
+                            // Immediately check status to detect the new active token
+                            // Don't let status check errors prevent link generation
+                            // Run in background without awaiting
+                            checkTelegramStatus().catch((err) => {
+                                console.error('[NotificationsModal] Error checking status after link generation:', err);
+                            });
+                            
+                            return result;
                         } catch (err) {
-                            console.error('[NotificationsModal] Error checking status after link generation:', err);
-                            // Continue even if status check fails
+                            console.error('[NotificationsModal] Error in onGetTelegramStartLink wrapper:', err);
+                            throw err;
                         }
-                        return result;
                     }}
                     onCopyClicked={() => {
                         // No additional action needed
