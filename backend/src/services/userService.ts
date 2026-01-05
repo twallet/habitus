@@ -294,20 +294,19 @@ export class UserService {
     }
 
     // Update notification preferences
-    // If Email is selected, clear telegram_chat_id (use empty string which will be converted to null in DB)
     // If Telegram is selected, use provided telegramChatId or keep existing
-    const finalTelegramChatId =
-      notificationChannel === "Telegram"
-        ? telegramChatId || user.telegram_chat_id
-        : "";
+    // If Email is selected, keep the existing telegram_chat_id (don't clear it)
+    // This allows users to switch between Email and Telegram without losing their connection
+    const updates: Partial<UserData> = {
+      notification_channels: notificationChannel,
+    };
 
-    await user.update(
-      {
-        notification_channels: notificationChannel,
-        telegram_chat_id: finalTelegramChatId,
-      },
-      this.db
-    );
+    // Only update telegram_chat_id if Telegram is selected and a new ID is provided
+    if (notificationChannel === "Telegram" && telegramChatId) {
+      updates.telegram_chat_id = telegramChatId;
+    }
+
+    await user.update(updates, this.db);
 
     // Retrieve updated user
     const updatedUser = await this.getUserById(userId);

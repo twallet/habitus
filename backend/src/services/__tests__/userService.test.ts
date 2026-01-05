@@ -1095,7 +1095,7 @@ describe("UserService", () => {
       expect(updatedUser.telegram_chat_id).toBe("existing-chat-id");
     });
 
-    it("should clear telegram_chat_id when Telegram is disabled", async () => {
+    it("should preserve telegram_chat_id when switching to Email", async () => {
       await testDb.run(
         "INSERT INTO users (name, email, telegram_chat_id) VALUES (?, ?, ?)",
         ["Test User", "test@example.com", "123456789"]
@@ -1108,7 +1108,34 @@ describe("UserService", () => {
         "Email"
       );
 
-      expect(updatedUser.telegram_chat_id).toBeUndefined();
+      // Telegram chat ID should be preserved when switching to Email
+      expect(updatedUser.telegram_chat_id).toBe("123456789");
+    });
+
+    it("should allow switching back to Telegram after switching to Email", async () => {
+      // Create user with Telegram connected
+      await testDb.run(
+        "INSERT INTO users (name, email, telegram_chat_id, notification_channels) VALUES (?, ?, ?, ?)",
+        ["Test User", "test@example.com", "123456789", "Telegram"]
+      );
+      const users = await userService.getAllUsers();
+      const user = users[0];
+
+      // Switch to Email
+      const emailUser = await userService.updateNotificationPreferences(
+        user.id,
+        "Email"
+      );
+      expect(emailUser.notification_channels).toBe("Email");
+      expect(emailUser.telegram_chat_id).toBe("123456789");
+
+      // Switch back to Telegram - should still have the chat ID
+      const telegramUser = await userService.updateNotificationPreferences(
+        user.id,
+        "Telegram"
+      );
+      expect(telegramUser.notification_channels).toBe("Telegram");
+      expect(telegramUser.telegram_chat_id).toBe("123456789");
     });
   });
 
