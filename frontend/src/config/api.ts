@@ -559,17 +559,19 @@ export class ApiClient {
 
   /**
    * Get Telegram bot start link for connecting Telegram account.
-   * @returns Promise resolving to object with link and token
+   * @returns Promise resolving to object with link, token, and userId
    * @throws Error if request fails
    * @public
    */
   async getTelegramStartLink(): Promise<{
     link: string;
     token: string;
+    userId?: number;
   }> {
     return this.get<{
       link: string;
       token: string;
+      userId?: number;
     }>(`${this.baseUrl}/api/telegram/start-link`);
   }
 

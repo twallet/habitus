@@ -248,10 +248,11 @@ async function getBotUsername(): Promise<string> {
 
 /**
  * GET /api/telegram/start-link
- * Generate a Telegram bot start link with connection token.
+ * Generate a Telegram bot link and connection token.
+ * Returns a link that opens the bot chat (user will manually paste the command).
  * @route GET /api/telegram/start-link
  * @header {string} Authorization - Bearer token
- * @returns {object} { link: string, token: string }
+ * @returns {object} { link: string, token: string, userId: number }
  */
 router.get(
   "/start-link",
@@ -300,12 +301,9 @@ router.get(
       // Get bot username
       const botUsername = await getBotUsername();
 
-      // Construct Telegram deep link
-      // Format: https://t.me/<bot_username>?start=<token>%20<userId>
-      // Telegram will send this as: /start <token> <userId>
-      const startParam = `${token} ${userId}`;
-      const encodedParam = encodeURIComponent(startParam);
-      const link = `https://t.me/${botUsername}?start=${encodedParam}`;
+      // Construct Telegram bot link (just opens chat, no auto-send)
+      // User will manually paste the command
+      const link = `https://t.me/${botUsername}`;
 
       console.log(
         `[${new Date().toISOString()}] TELEGRAM_ROUTE | Generated start link for userId: ${userId}`
@@ -325,6 +323,7 @@ router.get(
       res.json({
         link,
         token,
+        userId,
         webhookConfigured,
         webhookUrl: webhookUrl || undefined,
         webhookError: webhookError || undefined,

@@ -405,10 +405,10 @@ describe("Telegram Webhook Routes", () => {
 
       expect(response.body).toHaveProperty("link");
       expect(response.body).toHaveProperty("token");
+      expect(response.body).toHaveProperty("userId");
       expect(response.body.link).toContain("t.me/");
-      expect(response.body.link).toContain("?start=");
-      expect(response.body.link).toContain(response.body.token);
-      expect(response.body.link).toContain("1"); // userId
+      expect(response.body.link).not.toContain("?start="); // Link should not contain start parameter
+      expect(response.body.userId).toBe(1);
 
       // Verify token was created in database
       const tokenRow = await testDb.get(

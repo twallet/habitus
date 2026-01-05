@@ -9,8 +9,9 @@ describe('NotificationsModal', () => {
     const mockOnClose = vi.fn();
     const mockOnSave = vi.fn().mockResolvedValue(undefined);
     const mockGetTelegramStartLink = vi.fn().mockResolvedValue({
-        link: 'https://t.me/testbot?start=token123%201',
-        token: 'token123'
+        link: 'https://t.me/testbot',
+        token: 'token123',
+        userId: 1
     });
     const mockGetTelegramStatus = vi.fn().mockResolvedValue({
         connected: false,

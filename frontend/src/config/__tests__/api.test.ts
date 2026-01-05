@@ -661,8 +661,9 @@ describe("api", () => {
     describe("getTelegramStartLink", () => {
       it("should get Telegram start link successfully", async () => {
         const mockResponse = {
-          link: "https://t.me/testbot?start=token123%201",
+          link: "https://t.me/testbot",
           token: "token123",
+          userId: 1,
         };
 
         (global.fetch as Mock).mockResolvedValueOnce({

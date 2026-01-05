@@ -4,7 +4,7 @@ import './NotificationsModal.css';
 interface TelegramConnectionStepsModalProps {
     onClose: () => void | Promise<void>;
     onCancel?: () => void | Promise<void>;
-    onGetTelegramStartLink: () => Promise<{ link: string; token: string }>;
+    onGetTelegramStartLink: () => Promise<{ link: string; token: string; userId?: number }>;
     onCopyClicked?: () => void;
     onGetTelegramStatus?: () => Promise<{ connected: boolean; telegramChatId: string | null; telegramUsername: string | null; hasActiveToken: boolean }>;
 }
@@ -74,21 +74,27 @@ export function TelegramConnectionStepsModal({
                     return;
                 }
 
-                // Store the bot link and extract start command from link
+                // Store the bot link
                 setTelegramBotLink(result.link);
 
-                // Extract start command from link: format is "/start <token> <userId>"
-                try {
-                    const url = new URL(result.link);
-                    const startParam = url.searchParams.get('start');
-                    if (startParam) {
-                        const decoded = decodeURIComponent(startParam);
-                        // Build command as "/start <token> <userId>" (ensure leading /start)
-                        const command = decoded.startsWith('/start ') ? decoded : `/start ${decoded}`;
-                        setTelegramStartCommand(command);
+                // Construct start command from token and userId
+                // Format: "/start <token> <userId>"
+                if (result.token && result.userId) {
+                    const command = `/start ${result.token} ${result.userId}`;
+                    setTelegramStartCommand(command);
+                } else if (result.token) {
+                    // Fallback: if userId not provided, try to extract from link (backward compatibility)
+                    try {
+                        const url = new URL(result.link);
+                        const startParam = url.searchParams.get('start');
+                        if (startParam) {
+                            const decoded = decodeURIComponent(startParam);
+                            const command = decoded.startsWith('/start ') ? decoded : `/start ${decoded}`;
+                            setTelegramStartCommand(command);
+                        }
+                    } catch (e) {
+                        console.error('Error constructing command:', e);
                     }
-                } catch (e) {
-                    // Ignore URL parsing errors
                 }
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Error generating Telegram link');
