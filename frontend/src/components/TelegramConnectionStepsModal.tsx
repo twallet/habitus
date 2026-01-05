@@ -113,13 +113,19 @@ export function TelegramConnectionStepsModal({
                 try {
                     const status = await onGetTelegramStatusRef.current!();
                     if (status.connected && status.telegramChatId) {
-                        // Connection complete, close the modal
+                        // Connection complete, stop polling first
                         console.log('[TelegramConnectionStepsModal] Connection detected via polling, closing modal');
+                        if (pollingIntervalRef.current) {
+                            clearInterval(pollingIntervalRef.current);
+                            pollingIntervalRef.current = null;
+                        }
+                        // Reset state
                         setConnectionStep('steps');
                         setStep1Completed(false);
                         hasGeneratedRef.current = false;
                         setTelegramStartCommand(null);
                         setTelegramBotLink(null);
+                        // Close the modal (parent will handle state updates)
                         onClose();
                     }
                 } catch (err) {
