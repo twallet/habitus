@@ -1398,6 +1398,11 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
    */
   async processExpiredReminders(): Promise<void> {
     const now = new Date();
+    const nowISO = now.toISOString();
+    
+    console.log(
+      `[${nowISO}] REMINDER_POLL | Checking for expired Upcoming reminders (current time: ${nowISO})...`
+    );
     
     // Fetch all UPCOMING reminders and filter in JavaScript for more reliable comparison
     // This ensures we catch all expired reminders regardless of database type or datetime format
@@ -1418,17 +1423,33 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       [ReminderStatus.UPCOMING]
     );
 
+    console.log(
+      `[${new Date().toISOString()}] REMINDER_POLL | Found ${upcomingReminderRows.length} total Upcoming reminder(s)`
+    );
+
     if (upcomingReminderRows.length === 0) {
+      console.log(
+        `[${new Date().toISOString()}] REMINDER_POLL | No Upcoming reminders found, exiting`
+      );
       return;
     }
 
     // Filter expired reminders in JavaScript for reliable datetime comparison
     const expiredReminderRows = upcomingReminderRows.filter((row) => {
       const scheduledTime = new Date(row.scheduled_time);
-      return scheduledTime <= now;
+      const isExpired = scheduledTime <= now;
+      if (!isExpired) {
+        console.log(
+          `[${new Date().toISOString()}] REMINDER_POLL | Reminder ID ${row.id} not expired: scheduled_time=${row.scheduled_time}, now=${nowISO}`
+        );
+      }
+      return isExpired;
     });
 
     if (expiredReminderRows.length === 0) {
+      console.log(
+        `[${new Date().toISOString()}] REMINDER_POLL | No expired reminders found`
+      );
       return;
     }
 
@@ -1437,22 +1458,27 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
     );
 
     // Convert rows to Reminder instances
-    const expiredReminders = expiredReminderRows.map(
-      (row) =>
-        new Reminder({
-          id: row.id,
-          tracking_id: row.tracking_id,
-          user_id: row.user_id,
-          scheduled_time: row.scheduled_time,
-          notes: row.notes || undefined,
-          status: row.status as ReminderStatus,
-          value: (row.value as any) || null,
-          created_at: row.created_at,
-          updated_at: row.updated_at,
-        })
-    );
+    const expiredReminders = expiredReminderRows.map((row) => {
+      const reminder = new Reminder({
+        id: row.id,
+        tracking_id: row.tracking_id,
+        user_id: row.user_id,
+        scheduled_time: row.scheduled_time,
+        notes: row.notes || undefined,
+        status: row.status as ReminderStatus,
+        value: (row.value as any) || null,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+      });
+      console.log(
+        `[${new Date().toISOString()}] REMINDER_POLL | Created Reminder instance ID ${
+          reminder.id
+        } with status ${reminder.status}, scheduled_time: ${reminder.scheduled_time}`
+      );
+      return reminder;
+    });
 
-    await this.updateExpiredUpcomingReminders(expiredReminders);
+    await this.updateExpiredUpcomingReminders(expiredReminders, now);
   }
 
   /**
@@ -1460,35 +1486,74 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
    * Also creates new Upcoming reminders for trackings whose reminders became Pending.
    * Sends email notifications when reminders become Pending.
    * @param reminders - Array of reminder instances to check
+   * @param now - The current time to use for comparison (to ensure consistency)
    * @returns Promise resolving when all updates are complete
    * @private
    */
   private async updateExpiredUpcomingReminders(
-    reminders: Reminder[]
+    reminders: Reminder[],
+    now: Date = new Date()
   ): Promise<void> {
-    const now = new Date();
     const updatePromises: Promise<ReminderData>[] = [];
     const remindersToEmail: Reminder[] = [];
     const trackingIdsToCreateNext: Set<number> = new Set();
     const userIdsByTrackingId: Map<number, number> = new Map();
 
     for (const reminder of reminders) {
+      console.log(
+        `[${new Date().toISOString()}] REMINDER | Processing reminder ID ${
+          reminder.id
+        }, status: ${reminder.status}, scheduled_time: ${reminder.scheduled_time}`
+      );
+      
       if (reminder.status === ReminderStatus.UPCOMING) {
         const scheduledTime = new Date(reminder.scheduled_time);
-        if (scheduledTime <= now) {
+        const scheduledTimeMs = scheduledTime.getTime();
+        const nowMs = now.getTime();
+        
+        console.log(
+          `[${new Date().toISOString()}] REMINDER | Reminder ID ${
+            reminder.id
+          } comparison: scheduledTime=${scheduledTimeMs}, now=${nowMs}, expired=${scheduledTimeMs <= nowMs}`
+        );
+        
+        if (scheduledTimeMs <= nowMs) {
           console.log(
             `[${new Date().toISOString()}] REMINDER | Updating expired upcoming reminder ID ${
               reminder.id
-            } to Pending status`
+            } (scheduled_time: ${reminder.scheduled_time}) to Pending status`
           );
-          updatePromises.push(
-            reminder.update({ status: ReminderStatus.PENDING }, this.db)
+          try {
+            const updatePromise = reminder.update(
+              { status: ReminderStatus.PENDING },
+              this.db
+            );
+            updatePromises.push(updatePromise);
+            remindersToEmail.push(reminder);
+            // Track which trackings need a new Upcoming reminder created
+            trackingIdsToCreateNext.add(reminder.tracking_id);
+            userIdsByTrackingId.set(reminder.tracking_id, reminder.user_id);
+          } catch (error) {
+            console.error(
+              `[${new Date().toISOString()}] REMINDER | Error updating reminder ID ${
+                reminder.id
+              }:`,
+              error
+            );
+          }
+        } else {
+          console.log(
+            `[${new Date().toISOString()}] REMINDER | Reminder ID ${
+              reminder.id
+            } not expired: scheduled_time=${reminder.scheduled_time} (${scheduledTimeMs}), now=${now.toISOString()} (${nowMs})`
           );
-          remindersToEmail.push(reminder);
-          // Track which trackings need a new Upcoming reminder created
-          trackingIdsToCreateNext.add(reminder.tracking_id);
-          userIdsByTrackingId.set(reminder.tracking_id, reminder.user_id);
         }
+      } else {
+        console.log(
+          `[${new Date().toISOString()}] REMINDER | Reminder ID ${
+            reminder.id
+          } is not UPCOMING (status: ${reminder.status}), skipping`
+        );
       }
     }
 
@@ -1499,6 +1564,15 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
           updatePromises.length
         } expired upcoming reminder(s) to Pending status`
       );
+      
+      // Verify updates were successful
+      for (const updatedReminder of updatedReminders) {
+        console.log(
+          `[${new Date().toISOString()}] REMINDER | Verified reminder ID ${
+            updatedReminder.id
+          } is now ${updatedReminder.status}`
+        );
+      }
 
       // Send notifications for reminders that became Pending
       for (let i = 0; i < updatedReminders.length; i++) {
