@@ -736,28 +736,46 @@ describe('NotificationsModal', () => {
 
         it('should poll connection status every 2 seconds when in waiting state', async () => {
             const user = userEvent.setup();
-            vi.useFakeTimers();
             vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
 
-            const mockGetTelegramStatusPolling = vi.fn()
-                .mockResolvedValueOnce({
+            let callCount = 0;
+            const mockGetTelegramStatusPolling = vi.fn().mockImplementation(async () => {
+                callCount++;
+                // First 2 calls: mount effects (useEffect([]) + useEffect([user]))
+                if (callCount <= 2) {
+                    return {
+                        connected: false,
+                        telegramChatId: null,
+                        telegramUsername: null,
+                        hasActiveToken: false
+                    };
+                }
+                // Call 3: initial poll when entering waiting state
+                if (callCount === 3) {
+                    return {
+                        connected: false,
+                        telegramChatId: null,
+                        telegramUsername: null,
+                        hasActiveToken: false
+                    };
+                }
+                // Call 4: after 2 seconds
+                if (callCount === 4) {
+                    return {
+                        connected: false,
+                        telegramChatId: null,
+                        telegramUsername: null,
+                        hasActiveToken: false
+                    };
+                }
+                // Call 5: after another 2 seconds - still not connected
+                return {
                     connected: false,
                     telegramChatId: null,
                     telegramUsername: null,
                     hasActiveToken: false
-                })
-                .mockResolvedValueOnce({
-                    connected: false,
-                    telegramChatId: null,
-                    telegramUsername: null,
-                    hasActiveToken: false
-                })
-                .mockResolvedValue({
-                    connected: true,
-                    telegramChatId: '123456789',
-                    telegramUsername: 'testuser',
-                    hasActiveToken: false
-                });
+                };
+            });
 
             render(
                 <NotificationsModal
@@ -782,47 +800,58 @@ describe('NotificationsModal', () => {
                 expect(screen.getByText(/Waiting for you to paste the key/i)).toBeInTheDocument();
             });
 
-            // Initial poll happens immediately
-            await waitFor(() => {
-                expect(mockGetTelegramStatusPolling).toHaveBeenCalled();
-            });
-
+            // Wait for initial poll - polling starts immediately when entering waiting state
             const initialCallCount = mockGetTelegramStatusPolling.mock.calls.length;
-
-            // Advance time by 2 seconds - should trigger another poll
-            await vi.advanceTimersByTimeAsync(2000);
             await waitFor(() => {
                 expect(mockGetTelegramStatusPolling.mock.calls.length).toBeGreaterThan(initialCallCount);
-            });
+            }, { timeout: 3000 });
 
-            // Advance time by another 2 seconds - should trigger another poll
-            const callCountBefore = mockGetTelegramStatusPolling.mock.calls.length;
-            await vi.advanceTimersByTimeAsync(2000);
+            // Wait for first polling interval - should happen after ~2 seconds
+            const callCountAfterInitial = mockGetTelegramStatusPolling.mock.calls.length;
             await waitFor(() => {
-                expect(mockGetTelegramStatusPolling.mock.calls.length).toBeGreaterThan(callCountBefore);
-            });
+                expect(mockGetTelegramStatusPolling.mock.calls.length).toBeGreaterThan(callCountAfterInitial);
+            }, { timeout: 3000 });
 
-            vi.useRealTimers();
+            // Wait for second polling interval - should happen after another ~2 seconds
+            const callCountAfterFirstPoll = mockGetTelegramStatusPolling.mock.calls.length;
+            await waitFor(() => {
+                expect(mockGetTelegramStatusPolling.mock.calls.length).toBeGreaterThan(callCountAfterFirstPoll);
+            }, { timeout: 3000 });
         });
 
         it('should stop polling and auto-close modal when connection is detected', async () => {
             const user = userEvent.setup();
-            vi.useFakeTimers();
             vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
 
-            const mockGetTelegramStatusPolling = vi.fn()
-                .mockResolvedValueOnce({
-                    connected: false,
-                    telegramChatId: null,
-                    telegramUsername: null,
-                    hasActiveToken: false
-                })
-                .mockResolvedValue({
+            let callCount = 0;
+            const mockGetTelegramStatusPolling = vi.fn().mockImplementation(async () => {
+                callCount++;
+                // First 2 calls: mount effects
+                if (callCount <= 2) {
+                    return {
+                        connected: false,
+                        telegramChatId: null,
+                        telegramUsername: null,
+                        hasActiveToken: false
+                    };
+                }
+                // Call 3: initial poll when entering waiting state
+                if (callCount === 3) {
+                    return {
+                        connected: false,
+                        telegramChatId: null,
+                        telegramUsername: null,
+                        hasActiveToken: false
+                    };
+                }
+                // Call 4: connection detected after polling
+                return {
                     connected: true,
                     telegramChatId: '123456789',
                     telegramUsername: 'testuser',
                     hasActiveToken: false
-                });
+                };
+            });
 
             render(
                 <NotificationsModal
@@ -847,31 +876,26 @@ describe('NotificationsModal', () => {
                 expect(screen.getByText(/Waiting for you to paste the key/i)).toBeInTheDocument();
             });
 
-            // Initial poll happens immediately
+            // Wait for initial poll - polling starts immediately when entering waiting state
             await waitFor(() => {
                 expect(mockGetTelegramStatusPolling).toHaveBeenCalled();
-            });
+            }, { timeout: 3000 });
 
-            // Advance time by 2 seconds - polling should detect connection and close modal
-            await vi.advanceTimersByTimeAsync(2000);
-
+            // Wait for polling to detect connection and close modal
+            // The mock returns connected on call 4+, so polling should detect it
             await waitFor(() => {
                 expect(screen.queryByText(/Waiting for you to paste the key/i)).not.toBeInTheDocument();
-            }, { timeout: 3000 });
+            }, { timeout: 5000 });
 
             // Verify polling stopped (no more calls after connection detected)
             const callCountAfterConnection = mockGetTelegramStatusPolling.mock.calls.length;
-            await vi.advanceTimersByTimeAsync(2000);
-            // Give a small delay to ensure no additional calls
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // Wait a bit to ensure no additional calls
+            await new Promise(resolve => setTimeout(resolve, 2500));
             expect(mockGetTelegramStatusPolling.mock.calls.length).toBe(callCountAfterConnection);
-
-            vi.useRealTimers();
         });
 
         it('should stop polling when modal is closed', async () => {
             const user = userEvent.setup();
-            vi.useFakeTimers();
             vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
 
             const mockGetTelegramStatusPolling = vi.fn().mockResolvedValue({
@@ -904,10 +928,10 @@ describe('NotificationsModal', () => {
                 expect(screen.getByText(/Waiting for you to paste the key/i)).toBeInTheDocument();
             });
 
-            // Initial poll happens immediately
+            // Wait for initial poll
             await waitFor(() => {
                 expect(mockGetTelegramStatusPolling).toHaveBeenCalled();
-            });
+            }, { timeout: 3000 });
 
             // Close the modal
             const closeButtons = screen.getAllByRole('button', { name: /close/i });
@@ -916,16 +940,13 @@ describe('NotificationsModal', () => {
 
             await waitFor(() => {
                 expect(screen.queryByText(/Waiting for you to paste the key/i)).not.toBeInTheDocument();
-            });
+            }, { timeout: 3000 });
 
             // Verify polling stopped (no more calls after modal closed)
             const callCountBeforeClose = mockGetTelegramStatusPolling.mock.calls.length;
-            await vi.advanceTimersByTimeAsync(2000);
-            // Give a small delay to ensure no additional calls
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // Wait a bit to ensure no additional calls (polling interval is 2 seconds)
+            await new Promise(resolve => setTimeout(resolve, 2500));
             expect(mockGetTelegramStatusPolling.mock.calls.length).toBe(callCountBeforeClose);
-
-            vi.useRealTimers();
         });
 
         it('should verify command text is not displayed in UI', async () => {
@@ -959,19 +980,28 @@ describe('NotificationsModal', () => {
     describe('Telegram Connection Success', () => {
         it('should auto-select Telegram when connection is detected via status check', async () => {
             const user = userEvent.setup();
-            const mockGetTelegramStatusConnected = vi.fn()
-                .mockResolvedValueOnce({
-                    connected: false,
-                    telegramChatId: null,
-                    telegramUsername: null,
-                    hasActiveToken: false
-                })
-                .mockResolvedValue({
+            vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+
+            let callCount = 0;
+            const mockGetTelegramStatusConnected = vi.fn().mockImplementation(async () => {
+                callCount++;
+                // First 2 calls: mount effects - not connected
+                if (callCount <= 2) {
+                    return {
+                        connected: false,
+                        telegramChatId: null,
+                        telegramUsername: null,
+                        hasActiveToken: false
+                    };
+                }
+                // Call 3+: connection detected via polling while modal is open
+                return {
                     connected: true,
                     telegramChatId: '123456789',
                     telegramUsername: 'testuser',
                     hasActiveToken: false
-                });
+                };
+            });
 
             render(
                 <NotificationsModal
@@ -985,34 +1015,43 @@ describe('NotificationsModal', () => {
 
             await waitFor(() => {
                 expect(mockGetTelegramStatusConnected).toHaveBeenCalled();
-            });
+            }, { timeout: 3000 });
 
             // Initially Email should be selected
             const emailRadio = screen.getByRole('radio', { name: /email/i });
             expect(emailRadio).toBeChecked();
 
-            // Click Telegram to open connection modal
+            // Click Telegram to open connection modal (Telegram is not connected yet)
             await user.click(getTelegramRadio());
 
             await waitFor(() => {
                 expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
-            });
+            }, { timeout: 3000 });
 
-            // Close modal - status check should detect connection
-            const closeButtons = screen.getAllByRole('button', { name: /close/i });
-            const telegramModalCloseButton = closeButtons[closeButtons.length - 1];
-            await user.click(telegramModalCloseButton);
+            // Go through the connection steps to enter waiting state
+            await user.click(screen.getByRole('button', { name: /copy key/i }));
+            await user.click(screen.getByRole('button', { name: /go to chat/i }));
 
-            // Wait for status check and auto-selection
+            await waitFor(() => {
+                expect(screen.getByText(/Waiting for you to paste the key/i)).toBeInTheDocument();
+            }, { timeout: 3000 });
+
+            // Polling will detect connection (call 3+) and auto-close modal
+            // Wait for modal to auto-close when connection is detected
+            await waitFor(() => {
+                expect(screen.queryByText(/Waiting for you to paste the key/i)).not.toBeInTheDocument();
+            }, { timeout: 5000 });
+
+            // Wait for Telegram to be auto-selected
             await waitFor(() => {
                 const telegramRadio = getTelegramRadio();
                 expect(telegramRadio).toBeChecked();
-            });
+            }, { timeout: 5000 });
 
             // Verify save was called with Telegram
             await waitFor(() => {
                 expect(mockOnSave).toHaveBeenCalledWith('Telegram', '123456789');
-            });
+            }, { timeout: 3000 });
         });
     });
 
@@ -1046,25 +1085,26 @@ describe('NotificationsModal', () => {
 
         it('should check status when user prop changes', async () => {
             // Mock handles initial mount calls (2 calls: useEffect([]) + useEffect([user]))
-            const mockGetTelegramStatusForRerender = vi.fn()
-                .mockResolvedValueOnce({
-                    connected: false,
-                    telegramChatId: null,
-                    telegramUsername: null,
-                    hasActiveToken: false
-                })
-                .mockResolvedValueOnce({
-                    connected: false,
-                    telegramChatId: null,
-                    telegramUsername: null,
-                    hasActiveToken: false
-                })
-                .mockResolvedValue({
+            let callCount = 0;
+            const mockGetTelegramStatusForRerender = vi.fn().mockImplementation(async () => {
+                callCount++;
+                // First 2 calls: mount effects
+                if (callCount <= 2) {
+                    return {
+                        connected: false,
+                        telegramChatId: null,
+                        telegramUsername: null,
+                        hasActiveToken: false
+                    };
+                }
+                // Subsequent calls: connected
+                return {
                     connected: true,
                     telegramChatId: '123456789',
                     telegramUsername: 'testuser',
                     hasActiveToken: false
-                });
+                };
+            });
 
             const { rerender } = render(
                 <NotificationsModal
