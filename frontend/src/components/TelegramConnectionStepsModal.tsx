@@ -147,7 +147,7 @@ export function TelegramConnectionStepsModal({
 
     /**
      * Poll for Telegram connection status when in waiting state.
-     * This is a fallback in case SSE events are not received.
+     * Checks connection status every 2 seconds until connection is detected or modal is closed.
      * @internal
      */
     useEffect(() => {

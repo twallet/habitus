@@ -59,39 +59,6 @@ If automatic setup fails, you can set it manually:
    curl https://your-server.com/api/telegram/webhook-info
    ```
 
-#### For Local Development
-
-For local development, you need to use a tunneling service like ngrok:
-
-1. Install ngrok: https://ngrok.com/download
-2. Start your backend server
-3. In a new terminal, run: `ngrok http 3005` (replace 3005 with your port)
-4. Copy the HTTPS URL provided by ngrok (e.g., `https://abc123.ngrok.io`)
-5. Set up the webhook:
-   ```bash
-   curl -X POST http://localhost:3005/api/telegram/set-webhook \
-     -H "Content-Type: application/json" \
-     -d '{"webhookUrl": "https://abc123.ngrok.io"}'
-   ```
-6. Verify the webhook is set up:
-   ```bash
-   curl http://localhost:3005/api/telegram/webhook-info
-   ```
-
-**Note:** Keep ngrok running while testing. If you restart ngrok, you'll get a new URL and need to update the webhook.
-
-**Important for ngrok Free Tier:**
-
-- ngrok free tier (`*.ngrok-free.dev`) may show a browser warning page that blocks automated requests
-- If webhook is configured but Telegram isn't sending updates, check webhook info for errors:
-  ```bash
-  curl http://localhost:3005/api/telegram/webhook-info
-  ```
-- If you see errors, try:
-  1. Use ngrok paid tier (no browser warning)
-  2. Or use a different tunneling service like Cloudflare Tunnel or localtunnel
-  3. Or test in production where you have a real domain
-
 ## User Configuration Flow
 
 The Telegram connection uses a secure token-based flow:
@@ -99,27 +66,195 @@ The Telegram connection uses a secure token-based flow:
 ### Step 1: Select Telegram Channel
 
 1. Open the Notifications modal in the Habitus application
-2. Select "Telegram" as your notification channel
+2. Select "Telegram" as your notification channel (if not already connected, this opens the connection modal)
 
 ### Step 2: Connect Your Telegram Account
 
-1. Click the "Connect Telegram" button
-2. A secure connection link will be generated
-3. The link will open in your default browser or Telegram app
-4. Click "Start" in the Telegram conversation with the bot
+A connection modal will appear with two steps:
+
+**Step 2a: Copy Your Key**
+
+1. Click the "Copy key" button
+2. A secure connection command is copied to your clipboard (you won't see the actual command text)
+
+**Step 2b: Go to Telegram Chat**
+
+1. Click the "Go to chat" button (enabled after copying the key)
+2. This opens the Telegram bot chat in a new tab
+3. Paste the copied command in the Telegram chat and send it
+4. The modal will show a "waiting" view while checking for connection
 
 ### Step 3: Connection Confirmation
 
-1. After clicking "Start" in Telegram, your account will be automatically connected
+1. After pasting the command in Telegram, your account will be automatically connected
 2. The bot will send you a welcome message confirming the connection
-3. The Notifications modal will show "Connected" status
-4. Your reminders will now be sent via Telegram
+3. The connection modal will close automatically
+4. The Notifications modal will show "Connected" status with your Telegram username
+5. Your reminders will now be sent via Telegram
 
 ### Connection Token System
 
 - Connection tokens are generated securely and expire after 10 minutes
 - Each token is single-use and tied to a specific user
 - Tokens are automatically cleaned up after expiration
+- The connection command format is: `/start <token> <userId>`
+
+## Telegram Account Connection Process
+
+### Overview
+
+The system uses a token-based connection flow: the frontend generates a connection token, the user sends it to the Telegram bot, and the backend validates it to complete the connection.
+
+### Step-by-Step Connection Flow
+
+#### 1. User Initiates Connection
+
+- User opens Notifications Modal
+- User selects Telegram channel (when not connected)
+- `NotificationsModal` opens `TelegramConnectionStepsModal`
+
+#### 2. Token Generation
+
+- Frontend calls `GET /api/users/telegram/start-link`
+- Backend (`TelegramConnectionService.generateConnectionToken`):
+  - Generates a secure random token
+  - Stores it in `telegram_connection_tokens` table with:
+    - `user_id` (authenticated user)
+    - `token` (random string)
+    - `expires_at` (10 minutes from creation)
+  - Returns: `{ link: string, token: string, userId: number }`
+
+#### 3. Connection Modal Steps
+
+`TelegramConnectionStepsModal` displays two steps:
+
+**Step 1: Copy Key**
+
+- The start command (`/start <token> <userId>`) is generated and stored internally
+- User sees a "Copy key" button (the command text is not displayed)
+- Clicking the button copies the command to clipboard
+- Button becomes disabled after copying
+- The user never sees the actual command text in the UI (for security)
+
+**Step 2: Go to Chat**
+
+- "Go to chat" button is enabled after Step 1 is completed
+- Opens Telegram bot link in a new tab
+- Modal switches to "waiting" view
+- Starts polling status every 2 seconds
+
+#### 4. User Completes Connection in Telegram
+
+- User pastes `/start <token> <userId>` command in Telegram chat
+- Telegram sends webhook to `POST /api/telegram/webhook`
+
+#### 5. Backend Webhook Processing
+
+`processTelegramUpdate` function:
+
+- Validates `/start` command format
+- Extracts `token` and `userId` from message
+- Validates token via `TelegramConnectionService.validateToken`:
+  - Checks if token exists
+  - Checks if token is expired (10 minutes)
+  - Verifies `userId` matches token's user
+  - Deletes token (single-use)
+- Updates user:
+  - Sets `telegram_chat_id` from Telegram chat ID
+  - Sets `notification_channels` to "Telegram"
+- Sends welcome message via Telegram Bot API
+
+#### 6. Frontend Status Detection
+
+- Polling (every 2 seconds) detects connection
+- `checkTelegramStatus` calls `GET /api/users/telegram/status`
+- Backend returns:
+  ```typescript
+  {
+    connected: true,
+    telegramChatId: string,
+    telegramUsername: string,
+    hasActiveToken: false
+  }
+  ```
+
+#### 7. Auto-Save and UI Update
+
+- `NotificationsModal` detects connection:
+  - Updates state: `telegramConnected = true`
+  - Sets `telegramChatId` and `telegramUsername`
+  - Auto-selects Telegram channel
+  - Calls `savePreferences('Telegram', telegramChatId)`
+  - Shows success message: "Telegram connected successfully as @username!"
+  - Closes connection modal automatically
+
+### Connection States
+
+- **Not Connected**: `telegram_chat_id` is empty/null
+- **Connecting**: Active token exists (`hasActiveToken: true`) but not connected yet
+- **Connected**: `telegram_chat_id` is set and valid
+
+### Error Handling
+
+- **Token expiration**: Tokens expire after 10 minutes
+- **Invalid token**: Token not found or already used
+- **User ID mismatch**: Token belongs to different user
+- **Webhook not configured**: Shows error in connection modal
+- **Connection timeout**: User can cancel and retry
+
+## Telegram Account Disconnection Process
+
+### Overview
+
+Disconnects the Telegram account, clears the chat ID, and switches notifications back to Email.
+
+### Step-by-Step Disconnection Flow
+
+#### 1. User Initiates Disconnection
+
+- User clicks disconnect button (×) on Telegram badge in Notifications Modal
+- Button appears when `telegramConnected === true`
+- Located next to Telegram username badge
+
+#### 2. Frontend Disconnect Handler
+
+`handleDisconnectTelegram` function:
+
+- Calls `onDisconnectTelegram()` (from `useAuth` hook)
+- Updates UI state:
+  - Sets `selectedChannel` to "Email"
+  - Clears `telegramChatId` and `telegramUsername`
+  - Sets `telegramConnected = false`
+  - Resets success message flag
+
+#### 3. API Call
+
+- Frontend calls `DELETE /api/users/telegram`
+- Requires authentication token in headers
+
+#### 4. Backend Processing
+
+`UserService.disconnectTelegram`:
+
+- Loads user by ID
+- Updates user record:
+  - Sets `telegram_chat_id` to empty string `""`
+  - Sets `notification_channels` to `"Email"`
+- Returns updated user data
+
+#### 5. UI Update
+
+- Notifications Modal reflects changes:
+  - Email channel is selected
+  - Telegram badge shows "No account connected"
+  - Disconnect button is hidden
+- If error occurs, error message is displayed
+
+### Important Notes
+
+- **Automatic fallback**: If Telegram is selected but connection is lost, system automatically switches to Email
+- **Single channel**: Only one notification channel can be active at a time
+- **State synchronization**: Frontend checks status on modal open to detect expired tokens or lost connections
 
 ## How It Works
 
@@ -143,10 +278,12 @@ sequenceDiagram
     Backend->>Database: Validate token, update user telegram_chat_id
     Backend->>TelegramBot: Success response
     TelegramBot->>User: Send welcome message with app link
-    Frontend->>Backend: Poll GET /api/users/telegram/status
+    Frontend->>Backend: Poll GET /api/users/telegram/status (every 2 seconds)
     Backend->>Frontend: Connection status (connected/not connected)
     Frontend->>User: Show connection confirmation
 ```
+
+**Note:** The frontend uses polling (checking status every 2 seconds) to detect when the Telegram connection is complete. Polling continues while the connection modal is in the "waiting" state and stops automatically when the connection is detected or the modal is closed.
 
 ### Reminder Sending
 
@@ -231,8 +368,8 @@ If messages aren't being received:
 
 If the connection status doesn't update after connecting:
 
-- Wait a few seconds for the status to sync
-- Try refreshing the Notifications modal
+- The frontend polls the connection status every 2 seconds when the connection modal is open. Wait up to 2 seconds for the status to update.
+- If you closed the connection modal before the connection completed, reopening the Notifications modal will trigger a one-time status check to detect if the connection succeeded
 - Check the browser console for any errors
 - Verify that the webhook is working (check server logs)
 

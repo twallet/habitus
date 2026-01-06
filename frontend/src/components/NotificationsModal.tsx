@@ -282,7 +282,7 @@ export function NotificationsModal({
     }, []); // Run only once on mount
 
     /**
-     * Auto-close connection modal when Telegram connects via SSE.
+     * Auto-close connection modal when Telegram connection state changes to connected.
      * @internal
      */
     useEffect(() => {

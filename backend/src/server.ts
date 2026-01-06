@@ -109,7 +109,7 @@ app.use(
  */
 if (isDevelopment) {
   // In development, same origin so CORS is not needed, but keep it for API testing
-  // Enable credentials for SSE with cookie authentication
+  // Enable credentials for cookie authentication
   app.use(cors({ origin: true, credentials: true }));
 } else {
   // In production, enable credentials for cookie-based authentication
