@@ -1057,6 +1057,12 @@ describe('NotificationsModal', () => {
                     telegramUsername: null,
                     hasActiveToken: false
                 })
+                .mockResolvedValueOnce({
+                    connected: false,
+                    telegramChatId: null,
+                    telegramUsername: null,
+                    hasActiveToken: false
+                })
                 .mockResolvedValue({
                     connected: true,
                     telegramChatId: '123456789',
