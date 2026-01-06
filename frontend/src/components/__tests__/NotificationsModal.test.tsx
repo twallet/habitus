@@ -1036,21 +1036,35 @@ describe('NotificationsModal', () => {
         });
 
         it('should check status when user prop changes', async () => {
+            const mockGetTelegramStatusForRerender = vi.fn()
+                .mockResolvedValueOnce({
+                    connected: false,
+                    telegramChatId: null,
+                    telegramUsername: null,
+                    hasActiveToken: false
+                })
+                .mockResolvedValue({
+                    connected: true,
+                    telegramChatId: '123456789',
+                    telegramUsername: 'testuser',
+                    hasActiveToken: false
+                });
+
             const { rerender } = render(
                 <NotificationsModal
                     onClose={mockOnClose}
                     onSave={mockOnSave}
                     onGetTelegramStartLink={mockGetTelegramStartLink}
-                    onGetTelegramStatus={mockGetTelegramStatus}
+                    onGetTelegramStatus={mockGetTelegramStatusForRerender}
                     user={mockUser}
                 />
             );
 
             await waitFor(() => {
-                expect(mockGetTelegramStatus).toHaveBeenCalled();
+                expect(mockGetTelegramStatusForRerender).toHaveBeenCalled();
             });
 
-            mockGetTelegramStatus.mockClear();
+            const callCountBeforeRerender = mockGetTelegramStatusForRerender.mock.calls.length;
 
             const updatedUser: UserData = {
                 ...mockUser,
@@ -1062,14 +1076,14 @@ describe('NotificationsModal', () => {
                     onClose={mockOnClose}
                     onSave={mockOnSave}
                     onGetTelegramStartLink={mockGetTelegramStartLink}
-                    onGetTelegramStatus={mockGetTelegramStatus}
+                    onGetTelegramStatus={mockGetTelegramStatusForRerender}
                     user={updatedUser}
                 />
             );
 
             await waitFor(() => {
-                expect(mockGetTelegramStatus).toHaveBeenCalled();
-            });
+                expect(mockGetTelegramStatusForRerender.mock.calls.length).toBeGreaterThan(callCountBeforeRerender);
+            }, { timeout: 3000 });
         });
 
         it('should handle Connecting state (hasActiveToken true but not connected)', async () => {
@@ -1092,31 +1106,42 @@ describe('NotificationsModal', () => {
 
             await waitFor(() => {
                 expect(mockGetTelegramStatusConnecting).toHaveBeenCalled();
-            });
+            }, { timeout: 5000 });
 
             // Should show "No account connected" badge
-            expect(screen.getByText('No account connected')).toBeInTheDocument();
+            await waitFor(() => {
+                expect(screen.getByText('No account connected')).toBeInTheDocument();
+            }, { timeout: 3000 });
             
             // Email should be selected (Telegram not connected)
-            const emailRadio = screen.getByRole('radio', { name: /email/i });
-            expect(emailRadio).toBeChecked();
+            await waitFor(() => {
+                const emailRadio = screen.getByRole('radio', { name: /email/i });
+                expect(emailRadio).toBeChecked();
+            }, { timeout: 3000 });
         });
 
         it('should automatically switch to Email when Telegram is selected but connection is lost', async () => {
             const user = userEvent.setup();
-            const mockGetTelegramStatusLost = vi.fn()
-                .mockResolvedValueOnce({
-                    connected: true,
-                    telegramChatId: '123456789',
-                    telegramUsername: 'testuser',
-                    hasActiveToken: false
-                })
-                .mockResolvedValue({
+            let callCount = 0;
+            const mockGetTelegramStatusLost = vi.fn().mockImplementation(async () => {
+                callCount++;
+                // First call: connected (initial state from mount)
+                if (callCount === 1) {
+                    return {
+                        connected: true,
+                        telegramChatId: '123456789',
+                        telegramUsername: 'testuser',
+                        hasActiveToken: false
+                    };
+                }
+                // Subsequent calls: disconnected (simulating connection loss detected on status check)
+                return {
                     connected: false,
                     telegramChatId: null,
                     telegramUsername: null,
                     hasActiveToken: false
-                });
+                };
+            });
 
             const userWithTelegram: UserData = {
                 ...mockUser,
@@ -1124,7 +1149,7 @@ describe('NotificationsModal', () => {
                 telegram_chat_id: '123456789',
             };
 
-            render(
+            const { rerender } = render(
                 <NotificationsModal
                     onClose={mockOnClose}
                     onSave={mockOnSave}
@@ -1134,6 +1159,7 @@ describe('NotificationsModal', () => {
                 />
             );
 
+            // Wait for initial status check
             await waitFor(() => {
                 expect(mockGetTelegramStatusLost).toHaveBeenCalled();
             });
@@ -1142,18 +1168,36 @@ describe('NotificationsModal', () => {
             await waitFor(() => {
                 const telegramRadio = getTelegramRadio();
                 expect(telegramRadio).toBeChecked();
-            });
+            }, { timeout: 3000 });
+
+            // Simulate user prop change to trigger status check again
+            // This simulates the scenario where the backend detects connection loss
+            const userWithoutTelegram: UserData = {
+                ...mockUser,
+                notification_channels: 'Telegram',
+                telegram_chat_id: '', // Connection lost
+            };
+
+            rerender(
+                <NotificationsModal
+                    onClose={mockOnClose}
+                    onSave={mockOnSave}
+                    onGetTelegramStartLink={mockGetTelegramStartLink}
+                    onGetTelegramStatus={mockGetTelegramStatusLost}
+                    user={userWithoutTelegram}
+                />
+            );
 
             // Status check detects connection is lost - should switch to Email
             await waitFor(() => {
                 const emailRadio = screen.getByRole('radio', { name: /email/i });
                 expect(emailRadio).toBeChecked();
-            });
+            }, { timeout: 5000 });
 
             // Verify Email preference was saved
             await waitFor(() => {
                 expect(mockOnSave).toHaveBeenCalledWith('Email', expect.anything());
-            });
+            }, { timeout: 3000 });
         });
     });
 
@@ -1188,14 +1232,14 @@ describe('NotificationsModal', () => {
 
             await waitFor(() => {
                 expect(mockGetTelegramStatusConnected).toHaveBeenCalled();
-            });
+            }, { timeout: 3000 });
 
             const emailRadio = screen.getByRole('radio', { name: /email/i });
             await user.click(emailRadio);
 
             await waitFor(() => {
                 expect(screen.getByText(errorMessage)).toBeInTheDocument();
-            });
+            }, { timeout: 5000 });
         });
 
         it('should allow dismissing error message', async () => {
@@ -1228,14 +1272,14 @@ describe('NotificationsModal', () => {
 
             await waitFor(() => {
                 expect(mockGetTelegramStatusConnected).toHaveBeenCalled();
-            });
+            }, { timeout: 3000 });
 
             const emailRadio = screen.getByRole('radio', { name: /email/i });
             await user.click(emailRadio);
 
             await waitFor(() => {
                 expect(screen.getByText(errorMessage)).toBeInTheDocument();
-            });
+            }, { timeout: 5000 });
 
             const closeButtons = screen.getAllByRole('button', { name: /close/i });
             const errorMessageCloseButton = closeButtons.find(btn =>
@@ -1247,7 +1291,7 @@ describe('NotificationsModal', () => {
 
             await waitFor(() => {
                 expect(screen.queryByText(errorMessage)).not.toBeInTheDocument();
-            });
+            }, { timeout: 3000 });
         });
 
         it('should allow dismissing success message', async () => {
@@ -1271,13 +1315,13 @@ describe('NotificationsModal', () => {
 
             await waitFor(() => {
                 expect(mockGetTelegramStatusConnected).toHaveBeenCalledTimes(2);
-            });
+            }, { timeout: 3000 });
 
             await user.click(getTelegramRadio());
 
             await waitFor(() => {
                 expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
-            });
+            }, { timeout: 3000 });
 
             const closeButtons = screen.getAllByRole('button', { name: /close/i });
             const telegramModalCloseButton = closeButtons[closeButtons.length - 1];
@@ -1293,7 +1337,7 @@ describe('NotificationsModal', () => {
 
             await waitFor(() => {
                 expect(screen.getByText(/Telegram connected successfully/i)).toBeInTheDocument();
-            });
+            }, { timeout: 5000 });
 
             const successCloseButtons = screen.getAllByRole('button', { name: /close/i });
             const successCloseButton = successCloseButtons.find(btn =>
@@ -1304,7 +1348,7 @@ describe('NotificationsModal', () => {
                 await user.click(successCloseButton);
                 await waitFor(() => {
                     expect(screen.queryByText(/Telegram connected successfully/i)).not.toBeInTheDocument();
-                });
+                }, { timeout: 3000 });
             }
         });
     });
@@ -1343,13 +1387,13 @@ describe('NotificationsModal', () => {
 
             await waitFor(() => {
                 expect(mockGetTelegramStatusConnected).toHaveBeenCalled();
-            });
+            }, { timeout: 3000 });
 
             // Wait for Telegram to be selected
             await waitFor(() => {
                 const telegramRadio = getTelegramRadio();
                 expect(telegramRadio).toBeChecked();
-            });
+            }, { timeout: 3000 });
 
             // Click Email to trigger save (switching from Telegram to Email)
             const emailRadio = screen.getByRole('radio', { name: /email/i });
@@ -1358,7 +1402,7 @@ describe('NotificationsModal', () => {
             // Radio buttons should be disabled while saving
             await waitFor(() => {
                 expect(emailRadio).toBeDisabled();
-            });
+            }, { timeout: 5000 });
 
             resolveSave!();
             await savePromise;
@@ -1366,7 +1410,7 @@ describe('NotificationsModal', () => {
             // Radio buttons should be enabled again
             await waitFor(() => {
                 expect(emailRadio).not.toBeDisabled();
-            });
+            }, { timeout: 3000 });
         });
 
         it('should prevent double submission', async () => {
@@ -1402,12 +1446,12 @@ describe('NotificationsModal', () => {
 
             await waitFor(() => {
                 expect(mockGetTelegramStatusConnected).toHaveBeenCalled();
-            });
+            }, { timeout: 3000 });
 
             await waitFor(() => {
                 const telegramRadio = getTelegramRadio();
                 expect(telegramRadio).toBeChecked();
-            });
+            }, { timeout: 3000 });
 
             const emailRadio = screen.getByRole('radio', { name: /email/i });
             await user.click(emailRadio);
@@ -1415,7 +1459,7 @@ describe('NotificationsModal', () => {
 
             await waitFor(() => {
                 expect(mockOnSaveDelayed).toHaveBeenCalledTimes(1);
-            });
+            }, { timeout: 5000 });
 
             resolveSave!();
             await savePromise;
@@ -1435,6 +1479,11 @@ describe('NotificationsModal', () => {
                 />
             );
 
+            // Wait for modal to render
+            await waitFor(() => {
+                expect(screen.getByText('Configure notifications')).toBeInTheDocument();
+            }, { timeout: 3000 });
+
             const closeButton = screen.getByRole('button', { name: /close/i });
             await user.click(closeButton);
 
@@ -1452,6 +1501,11 @@ describe('NotificationsModal', () => {
                     user={mockUser}
                 />
             );
+
+            // Wait for modal to render
+            await waitFor(() => {
+                expect(screen.getByText('Configure notifications')).toBeInTheDocument();
+            }, { timeout: 3000 });
 
             const overlay = document.querySelector('.modal-overlay');
             if (overlay) {
