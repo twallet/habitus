@@ -1478,12 +1478,20 @@ describe('NotificationsModal', () => {
                 telegram_chat_id: '123456789',
             };
 
-            const mockGetTelegramStatusConnected = vi.fn().mockResolvedValue({
-                connected: true,
-                telegramChatId: '123456789',
-                telegramUsername: 'testuser',
-                hasActiveToken: false
-            });
+            // When user has telegram_chat_id, useEffect calls checkTelegramStatus if !telegramUsername
+            const mockGetTelegramStatusConnected = vi.fn()
+                .mockResolvedValueOnce({
+                    connected: true,
+                    telegramChatId: '123456789',
+                    telegramUsername: 'testuser',
+                    hasActiveToken: false
+                })
+                .mockResolvedValue({
+                    connected: true,
+                    telegramChatId: '123456789',
+                    telegramUsername: 'testuser',
+                    hasActiveToken: false
+                });
 
             render(
                 <NotificationsModal
@@ -1496,7 +1504,7 @@ describe('NotificationsModal', () => {
             );
 
             await waitFor(() => {
-                expect(mockGetTelegramStatusConnected).toHaveBeenCalled();
+                expect(mockGetTelegramStatusConnected.mock.calls.length).toBeGreaterThanOrEqual(1);
             }, { timeout: 3000 });
 
             await waitFor(() => {
