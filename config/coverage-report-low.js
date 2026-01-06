@@ -158,24 +158,9 @@ if (coverageFile && existsSync(coverageFile)) {
     const overallCoverage =
       (globalStatements + globalBranches + globalFunctions + globalLines) / 4;
 
-    // Display comprehensive coverage summary (after test summary)
-    console.log("\n📊 Coverage Summary:");
-    console.log("─".repeat(80));
+    // Display branches coverage only
     console.log(
-      `Statements: ${formatGlobalPercent(globalStatements)} (${coveredStatements}/${totalStatements})`
-    );
-    console.log(
-      `Branches:   ${formatGlobalPercent(globalBranches)} (${coveredBranches}/${totalBranches})`
-    );
-    console.log(
-      `Functions:  ${formatGlobalPercent(globalFunctions)} (${coveredFunctions}/${totalFunctions})`
-    );
-    console.log(
-      `Lines:      ${formatGlobalPercent(globalLines)} (${coveredLines}/${totalLines})`
-    );
-    console.log("─".repeat(80));
-    console.log(
-      `Total Coverage: ${formatGlobalPercent(overallCoverage)}`
+      `Total Coverage: ${formatGlobalPercent(globalBranches)} (${coveredBranches}/${totalBranches})`
     );
 
     // Display files with coverage below threshold
