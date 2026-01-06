@@ -201,6 +201,71 @@ describe("Telegram Webhook Routes", () => {
         [token]
       );
       expect(tokenRow).toBeUndefined();
+
+      // Verify notification_channels was updated to "Telegram"
+      const userChannels = await testDb.get<{ notification_channels: string }>(
+        "SELECT notification_channels FROM users WHERE id = ?",
+        [1]
+      );
+      expect(userChannels?.notification_channels).toBe("Telegram");
+    });
+
+    it("should return 200 but not update user if user ID in command does not match token's user", async () => {
+      // Create two test users
+      await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
+        "Test User 1",
+        "test1@example.com",
+      ]);
+      await testDb.run("INSERT INTO users (name, email) VALUES (?, ?)", [
+        "Test User 2",
+        "test2@example.com",
+      ]);
+
+      // Generate token for user 1
+      const telegramConnectionService =
+        ServiceManager.getTelegramConnectionService();
+      const token = await telegramConnectionService.generateConnectionToken(1);
+
+      const update = {
+        update_id: 123456789,
+        message: {
+          message_id: 1,
+          from: {
+            id: 987654321,
+            is_bot: false,
+            first_name: "Test",
+          },
+          chat: {
+            id: 987654321,
+            type: "private",
+          },
+          date: Math.floor(Date.now() / 1000),
+          text: `/start ${token} 2`, // Token belongs to user 1, but command specifies user 2
+        },
+      };
+
+      const response = await request(app)
+        .post("/api/telegram/webhook")
+        .send(update)
+        .expect(200);
+
+      expect(response.body).toEqual({ ok: true });
+
+      // Wait for async processing to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Verify neither user's telegram_chat_id was updated
+      const user1 = await testDb.get<{ telegram_chat_id: string | null }>(
+        "SELECT telegram_chat_id FROM users WHERE id = ?",
+        [1]
+      );
+      const user2 = await testDb.get<{ telegram_chat_id: string | null }>(
+        "SELECT telegram_chat_id FROM users WHERE id = ?",
+        [2]
+      );
+
+      expect(user1?.telegram_chat_id).toBeNull();
+      expect(user2?.telegram_chat_id).toBeNull();
     });
 
     it("should return 200 but not update user if token is invalid", async () => {

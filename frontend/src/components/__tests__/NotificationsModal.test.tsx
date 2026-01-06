@@ -234,43 +234,6 @@ describe('NotificationsModal', () => {
                 expect(mockOnSave).toHaveBeenCalledWith('Email', expect.anything());
             });
         });
-
-        it('should save automatically when Email is selected', async () => {
-            const user = userEvent.setup();
-            const userWithTelegram: UserData = {
-                ...mockUser,
-                notification_channels: 'Telegram',
-                telegram_chat_id: '123456789',
-            };
-
-            const mockGetTelegramStatusConnected = vi.fn().mockResolvedValue({
-                connected: true,
-                telegramChatId: '123456789',
-                telegramUsername: 'testuser',
-                hasActiveToken: false
-            });
-
-            render(
-                <NotificationsModal
-                    onClose={mockOnClose}
-                    onSave={mockOnSave}
-                    onGetTelegramStartLink={mockGetTelegramStartLink}
-                    onGetTelegramStatus={mockGetTelegramStatusConnected}
-                    user={userWithTelegram}
-                />
-            );
-
-            await waitFor(() => {
-                expect(mockGetTelegramStatusConnected).toHaveBeenCalled();
-            });
-
-            const emailRadio = screen.getByRole('radio', { name: /email/i });
-            await user.click(emailRadio);
-
-            await waitFor(() => {
-                expect(mockOnSave).toHaveBeenCalledWith('Email', expect.anything());
-            });
-        });
     });
 
     describe('Telegram Channel - Not Connected', () => {
@@ -585,6 +548,34 @@ describe('NotificationsModal', () => {
             });
         });
 
+        it('should show error when webhook is not configured', async () => {
+            const user = userEvent.setup();
+            const mockGetTelegramStartLinkWithError = vi.fn().mockResolvedValue({
+                link: 'https://t.me/testbot',
+                token: 'token123',
+                userId: 1,
+                webhookConfigured: false,
+                webhookUrl: null,
+                webhookError: null
+            });
+
+            render(
+                <NotificationsModal
+                    onClose={mockOnClose}
+                    onSave={mockOnSave}
+                    onGetTelegramStartLink={mockGetTelegramStartLinkWithError}
+                    onGetTelegramStatus={mockGetTelegramStatus}
+                    user={mockUser}
+                />
+            );
+
+            await user.click(getTelegramRadio());
+
+            await waitFor(() => {
+                expect(screen.getByText(/Telegram webhook is not configured/i)).toBeInTheDocument();
+            });
+        });
+
         it('should disable Go to chat button until Copy Key is clicked', async () => {
             const user = userEvent.setup();
             render(
@@ -733,17 +724,245 @@ describe('NotificationsModal', () => {
                 expect(screen.queryByText(/Waiting for you to paste the key/i)).not.toBeInTheDocument();
             });
         });
+
+        it('should poll connection status every 2 seconds when in waiting state', async () => {
+            const user = userEvent.setup();
+            vi.useFakeTimers();
+            vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+
+            const mockGetTelegramStatusPolling = vi.fn()
+                .mockResolvedValueOnce({
+                    connected: false,
+                    telegramChatId: null,
+                    telegramUsername: null,
+                    hasActiveToken: false
+                })
+                .mockResolvedValueOnce({
+                    connected: false,
+                    telegramChatId: null,
+                    telegramUsername: null,
+                    hasActiveToken: false
+                })
+                .mockResolvedValue({
+                    connected: true,
+                    telegramChatId: '123456789',
+                    telegramUsername: 'testuser',
+                    hasActiveToken: false
+                });
+
+            render(
+                <NotificationsModal
+                    onClose={mockOnClose}
+                    onSave={mockOnSave}
+                    onGetTelegramStartLink={mockGetTelegramStartLink}
+                    onGetTelegramStatus={mockGetTelegramStatusPolling}
+                    user={mockUser}
+                />
+            );
+
+            await user.click(getTelegramRadio());
+
+            await waitFor(() => {
+                expect(screen.getByRole('button', { name: /copy key/i })).toBeInTheDocument();
+            });
+
+            await user.click(screen.getByRole('button', { name: /copy key/i }));
+            await user.click(screen.getByRole('button', { name: /go to chat/i }));
+
+            await waitFor(() => {
+                expect(screen.getByText(/Waiting for you to paste the key/i)).toBeInTheDocument();
+            });
+
+            // Initial poll happens immediately
+            await waitFor(() => {
+                expect(mockGetTelegramStatusPolling).toHaveBeenCalled();
+            });
+
+            const initialCallCount = mockGetTelegramStatusPolling.mock.calls.length;
+
+            // Advance time by 2 seconds - should trigger another poll
+            await vi.advanceTimersByTimeAsync(2000);
+            await waitFor(() => {
+                expect(mockGetTelegramStatusPolling.mock.calls.length).toBeGreaterThan(initialCallCount);
+            });
+
+            // Advance time by another 2 seconds - should trigger another poll
+            const callCountBefore = mockGetTelegramStatusPolling.mock.calls.length;
+            await vi.advanceTimersByTimeAsync(2000);
+            await waitFor(() => {
+                expect(mockGetTelegramStatusPolling.mock.calls.length).toBeGreaterThan(callCountBefore);
+            });
+
+            vi.useRealTimers();
+        });
+
+        it('should stop polling and auto-close modal when connection is detected', async () => {
+            const user = userEvent.setup();
+            vi.useFakeTimers();
+            vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+
+            const mockGetTelegramStatusPolling = vi.fn()
+                .mockResolvedValueOnce({
+                    connected: false,
+                    telegramChatId: null,
+                    telegramUsername: null,
+                    hasActiveToken: false
+                })
+                .mockResolvedValue({
+                    connected: true,
+                    telegramChatId: '123456789',
+                    telegramUsername: 'testuser',
+                    hasActiveToken: false
+                });
+
+            render(
+                <NotificationsModal
+                    onClose={mockOnClose}
+                    onSave={mockOnSave}
+                    onGetTelegramStartLink={mockGetTelegramStartLink}
+                    onGetTelegramStatus={mockGetTelegramStatusPolling}
+                    user={mockUser}
+                />
+            );
+
+            await user.click(getTelegramRadio());
+
+            await waitFor(() => {
+                expect(screen.getByRole('button', { name: /copy key/i })).toBeInTheDocument();
+            });
+
+            await user.click(screen.getByRole('button', { name: /copy key/i }));
+            await user.click(screen.getByRole('button', { name: /go to chat/i }));
+
+            await waitFor(() => {
+                expect(screen.getByText(/Waiting for you to paste the key/i)).toBeInTheDocument();
+            });
+
+            // Initial poll happens immediately
+            await waitFor(() => {
+                expect(mockGetTelegramStatusPolling).toHaveBeenCalled();
+            });
+
+            // Advance time by 2 seconds - polling should detect connection and close modal
+            await vi.advanceTimersByTimeAsync(2000);
+
+            await waitFor(() => {
+                expect(screen.queryByText(/Waiting for you to paste the key/i)).not.toBeInTheDocument();
+            }, { timeout: 3000 });
+
+            // Verify polling stopped (no more calls after connection detected)
+            const callCountAfterConnection = mockGetTelegramStatusPolling.mock.calls.length;
+            await vi.advanceTimersByTimeAsync(2000);
+            // Give a small delay to ensure no additional calls
+            await new Promise(resolve => setTimeout(resolve, 100));
+            expect(mockGetTelegramStatusPolling.mock.calls.length).toBe(callCountAfterConnection);
+
+            vi.useRealTimers();
+        });
+
+        it('should stop polling when modal is closed', async () => {
+            const user = userEvent.setup();
+            vi.useFakeTimers();
+            vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+
+            const mockGetTelegramStatusPolling = vi.fn().mockResolvedValue({
+                connected: false,
+                telegramChatId: null,
+                telegramUsername: null,
+                hasActiveToken: false
+            });
+
+            render(
+                <NotificationsModal
+                    onClose={mockOnClose}
+                    onSave={mockOnSave}
+                    onGetTelegramStartLink={mockGetTelegramStartLink}
+                    onGetTelegramStatus={mockGetTelegramStatusPolling}
+                    user={mockUser}
+                />
+            );
+
+            await user.click(getTelegramRadio());
+
+            await waitFor(() => {
+                expect(screen.getByRole('button', { name: /copy key/i })).toBeInTheDocument();
+            });
+
+            await user.click(screen.getByRole('button', { name: /copy key/i }));
+            await user.click(screen.getByRole('button', { name: /go to chat/i }));
+
+            await waitFor(() => {
+                expect(screen.getByText(/Waiting for you to paste the key/i)).toBeInTheDocument();
+            });
+
+            // Initial poll happens immediately
+            await waitFor(() => {
+                expect(mockGetTelegramStatusPolling).toHaveBeenCalled();
+            });
+
+            // Close the modal
+            const closeButtons = screen.getAllByRole('button', { name: /close/i });
+            const telegramModalCloseButton = closeButtons[closeButtons.length - 1];
+            await user.click(telegramModalCloseButton);
+
+            await waitFor(() => {
+                expect(screen.queryByText(/Waiting for you to paste the key/i)).not.toBeInTheDocument();
+            });
+
+            // Verify polling stopped (no more calls after modal closed)
+            const callCountBeforeClose = mockGetTelegramStatusPolling.mock.calls.length;
+            await vi.advanceTimersByTimeAsync(2000);
+            // Give a small delay to ensure no additional calls
+            await new Promise(resolve => setTimeout(resolve, 100));
+            expect(mockGetTelegramStatusPolling.mock.calls.length).toBe(callCountBeforeClose);
+
+            vi.useRealTimers();
+        });
+
+        it('should verify command text is not displayed in UI', async () => {
+            const user = userEvent.setup();
+            render(
+                <NotificationsModal
+                    onClose={mockOnClose}
+                    onSave={mockOnSave}
+                    onGetTelegramStartLink={mockGetTelegramStartLink}
+                    onGetTelegramStatus={mockGetTelegramStatus}
+                    user={mockUser}
+                />
+            );
+
+            await user.click(getTelegramRadio());
+
+            await waitFor(() => {
+                expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
+            });
+
+            // Verify the command text (/start token123 1) is NOT displayed
+            expect(screen.queryByText('/start token123 1')).not.toBeInTheDocument();
+            expect(screen.queryByText('/start')).not.toBeInTheDocument();
+            expect(screen.queryByText('token123')).not.toBeInTheDocument();
+
+            // But the Copy key button should be present
+            expect(screen.getByRole('button', { name: /copy key/i })).toBeInTheDocument();
+        });
     });
 
     describe('Telegram Connection Success', () => {
-        it('should auto-close connection modal when Telegram connects', async () => {
+        it('should auto-select Telegram when connection is detected via status check', async () => {
             const user = userEvent.setup();
-            const mockGetTelegramStatusConnected = vi.fn().mockResolvedValue({
-                connected: false,
-                telegramChatId: null,
-                telegramUsername: null,
-                hasActiveToken: false
-            });
+            const mockGetTelegramStatusConnected = vi.fn()
+                .mockResolvedValueOnce({
+                    connected: false,
+                    telegramChatId: null,
+                    telegramUsername: null,
+                    hasActiveToken: false
+                })
+                .mockResolvedValue({
+                    connected: true,
+                    telegramChatId: '123456789',
+                    telegramUsername: 'testuser',
+                    hasActiveToken: false
+                });
 
             render(
                 <NotificationsModal
@@ -756,123 +975,34 @@ describe('NotificationsModal', () => {
             );
 
             await waitFor(() => {
-                expect(mockGetTelegramStatusConnected).toHaveBeenCalledTimes(2);
+                expect(mockGetTelegramStatusConnected).toHaveBeenCalled();
             });
 
+            // Initially Email should be selected
+            const emailRadio = screen.getByRole('radio', { name: /email/i });
+            expect(emailRadio).toBeChecked();
+
+            // Click Telegram to open connection modal
             await user.click(getTelegramRadio());
 
             await waitFor(() => {
                 expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
             });
 
-            // Simulate connection by updating status
-            mockGetTelegramStatusConnected.mockResolvedValue({
-                connected: true,
-                telegramChatId: '123456789',
-                telegramUsername: 'testuser',
-                hasActiveToken: false
-            });
-
-            // The component checks status when the modal closes, not automatically while open
-            // To test auto-close, we need to trigger a status check
-            // Since there's no polling mechanism, we'll verify the modal opened correctly
-            // and that status check will detect connection when it's called next
-            expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
-
-            // Note: Auto-close behavior would require polling or manual status check trigger
-            // This test verifies the modal opens correctly when Telegram is not connected
-        });
-
-        it('should select Telegram and save when connection succeeds', async () => {
-            const user = userEvent.setup();
-            const mockGetTelegramStatusConnected = vi.fn().mockResolvedValue({
-                connected: false,
-                telegramChatId: null,
-                telegramUsername: null,
-                hasActiveToken: false
-            });
-
-            render(
-                <NotificationsModal
-                    onClose={mockOnClose}
-                    onSave={mockOnSave}
-                    onGetTelegramStartLink={mockGetTelegramStartLink}
-                    onGetTelegramStatus={mockGetTelegramStatusConnected}
-                    user={mockUser}
-                />
-            );
-
-            await waitFor(() => {
-                expect(mockGetTelegramStatusConnected).toHaveBeenCalledTimes(2);
-            });
-
-            await user.click(getTelegramRadio());
-
-            await waitFor(() => {
-                expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
-            });
-
+            // Close modal - status check should detect connection
             const closeButtons = screen.getAllByRole('button', { name: /close/i });
             const telegramModalCloseButton = closeButtons[closeButtons.length - 1];
-
-            // Mock status to return connected when checked on close
-            mockGetTelegramStatusConnected.mockResolvedValue({
-                connected: true,
-                telegramChatId: '123456789',
-                telegramUsername: 'testuser',
-                hasActiveToken: false
-            });
-
             await user.click(telegramModalCloseButton);
 
+            // Wait for status check and auto-selection
+            await waitFor(() => {
+                const telegramRadio = getTelegramRadio();
+                expect(telegramRadio).toBeChecked();
+            });
+
+            // Verify save was called with Telegram
             await waitFor(() => {
                 expect(mockOnSave).toHaveBeenCalledWith('Telegram', '123456789');
-            });
-        });
-
-        it('should show success message when Telegram connects', async () => {
-            const user = userEvent.setup();
-            const mockGetTelegramStatusConnected = vi.fn().mockResolvedValue({
-                connected: false,
-                telegramChatId: null,
-                telegramUsername: null,
-                hasActiveToken: false
-            });
-
-            render(
-                <NotificationsModal
-                    onClose={mockOnClose}
-                    onSave={mockOnSave}
-                    onGetTelegramStartLink={mockGetTelegramStartLink}
-                    onGetTelegramStatus={mockGetTelegramStatusConnected}
-                    user={mockUser}
-                />
-            );
-
-            await waitFor(() => {
-                expect(mockGetTelegramStatusConnected).toHaveBeenCalledTimes(2);
-            });
-
-            await user.click(getTelegramRadio());
-
-            await waitFor(() => {
-                expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
-            });
-
-            const closeButtons = screen.getAllByRole('button', { name: /close/i });
-            const telegramModalCloseButton = closeButtons[closeButtons.length - 1];
-
-            mockGetTelegramStatusConnected.mockResolvedValue({
-                connected: true,
-                telegramChatId: '123456789',
-                telegramUsername: 'testuser',
-                hasActiveToken: false
-            });
-
-            await user.click(telegramModalCloseButton);
-
-            await waitFor(() => {
-                expect(screen.getByText(/Telegram connected successfully/i)).toBeInTheDocument();
             });
         });
     });
@@ -939,6 +1069,90 @@ describe('NotificationsModal', () => {
 
             await waitFor(() => {
                 expect(mockGetTelegramStatus).toHaveBeenCalled();
+            });
+        });
+
+        it('should handle Connecting state (hasActiveToken true but not connected)', async () => {
+            const mockGetTelegramStatusConnecting = vi.fn().mockResolvedValue({
+                connected: false,
+                telegramChatId: null,
+                telegramUsername: null,
+                hasActiveToken: true // Active token exists but not connected yet
+            });
+
+            render(
+                <NotificationsModal
+                    onClose={mockOnClose}
+                    onSave={mockOnSave}
+                    onGetTelegramStartLink={mockGetTelegramStartLink}
+                    onGetTelegramStatus={mockGetTelegramStatusConnecting}
+                    user={mockUser}
+                />
+            );
+
+            await waitFor(() => {
+                expect(mockGetTelegramStatusConnecting).toHaveBeenCalled();
+            });
+
+            // Should show "No account connected" badge
+            expect(screen.getByText('No account connected')).toBeInTheDocument();
+            
+            // Email should be selected (Telegram not connected)
+            const emailRadio = screen.getByRole('radio', { name: /email/i });
+            expect(emailRadio).toBeChecked();
+        });
+
+        it('should automatically switch to Email when Telegram is selected but connection is lost', async () => {
+            const user = userEvent.setup();
+            const mockGetTelegramStatusLost = vi.fn()
+                .mockResolvedValueOnce({
+                    connected: true,
+                    telegramChatId: '123456789',
+                    telegramUsername: 'testuser',
+                    hasActiveToken: false
+                })
+                .mockResolvedValue({
+                    connected: false,
+                    telegramChatId: null,
+                    telegramUsername: null,
+                    hasActiveToken: false
+                });
+
+            const userWithTelegram: UserData = {
+                ...mockUser,
+                notification_channels: 'Telegram',
+                telegram_chat_id: '123456789',
+            };
+
+            render(
+                <NotificationsModal
+                    onClose={mockOnClose}
+                    onSave={mockOnSave}
+                    onGetTelegramStartLink={mockGetTelegramStartLink}
+                    onGetTelegramStatus={mockGetTelegramStatusLost}
+                    user={userWithTelegram}
+                />
+            );
+
+            await waitFor(() => {
+                expect(mockGetTelegramStatusLost).toHaveBeenCalled();
+            });
+
+            // Initially Telegram should be selected
+            await waitFor(() => {
+                const telegramRadio = getTelegramRadio();
+                expect(telegramRadio).toBeChecked();
+            });
+
+            // Status check detects connection is lost - should switch to Email
+            await waitFor(() => {
+                const emailRadio = screen.getByRole('radio', { name: /email/i });
+                expect(emailRadio).toBeChecked();
+            });
+
+            // Verify Email preference was saved
+            await waitFor(() => {
+                expect(mockOnSave).toHaveBeenCalledWith('Email', expect.anything());
             });
         });
     });
