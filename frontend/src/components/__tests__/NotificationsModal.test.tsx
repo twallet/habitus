@@ -193,7 +193,7 @@ describe('NotificationsModal', () => {
         expect(emailRadio).toBeChecked();
     });
 
-    it('should show inline Telegram connection panel when Telegram is selected', async () => {
+    it('should show Telegram connection modal when Telegram is selected', async () => {
         const user = userEvent.setup();
         render(
             <NotificationsModal
@@ -208,13 +208,14 @@ describe('NotificationsModal', () => {
         const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
         await user.click(telegramRadio);
 
+        // Wait for the connection modal to appear
         await waitFor(() => {
-            expect(mockGetTelegramStartLink).toHaveBeenCalledTimes(1);
+            expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
         });
 
-        // Check for inline connection panel (not a separate modal)
-        // Check for the Copy Key button (Step 1) and Go to chat button (Step 2) in the inline panel
+        // Wait for link generation to complete and buttons to appear
         await waitFor(() => {
+            expect(mockGetTelegramStartLink).toHaveBeenCalledTimes(1);
             const copyButton = screen.getByRole('button', { name: /copy key/i });
             expect(copyButton).toBeInTheDocument();
             const goButton = screen.getByRole('button', { name: /go to chat/i });
@@ -222,7 +223,7 @@ describe('NotificationsModal', () => {
         });
     });
 
-    it('should show hardcoded Telegram bot URL in inline panel after selecting Telegram', async () => {
+    it('should show Telegram connection modal with bot link after selecting Telegram', async () => {
         const user = userEvent.setup();
         render(
             <NotificationsModal
@@ -237,10 +238,16 @@ describe('NotificationsModal', () => {
         const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
         await user.click(telegramRadio);
 
+        // Wait for the connection modal to appear
+        await waitFor(() => {
+            expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
+        });
+
+        // Wait for link generation and verify Go to chat button appears
         await waitFor(() => {
             const goButton = screen.getByRole('button', { name: /go to chat/i });
             expect(goButton).toBeInTheDocument();
-            // In the new implementation, there's no direct link - users copy the key first, then go to chat
+            // Users copy the key first, then go to chat
         });
     });
 
@@ -290,6 +297,12 @@ describe('NotificationsModal', () => {
         const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
         await user.click(telegramRadio);
 
+        // Wait for connection modal to appear
+        await waitFor(() => {
+            expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
+        });
+
+        // Wait for link generation to complete
         await waitFor(() => {
             const copyButton = screen.getByRole('button', { name: /copy key/i });
             expect(copyButton).toBeInTheDocument();
@@ -298,13 +311,11 @@ describe('NotificationsModal', () => {
         // Email should remain selected (Telegram not connected yet)
         const emailRadio = screen.getByRole('radio', { name: /email/i });
         expect(emailRadio).toBeChecked();
-        // Connection modal should be open
-        expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
         // Should NOT show connecting badge
         expect(screen.queryByText('Connecting...')).not.toBeInTheDocument();
     });
 
-    it('should NOT show cancel button in Telegram connection panel', async () => {
+    it('should NOT show cancel button in Telegram connection steps view', async () => {
         const user = userEvent.setup();
         render(
             <NotificationsModal
@@ -319,16 +330,18 @@ describe('NotificationsModal', () => {
         const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
         await user.click(telegramRadio);
 
+        // Wait for connection modal to appear
+        await waitFor(() => {
+            expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
+        });
+
         await waitFor(() => {
             expect(screen.getByRole('button', { name: /copy key/i })).toBeInTheDocument();
         });
 
-        // Cancel button should NOT exist in the connection panel
-        const cancelButtons = screen.queryAllByRole('button', { name: /^cancel$/i });
-        const cancelButtonInPanel = cancelButtons.find(btn =>
-            btn.closest('.telegram-connection-panel-inline')
-        );
-        expect(cancelButtonInPanel).toBeUndefined();
+        // Cancel button should NOT exist in the steps view (only appears in waiting view)
+        const cancelButtons = screen.queryAllByRole('button', { name: /cancel connection/i });
+        expect(cancelButtons).toHaveLength(0);
     });
 
     it('should show connected status when Telegram is already connected', async () => {
@@ -392,7 +405,7 @@ describe('NotificationsModal', () => {
         });
     });
 
-    it('should show 2-step connection panel when Telegram is selected but not connected', async () => {
+    it('should show 2-step connection modal when Telegram is selected but not connected', async () => {
         const user = userEvent.setup();
         render(
             <NotificationsModal
@@ -407,15 +420,18 @@ describe('NotificationsModal', () => {
         const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
         await user.click(telegramRadio);
 
+        // Wait for connection modal to appear
         await waitFor(() => {
-            // Title should be shown
             expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
+        });
 
-            // Step 1: Copy key button (now first)
+        // Wait for link generation to complete
+        await waitFor(() => {
+            // Step 1: Copy key button
             const copyButton = screen.getByRole('button', { name: /copy key/i });
             expect(copyButton).toBeInTheDocument();
 
-            // Step 2: Go to chat button (now second, and should be disabled initially)
+            // Step 2: Go to chat button (should be disabled initially)
             const goButton = screen.getByRole('button', { name: /go to chat/i });
             expect(goButton).toBeInTheDocument();
             expect(goButton).toBeDisabled();
@@ -423,7 +439,7 @@ describe('NotificationsModal', () => {
 
         // Should NOT show "Preparing connection..." or "Waiting for connection..."
         expect(screen.queryByText('Preparing connection...')).not.toBeInTheDocument();
-        expect(screen.queryByText('Waiting for connection...')).not.toBeInTheDocument();
+        expect(screen.queryByText(/Waiting for you to paste the key/i)).not.toBeInTheDocument();
 
         // When Telegram is not connected, Email should remain selected (Telegram is not actually selected until connected)
         const emailRadio = screen.getByRole('radio', { name: /email/i });
@@ -431,7 +447,7 @@ describe('NotificationsModal', () => {
         expect(telegramRadio).not.toBeChecked();
     });
 
-    it('should show connection panel when Telegram is selected (connection happens via webhook)', async () => {
+    it('should show connection modal when Telegram is selected (connection happens via webhook)', async () => {
         const user = userEvent.setup();
 
         render(
@@ -447,13 +463,17 @@ describe('NotificationsModal', () => {
         const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
         await user.click(telegramRadio);
 
+        // Wait for connection modal to appear
+        await waitFor(() => {
+            expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
+        });
+
         await waitFor(() => {
             expect(screen.getByRole('button', { name: /copy key/i })).toBeInTheDocument();
         });
 
-        // Connection panel should remain visible
+        // Connection modal should remain visible
         // Connection will happen via webhook when user sends /start command in Telegram
-        // No automatic polling or connection detection
         expect(screen.getByRole('button', { name: /copy key/i })).toBeInTheDocument();
     });
 
@@ -620,7 +640,7 @@ describe('NotificationsModal', () => {
         expect(telegramLabel?.querySelector('.channel-icon-svg')).toBeInTheDocument();
     });
 
-    it('should show title "Connect your Telegram account"', async () => {
+    it('should show title "Connect your Telegram account" in connection modal', async () => {
         const user = userEvent.setup();
         render(
             <NotificationsModal
@@ -636,7 +656,7 @@ describe('NotificationsModal', () => {
         await user.click(telegramRadio);
 
         await waitFor(() => {
-            // Should show the title before the steps
+            // Should show the title in the connection modal
             expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
         });
     });
@@ -655,6 +675,11 @@ describe('NotificationsModal', () => {
 
         const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
         await user.click(telegramRadio);
+
+        // Wait for connection modal to appear
+        await waitFor(() => {
+            expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
+        });
 
         await waitFor(() => {
             // Should NOT display the command text
@@ -682,6 +707,11 @@ describe('NotificationsModal', () => {
 
         const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
         await user.click(telegramRadio);
+
+        // Wait for connection modal to appear
+        await waitFor(() => {
+            expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
+        });
 
         await waitFor(() => {
             const copyButton = screen.getByRole('button', { name: /copy key/i });
@@ -734,7 +764,7 @@ describe('NotificationsModal', () => {
             expect(emailRadio).toBeChecked();
             // Should NOT show connecting badge
             expect(screen.queryByText('Connecting...')).not.toBeInTheDocument();
-            // Should show "No account connected" badge
+            // Should show "No account connected" badge for Telegram
             expect(screen.getByText('No account connected')).toBeInTheDocument();
         });
     });
@@ -753,11 +783,10 @@ describe('NotificationsModal', () => {
             />
         );
 
-        const telegramRadio = document.querySelector('input[type="radio"][value="Telegram"]') as HTMLElement;
-        expect(telegramRadio).toBeInTheDocument();
+        const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
         await user.click(telegramRadio);
 
-        // Wait for the modal to appear
+        // Wait for the connection modal to appear
         await waitFor(() => {
             expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
         });
@@ -803,6 +832,11 @@ describe('NotificationsModal', () => {
         const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
         await user.click(telegramRadio);
 
+        // Wait for connection modal to appear
+        await waitFor(() => {
+            expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
+        });
+
         await waitFor(() => {
             expect(screen.getByRole('button', { name: /copy key/i })).toBeInTheDocument();
         });
@@ -840,6 +874,11 @@ describe('NotificationsModal', () => {
 
         const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
         await user.click(telegramRadio);
+
+        // Wait for connection modal to appear
+        await waitFor(() => {
+            expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
+        });
 
         await waitFor(() => {
             expect(screen.getByRole('button', { name: /copy key/i })).toBeInTheDocument();
@@ -882,6 +921,11 @@ describe('NotificationsModal', () => {
 
         const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
         await user.click(telegramRadio);
+
+        // Wait for connection modal to appear
+        await waitFor(() => {
+            expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
+        });
 
         await waitFor(() => {
             expect(screen.getByRole('button', { name: /copy key/i })).toBeInTheDocument();
@@ -928,6 +972,11 @@ describe('NotificationsModal', () => {
         const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
         await user.click(telegramRadio);
 
+        // Wait for connection modal to appear
+        await waitFor(() => {
+            expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
+        });
+
         await waitFor(() => {
             expect(screen.getByRole('button', { name: /copy key/i })).toBeInTheDocument();
         });
@@ -956,7 +1005,7 @@ describe('NotificationsModal', () => {
         confirmSpy.mockRestore();
     });
 
-    it('should close modal immediately when clicking X in steps view (no confirmation)', async () => {
+    it('should close connection modal immediately when clicking X in steps view (no confirmation)', async () => {
         const user = userEvent.setup();
         const confirmSpy = vi.spyOn(window, 'confirm');
 
@@ -973,18 +1022,26 @@ describe('NotificationsModal', () => {
         const telegramRadio = screen.getByRole('radio', { name: /telegram/i });
         await user.click(telegramRadio);
 
+        // Wait for connection modal to appear
+        await waitFor(() => {
+            expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
+        });
+
         await waitFor(() => {
             expect(screen.getByRole('button', { name: /copy key/i })).toBeInTheDocument();
         });
 
-        // Click close button while still in steps view
-        const closeButton = screen.getAllByRole('button', { name: /close/i })[0];
-        await user.click(closeButton);
+        // Click close button in the connection modal while still in steps view
+        const closeButtons = screen.getAllByRole('button', { name: /close/i });
+        const telegramModalCloseButton = closeButtons[closeButtons.length - 1]; // Get the last close button (inner modal)
+        await user.click(telegramModalCloseButton);
 
-        // Verify NO confirmation dialog was shown
+        // Verify NO confirmation dialog was shown (only shown in waiting state or after step 1 completed)
         expect(confirmSpy).not.toHaveBeenCalled();
-        // Modal should close immediately
-        expect(mockOnClose).toHaveBeenCalled();
+        // Connection modal should close immediately
+        await waitFor(() => {
+            expect(screen.queryByText('Connect your Telegram account')).not.toBeInTheDocument();
+        });
 
         confirmSpy.mockRestore();
     });
@@ -1004,6 +1061,11 @@ describe('NotificationsModal', () => {
         );
 
         await user.click(screen.getByRole('radio', { name: /telegram/i }));
+
+        // Wait for connection modal to appear
+        await waitFor(() => {
+            expect(screen.getByText('Connect your Telegram account')).toBeInTheDocument();
+        });
 
         await waitFor(() => {
             const goButton = screen.getByRole('button', { name: /go to chat/i });
