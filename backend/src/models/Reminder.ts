@@ -55,11 +55,11 @@ export class Reminder extends BaseReminder {
    * @public
    */
   async save(db: Database): Promise<ReminderData> {
-    this.validate();
+    // Normalize scheduled_time before validation to handle Date objects from PostgreSQL
+    // This ensures validation receives a string, not a Date object
+    this.scheduled_time = normalizeScheduledTime(this.scheduled_time);
 
-    // Ensure scheduled_time is always an ISO string for database operations
-    // This handles cases where PostgreSQL returns Date objects
-    const scheduledTimeStr = normalizeScheduledTime(this.scheduled_time);
+    this.validate();
 
     if (this.id) {
       // Update existing reminder
@@ -67,7 +67,7 @@ export class Reminder extends BaseReminder {
       const values: any[] = [];
 
       updates.push("scheduled_time = ?");
-      values.push(scheduledTimeStr);
+      values.push(this.scheduled_time);
 
       if (this.notes !== undefined) {
         updates.push("notes = ?");
@@ -99,9 +99,6 @@ export class Reminder extends BaseReminder {
         values
       );
 
-      // Update the instance's scheduled_time to the normalized ISO string
-      this.scheduled_time = scheduledTimeStr;
-
       return this.toData();
     } else {
       // Create new reminder
@@ -110,7 +107,7 @@ export class Reminder extends BaseReminder {
         [
           this.tracking_id,
           this.user_id,
-          scheduledTimeStr,
+          this.scheduled_time,
           this.notes || null,
           this.status || ReminderStatus.PENDING,
           this.value ?? null,
@@ -122,8 +119,6 @@ export class Reminder extends BaseReminder {
       }
 
       this.id = result.lastID;
-      // Update the instance's scheduled_time to the normalized ISO string
-      this.scheduled_time = scheduledTimeStr;
       return this.toData();
     }
   }
