@@ -983,10 +983,11 @@ describe('NotificationsModal', () => {
             vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
 
             let callCount = 0;
+            const waitingStateRef = { value: false, enteredAtCall: 0 };
             const mockGetTelegramStatusConnected = vi.fn().mockImplementation(async () => {
                 callCount++;
-                // First 2 calls: mount effects - not connected
-                if (callCount <= 2) {
+                // Return not connected until we're in waiting state
+                if (!waitingStateRef.value) {
                     return {
                         connected: false,
                         telegramChatId: null,
@@ -994,7 +995,18 @@ describe('NotificationsModal', () => {
                         hasActiveToken: false
                     };
                 }
-                // Call 3+: connection detected via polling while modal is open
+                // After entering waiting state, allow a few polling calls before returning connected
+                // This ensures we've had at least 2-3 polling attempts
+                const callsSinceWaiting = callCount - waitingStateRef.enteredAtCall;
+                if (callsSinceWaiting < 2) {
+                    return {
+                        connected: false,
+                        telegramChatId: null,
+                        telegramUsername: null,
+                        hasActiveToken: false
+                    };
+                }
+                // Connection detected via polling
                 return {
                     connected: true,
                     telegramChatId: '123456789',
@@ -1036,7 +1048,12 @@ describe('NotificationsModal', () => {
                 expect(screen.getByText(/Waiting for you to paste the key/i)).toBeInTheDocument();
             }, { timeout: 3000 });
 
-            // Polling will detect connection (call 3+) and auto-close modal
+            // Mark that we're now in waiting state - polling will start and detect connection
+            // Record the current call count so we can ensure a few polling calls happen first
+            waitingStateRef.value = true;
+            waitingStateRef.enteredAtCall = callCount;
+
+            // Polling will detect connection and auto-close modal
             // Wait for modal to auto-close when connection is detected
             await waitFor(() => {
                 expect(screen.queryByText(/Waiting for you to paste the key/i)).not.toBeInTheDocument();
