@@ -143,18 +143,33 @@ export class ReminderLifecycleManager extends LifecycleManager<
         );
 
         if (remainingUpcoming && remainingUpcoming.count === 0) {
-          // This was the last scheduled time, archive the tracking
-          const trackingService = new TrackingService(this.db);
-          await trackingService.updateTrackingState(
+          // Try to create the next reminder if there are more schedule times
+          const nextReminder = await this.reminderService.createNextReminderForTracking(
             reminder.tracking_id,
             reminder.user_id,
-            "Archived"
+            reminder.scheduled_time
           );
-          console.log(
-            `[${new Date().toISOString()}] REMINDER_LIFECYCLE | Archived one-time tracking ${
-              reminder.tracking_id
-            } as last scheduled time has arrived (reminder ID ${reminder.id})`
-          );
+
+          if (!nextReminder) {
+            // No more schedule times available, archive the tracking
+            const trackingService = new TrackingService(this.db);
+            await trackingService.updateTrackingState(
+              reminder.tracking_id,
+              reminder.user_id,
+              "Archived"
+            );
+            console.log(
+              `[${new Date().toISOString()}] REMINDER_LIFECYCLE | Archived one-time tracking ${
+                reminder.tracking_id
+              } as last scheduled time has arrived (reminder ID ${reminder.id})`
+            );
+          } else {
+            console.log(
+              `[${new Date().toISOString()}] REMINDER_LIFECYCLE | Created next reminder for one-time tracking ${
+                reminder.tracking_id
+              } after reminder ID ${reminder.id} became Pending`
+            );
+          }
         }
       }
     } catch (error) {

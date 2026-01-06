@@ -366,12 +366,14 @@ describe("ReminderLifecycleManager", () => {
         reminder1Time
       );
 
-      // Transition first reminder to Pending and create second Upcoming
+      // Transition first reminder to Pending
       await reminderService.updateReminder(reminder1.id, testUserId, {
         status: ReminderStatus.PENDING,
       });
 
-      // Create second reminder as Upcoming
+      // Create second reminder as Upcoming manually
+      // (The lifecycle manager doesn't create next reminder when going to PENDING,
+      // only when going to ANSWERED. This test verifies archiving works correctly.)
       const reminder2Time = `${dateString}T12:00:00`;
       const reminder2 = await reminderService.createReminder(
         trackingData.id,

@@ -731,15 +731,28 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
         0
       );
 
-      // Check if this time already has a reminder (compare normalized ISO strings)
-      const candidateTimeString = candidateDate.toISOString();
-      if (existingTimes.has(candidateTimeString)) {
+      // Check if this time already has a reminder
+      // Create the time string the same way reminders are created (local time, then normalized to ISO)
+      // This matches how createReminder handles time strings like "2024-01-07T09:00:00"
+      const timeString = `${targetDate}T${String(schedule.hour).padStart(2, "0")}:${String(schedule.minutes).padStart(2, "0")}:00`;
+      const normalizedTime = new Date(timeString).toISOString();
+      
+      // Check if any existing reminder matches this time
+      if (existingTimes.has(normalizedTime)) {
         continue; // Skip times that already have reminders
       }
 
       // Only include times that are after the exclude time (or current time)
-      if (candidateDate > excludeDate) {
-        candidateTimes.push(candidateDate);
+      // Use the normalized time for comparison to ensure consistency
+      // Normalize excludeDate to ISO string for accurate comparison
+      const excludeTimeISO = excludeTime ? new Date(excludeTime).toISOString() : null;
+      const normalizedCandidateDate = new Date(normalizedTime);
+      const shouldInclude = excludeTimeISO 
+        ? normalizedTime > excludeTimeISO
+        : normalizedCandidateDate > excludeDate;
+      
+      if (shouldInclude) {
+        candidateTimes.push(normalizedCandidateDate);
       }
     }
 
@@ -1524,15 +1537,28 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
             } (scheduled_time: ${reminder.scheduled_time}) to Pending status`
           );
           try {
+            // Check if this is a one-time tracking before updating
+            // One-time trackings are handled by the lifecycle manager
+            const tracking = await Tracking.loadById(
+              reminder.tracking_id,
+              reminder.user_id,
+              this.db
+            );
+            const isOneTime = tracking?.frequency.type === "one-time";
+
             const updatePromise = reminder.update(
               { status: ReminderStatus.PENDING },
               this.db
             );
             updatePromises.push(updatePromise);
             remindersToEmail.push(reminder);
-            // Track which trackings need a new Upcoming reminder created
-            trackingIdsToCreateNext.add(reminder.tracking_id);
-            userIdsByTrackingId.set(reminder.tracking_id, reminder.user_id);
+            
+            // Only track for next reminder creation if NOT one-time
+            // One-time trackings are handled by the lifecycle manager's handleUpcomingToPending
+            if (!isOneTime) {
+              trackingIdsToCreateNext.add(reminder.tracking_id);
+              userIdsByTrackingId.set(reminder.tracking_id, reminder.user_id);
+            }
           } catch (error) {
             console.error(
               `[${new Date().toISOString()}] REMINDER | Error updating reminder ID ${
