@@ -13,12 +13,21 @@ describe('NotificationsModal', () => {
         token: 'token123',
         userId: 1
     });
-    const mockGetTelegramStatus = vi.fn().mockResolvedValue({
-        connected: false,
-        telegramChatId: null,
-        telegramUsername: null,
-        hasActiveToken: false
-    });
+    // Default mock that handles multiple calls (mount + useEffect)
+    // Component calls checkTelegramStatus twice on mount: once in useEffect([]) and once in useEffect([user])
+    const mockGetTelegramStatus = vi.fn()
+        .mockResolvedValueOnce({
+            connected: false,
+            telegramChatId: null,
+            telegramUsername: null,
+            hasActiveToken: false
+        })
+        .mockResolvedValue({
+            connected: false,
+            telegramChatId: null,
+            telegramUsername: null,
+            hasActiveToken: false
+        });
 
     const mockUser: UserData = {
         id: 1,
@@ -1036,7 +1045,14 @@ describe('NotificationsModal', () => {
         });
 
         it('should check status when user prop changes', async () => {
+            // Mock handles initial mount calls (2 calls: useEffect([]) + useEffect([user]))
             const mockGetTelegramStatusForRerender = vi.fn()
+                .mockResolvedValueOnce({
+                    connected: false,
+                    telegramChatId: null,
+                    telegramUsername: null,
+                    hasActiveToken: false
+                })
                 .mockResolvedValueOnce({
                     connected: false,
                     telegramChatId: null,
@@ -1060,9 +1076,10 @@ describe('NotificationsModal', () => {
                 />
             );
 
+            // Wait for initial mount calls (2 calls expected)
             await waitFor(() => {
-                expect(mockGetTelegramStatusForRerender).toHaveBeenCalled();
-            });
+                expect(mockGetTelegramStatusForRerender.mock.calls.length).toBeGreaterThanOrEqual(2);
+            }, { timeout: 3000 });
 
             const callCountBeforeRerender = mockGetTelegramStatusForRerender.mock.calls.length;
 
@@ -1081,18 +1098,27 @@ describe('NotificationsModal', () => {
                 />
             );
 
+            // When user has telegram_chat_id, useEffect calls checkTelegramStatus if !telegramUsername
             await waitFor(() => {
                 expect(mockGetTelegramStatusForRerender.mock.calls.length).toBeGreaterThan(callCountBeforeRerender);
-            }, { timeout: 3000 });
+            }, { timeout: 5000 });
         });
 
         it('should handle Connecting state (hasActiveToken true but not connected)', async () => {
-            const mockGetTelegramStatusConnecting = vi.fn().mockResolvedValue({
-                connected: false,
-                telegramChatId: null,
-                telegramUsername: null,
-                hasActiveToken: true // Active token exists but not connected yet
-            });
+            // Mock handles multiple calls on mount (2 calls expected)
+            const mockGetTelegramStatusConnecting = vi.fn()
+                .mockResolvedValueOnce({
+                    connected: false,
+                    telegramChatId: null,
+                    telegramUsername: null,
+                    hasActiveToken: true // Active token exists but not connected yet
+                })
+                .mockResolvedValue({
+                    connected: false,
+                    telegramChatId: null,
+                    telegramUsername: null,
+                    hasActiveToken: true // Active token exists but not connected yet
+                });
 
             render(
                 <NotificationsModal
@@ -1104,15 +1130,16 @@ describe('NotificationsModal', () => {
                 />
             );
 
+            // Wait for mount calls (2 calls expected)
             await waitFor(() => {
-                expect(mockGetTelegramStatusConnecting).toHaveBeenCalled();
+                expect(mockGetTelegramStatusConnecting.mock.calls.length).toBeGreaterThanOrEqual(2);
             }, { timeout: 5000 });
 
             // Should show "No account connected" badge
             await waitFor(() => {
                 expect(screen.getByText('No account connected')).toBeInTheDocument();
             }, { timeout: 3000 });
-            
+
             // Email should be selected (Telegram not connected)
             await waitFor(() => {
                 const emailRadio = screen.getByRole('radio', { name: /email/i });
@@ -1121,12 +1148,11 @@ describe('NotificationsModal', () => {
         });
 
         it('should automatically switch to Email when Telegram is selected but connection is lost', async () => {
-            const user = userEvent.setup();
             let callCount = 0;
             const mockGetTelegramStatusLost = vi.fn().mockImplementation(async () => {
                 callCount++;
-                // First call: connected (initial state from mount)
-                if (callCount === 1) {
+                // First 2 calls: connected (initial state from mount - useEffect([]) + useEffect([user]))
+                if (callCount <= 2) {
                     return {
                         connected: true,
                         telegramChatId: '123456789',
@@ -1207,12 +1233,21 @@ describe('NotificationsModal', () => {
             const errorMessage = 'Failed to save notification settings';
             const mockOnSaveWithError = vi.fn().mockRejectedValue(new Error(errorMessage));
 
-            const mockGetTelegramStatusConnected = vi.fn().mockResolvedValue({
-                connected: true,
-                telegramChatId: '123456789',
-                telegramUsername: 'testuser',
-                hasActiveToken: false
-            });
+            // When user has telegram_chat_id, useEffect calls checkTelegramStatus if !telegramUsername
+            // Mount calls: useEffect([]) + useEffect([user]) if !telegramUsername
+            const mockGetTelegramStatusConnected = vi.fn()
+                .mockResolvedValueOnce({
+                    connected: true,
+                    telegramChatId: '123456789',
+                    telegramUsername: 'testuser',
+                    hasActiveToken: false
+                })
+                .mockResolvedValue({
+                    connected: true,
+                    telegramChatId: '123456789',
+                    telegramUsername: 'testuser',
+                    hasActiveToken: false
+                });
 
             const userWithTelegram: UserData = {
                 ...mockUser,
@@ -1247,12 +1282,20 @@ describe('NotificationsModal', () => {
             const errorMessage = 'Failed to save notification settings';
             const mockOnSaveWithError = vi.fn().mockRejectedValue(new Error(errorMessage));
 
-            const mockGetTelegramStatusConnected = vi.fn().mockResolvedValue({
-                connected: true,
-                telegramChatId: '123456789',
-                telegramUsername: 'testuser',
-                hasActiveToken: false
-            });
+            // When user has telegram_chat_id, useEffect calls checkTelegramStatus if !telegramUsername
+            const mockGetTelegramStatusConnected = vi.fn()
+                .mockResolvedValueOnce({
+                    connected: true,
+                    telegramChatId: '123456789',
+                    telegramUsername: 'testuser',
+                    hasActiveToken: false
+                })
+                .mockResolvedValue({
+                    connected: true,
+                    telegramChatId: '123456789',
+                    telegramUsername: 'testuser',
+                    hasActiveToken: false
+                });
 
             const userWithTelegram: UserData = {
                 ...mockUser,
@@ -1296,12 +1339,20 @@ describe('NotificationsModal', () => {
 
         it('should allow dismissing success message', async () => {
             const user = userEvent.setup();
-            const mockGetTelegramStatusConnected = vi.fn().mockResolvedValue({
-                connected: false,
-                telegramChatId: null,
-                telegramUsername: null,
-                hasActiveToken: false
-            });
+            // Mock handles 2 calls on mount (useEffect([]) + useEffect([user]))
+            const mockGetTelegramStatusConnected = vi.fn()
+                .mockResolvedValueOnce({
+                    connected: false,
+                    telegramChatId: null,
+                    telegramUsername: null,
+                    hasActiveToken: false
+                })
+                .mockResolvedValue({
+                    connected: false,
+                    telegramChatId: null,
+                    telegramUsername: null,
+                    hasActiveToken: false
+                });
 
             render(
                 <NotificationsModal
