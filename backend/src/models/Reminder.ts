@@ -10,6 +10,37 @@ export type { ReminderData };
 export { ReminderStatus, ReminderValue };
 
 /**
+ * Normalize scheduled_time to ISO string format.
+ * Handles Date objects and strings from database queries.
+ * @param scheduledTime - The scheduled time value (Date, string, or other)
+ * @returns ISO string representation of the scheduled time
+ * @private
+ */
+function normalizeScheduledTime(scheduledTime: any): string {
+  if (scheduledTime instanceof Date) {
+    return scheduledTime.toISOString();
+  }
+  if (typeof scheduledTime === "string") {
+    // Validate and normalize to ISO format
+    const date = new Date(scheduledTime);
+    if (isNaN(date.getTime())) {
+      throw new TypeError(
+        `Invalid scheduled_time value: cannot parse "${scheduledTime}" as a date`
+      );
+    }
+    return date.toISOString();
+  }
+  // Fallback: convert to string and try to parse
+  const date = new Date(String(scheduledTime));
+  if (isNaN(date.getTime())) {
+    throw new TypeError(
+      `Invalid scheduled_time value: cannot parse "${scheduledTime}" as a date`
+    );
+  }
+  return date.toISOString();
+}
+
+/**
  * Backend Reminder model with database operations.
  * Extends the shared Reminder class with persistence methods.
  * @public
@@ -26,13 +57,17 @@ export class Reminder extends BaseReminder {
   async save(db: Database): Promise<ReminderData> {
     this.validate();
 
+    // Ensure scheduled_time is always an ISO string for database operations
+    // This handles cases where PostgreSQL returns Date objects
+    const scheduledTimeStr = normalizeScheduledTime(this.scheduled_time);
+
     if (this.id) {
       // Update existing reminder
       const updates: string[] = [];
       const values: any[] = [];
 
       updates.push("scheduled_time = ?");
-      values.push(this.scheduled_time);
+      values.push(scheduledTimeStr);
 
       if (this.notes !== undefined) {
         updates.push("notes = ?");
@@ -64,6 +99,9 @@ export class Reminder extends BaseReminder {
         values
       );
 
+      // Update the instance's scheduled_time to the normalized ISO string
+      this.scheduled_time = scheduledTimeStr;
+
       return this.toData();
     } else {
       // Create new reminder
@@ -72,7 +110,7 @@ export class Reminder extends BaseReminder {
         [
           this.tracking_id,
           this.user_id,
-          this.scheduled_time,
+          scheduledTimeStr,
           this.notes || null,
           this.status || ReminderStatus.PENDING,
           this.value ?? null,
@@ -84,6 +122,8 @@ export class Reminder extends BaseReminder {
       }
 
       this.id = result.lastID;
+      // Update the instance's scheduled_time to the normalized ISO string
+      this.scheduled_time = scheduledTimeStr;
       return this.toData();
     }
   }
@@ -180,7 +220,7 @@ export class Reminder extends BaseReminder {
       id: row.id,
       tracking_id: row.tracking_id,
       user_id: row.user_id,
-      scheduled_time: typeof row.scheduled_time === 'string' ? row.scheduled_time : String(row.scheduled_time),
+      scheduled_time: normalizeScheduledTime(row.scheduled_time),
       notes: row.notes || undefined,
       status: (row.status as ReminderStatus) || ReminderStatus.PENDING,
       value: (row.value as ReminderValue) || null,
@@ -218,7 +258,7 @@ export class Reminder extends BaseReminder {
           id: row.id,
           tracking_id: row.tracking_id,
           user_id: row.user_id,
-          scheduled_time: typeof row.scheduled_time === 'string' ? row.scheduled_time : String(row.scheduled_time),
+          scheduled_time: normalizeScheduledTime(row.scheduled_time),
           notes: row.notes || undefined,
           status: (row.status as ReminderStatus) || ReminderStatus.PENDING,
           value: (row.value as ReminderValue) || null,
@@ -261,7 +301,7 @@ export class Reminder extends BaseReminder {
           id: row.id,
           tracking_id: row.tracking_id,
           user_id: row.user_id,
-          scheduled_time: typeof row.scheduled_time === 'string' ? row.scheduled_time : String(row.scheduled_time),
+          scheduled_time: normalizeScheduledTime(row.scheduled_time),
           notes: row.notes || undefined,
           status: (row.status as ReminderStatus) || ReminderStatus.PENDING,
           value: (row.value as ReminderValue) || null,
@@ -307,7 +347,7 @@ export class Reminder extends BaseReminder {
       id: row.id,
       tracking_id: row.tracking_id,
       user_id: row.user_id,
-      scheduled_time: typeof row.scheduled_time === 'string' ? row.scheduled_time : String(row.scheduled_time),
+      scheduled_time: normalizeScheduledTime(row.scheduled_time),
       notes: row.notes || undefined,
       status: (row.status as ReminderStatus) || ReminderStatus.PENDING,
       value: (row.value as ReminderValue) || null,
@@ -352,7 +392,7 @@ export class Reminder extends BaseReminder {
       id: row.id,
       tracking_id: row.tracking_id,
       user_id: row.user_id,
-      scheduled_time: typeof row.scheduled_time === 'string' ? row.scheduled_time : String(row.scheduled_time),
+      scheduled_time: normalizeScheduledTime(row.scheduled_time),
       notes: row.notes || undefined,
       status: (row.status as ReminderStatus) || ReminderStatus.PENDING,
       value: (row.value as ReminderValue) || null,

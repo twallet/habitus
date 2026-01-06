@@ -327,7 +327,7 @@ describe("Reminder Model", () => {
       const saved = await reminder.save(db);
 
       expect(saved.id).toBeGreaterThan(0);
-      expect(saved.scheduled_time).toBe("2024-01-01T10:00:00Z");
+      expect(saved.scheduled_time).toBe("2024-01-01T10:00:00.000Z");
       expect(saved.status).toBe(ReminderStatus.PENDING);
     });
 
@@ -356,7 +356,7 @@ describe("Reminder Model", () => {
       const saved = await reminder.save(db);
 
       expect(saved.id).toBe(reminderId);
-      expect(saved.scheduled_time).toBe("2024-01-01T11:00:00Z");
+      expect(saved.scheduled_time).toBe("2024-01-01T11:00:00.000Z");
       expect(saved.value).toBe(ReminderValue.COMPLETED);
       expect(saved.status).toBe(ReminderStatus.ANSWERED);
     });
@@ -417,8 +417,8 @@ describe("Reminder Model", () => {
       const reminders = await Reminder.loadByUserId(userId, db);
 
       expect(reminders.length).toBe(2);
-      expect(reminders[0].scheduled_time).toBe("2024-01-01T10:00:00Z");
-      expect(reminders[1].scheduled_time).toBe("2024-01-02T10:00:00Z");
+      expect(reminders[0].scheduled_time).toBe("2024-01-01T10:00:00.000Z");
+      expect(reminders[1].scheduled_time).toBe("2024-01-02T10:00:00.000Z");
     });
   });
 
