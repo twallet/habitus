@@ -824,6 +824,7 @@ describe('NotificationsModal', () => {
             vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
 
             let callCount = 0;
+            let waitingStateEntered = false;
             const mockGetTelegramStatusPolling = vi.fn().mockImplementation(async () => {
                 callCount++;
                 // First 2 calls: mount effects
@@ -844,7 +845,17 @@ describe('NotificationsModal', () => {
                         hasActiveToken: false
                     };
                 }
-                // Call 4: connection detected after polling
+                // After waiting state is entered, allow a few more polls before returning connected
+                // This ensures the waiting view is visible before connection is detected
+                if (!waitingStateEntered || callCount < 5) {
+                    return {
+                        connected: false,
+                        telegramChatId: null,
+                        telegramUsername: null,
+                        hasActiveToken: false
+                    };
+                }
+                // Call 5+: connection detected after polling
                 return {
                     connected: true,
                     telegramChatId: '123456789',
@@ -872,9 +883,11 @@ describe('NotificationsModal', () => {
             await user.click(screen.getByRole('button', { name: /copy key/i }));
             await user.click(screen.getByRole('button', { name: /go to chat/i }));
 
+            // Mark that waiting state has been entered
             await waitFor(() => {
                 expect(screen.getByText(/Waiting for you to paste the key/i)).toBeInTheDocument();
             });
+            waitingStateEntered = true;
 
             // Wait for initial poll - polling starts immediately when entering waiting state
             await waitFor(() => {
@@ -882,7 +895,7 @@ describe('NotificationsModal', () => {
             }, { timeout: 3000 });
 
             // Wait for polling to detect connection and close modal
-            // The mock returns connected on call 4+, so polling should detect it
+            // The mock returns connected on call 5+, so polling should detect it
             await waitFor(() => {
                 expect(screen.queryByText(/Waiting for you to paste the key/i)).not.toBeInTheDocument();
             }, { timeout: 5000 });
