@@ -85,6 +85,12 @@ if (coverageFile && existsSync(coverageFile)) {
     const filesBelowThreshold = [];
     let totalBranches = 0;
     let coveredBranches = 0;
+    let totalStatements = 0;
+    let coveredStatements = 0;
+    let totalFunctions = 0;
+    let coveredFunctions = 0;
+    let totalLines = 0;
+    let coveredLines = 0;
 
     // Process each file in the coverage data
     for (const [filePath, coverage] of Object.entries(coverageData)) {
@@ -112,17 +118,64 @@ if (coverageFile && existsSync(coverageFile)) {
           }
         }
       }
+
+      // Count statements
+      if (coverage.s) {
+        for (const count of Object.values(coverage.s)) {
+          totalStatements++;
+          if (count > 0) coveredStatements++;
+        }
+      }
+
+      // Count functions
+      if (coverage.f) {
+        for (const count of Object.values(coverage.f)) {
+          totalFunctions++;
+          if (count > 0) coveredFunctions++;
+        }
+      }
+
+      // Count lines
+      if (coverage.l) {
+        for (const count of Object.values(coverage.l)) {
+          totalLines++;
+          if (count > 0) coveredLines++;
+        }
+      }
     }
 
-    // Calculate global branches percentage
+    // Calculate global percentages
     const globalBranches =
       totalBranches > 0 ? (coveredBranches / totalBranches) * 100 : 100;
+    const globalStatements =
+      totalStatements > 0 ? (coveredStatements / totalStatements) * 100 : 100;
+    const globalFunctions =
+      totalFunctions > 0 ? (coveredFunctions / totalFunctions) * 100 : 100;
+    const globalLines =
+      totalLines > 0 ? (coveredLines / totalLines) * 100 : 100;
 
-    // Display global branches coverage (after test summary)
+    // Calculate overall coverage (average of all metrics)
+    const overallCoverage =
+      (globalStatements + globalBranches + globalFunctions + globalLines) / 4;
+
+    // Display comprehensive coverage summary (after test summary)
+    console.log("\n📊 Coverage Summary:");
+    console.log("─".repeat(80));
     console.log(
-      `\n📊 Global Branches Coverage: ${formatGlobalPercent(
-        globalBranches
-      )} (${coveredBranches}/${totalBranches})`
+      `Statements: ${formatGlobalPercent(globalStatements)} (${coveredStatements}/${totalStatements})`
+    );
+    console.log(
+      `Branches:   ${formatGlobalPercent(globalBranches)} (${coveredBranches}/${totalBranches})`
+    );
+    console.log(
+      `Functions:  ${formatGlobalPercent(globalFunctions)} (${coveredFunctions}/${totalFunctions})`
+    );
+    console.log(
+      `Lines:      ${formatGlobalPercent(globalLines)} (${coveredLines}/${totalLines})`
+    );
+    console.log("─".repeat(80));
+    console.log(
+      `Total Coverage: ${formatGlobalPercent(overallCoverage)}`
     );
 
     // Display files with coverage below threshold
