@@ -366,9 +366,14 @@ export function NotificationsModal({
 
     /**
      * Handle modal close.
+     * Also closes the Telegram connection modal if it's open.
      * @internal
      */
     const handleModalClose = () => {
+        // Close Telegram connection modal if it's open
+        if (showTelegramConnectionModal) {
+            setShowTelegramConnectionModal(false);
+        }
         onClose();
     };
 

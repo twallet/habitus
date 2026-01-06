@@ -897,6 +897,8 @@ describe('NotificationsModal', () => {
         it('should stop polling when modal is closed', async () => {
             const user = userEvent.setup();
             vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+            // Mock window.confirm to return true (user confirms closing)
+            const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
 
             const mockGetTelegramStatusPolling = vi.fn().mockResolvedValue({
                 connected: false,
@@ -933,10 +935,10 @@ describe('NotificationsModal', () => {
                 expect(mockGetTelegramStatusPolling).toHaveBeenCalled();
             }, { timeout: 3000 });
 
-            // Close the modal
+            // Close the modal (click the main modal close button, not the Telegram modal close button)
             const closeButtons = screen.getAllByRole('button', { name: /close/i });
-            const telegramModalCloseButton = closeButtons[closeButtons.length - 1];
-            await user.click(telegramModalCloseButton);
+            const mainModalCloseButton = closeButtons[0];
+            await user.click(mainModalCloseButton);
 
             await waitFor(() => {
                 expect(screen.queryByText(/Waiting for you to paste the key/i)).not.toBeInTheDocument();
@@ -947,6 +949,8 @@ describe('NotificationsModal', () => {
             // Wait a bit to ensure no additional calls (polling interval is 2 seconds)
             await new Promise(resolve => setTimeout(resolve, 2500));
             expect(mockGetTelegramStatusPolling.mock.calls.length).toBe(callCountBeforeClose);
+
+            confirmSpy.mockRestore();
         });
 
         it('should verify command text is not displayed in UI', async () => {
