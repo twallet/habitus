@@ -12,7 +12,7 @@ A Tracking can exist in one of three states:
 
 - **Running**: The tracking is active and generating reminders
 - **Paused**: The tracking is temporarily inactive
-- **Archived**: The tracking is archived
+- **Archived**: The tracking is archived.
 
 ### State Transitions
 
