@@ -13,7 +13,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg"],
+      includeAssets: ["favicon.svg", "apple-touch-icon.png"],
       manifest: {
         name: "Habitus - Habit Tracker",
         short_name: "Habitus",
@@ -21,6 +21,9 @@ export default defineConfig({
         theme_color: "#ffffff",
         background_color: "#ffffff",
         display: "standalone",
+        start_url: "/",
+        orientation: "portrait",
+        categories: ["productivity", "lifestyle"],
         icons: [
           {
             src: "pwa-192x192.png",
@@ -39,6 +42,22 @@ export default defineConfig({
             purpose: "any maskable",
           },
         ],
+        screenshots: [
+          {
+            src: "screenshot-desktop.png",
+            sizes: "1280x720",
+            type: "image/png",
+            form_factor: "wide",
+            label: "Desktop Dashboard"
+          },
+          {
+            src: "screenshot-mobile.png",
+            sizes: "750x1334",
+            type: "image/png",
+            form_factor: "narrow",
+            label: "Mobile Tracking"
+          }
+        ]
       },
     }),
   ],

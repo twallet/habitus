@@ -9,6 +9,12 @@
         ],
         "module": "ESNext",
         "skipLibCheck": true,
+        "types": [
+            "node",
+            "vite-plugin-pwa/info",
+            "vite-plugin-pwa/client",
+            "vite-plugin-pwa/react"
+        ],
         /* Module interoperability */
         "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,

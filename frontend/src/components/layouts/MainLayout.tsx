@@ -14,6 +14,7 @@ import { DeleteUserConfirmationModal } from '../../components/DeleteUserConfirma
 import { TrackingForm } from '../../components/TrackingForm';
 import { EditTrackingModal } from '../../components/EditTrackingModal';
 import { NotificationsModal } from '../../components/NotificationsModal';
+import { PWAUpdatePrompt } from '../../components/PWAUpdatePrompt';
 import { OutletContextType } from '../../context/AppContext';
 
 export function MainLayout() {
@@ -357,6 +358,7 @@ export function MainLayout() {
                         user={user}
                     />
                 )}
+                <PWAUpdatePrompt />
             </div>
         </>
     );
