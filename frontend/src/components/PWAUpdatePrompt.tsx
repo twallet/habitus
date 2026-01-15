@@ -7,11 +7,19 @@ import './PWAUpdatePrompt.css';
  * @public
  */
 export function PWAUpdatePrompt() {
+    // Defensive check for useRegisterSW which may be undefined in some test environments
+    // due to virtual module resolution issues.
+    const registerSW = typeof useRegisterSW === 'function' ? useRegisterSW : () => ({
+        offlineReady: [false, (_val: boolean) => { }] as [boolean, (val: boolean) => void],
+        needRefresh: [false, (_val: boolean) => { }] as [boolean, (val: boolean) => void],
+        updateServiceWorker: async (_reload?: boolean) => { },
+    });
+
     const {
         offlineReady: [offlineReady, setOfflineReady],
         needRefresh: [needRefresh, setNeedRefresh],
         updateServiceWorker,
-    } = useRegisterSW({
+    } = registerSW({
         onRegistered(r: ServiceWorkerRegistration | undefined) {
             console.log('SW Registered: ' + r);
         },

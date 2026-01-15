@@ -6,7 +6,7 @@ import { beforeAll, afterAll, vi } from "vitest";
 vi.mock("virtual:pwa-register/react", () => ({
   useRegisterSW: vi.fn(() => ({
     offlineReady: [false, vi.fn()],
-    needUpdate: [false, vi.fn()],
+    needRefresh: [false, vi.fn()],
     updateServiceWorker: vi.fn(),
   })),
 }));
