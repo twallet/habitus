@@ -84,16 +84,14 @@ router.post("/webhook", async (req: Request, res: Response) => {
  */
 async function processTelegramUpdate(update: TelegramUpdate): Promise<void> {
   console.log(
-    `[${new Date().toISOString()}] TELEGRAM_WEBHOOK | Processing update ${
-      update.update_id
+    `[${new Date().toISOString()}] TELEGRAM_WEBHOOK | Processing update ${update.update_id
     }`
   );
 
   // Only process messages (ignore other update types)
   if (!update.message || !update.message.text) {
     console.log(
-      `[${new Date().toISOString()}] TELEGRAM_WEBHOOK | Update ${
-        update.update_id
+      `[${new Date().toISOString()}] TELEGRAM_WEBHOOK | Update ${update.update_id
       } has no message or text, skipping`
     );
     return;
@@ -120,8 +118,7 @@ async function processTelegramUpdate(update: TelegramUpdate): Promise<void> {
   // Parse /start command: /start <token> <userId>
   const parts = messageText.split(/\s+/);
   console.log(
-    `[${new Date().toISOString()}] TELEGRAM_WEBHOOK | Parsed /start command parts: ${
-      parts.length
+    `[${new Date().toISOString()}] TELEGRAM_WEBHOOK | Parsed /start command parts: ${parts.length
     } parts`
   );
 
@@ -158,8 +155,7 @@ async function processTelegramUpdate(update: TelegramUpdate): Promise<void> {
   // Verify that the token's user ID matches the provided user ID
   if (validationResult.userId !== userId) {
     console.log(
-      `[${new Date().toISOString()}] TELEGRAM_WEBHOOK | User ID mismatch: token belongs to user ${
-        validationResult.userId
+      `[${new Date().toISOString()}] TELEGRAM_WEBHOOK | User ID mismatch: token belongs to user ${validationResult.userId
       }, but command specified user ${userId}`
     );
     return;
@@ -185,22 +181,8 @@ async function processTelegramUpdate(update: TelegramUpdate): Promise<void> {
 
   // Send welcome message
   const telegramService = ServiceManager.getTelegramService();
-  // Construct frontend URL without port for production (custom domain)
-  // Only add port in development (localhost)
-  const serverUrl = ServerConfig.getServerUrl();
-  let frontendUrl: string;
-  if (serverUrl.startsWith("https://") || serverUrl.startsWith("http://")) {
-    // Production: use URL as-is (no port needed)
-    // Development: add port if it's localhost
-    if (serverUrl.includes("localhost") || serverUrl.includes("127.0.0.1")) {
-      frontendUrl = `${serverUrl}:${ServerConfig.getPort()}`;
-    } else {
-      frontendUrl = serverUrl;
-    }
-  } else {
-    // Fallback: add port if URL doesn't have protocol
-    frontendUrl = `${serverUrl}:${ServerConfig.getPort()}`;
-  }
+  // Use centralized public URL generation
+  const frontendUrl = ServerConfig.getPublicUrl();
 
   try {
     await telegramService.sendWelcomeMessage(chatId, userId, frontendUrl);

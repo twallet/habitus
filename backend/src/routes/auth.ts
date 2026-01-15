@@ -57,9 +57,8 @@ router.post(
           profilePictureUrl = (file as any).cloudinaryUrl || file.filename;
         } else {
           // Use local file URL
-          profilePictureUrl = `${ServerConfig.getServerUrl()}:${ServerConfig.getPort()}/uploads/${
-            file.filename
-          }`;
+          profilePictureUrl = `${ServerConfig.getPublicUrl()}/uploads/${file.filename
+            }`;
         }
       }
 
@@ -139,8 +138,7 @@ router.post("/login", authRateLimiter, async (req: Request, res: Response) => {
       error.message.includes("minutes")
     ) {
       console.warn(
-        `[${new Date().toISOString()}] AUTH_ROUTE | Magic link cooldown active for email: ${
-          req.body.email
+        `[${new Date().toISOString()}] AUTH_ROUTE | Magic link cooldown active for email: ${req.body.email
         }`,
         error.message
       );
@@ -276,9 +274,7 @@ router.get("/verify-email-change", async (req: Request, res: Response) => {
     const { token } = req.query;
 
     if (!token || typeof token !== "string") {
-      const serverUrl = ServerConfig.getServerUrl();
-      const port = ServerConfig.getPort();
-      const frontendUrl = `${serverUrl}:${port}`;
+      const frontendUrl = ServerConfig.getPublicUrl();
       return res.redirect(
         `${frontendUrl}?emailChangeVerified=false&error=${encodeURIComponent(
           "Token is required"
@@ -289,9 +285,7 @@ router.get("/verify-email-change", async (req: Request, res: Response) => {
     await getUserServiceInstance().verifyEmailChange(token);
 
     // Redirect to frontend with success message
-    const serverUrl = ServerConfig.getServerUrl();
-    const port = ServerConfig.getPort();
-    const frontendUrl = `${serverUrl}:${port}`;
+    const frontendUrl = ServerConfig.getPublicUrl();
     res.redirect(`${frontendUrl}?emailChangeVerified=true`);
   } catch (error) {
     if (
@@ -301,9 +295,7 @@ router.get("/verify-email-change", async (req: Request, res: Response) => {
         error.message.includes("already registered") ||
         error.message.includes("Failed to retrieve"))
     ) {
-      const serverUrl = ServerConfig.getServerUrl();
-      const port = ServerConfig.getPort();
-      const frontendUrl = `${serverUrl}:${port}`;
+      const frontendUrl = ServerConfig.getPublicUrl();
       return res.redirect(
         `${frontendUrl}?emailChangeVerified=false&error=${encodeURIComponent(
           error.message
@@ -314,9 +306,7 @@ router.get("/verify-email-change", async (req: Request, res: Response) => {
       `[${new Date().toISOString()}] AUTH_ROUTE | Error verifying email change:`,
       error
     );
-    const serverUrl = ServerConfig.getServerUrl();
-    const port = ServerConfig.getPort();
-    const frontendUrl = `${serverUrl}:${port}`;
+    const frontendUrl = ServerConfig.getPublicUrl();
     res.redirect(
       `${frontendUrl}?emailChangeVerified=false&error=${encodeURIComponent(
         "Error verifying email change"

@@ -79,9 +79,8 @@ router.put(
           profilePictureUrl = (file as any).cloudinaryUrl || file.filename;
         } else {
           // Use local file URL
-          profilePictureUrl = `${ServerConfig.getServerUrl()}:${ServerConfig.getPort()}/uploads/${
-            file.filename
-          }`;
+          profilePictureUrl = `${ServerConfig.getPublicUrl()}/uploads/${file.filename
+            }`;
         }
       }
       // If neither file nor removeProfilePicture, profilePictureUrl remains undefined (no change)
