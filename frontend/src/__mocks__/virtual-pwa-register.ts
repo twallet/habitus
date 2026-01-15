@@ -1,6 +1,3 @@
-import { vi } from 'vitest';
-console.log('LOADING VIRTUAL PWA MOCK FILE');
-
 
 export const useRegisterSW = () => {
     return {
