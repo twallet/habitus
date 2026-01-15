@@ -366,23 +366,22 @@ describe("ReminderLifecycleManager", () => {
         reminder1Time
       );
 
-      // Transition first reminder to Pending
+      // First reminder becomes Pending - this should automatically create the second reminder (12:00)
       await reminderService.updateReminder(reminder1.id, testUserId, {
         status: ReminderStatus.PENDING,
       });
 
-      // Create second reminder as Upcoming manually
-      // (The lifecycle manager doesn't create next reminder when going to PENDING,
-      // only when going to ANSWERED. This test verifies archiving works correctly.)
-      const reminder2Time = `${dateString}T12:00:00`;
-      const reminder2 = await reminderService.createReminder(
-        trackingData.id,
-        testUserId,
-        reminder2Time
+      // Find the second reminder that was automatically created
+      const allReminders = await reminderService.getAllByUserId(testUserId);
+      const reminder2 = allReminders.find(r =>
+        r.tracking_id === trackingData.id &&
+        new Date(r.scheduled_time).getHours() === 12
       );
 
+      expect(reminder2).toBeDefined();
+
       // Transition second reminder to Pending (should archive tracking)
-      await reminderService.updateReminder(reminder2.id, testUserId, {
+      await reminderService.updateReminder(reminder2!.id, testUserId, {
         status: ReminderStatus.PENDING,
       });
 
@@ -402,7 +401,7 @@ describe("ReminderLifecycleManager", () => {
         testDb
       );
       const pendingReminder2 = await Reminder.loadById(
-        reminder2.id,
+        reminder2!.id,
         testUserId,
         testDb
       );
@@ -416,7 +415,7 @@ describe("ReminderLifecycleManager", () => {
         status: ReminderStatus.ANSWERED,
         value: "Completed" as any,
       });
-      await reminderService.updateReminder(reminder2.id, testUserId, {
+      await reminderService.updateReminder(reminder2!.id, testUserId, {
         status: ReminderStatus.ANSWERED,
         value: "Dismissed" as any,
       });
@@ -428,7 +427,7 @@ describe("ReminderLifecycleManager", () => {
         testDb
       );
       const answeredReminder2 = await Reminder.loadById(
-        reminder2.id,
+        reminder2!.id,
         testUserId,
         testDb
       );

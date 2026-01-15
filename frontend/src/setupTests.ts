@@ -2,6 +2,15 @@
 import "@testing-library/jest-dom";
 import { beforeAll, afterAll, vi } from "vitest";
 
+// Mock virtual PWA module for tests
+vi.mock("virtual:pwa-register/react", () => ({
+  useRegisterSW: vi.fn(() => ({
+    offlineReady: [false, vi.fn()],
+    needUpdate: [false, vi.fn()],
+    updateServiceWorker: vi.fn(),
+  })),
+}));
+
 // Mock localStorage for tests
 const localStorageMock = (() => {
   let store: Record<string, string> = {};

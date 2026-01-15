@@ -90,6 +90,11 @@ export default defineConfig({
         "__mocks__",
         "styleMock.js"
       ),
+      "virtual:pwa-register/react": join(
+        paths.frontendSrc,
+        "__mocks__",
+        "virtual-pwa-register.ts"
+      ),
     },
   },
 });
