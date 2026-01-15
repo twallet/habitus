@@ -12,4 +12,4 @@ This document contains ideas and planned improvements for the Habitus applicatio
 
 ## Settings
 
-- Add a Notifications Settings in the Account Settings menu
+- Add a Notifications Settings in the Account Settings menu...
