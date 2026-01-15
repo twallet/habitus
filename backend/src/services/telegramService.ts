@@ -53,9 +53,7 @@ export class TelegramService {
         config?.botToken !== undefined
           ? config.botToken
           : process.env.TELEGRAM_BOT_TOKEN || "",
-      frontendUrl:
-        config?.frontendUrl ||
-        `${ServerConfig.getServerUrl()}:${ServerConfig.getPort()}`,
+      frontendUrl: config?.frontendUrl || ServerConfig.getPublicUrl(),
     };
   }
 

@@ -382,13 +382,7 @@ db.initialize()
       // Automatically set up Telegram webhook in production
       if (!isDevelopment && process.env.TELEGRAM_BOT_TOKEN) {
         try {
-          const serverUrl = ServerConfig.getServerUrl();
-          // Ensure URL is HTTPS for production
-          const webhookBaseUrl = serverUrl.startsWith("https://")
-            ? serverUrl
-            : `https://${serverUrl}`;
-
-          const webhookUrl = `${webhookBaseUrl}/api/telegram/webhook`;
+          const webhookUrl = `${ServerConfig.getPublicUrl()}/api/telegram/webhook`;
           const botToken = process.env.TELEGRAM_BOT_TOKEN;
 
           Logger.info(

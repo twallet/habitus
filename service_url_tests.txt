@@ -1,0 +1,382 @@
+[dotenv@17.2.3] injecting env (19) from config\.env -- tip: 👥 sync secrets across teammates & machines: https://dotenvx.com/ops
+
+[1m[46m RUN [49m[22m [36mv4.0.14 [39m[90mD:/Code/habitus[39m
+
+[90mstderr[2m | backend/src/services/__tests__/telegramService.test.ts[2m > [22m[2mTelegramService[2m > [22m[2msendWelcomeMessage[2m > [22m[2mshould throw error when Telegram API returns error
+[22m[39m[2026-01-15T19:12:36.548Z] ERROR   | TELEGRAM | Error sending welcome message to 123456789: Error: Telegram API error: Chat not found
+    at TelegramService.sendWelcomeMessage (D:/Code/habitus/backend/src/services/telegramService.ts:265:15)
+    at D:/Code/habitus/backend/src/services/__tests__/telegramService.test.ts:176:7
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:20
+
+[90mstderr[2m | backend/src/services/__tests__/telegramService.test.ts[2m > [22m[2mTelegramService[2m > [22m[2msendWelcomeMessage[2m > [22m[2mshould throw error when Telegram API response is not ok
+[22m[39m[2026-01-15T19:12:36.553Z] ERROR   | TELEGRAM | Error sending welcome message to 123456789: Error: Telegram API error: Unauthorized
+    at TelegramService.sendWelcomeMessage (D:/Code/habitus/backend/src/services/telegramService.ts:270:15)
+    at D:/Code/habitus/backend/src/services/__tests__/telegramService.test.ts:192:7
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:20
+
+[90mstderr[2m | backend/src/services/__tests__/telegramService.test.ts[2m > [22m[2mTelegramService[2m > [22m[2msendWelcomeMessage[2m > [22m[2mshould handle chat not found error specifically
+[22m[39m[2026-01-15T19:12:36.554Z] ERROR   | TELEGRAM | Error sending welcome message to 123456789: Error: Telegram API error: chat not found
+    at TelegramService.sendWelcomeMessage (D:/Code/habitus/backend/src/services/telegramService.ts:265:15)
+    at D:/Code/habitus/backend/src/services/__tests__/telegramService.test.ts:210:7
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:20
+
+[90mstderr[2m | backend/src/services/__tests__/telegramService.test.ts[2m > [22m[2mTelegramService[2m > [22m[2msendWelcomeMessage[2m > [22m[2mshould handle invalid bot token error specifically
+[22m[39m[2026-01-15T19:12:36.554Z] ERROR   | TELEGRAM | Error sending welcome message to 123456789: Error: Telegram API error: bot token is invalid
+    at TelegramService.sendWelcomeMessage (D:/Code/habitus/backend/src/services/telegramService.ts:265:15)
+    at D:/Code/habitus/backend/src/services/__tests__/telegramService.test.ts:228:7
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:20
+
+[90mstderr[2m | backend/src/services/__tests__/telegramService.test.ts[2m > [22m[2mTelegramService[2m > [22m[2msendWelcomeMessage[2m > [22m[2mshould handle network errors gracefully
+[22m[39m[2026-01-15T19:12:36.555Z] ERROR   | TELEGRAM | Error sending welcome message to 123456789: Error: Network error
+    at D:/Code/habitus/backend/src/services/__tests__/telegramService.test.ts:234:35
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:145:11
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:26
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1244:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1210:10[90m)[39m
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1654:37
+    at Traces.$ [90m(file:///D:/Code/habitus/[39mnode_modules/[4mvitest[24m/dist/chunks/traces.U4xDYhzZ.js:115:27[90m)[39m
+    at trace [90m(file:///D:/Code/habitus/[39mnode_modules/[4mvitest[24m/dist/chunks/test.DqQZzsWf.js:234:21[90m)[39m
+    at runTest [90m(file:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1654:12[90m)[39m
+
+[90mstderr[2m | backend/src/services/__tests__/telegramService.test.ts[2m > [22m[2mTelegramService[2m > [22m[2msendWelcomeMessage[2m > [22m[2mshould handle HTTP errors when response.json() fails
+[22m[39m[2026-01-15T19:12:36.556Z] ERROR   | TELEGRAM | Error sending welcome message to 123456789: Error: Telegram API error: HTTP 500: Internal Server Error
+    at TelegramService.sendWelcomeMessage (D:/Code/habitus/backend/src/services/telegramService.ts:265:15)
+    at D:/Code/habitus/backend/src/services/__tests__/telegramService.test.ts:251:7
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:20
+
+[90mstderr[2m | backend/src/services/__tests__/telegramService.test.ts[2m > [22m[2mTelegramService[2m > [22m[2msendWelcomeMessage[2m > [22m[2mshould handle HTTP errors without description
+[22m[39m[2026-01-15T19:12:36.556Z] ERROR   | TELEGRAM | Error sending welcome message to 123456789: Error: Telegram API error: HTTP 500: Internal Server Error
+    at TelegramService.sendWelcomeMessage (D:/Code/habitus/backend/src/services/telegramService.ts:265:15)
+    at D:/Code/habitus/backend/src/services/__tests__/telegramService.test.ts:266:7
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:20
+
+[90mstderr[2m | backend/src/services/__tests__/telegramService.test.ts[2m > [22m[2mTelegramService[2m > [22m[2msendReminderMessage[2m > [22m[2mshould throw error when Telegram API returns error
+[22m[39m[2026-01-15T19:12:36.577Z] ERROR   | TELEGRAM | Error sending reminder message to 123456789: Error: Telegram API error: Chat not found
+    at TelegramService.sendReminderMessage (D:/Code/habitus/backend/src/services/telegramService.ts:179:15)
+    at D:/Code/habitus/backend/src/services/__tests__/telegramService.test.ts:585:7
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:20
+
+[90mstderr[2m | backend/src/services/__tests__/telegramService.test.ts[2m > [22m[2mTelegramService[2m > [22m[2msendReminderMessage[2m > [22m[2mshould throw error when Telegram API response is not ok
+[22m[39m[2026-01-15T19:12:36.578Z] ERROR   | TELEGRAM | Error sending reminder message to 123456789: Error: Telegram API error: Unauthorized
+    at TelegramService.sendReminderMessage (D:/Code/habitus/backend/src/services/telegramService.ts:184:15)
+    at D:/Code/habitus/backend/src/services/__tests__/telegramService.test.ts:606:7
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:20
+
+[90mstderr[2m | backend/src/services/__tests__/telegramService.test.ts[2m > [22m[2mTelegramService[2m > [22m[2msendReminderMessage[2m > [22m[2mshould handle chat not found error specifically
+[22m[39m[2026-01-15T19:12:36.579Z] ERROR   | TELEGRAM | Error sending reminder message to 123456789: Error: Telegram API error: chat not found
+    at TelegramService.sendReminderMessage (D:/Code/habitus/backend/src/services/telegramService.ts:179:15)
+    at D:/Code/habitus/backend/src/services/__tests__/telegramService.test.ts:629:7
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:20
+
+[90mstderr[2m | backend/src/services/__tests__/telegramService.test.ts[2m > [22m[2mTelegramService[2m > [22m[2msendReminderMessage[2m > [22m[2mshould handle invalid bot token error specifically
+[22m[39m[2026-01-15T19:12:36.579Z] ERROR   | TELEGRAM | Error sending reminder message to 123456789: Error: Telegram API error: bot token is invalid
+    at TelegramService.sendReminderMessage (D:/Code/habitus/backend/src/services/telegramService.ts:179:15)
+    at D:/Code/habitus/backend/src/services/__tests__/telegramService.test.ts:652:7
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:20
+
+[90mstderr[2m | backend/src/services/__tests__/telegramService.test.ts[2m > [22m[2mTelegramService[2m > [22m[2msendReminderMessage[2m > [22m[2mshould handle network errors gracefully
+[22m[39m[2026-01-15T19:12:36.580Z] ERROR   | TELEGRAM | Error sending reminder message to 123456789: Error: Network error
+    at D:/Code/habitus/backend/src/services/__tests__/telegramService.test.ts:663:35
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:145:11
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:26
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1244:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1210:10[90m)[39m
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1654:37
+    at Traces.$ [90m(file:///D:/Code/habitus/[39mnode_modules/[4mvitest[24m/dist/chunks/traces.U4xDYhzZ.js:115:27[90m)[39m
+    at trace [90m(file:///D:/Code/habitus/[39mnode_modules/[4mvitest[24m/dist/chunks/test.DqQZzsWf.js:234:21[90m)[39m
+    at runTest [90m(file:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1654:12[90m)[39m
+
+[90mstderr[2m | backend/src/services/__tests__/telegramService.test.ts[2m > [22m[2mTelegramService[2m > [22m[2msendReminderMessage[2m > [22m[2mshould handle HTTP errors when response.json() fails
+[22m[39m[2026-01-15T19:12:36.580Z] ERROR   | TELEGRAM | Error sending reminder message to 123456789: Error: Telegram API error: HTTP 500: Internal Server Error
+    at TelegramService.sendReminderMessage (D:/Code/habitus/backend/src/services/telegramService.ts:179:15)
+    at D:/Code/habitus/backend/src/services/__tests__/telegramService.test.ts:685:7
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:20
+
+[90mstderr[2m | backend/src/services/__tests__/telegramService.test.ts[2m > [22m[2mTelegramService[2m > [22m[2msendReminderMessage[2m > [22m[2mshould handle HTTP errors without description
+[22m[39m[2026-01-15T19:12:36.581Z] ERROR   | TELEGRAM | Error sending reminder message to 123456789: Error: Telegram API error: HTTP 500: Internal Server Error
+    at TelegramService.sendReminderMessage (D:/Code/habitus/backend/src/services/telegramService.ts:179:15)
+    at D:/Code/habitus/backend/src/services/__tests__/telegramService.test.ts:705:7
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:20
+
+[90mstderr[2m | backend/src/services/__tests__/telegramService.test.ts[2m > [22m[2mTelegramService[2m > [22m[2mgetChatInfo[2m > [22m[2mshould throw error when Telegram API returns error
+[22m[39m[2026-01-15T19:12:36.584Z] ERROR   | TELEGRAM | Error getting chat info for 123456789: Error: Telegram API error: Chat not found
+    at TelegramService.getChatInfo (D:/Code/habitus/backend/src/services/telegramService.ts:342:15)
+    at D:/Code/habitus/backend/src/services/__tests__/telegramService.test.ts:840:7
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:20
+
+[90mstderr[2m | backend/src/services/__tests__/telegramService.test.ts[2m > [22m[2mTelegramService[2m > [22m[2mgetChatInfo[2m > [22m[2mshould throw error when Telegram API response is not ok
+[22m[39m[2026-01-15T19:12:36.584Z] ERROR   | TELEGRAM | Error getting chat info for 123456789: Error: Telegram API error: Unauthorized
+    at TelegramService.getChatInfo (D:/Code/habitus/backend/src/services/telegramService.ts:356:15)
+    at D:/Code/habitus/backend/src/services/__tests__/telegramService.test.ts:856:7
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:20
+
+[90mstderr[2m | backend/src/services/__tests__/telegramService.test.ts[2m > [22m[2mTelegramService[2m > [22m[2mgetChatInfo[2m > [22m[2mshould handle chat not found error specifically
+[22m[39m[2026-01-15T19:12:36.585Z] ERROR   | TELEGRAM | Error getting chat info for 123456789: Error: Telegram API error: chat not found
+    at TelegramService.getChatInfo (D:/Code/habitus/backend/src/services/telegramService.ts:342:15)
+    at D:/Code/habitus/backend/src/services/__tests__/telegramService.test.ts:874:7
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:20
+
+[90mstderr[2m | backend/src/services/__tests__/telegramService.test.ts[2m > [22m[2mTelegramService[2m > [22m[2mgetChatInfo[2m > [22m[2mshould handle invalid bot token error specifically
+[22m[39m[2026-01-15T19:12:36.585Z] ERROR   | TELEGRAM | Error getting chat info for 123456789: Error: Telegram API error: bot token is invalid
+    at TelegramService.getChatInfo (D:/Code/habitus/backend/src/services/telegramService.ts:342:15)
+    at D:/Code/habitus/backend/src/services/__tests__/telegramService.test.ts:892:7
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:20
+
+[90mstderr[2m | backend/src/services/__tests__/telegramService.test.ts[2m > [22m[2mTelegramService[2m > [22m[2mgetChatInfo[2m > [22m[2mshould handle network errors gracefully
+[22m[39m[2026-01-15T19:12:36.585Z] ERROR   | TELEGRAM | Error getting chat info for 123456789: Error: Network error
+    at D:/Code/habitus/backend/src/services/__tests__/telegramService.test.ts:898:35
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:145:11
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:26
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1244:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1210:10[90m)[39m
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1654:37
+    at Traces.$ [90m(file:///D:/Code/habitus/[39mnode_modules/[4mvitest[24m/dist/chunks/traces.U4xDYhzZ.js:115:27[90m)[39m
+    at trace [90m(file:///D:/Code/habitus/[39mnode_modules/[4mvitest[24m/dist/chunks/test.DqQZzsWf.js:234:21[90m)[39m
+    at runTest [90m(file:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1654:12[90m)[39m
+
+[90mstderr[2m | backend/src/services/__tests__/telegramService.test.ts[2m > [22m[2mTelegramService[2m > [22m[2mgetChatInfo[2m > [22m[2mshould handle HTTP errors when response.json() fails
+[22m[39m[2026-01-15T19:12:36.586Z] ERROR   | TELEGRAM | Error getting chat info for 123456789: Error: Telegram API error: HTTP 500: Internal Server Error
+    at TelegramService.getChatInfo (D:/Code/habitus/backend/src/services/telegramService.ts:342:15)
+    at D:/Code/habitus/backend/src/services/__tests__/telegramService.test.ts:915:7
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:20
+
+[90mstderr[2m | backend/src/services/__tests__/telegramService.test.ts[2m > [22m[2mTelegramService[2m > [22m[2mgetChatInfo[2m > [22m[2mshould handle HTTP errors without description
+[22m[39m[2026-01-15T19:12:36.587Z] ERROR   | TELEGRAM | Error getting chat info for 123456789: Error: Telegram API error: HTTP 500: Internal Server Error
+    at TelegramService.getChatInfo (D:/Code/habitus/backend/src/services/telegramService.ts:342:15)
+    at D:/Code/habitus/backend/src/services/__tests__/telegramService.test.ts:930:7
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:20
+
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22mconstructor[2m > [22mshould use environment variables when no config provided[32m 2[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22mconstructor[2m > [22mshould use provided config over environment variables[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendWelcomeMessage[2m > [22mshould send welcome message successfully[32m 2[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendWelcomeMessage[2m > [22mshould include app link in welcome message[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendWelcomeMessage[2m > [22mshould format welcome message correctly[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendWelcomeMessage[2m > [22mshould throw error when bot token is not configured[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendWelcomeMessage[2m > [22mshould throw error when chat ID is missing[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendWelcomeMessage[2m > [22mshould throw error when Telegram API returns error[32m 5[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendWelcomeMessage[2m > [22mshould throw error when Telegram API response is not ok[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendWelcomeMessage[2m > [22mshould handle chat not found error specifically[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendWelcomeMessage[2m > [22mshould handle invalid bot token error specifically[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendWelcomeMessage[2m > [22mshould handle network errors gracefully[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendWelcomeMessage[2m > [22mshould handle HTTP errors when response.json() fails[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendWelcomeMessage[2m > [22mshould handle HTTP errors without description[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendReminderMessage[2m > [22mshould send reminder message successfully[32m 15[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendReminderMessage[2m > [22mshould include tracking icon in message[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendReminderMessage[2m > [22mshould include tracking notes in message[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendReminderMessage[2m > [22mshould include reminder notes in message[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendReminderMessage[2m > [22mshould include all optional fields in message[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendReminderMessage[2m > [22mshould include inline keyboard with action buttons[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendReminderMessage[2m > [22mshould escape markdown special characters[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendReminderMessage[2m > [22mshould use custom locale and timezone[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendReminderMessage[2m > [22mshould throw error when bot token is not configured[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendReminderMessage[2m > [22mshould throw error when chat ID is missing[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendReminderMessage[2m > [22mshould throw error when Telegram API returns error[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendReminderMessage[2m > [22mshould throw error when Telegram API response is not ok[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendReminderMessage[2m > [22mshould handle chat not found error specifically[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendReminderMessage[2m > [22mshould handle invalid bot token error specifically[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendReminderMessage[2m > [22mshould handle network errors gracefully[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendReminderMessage[2m > [22mshould handle HTTP errors when response.json() fails[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendReminderMessage[2m > [22mshould handle HTTP errors without description[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22msendReminderMessage[2m > [22mshould use default icon when trackingIcon is not provided[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22mgetChatInfo[2m > [22mshould get chat info successfully[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22mgetChatInfo[2m > [22mshould handle missing username and first_name[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22mgetChatInfo[2m > [22mshould throw error when bot token is not configured[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22mgetChatInfo[2m > [22mshould throw error when chat ID is missing[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22mgetChatInfo[2m > [22mshould throw error when Telegram API returns error[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22mgetChatInfo[2m > [22mshould throw error when Telegram API response is not ok[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22mgetChatInfo[2m > [22mshould handle chat not found error specifically[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22mgetChatInfo[2m > [22mshould handle invalid bot token error specifically[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22mgetChatInfo[2m > [22mshould handle network errors gracefully[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22mgetChatInfo[2m > [22mshould handle HTTP errors when response.json() fails[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/telegramService.test.ts[2m > [22mTelegramService[2m > [22mgetChatInfo[2m > [22mshould handle HTTP errors without description[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22mconstructor[2m > [22mshould use environment variables when no config provided[32m 2[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22mconstructor[2m > [22mshould use provided config over environment variables[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22mconstructor[2m > [22mshould use defaults when no config or environment variables[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22msendMagicLink[2m > [22mshould send registration magic link email successfully[32m 2[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22msendMagicLink[2m > [22mshould send login magic link email successfully[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22msendMagicLink[2m > [22mshould include magic link in email[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/authService.test.ts[2m > [22mAuthService[2m > [22mverifyToken[2m > [22mshould verify valid token and return user ID[32m 9[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/authService.test.ts[2m > [22mAuthService[2m > [22mverifyToken[2m > [22mshould throw error for invalid token[32m 2[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/authService.test.ts[2m > [22mAuthService[2m > [22mverifyToken[2m > [22mshould throw error for expired token[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/authService.test.ts[2m > [22mAuthService[2m > [22mgetUserById[2m > [22mshould return user for existing ID[32m 3[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/authService.test.ts[2m > [22mAuthService[2m > [22mgetUserById[2m > [22mshould return null for non-existent ID[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/authService.test.ts[2m > [22mAuthService[2m > [22mrequestEmailChange[2m > [22mshould request email change successfully[32m 3[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/authService.test.ts[2m > [22mAuthService[2m > [22mrequestEmailChange[2m > [22mshould throw error if user not found[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/authService.test.ts[2m > [22mAuthService[2m > [22mrequestEmailChange[2m > [22mshould throw error if new email is same as current email[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/authService.test.ts[2m > [22mAuthService[2m > [22mrequestEmailChange[2m > [22mshould throw error if new email is already registered[32m 2[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/authService.test.ts[2m > [22mAuthService[2m > [22mrequestEmailChange[2m > [22mshould throw error for invalid email format[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/authService.test.ts[2m > [22mAuthService[2m > [22mrequestEmailChange[2m > [22mshould check for duplicate email before cooldown[32m 1[2mms[22m[39m
+[90mstderr[2m | backend/src/services/__tests__/emailService.test.ts[2m > [22m[2mEmailService[2m > [22m[2msendMagicLink[2m > [22m[2mshould throw error when SMTP credentials are missing
+[22m[39m[2026-01-15T19:12:42.632Z] ERROR   | EMAIL | All 3 attempts failed for registration magic link email to user@example.com: Error: SMTP credentials not configured. Please set SMTP_USER and SMTP_PASS environment variables.
+    at EmailService.getTransporter (D:/Code/habitus/backend/src/services/emailService.ts:81:13)
+    at EmailService.sendMagicLink (D:/Code/habitus/backend/src/services/emailService.ts:273:38)
+    at D:/Code/habitus/backend/src/services/__tests__/emailService.test.ts:139:7
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:20
+
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22msendMagicLink[2m > [22mshould throw error when SMTP credentials are missing[33m 6038[2mms[22m[39m
+[90mstderr[2m | backend/src/services/__tests__/emailService.test.ts[2m > [22m[2mEmailService[2m > [22m[2msendMagicLink[2m > [22m[2mshould throw error for Gmail app-specific password requirement
+[22m[39m[2026-01-15T19:12:48.648Z] ERROR   | EMAIL | All 3 attempts failed for registration magic link email to user@example.com: Error: Authentication failed
+    at D:/Code/habitus/backend/src/services/__tests__/emailService.test.ts:149:26
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:145:11
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:26
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1244:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1210:10[90m)[39m
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1654:37
+    at Traces.$ [90m(file:///D:/Code/habitus/[39mnode_modules/[4mvitest[24m/dist/chunks/traces.U4xDYhzZ.js:115:27[90m)[39m
+    at trace [90m(file:///D:/Code/habitus/[39mnode_modules/[4mvitest[24m/dist/chunks/test.DqQZzsWf.js:234:21[90m)[39m
+    at runTest [90m(file:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1654:12[90m)[39m {
+  code: [32m'EAUTH'[39m,
+  responseCode: [33m534[39m
+}
+
+[90mstderr[2m | backend/src/services/__tests__/emailService.test.ts[2m > [22m[2mEmailService[2m > [22m[2msendMagicLink[2m > [22m[2mshould throw error for other EAUTH errors
+[22m[39m[2026-01-15T19:12:54.664Z] ERROR   | EMAIL | All 3 attempts failed for registration magic link email to user@example.com: Error: Invalid credentials
+    at D:/Code/habitus/backend/src/services/__tests__/emailService.test.ts:164:26
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:145:11
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:26
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1244:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1210:10[90m)[39m
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1654:37
+    at Traces.$ [90m(file:///D:/Code/habitus/[39mnode_modules/[4mvitest[24m/dist/chunks/traces.U4xDYhzZ.js:115:27[90m)[39m
+    at trace [90m(file:///D:/Code/habitus/[39mnode_modules/[4mvitest[24m/dist/chunks/test.DqQZzsWf.js:234:21[90m)[39m
+    at runTest [90m(file:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1654:12[90m)[39m {
+  code: [32m'EAUTH'[39m,
+  response: [32m'Invalid login'[39m
+}
+
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22msendMagicLink[2m > [22mshould throw error for Gmail app-specific password requirement[33m 6011[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22msendMagicLink[2m > [22mshould throw error for other EAUTH errors[33m 6016[2mms[22m[39m
+[90mstderr[2m | backend/src/services/__tests__/emailService.test.ts[2m > [22m[2mEmailService[2m > [22m[2msendMagicLink[2m > [22m[2mshould throw error for generic email sending failures
+[22m[39m[2026-01-15T19:13:00.679Z] ERROR   | EMAIL | All 3 attempts failed for registration magic link email to user@example.com: Error: Network error
+    at D:/Code/habitus/backend/src/services/__tests__/emailService.test.ts:179:21
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:145:11
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:26
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1244:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1210:10[90m)[39m
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1654:37
+    at Traces.$ [90m(file:///D:/Code/habitus/[39mnode_modules/[4mvitest[24m/dist/chunks/traces.U4xDYhzZ.js:115:27[90m)[39m
+    at trace [90m(file:///D:/Code/habitus/[39mnode_modules/[4mvitest[24m/dist/chunks/test.DqQZzsWf.js:234:21[90m)[39m
+    at runTest [90m(file:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1654:12[90m)[39m
+
+[90mstderr[2m | backend/src/services/__tests__/emailService.test.ts[2m > [22m[2mEmailService[2m > [22m[2msendEmail[2m > [22m[2mshould throw error when SMTP credentials are missing
+[22m[39m[2026-01-15T19:13:00.683Z] ERROR   | EMAIL | Error sending email to user@example.com: Error: SMTP credentials not configured. Please set SMTP_USER and SMTP_PASS environment variables.
+    at EmailService.getTransporter (D:/Code/habitus/backend/src/services/emailService.ts:81:13)
+    at EmailService.sendEmail (D:/Code/habitus/backend/src/services/emailService.ts:514:36)
+    at D:/Code/habitus/backend/src/services/__tests__/emailService.test.ts:331:31
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:145:11
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:26
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1244:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1210:10[90m)[39m
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1654:37
+    at Traces.$ [90m(file:///D:/Code/habitus/[39mnode_modules/[4mvitest[24m/dist/chunks/traces.U4xDYhzZ.js:115:27[90m)[39m
+
+[90mstderr[2m | backend/src/services/__tests__/emailService.test.ts[2m > [22m[2mEmailService[2m > [22m[2msendEmail[2m > [22m[2mshould throw error for Gmail app-specific password requirement
+[22m[39m[2026-01-15T19:13:00.685Z] ERROR   | EMAIL | Error sending email to user@example.com: Error: Authentication failed
+    at D:/Code/habitus/backend/src/services/__tests__/emailService.test.ts:336:26
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:145:11
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:26
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1244:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1210:10[90m)[39m
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1654:37
+    at Traces.$ [90m(file:///D:/Code/habitus/[39mnode_modules/[4mvitest[24m/dist/chunks/traces.U4xDYhzZ.js:115:27[90m)[39m
+    at trace [90m(file:///D:/Code/habitus/[39mnode_modules/[4mvitest[24m/dist/chunks/test.DqQZzsWf.js:234:21[90m)[39m
+    at runTest [90m(file:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1654:12[90m)[39m {
+  code: [32m'EAUTH'[39m,
+  responseCode: [33m534[39m
+}
+
+[90mstderr[2m | backend/src/services/__tests__/emailService.test.ts[2m > [22m[2mEmailService[2m > [22m[2msendEmail[2m > [22m[2mshould throw error for other EAUTH errors
+[22m[39m[2026-01-15T19:13:00.686Z] ERROR   | EMAIL | Error sending email to user@example.com: Error: Invalid credentials
+    at D:/Code/habitus/backend/src/services/__tests__/emailService.test.ts:347:26
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:145:11
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:26
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1244:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1210:10[90m)[39m
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1654:37
+    at Traces.$ [90m(file:///D:/Code/habitus/[39mnode_modules/[4mvitest[24m/dist/chunks/traces.U4xDYhzZ.js:115:27[90m)[39m
+    at trace [90m(file:///D:/Code/habitus/[39mnode_modules/[4mvitest[24m/dist/chunks/test.DqQZzsWf.js:234:21[90m)[39m
+    at runTest [90m(file:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1654:12[90m)[39m {
+  code: [32m'EAUTH'[39m,
+  response: [32m'Invalid login'[39m
+}
+
+[90mstderr[2m | backend/src/services/__tests__/emailService.test.ts[2m > [22m[2mEmailService[2m > [22m[2msendEmail[2m > [22m[2mshould throw error for generic email sending failures
+[22m[39m[2026-01-15T19:13:00.688Z] ERROR   | EMAIL | Error sending email to user@example.com: Error: Network error
+    at D:/Code/habitus/backend/src/services/__tests__/emailService.test.ts:359:21
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:145:11
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:26
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1244:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1210:10[90m)[39m
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1654:37
+    at Traces.$ [90m(file:///D:/Code/habitus/[39mnode_modules/[4mvitest[24m/dist/chunks/traces.U4xDYhzZ.js:115:27[90m)[39m
+    at trace [90m(file:///D:/Code/habitus/[39mnode_modules/[4mvitest[24m/dist/chunks/test.DqQZzsWf.js:234:21[90m)[39m
+    at runTest [90m(file:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1654:12[90m)[39m
+
+[90mstderr[2m | backend/src/services/__tests__/emailService.test.ts[2m > [22m[2mEmailService[2m > [22m[2msendReminderEmail[2m > [22m[2mshould throw error when SMTP credentials are missing
+[22m[39m[2026-01-15T19:13:00.696Z] ERROR   | EMAIL | Error sending email to user@example.com: Error: SMTP credentials not configured. Please set SMTP_USER and SMTP_PASS environment variables.
+    at EmailService.getTransporter (D:/Code/habitus/backend/src/services/emailService.ts:81:13)
+    at EmailService.sendEmail (D:/Code/habitus/backend/src/services/emailService.ts:514:36)
+    at EmailService.sendReminderEmail (D:/Code/habitus/backend/src/services/emailService.ts:463:16)
+    at D:/Code/habitus/backend/src/services/__tests__/emailService.test.ts:530:31
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:145:11
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:26
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1244:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1210:10[90m)[39m
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1654:37
+
+[90mstderr[2m | backend/src/services/__tests__/emailService.test.ts[2m > [22m[2mEmailService[2m > [22m[2msendReminderEmail[2m > [22m[2mshould handle email sending errors
+[22m[39m[2026-01-15T19:13:00.697Z] ERROR   | EMAIL | Error sending email to user@example.com: Error: Network error
+    at D:/Code/habitus/backend/src/services/__tests__/emailService.test.ts:543:21
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:145:11
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:919:26
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1244:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1210:10[90m)[39m
+    at [90mfile:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1654:37
+    at Traces.$ [90m(file:///D:/Code/habitus/[39mnode_modules/[4mvitest[24m/dist/chunks/traces.U4xDYhzZ.js:115:27[90m)[39m
+    at trace [90m(file:///D:/Code/habitus/[39mnode_modules/[4mvitest[24m/dist/chunks/test.DqQZzsWf.js:234:21[90m)[39m
+    at runTest [90m(file:///D:/Code/habitus/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1654:12[90m)[39m
+
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22msendMagicLink[2m > [22mshould throw error for generic email sending failures[33m 6016[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22msendMagicLink[2m > [22mshould use secure connection for port 465[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22msendMagicLink[2m > [22mshould create new transporter for each send (due to retry mechanism)[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22msendEmail[2m > [22mshould send email successfully[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22msendEmail[2m > [22mshould send email with HTML content[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22msendEmail[2m > [22mshould convert newlines to <br> when no HTML provided[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22msendEmail[2m > [22mshould send email change verification email with button[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22msendEmail[2m > [22mshould throw error when SMTP credentials are missing[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22msendEmail[2m > [22mshould throw error for Gmail app-specific password requirement[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22msendEmail[2m > [22mshould throw error for other EAUTH errors[32m 2[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22msendEmail[2m > [22mshould throw error for generic email sending failures[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22msendReminderEmail[2m > [22mshould send reminder email successfully[32m 2[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22msendReminderEmail[2m > [22mshould send reminder email without tracking notes[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22msendReminderEmail[2m > [22mshould use default icon when tracking icon is not provided[32m 2[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22msendReminderEmail[2m > [22mshould include Add Notes button in email[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22msendReminderEmail[2m > [22mshould format scheduled time correctly[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22msendReminderEmail[2m > [22mshould display tracking notes after scheduled time when provided[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22msendReminderEmail[2m > [22mshould not display tracking notes when empty[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22msendReminderEmail[2m > [22mshould throw error when SMTP credentials are missing[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22msendReminderEmail[2m > [22mshould handle email sending errors[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22mBrevo API[2m > [22mshould use Brevo API when BREVO_API_KEY is set[32m 2[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22mBrevo API[2m > [22mshould include fromName in Brevo API request[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22mBrevo API[2m > [22mshould throw error if BREVO_API_KEY is set but SMTP_FROM_EMAIL is missing[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22mBrevo API[2m > [22mshould throw error if Brevo API returns error[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22mBrevo API[2m > [22mshould use SMTP when BREVO_API_KEY is not set[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/emailService.test.ts[2m > [22mEmailService[2m > [22mBrevo API[2m > [22mshould use SMTP when BREVO_API_KEY is empty string[32m 0[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m3 passed[39m[22m[90m (3)[39m
+[2m      Tests [22m [1m[32m89 passed[39m[22m[90m (89)[39m
+[2m   Start at [22m 16:12:36
+[2m   Duration [22m 24.61s[2m (transform 370ms, setup 511ms, import 517ms, tests 24.19s, environment 0ms)[22m
+

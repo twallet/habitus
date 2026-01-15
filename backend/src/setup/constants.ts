@@ -58,6 +58,37 @@ export class ServerConfig {
     }
     return this.cachedServerUrl;
   }
+
+  /**
+   * Get public URL for the application.
+   * In production, this returns the server URL without the internal port.
+   * In development, it appends the port if the URL is localhost.
+   * @returns Public application URL
+   * @public
+   */
+  static getPublicUrl(): string {
+    const serverUrl = this.getServerUrl();
+    const isProduction = process.env.NODE_ENV === "production";
+
+    // Ensure the URL has a protocol
+    const baseUrl =
+      serverUrl.startsWith("http://") || serverUrl.startsWith("https://")
+        ? serverUrl
+        : `https://${serverUrl}`; // Default to https for public URLs
+
+    // In production, Railway handles SSL and routing on standard ports (80/443).
+    // We should NOT append the internal PORT from environment.
+    if (isProduction) {
+      return baseUrl;
+    }
+
+    // In development (localhost or similar), we usually need to append the port.
+    if (baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1")) {
+      return `${baseUrl}:${this.getPort()}`;
+    }
+
+    return baseUrl;
+  }
 }
 
 /**

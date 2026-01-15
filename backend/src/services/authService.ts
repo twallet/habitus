@@ -348,9 +348,7 @@ export class AuthService {
     Logger.info(`AUTH | Sending email change magic link to: ${validatedEmail}`);
 
     // Send magic link email with special subject for email change
-    const serverUrl = ServerConfig.getServerUrl();
-    const port = ServerConfig.getPort();
-    const magicLink = `${serverUrl}:${port}/api/auth/verify-email-change?token=${token}`;
+    const magicLink = `${ServerConfig.getPublicUrl()}/api/auth/verify-email-change?token=${token}`;
     const expiryMinutes = getMagicLinkExpiryMinutes();
     const text = `Please click the following link to verify your new email address: ${magicLink}\n\nThis link will expire in ${expiryMinutes} minutes. If you didn't request this, please ignore this email.`;
     const html = `
@@ -368,7 +366,7 @@ export class AuthService {
               <p style="text-align: left; margin: 0 0 16px 0; font-size: 16px; line-height: 1.5; color: #333;">
                 Click the button below to verify your new email address for 🌱 Habitus:
               </p>
-              <p style="margin: 30px 0; text-align: left;">
+              <p style="text-align: left;">
                 <a href="${magicLink}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; text-align: center;">
                   Verify email address
                 </a>

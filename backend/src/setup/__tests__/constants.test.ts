@@ -124,4 +124,43 @@ describe("Constants", () => {
       expect(url).toBe("https://example.com");
     });
   });
+
+  describe("getPublicUrl", () => {
+    it("should return localhost URL with port in development", () => {
+      process.env.NODE_ENV = "development";
+      process.env.VITE_SERVER_URL = "http://localhost";
+      process.env.VITE_PORT = "3005";
+      const url = ServerConfig.getPublicUrl();
+      expect(url).toBe("http://localhost:3005");
+    });
+
+    it("should return 127.0.0.1 URL with port in development", () => {
+      process.env.NODE_ENV = "development";
+      process.env.VITE_SERVER_URL = "http://127.0.0.1";
+      process.env.VITE_PORT = "3000";
+      const url = ServerConfig.getPublicUrl();
+      expect(url).toBe("http://127.0.0.1:3000");
+    });
+
+    it("should return production URL without port", () => {
+      process.env.NODE_ENV = "production";
+      process.env.VITE_SERVER_URL = "https://habitus-production.up.railway.app";
+      const url = ServerConfig.getPublicUrl();
+      expect(url).toBe("https://habitus-production.up.railway.app");
+    });
+
+    it("should add https protocol if missing in production", () => {
+      process.env.NODE_ENV = "production";
+      process.env.VITE_SERVER_URL = "habitus-production.up.railway.app";
+      const url = ServerConfig.getPublicUrl();
+      expect(url).toBe("https://habitus-production.up.railway.app");
+    });
+
+    it("should return non-localhost URL without port even in development", () => {
+      process.env.NODE_ENV = "development";
+      process.env.VITE_SERVER_URL = "https://my-proxy.com";
+      const url = ServerConfig.getPublicUrl();
+      expect(url).toBe("https://my-proxy.com");
+    });
+  });
 });
