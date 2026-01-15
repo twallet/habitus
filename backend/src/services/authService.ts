@@ -4,6 +4,7 @@ import { Database } from "../db/database.js";
 import { User, type UserData } from "../models/User.js";
 import { EmailService } from "./emailService.js";
 import { ServerConfig } from "../setup/constants.js";
+import { Logger } from "../setup/logger.js";
 
 /**
  * Get JWT secret key from environment variable (lazy loading).
@@ -152,11 +153,7 @@ export class AuthService {
 
     // If link is expiring soon, allow resend even if within cooldown
     if (allowResendIfExpiringSoon) {
-      console.log(
-        `[${new Date().toISOString()}] AUTH | Allowing magic link resend for ${email} - previous link expires in ${Math.round(
-          minutesUntilExpiry
-        )} minutes`
-      );
+      Logger.debug(`AUTH | Allowing magic link resend for ${email} - previous link expires in ${Math.round(minutesUntilExpiry)} minutes`);
       return false;
     }
 
@@ -178,9 +175,7 @@ export class AuthService {
     email: string,
     profilePictureUrl?: string
   ): Promise<void> {
-    console.log(
-      `[${new Date().toISOString()}] AUTH | Registration magic link requested for email: ${email}`
-    );
+    Logger.info(`AUTH | Registration magic link requested for email: ${email}`);
 
     // Validate inputs
     const validatedName = User.validateName(name);
@@ -188,9 +183,7 @@ export class AuthService {
 
     // Check cooldown period first (takes precedence over duplicate email check)
     if (await this.checkMagicLinkCooldown(validatedEmail)) {
-      console.warn(
-        `[${new Date().toISOString()}] AUTH | Registration magic link cooldown active for email: ${validatedEmail}`
-      );
+      Logger.warn(`AUTH | Registration magic link cooldown active for email: ${validatedEmail}`);
       throw new Error(
         `Please wait ${getMagicLinkCooldownMinutes()} minutes before requesting another registration link.`
       );
@@ -203,9 +196,7 @@ export class AuthService {
     );
 
     if (existingUser) {
-      console.warn(
-        `[${new Date().toISOString()}] AUTH | Registration attempt with already registered email: ${validatedEmail}`
-      );
+      Logger.warn(`AUTH | Registration attempt with already registered email: ${validatedEmail}`);
       throw new Error("Email already registered");
     }
 
@@ -214,9 +205,7 @@ export class AuthService {
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + getMagicLinkExpiryMinutes());
 
-    console.log(
-      `[${new Date().toISOString()}] AUTH | Creating new user account for email: ${validatedEmail}, name: ${validatedName}`
-    );
+    Logger.info(`AUTH | Creating new user account for email: ${validatedEmail}, name: ${validatedName}`);
 
     // Create user with magic link token
     await this.db.run(
@@ -230,16 +219,12 @@ export class AuthService {
       ]
     );
 
-    console.log(
-      `[${new Date().toISOString()}] AUTH | User account created, sending registration magic link email to: ${validatedEmail}`
-    );
+    Logger.info(`AUTH | User account created, sending registration magic link email to: ${validatedEmail}`);
 
     // Send magic link email
     await this.emailService.sendMagicLink(validatedEmail, token, true);
 
-    console.log(
-      `[${new Date().toISOString()}] AUTH | Registration magic link email sent successfully to: ${validatedEmail}`
-    );
+    Logger.info(`AUTH | Registration magic link email sent successfully to: ${validatedEmail}`);
   }
 
   /**
@@ -251,9 +236,7 @@ export class AuthService {
    * @public
    */
   async requestLoginMagicLink(email: string): Promise<void> {
-    console.log(
-      `[${new Date().toISOString()}] AUTH | Login magic link requested for email: ${email}`
-    );
+    Logger.info(`AUTH | Login magic link requested for email: ${email}`);
 
     // Validate email format
     const validatedEmail = User.validateEmail(email);
@@ -267,23 +250,15 @@ export class AuthService {
     if (!user) {
       // Don't reveal if user exists or not for security
       // Still return success to prevent email enumeration
-      console.log(
-        `[${new Date().toISOString()}] AUTH | Login magic link requested for non-existent email (security: returning success): ${validatedEmail}`
-      );
+      Logger.info(`AUTH | Login magic link requested for non-existent email (security: returning success): ${validatedEmail}`);
       return;
     }
 
-    console.log(
-      `[${new Date().toISOString()}] AUTH | User found for login request, userId: ${
-        user.id
-      }`
-    );
+    Logger.verbose(`AUTH | User found for login request, userId: ${user.id}`);
 
     // Check cooldown period for this email
     if (await this.checkMagicLinkCooldown(validatedEmail)) {
-      console.warn(
-        `[${new Date().toISOString()}] AUTH | Login magic link cooldown active for email: ${validatedEmail}`
-      );
+      Logger.warn(`AUTH | Login magic link cooldown active for email: ${validatedEmail}`);
       throw new Error(
         `Please wait ${getMagicLinkCooldownMinutes()} minutes before requesting another login link.`
       );
@@ -294,11 +269,7 @@ export class AuthService {
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + getMagicLinkExpiryMinutes());
 
-    console.log(
-      `[${new Date().toISOString()}] AUTH | Updating magic link token for userId: ${
-        user.id
-      }`
-    );
+    Logger.verbose(`AUTH | Updating magic link token for userId: ${user.id}`);
 
     // Update user with magic link token
     await this.db.run(
@@ -306,16 +277,12 @@ export class AuthService {
       [token, expiresAt.toISOString(), validatedEmail]
     );
 
-    console.log(
-      `[${new Date().toISOString()}] AUTH | Sending login magic link email to: ${validatedEmail}`
-    );
+    Logger.info(`AUTH | Sending login magic link email to: ${validatedEmail}`);
 
     // Send magic link email
     await this.emailService.sendMagicLink(validatedEmail, token, false);
 
-    console.log(
-      `[${new Date().toISOString()}] AUTH | Login magic link email sent successfully to: ${validatedEmail}`
-    );
+    Logger.info(`AUTH | Login magic link email sent successfully to: ${validatedEmail}`);
   }
 
   /**
@@ -328,9 +295,7 @@ export class AuthService {
    * @public
    */
   async requestEmailChange(userId: number, newEmail: string): Promise<void> {
-    console.log(
-      `[${new Date().toISOString()}] AUTH | Email change requested for userId: ${userId}, new email: ${newEmail}`
-    );
+    Logger.info(`AUTH | Email change requested for userId: ${userId}, new email: ${newEmail}`);
 
     // Validate email format
     const validatedEmail = User.validateEmail(newEmail);
@@ -357,17 +322,13 @@ export class AuthService {
     );
 
     if (existingUser) {
-      console.warn(
-        `[${new Date().toISOString()}] AUTH | Email change failed: email already registered for userId: ${userId}`
-      );
+      Logger.warn(`AUTH | Email change failed: email already registered for userId: ${userId}`);
       throw new Error("Email already registered");
     }
 
     // Check cooldown period
     if (await this.checkMagicLinkCooldown(validatedEmail)) {
-      console.warn(
-        `[${new Date().toISOString()}] AUTH | Email change cooldown active for email: ${validatedEmail}`
-      );
+      Logger.warn(`AUTH | Email change cooldown active for email: ${validatedEmail}`);
       throw new Error(
         `Please wait ${getMagicLinkCooldownMinutes()} minutes before requesting another email update confirmation link.`
       );
@@ -384,9 +345,7 @@ export class AuthService {
       [validatedEmail, token, expiresAt.toISOString(), userId]
     );
 
-    console.log(
-      `[${new Date().toISOString()}] AUTH | Sending email change magic link to: ${validatedEmail}`
-    );
+    Logger.info(`AUTH | Sending email change magic link to: ${validatedEmail}`);
 
     // Send magic link email with special subject for email change
     const serverUrl = ServerConfig.getServerUrl();
@@ -429,9 +388,7 @@ export class AuthService {
       html
     );
 
-    console.log(
-      `[${new Date().toISOString()}] AUTH | Email change magic link sent successfully to: ${validatedEmail}`
-    );
+    Logger.info(`AUTH | Email change magic link sent successfully to: ${validatedEmail}`);
   }
 
   /**
@@ -448,16 +405,10 @@ export class AuthService {
     // Trim whitespace in case of encoding issues
     const trimmedToken = token?.trim();
 
-    console.log(
-      `[${new Date().toISOString()}] AUTH | Magic link verification attempted (token length: ${
-        trimmedToken?.length || 0
-      }, first 10 chars: ${trimmedToken?.substring(0, 10) || "none"})`
-    );
+    Logger.verbose(`AUTH | Magic link verification attempted (token length: ${trimmedToken?.length || 0})`);
 
     if (!trimmedToken || typeof trimmedToken !== "string") {
-      console.warn(
-        `[${new Date().toISOString()}] AUTH | Invalid magic link token format`
-      );
+      Logger.warn("AUTH | Invalid magic link token format");
       throw new Error("Invalid link token");
     }
 
@@ -472,37 +423,20 @@ export class AuthService {
     );
 
     if (!user) {
-      console.warn(
-        `[${new Date().toISOString()}] AUTH | Magic link verification failed: token not found (searched for token starting with: ${trimmedToken.substring(
-          0,
-          10
-        )})`
-      );
+      Logger.warn(`AUTH | Magic link verification failed: token not found`);
       throw new Error("Invalid or expired link");
     }
 
-    console.log(
-      `[${new Date().toISOString()}] AUTH | Magic link token found for userId: ${
-        user.id
-      }, email: ${user.email}`
-    );
+    Logger.verbose(`AUTH | Magic link token found for email: ${user.email}`);
 
     // Check if token is expired
     const expiresAt = new Date(user.magic_link_expires);
     if (expiresAt < new Date()) {
-      console.warn(
-        `[${new Date().toISOString()}] AUTH | Magic link verification failed: token expired for userId: ${
-          user.id
-        }`
-      );
+      Logger.warn(`AUTH | Magic link verification failed: token expired for userId: ${user.id}`);
       throw new Error("Link has expired");
     }
 
-    console.log(
-      `[${new Date().toISOString()}] AUTH | Magic link valid, clearing token and updating last_access for userId: ${
-        user.id
-      }`
-    );
+    Logger.verbose(`AUTH | Magic link valid for userId: ${user.id}`);
 
     // Clear magic link token
     await this.db.run(
@@ -519,11 +453,7 @@ export class AuthService {
       } as SignOptions
     );
 
-    console.log(
-      `[${new Date().toISOString()}] AUTH | Magic link verified successfully, JWT token generated for userId: ${
-        user.id
-      }`
-    );
+    Logger.info(`AUTH | Magic link verified successfully for userId: ${user.id}`);
 
     return {
       user: {
@@ -551,16 +481,11 @@ export class AuthService {
         userId: number;
         email: string;
       };
-      console.log(
-        `[${new Date().toISOString()}] AUTH | JWT token verified successfully for userId: ${
-          decoded.userId
-        }`
-      );
+      Logger.debug(`AUTH | JWT token verified successfully for userId: ${decoded.userId}`);
       return decoded.userId;
     } catch (error) {
       console.warn(
-        `[${new Date().toISOString()}] AUTH | JWT token verification failed: ${
-          error instanceof Error ? error.message : "Unknown error"
+        `[${new Date().toISOString()}] AUTH | JWT token verification failed: ${error instanceof Error ? error.message : "Unknown error"
         }`
       );
       throw new Error("Invalid or expired token");
@@ -574,9 +499,7 @@ export class AuthService {
    * @public
    */
   async getUserById(id: number): Promise<UserData | null> {
-    console.log(
-      `[${new Date().toISOString()}] AUTH | Fetching user by ID: ${id}`
-    );
+    Logger.debug(`AUTH | Fetching user by ID: ${id}`);
 
     const row = await this.db.get<{
       id: number;
@@ -591,17 +514,11 @@ export class AuthService {
     );
 
     if (!row) {
-      console.log(
-        `[${new Date().toISOString()}] AUTH | User not found for ID: ${id}`
-      );
+      Logger.debug(`AUTH | User not found for ID: ${id}`);
       return null;
     }
 
-    console.log(
-      `[${new Date().toISOString()}] AUTH | User found: ID ${row.id}, email: ${
-        row.email
-      }`
-    );
+    Logger.verbose(`AUTH | User found: ID ${row.id}, email: ${row.email}`);
 
     return {
       id: row.id,

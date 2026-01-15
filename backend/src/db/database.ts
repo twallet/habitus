@@ -3,6 +3,7 @@ import { Pool, Client } from "pg";
 import path from "path";
 import fs from "fs";
 import { PathConfig } from "../config/paths.js";
+import { Logger } from "../setup/logger.js";
 
 /**
  * Database type enum.
@@ -309,9 +310,7 @@ export class Database {
         );
       }
 
-      console.log(
-        `[${new Date().toISOString()}] DATABASE | Initializing PostgreSQL database`
-      );
+      Logger.info("DATABASE | Initializing PostgreSQL database");
 
       // Create connection pool
       this.pgPool = new Pool({
@@ -324,25 +323,16 @@ export class Database {
 
       // Test connection
       const client = await this.pgPool.connect();
-      console.log(
-        `[${new Date().toISOString()}] DATABASE | PostgreSQL connection opened successfully`
-      );
+      Logger.info("DATABASE | PostgreSQL connection opened successfully");
       client.release();
 
       // Create schema
-      console.log(
-        `[${new Date().toISOString()}] DATABASE | Creating PostgreSQL schema...`
-      );
+      Logger.info("DATABASE | Creating PostgreSQL schema...");
       await this.pgPool.query(POSTGRESQL_SCHEMA);
 
-      console.log(
-        `[${new Date().toISOString()}] DATABASE | PostgreSQL schema created successfully`
-      );
+      Logger.info("DATABASE | PostgreSQL schema created successfully");
     } catch (error) {
-      console.error(
-        `[${new Date().toISOString()}] DATABASE | Failed to initialize PostgreSQL:`,
-        error
-      );
+      Logger.error("DATABASE | Failed to initialize PostgreSQL:", error);
       throw error;
     }
   }
@@ -355,71 +345,47 @@ export class Database {
    */
   private async initializeSQLite(): Promise<void> {
     return new Promise((resolve, reject) => {
-      console.log(
-        `[${new Date().toISOString()}] DATABASE | Initializing SQLite database at: ${
-          this.dbPath
-        }`
+      Logger.info(
+        `DATABASE | Initializing SQLite database at: ${this.dbPath}`
       );
 
       this.db = new sqlite3.Database(this.dbPath, (err) => {
         if (err) {
-          console.error(
-            `[${new Date().toISOString()}] DATABASE | Failed to open database:`,
-            err
-          );
+          Logger.error("DATABASE | Failed to open database:", err);
           reject(err);
           return;
         }
 
-        console.log(
-          `[${new Date().toISOString()}] DATABASE | Database connection opened successfully`
-        );
+        Logger.info("DATABASE | Database connection opened successfully");
 
         // Enable foreign keys and WAL mode
         this.db!.run("PRAGMA foreign_keys = ON", (err) => {
           if (err) {
-            console.error(
-              `[${new Date().toISOString()}] DATABASE | Failed to enable foreign keys:`,
-              err
-            );
+            Logger.error("DATABASE | Failed to enable foreign keys:", err);
             reject(err);
             return;
           }
 
-          console.log(
-            `[${new Date().toISOString()}] DATABASE | Foreign keys enabled`
-          );
+          Logger.info("DATABASE | Foreign keys enabled");
 
           this.db!.run("PRAGMA journal_mode = WAL", (err) => {
             if (err) {
-              console.error(
-                `[${new Date().toISOString()}] DATABASE | Failed to enable WAL mode:`,
-                err
-              );
+              Logger.error("DATABASE | Failed to enable WAL mode:", err);
               reject(err);
               return;
             }
 
-            console.log(
-              `[${new Date().toISOString()}] DATABASE | WAL mode enabled`
-            );
+            Logger.info("DATABASE | WAL mode enabled");
 
             // Create tables with complete schema
-            console.log(
-              `[${new Date().toISOString()}] DATABASE | Creating database schema...`
-            );
+            Logger.info("DATABASE | Creating database schema...");
             this.db!.exec(SQLITE_SCHEMA, (err) => {
               if (err) {
-                console.error(
-                  `[${new Date().toISOString()}] DATABASE | Failed to create schema:`,
-                  err
-                );
+                Logger.error("DATABASE | Failed to create schema:", err);
                 reject(err);
                 return;
               }
-              console.log(
-                `[${new Date().toISOString()}] DATABASE | Database schema created successfully`
-              );
+              Logger.info("DATABASE | Database schema created successfully");
               resolve();
             });
           });
@@ -457,42 +423,29 @@ export class Database {
   async close(): Promise<void> {
     if (this.dbType === DatabaseType.POSTGRESQL) {
       if (this.pgPool) {
-        console.log(
-          `[${new Date().toISOString()}] DATABASE | Closing PostgreSQL connection pool...`
-        );
+        Logger.info("DATABASE | Closing PostgreSQL connection pool...");
         await this.pgPool.end();
         this.pgPool = null;
-        console.log(
-          `[${new Date().toISOString()}] DATABASE | PostgreSQL connection pool closed successfully`
-        );
+        Logger.info("DATABASE | PostgreSQL connection pool closed successfully");
       }
       return;
     }
 
     return new Promise((resolve, reject) => {
       if (!this.db) {
-        console.log(
-          `[${new Date().toISOString()}] DATABASE | Database already closed or not initialized`
-        );
+        Logger.info("DATABASE | Database already closed or not initialized");
         resolve();
         return;
       }
 
-      console.log(
-        `[${new Date().toISOString()}] DATABASE | Closing database connection...`
-      );
+      Logger.info("DATABASE | Closing database connection...");
       this.db.close((err) => {
         if (err) {
-          console.error(
-            `[${new Date().toISOString()}] DATABASE | Error closing database:`,
-            err
-          );
+          Logger.error("DATABASE | Error closing database:", err);
           reject(err);
         } else {
           this.db = null;
-          console.log(
-            `[${new Date().toISOString()}] DATABASE | Database connection closed successfully`
-          );
+          Logger.info("DATABASE | Database connection closed successfully");
           resolve();
         }
       });
@@ -567,24 +520,18 @@ export class Database {
       // For INSERT with RETURNING, extract the ID
       if (isInsert && (hasReturning || finalSql.includes("RETURNING"))) {
         const lastID = result.rows[0]?.id || 0;
-        console.log(
-          `[${new Date().toISOString()}] DATABASE | Query executed successfully, changes: ${
-            result.rowCount
-          }, lastID: ${lastID}`
+        Logger.debug(
+          `DATABASE | Query executed successfully, changes: ${result.rowCount}, lastID: ${lastID}`
         );
         return { lastID, changes: result.rowCount || 0 };
       }
 
       // For other queries, execute and return result
-      console.log(
-        `[${new Date().toISOString()}] DATABASE | Query executed successfully, changes: ${
-          result.rowCount
-        }`
-      );
+      Logger.debug(`DATABASE | Query executed successfully, changes: ${result.rowCount}`);
       return { lastID: 0, changes: result.rowCount || 0 };
     } catch (error) {
-      console.error(
-        `[${new Date().toISOString()}] DATABASE | Query execution failed:`,
+      Logger.error(
+        "DATABASE | Query execution failed:",
         sql.substring(0, 100),
         error
       );
@@ -607,17 +554,15 @@ export class Database {
       const database = this.getConnection();
       database.run(sql, params, function (err) {
         if (err) {
-          console.error(
-            `[${new Date().toISOString()}] DATABASE | Query execution failed:`,
+          Logger.error(
+            "DATABASE | Query execution failed:",
             sql.substring(0, 100),
             err
           );
           reject(err);
         } else {
-          console.log(
-            `[${new Date().toISOString()}] DATABASE | Query executed successfully, changes: ${
-              this.changes
-            }, lastID: ${this.lastID}`
+          Logger.debug(
+            `DATABASE | Query executed successfully, changes: ${this.changes}, lastID: ${this.lastID}`
           );
           resolve({ lastID: this.lastID, changes: this.changes });
         }
@@ -660,13 +605,11 @@ export class Database {
       const convertedSql = convertPlaceholdersToPostgreSQL(sql);
       const result = await this.pgPool.query(convertedSql, params);
       const found = result.rows.length > 0 ? "found" : "not found";
-      console.log(
-        `[${new Date().toISOString()}] DATABASE | Query executed successfully, row ${found}`
-      );
+      Logger.debug(`DATABASE | Query executed successfully, row ${found}`);
       return result.rows[0] as T | undefined;
     } catch (error) {
-      console.error(
-        `[${new Date().toISOString()}] DATABASE | Query execution failed:`,
+      Logger.error(
+        "DATABASE | Query execution failed:",
         sql.substring(0, 100),
         error
       );
@@ -689,17 +632,15 @@ export class Database {
       const database = this.getConnection();
       database.get(sql, params, (err, row) => {
         if (err) {
-          console.error(
-            `[${new Date().toISOString()}] DATABASE | Query execution failed:`,
+          Logger.error(
+            "DATABASE | Query execution failed:",
             sql.substring(0, 100),
             err
           );
           reject(err);
         } else {
           const found = row ? "found" : "not found";
-          console.log(
-            `[${new Date().toISOString()}] DATABASE | Query executed successfully, row ${found}`
-          );
+          Logger.debug(`DATABASE | Query executed successfully, row ${found}`);
           resolve(row as T);
         }
       });
@@ -740,15 +681,13 @@ export class Database {
       // Convert SQLite placeholders (?) to PostgreSQL placeholders ($1, $2, etc.)
       const convertedSql = convertPlaceholdersToPostgreSQL(sql);
       const result = await this.pgPool.query(convertedSql, params);
-      console.log(
-        `[${new Date().toISOString()}] DATABASE | Query executed successfully, returned ${
-          result.rows.length
-        } rows`
+      Logger.debug(
+        `DATABASE | Query executed successfully, returned ${result.rows.length} rows`
       );
       return result.rows as T[];
     } catch (error) {
-      console.error(
-        `[${new Date().toISOString()}] DATABASE | Query execution failed:`,
+      Logger.error(
+        "DATABASE | Query execution failed:",
         sql.substring(0, 100),
         error
       );
@@ -771,17 +710,15 @@ export class Database {
       const database = this.getConnection();
       database.all(sql, params, (err, rows) => {
         if (err) {
-          console.error(
-            `[${new Date().toISOString()}] DATABASE | Query execution failed:`,
+          Logger.error(
+            "DATABASE | Query execution failed:",
             sql.substring(0, 100),
             err
           );
           reject(err);
         } else {
-          console.log(
-            `[${new Date().toISOString()}] DATABASE | Query executed successfully, returned ${
-              rows.length
-            } rows`
+          Logger.debug(
+            `DATABASE | Query executed successfully, returned ${rows.length} rows`
           );
           resolve(rows as T[]);
         }

@@ -1,0 +1,22 @@
+[dotenv@17.2.3] injecting env (19) from config\.env -- tip: 🗂️ backup and recover secrets: https://dotenvx.com/ops
+
+[1m[46m RUN [49m[22m [36mv4.0.14 [39m[90mD:/Code/habitus[39m
+
+ [32m✓[39m backend/src/services/__tests__/DateUtils.test.ts[2m > [22mDateUtils.createDateTimeInTimezone[2m > [22mwithout timezone (UTC)[2m > [22mshould create a date in UTC when no timezone is provided[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/DateUtils.test.ts[2m > [22mDateUtils.createDateTimeInTimezone[2m > [22mwithout timezone (UTC)[2m > [22mshould create a date in UTC at midnight when no timezone is provided[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/DateUtils.test.ts[2m > [22mDateUtils.createDateTimeInTimezone[2m > [22mwith timezone - America/Buenos_Aires (UTC-3)[2m > [22mshould convert local time to UTC correctly - afternoon time[32m 14[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/DateUtils.test.ts[2m > [22mDateUtils.createDateTimeInTimezone[2m > [22mwith timezone - America/Buenos_Aires (UTC-3)[2m > [22mshould convert local time to UTC correctly - morning time[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/DateUtils.test.ts[2m > [22mDateUtils.createDateTimeInTimezone[2m > [22mwith timezone - America/Buenos_Aires (UTC-3)[2m > [22mshould create a future UTC time when creating a future local time[32m 1[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/DateUtils.test.ts[2m > [22mDateUtils.createDateTimeInTimezone[2m > [22mwith timezone - America/Buenos_Aires (UTC-3)[2m > [22mshould handle minutes correctly[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/DateUtils.test.ts[2m > [22mDateUtils.createDateTimeInTimezone[2m > [22mwith timezone - America/New_York (UTC-5 or UTC-4 with DST)[2m > [22mshould convert local time to UTC correctly[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/DateUtils.test.ts[2m > [22mDateUtils.createDateTimeInTimezone[2m > [22mwith timezone - America/New_York (UTC-5 or UTC-4 with DST)[2m > [22mshould create a future UTC time when creating a future local time[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/DateUtils.test.ts[2m > [22mDateUtils.createDateTimeInTimezone[2m > [22medge cases[2m > [22mshould handle midnight (00:00) correctly[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/DateUtils.test.ts[2m > [22mDateUtils.createDateTimeInTimezone[2m > [22medge cases[2m > [22mshould handle end of day (23:59) correctly[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/DateUtils.test.ts[2m > [22mDateUtils.createDateTimeInTimezone[2m > [22medge cases[2m > [22mshould handle date boundaries correctly (crossing UTC date)[32m 0[2mms[22m[39m
+ [32m✓[39m backend/src/services/__tests__/DateUtils.test.ts[2m > [22mDateUtils.createDateTimeInTimezone[2m > [22mintegration test - simulates one-time tracking creation[2m > [22mshould create a reminder that will be UPCOMING, not PENDING, for a future date[32m 0[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m12 passed[39m[22m[90m (12)[39m
+[2m   Start at [22m 15:50:32
+[2m   Duration [22m 353ms[2m (transform 58ms, setup 150ms, import 21ms, tests 21ms, environment 0ms)[22m
+

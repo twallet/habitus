@@ -29,6 +29,7 @@ import {
 import { ServerConfig } from "./setup/constants.js";
 import { PathConfig } from "./config/paths.js";
 import { ReminderStatus } from "./models/Reminder.js";
+import { Logger } from "./setup/logger.js";
 
 const isDevelopment = process.env.NODE_ENV !== "production";
 
@@ -74,9 +75,8 @@ app.use(
 
     if (shouldLogRequest) {
       // Log request start
-      console.log(
-        `[${timestamp}] ${req.method} ${
-          req.path
+      Logger.verbose(
+        `${req.method} ${req.path
         } | IP: ${ip} | User-Agent: ${userAgent.substring(0, 50)}`
       );
     }
@@ -84,17 +84,18 @@ app.use(
     // Log response when finished
     res.on("finish", () => {
       const duration = Date.now() - startTime;
-      const logLevel = res.statusCode >= 400 ? "ERROR" : "INFO";
 
-      // Always log errors (except Vite routes), or log all in production/verbose mode
-      if (
-        (res.statusCode >= 400 || !isDevelopment || verboseLogging) &&
-        !isViteRoute
-      ) {
-        console.log(
-          `[${new Date().toISOString()}] ${logLevel} | ${req.method} ${
-            req.path
-          } | Status: ${res.statusCode} | Duration: ${duration}ms | IP: ${ip}`
+      // In production, only log request summaries if it's an error or if summary logging is enabled
+      // In development, log based on shouldLogRequest (which depends on VERBOSE_LOGGING)
+      const isError = res.statusCode >= 400;
+
+      if ((isError || shouldLogRequest) && !isViteRoute) {
+        const logLevel = isError ? "warn" : "info";
+        // If it's a 500 error, use error level
+        const level = res.statusCode >= 500 ? "error" : logLevel;
+
+        (Logger as any)[level](
+          `${req.method} ${req.path} | Status: ${res.statusCode} | Duration: ${duration}ms | IP: ${ip}`
         );
       }
     });
@@ -202,23 +203,23 @@ async function initializeViteDevServer() {
     // Use Vite's connect instance as middleware
     app.use(viteServer.middlewares);
 
-    console.log(
-      `[${new Date().toISOString()}] Vite dev server initialized for frontend (HMR port: ${hmrPort})`
+    Logger.info(
+      `Vite dev server initialized for frontend (HMR port: ${hmrPort})`
     );
     return viteServer;
   } catch (error) {
-    console.error("Failed to initialize Vite dev server:", error);
+    Logger.error("Failed to initialize Vite dev server:", error);
     // If it's a port conflict, provide helpful error message
     if (
       error instanceof Error &&
       error.message.includes("Port") &&
       error.message.includes("already in use")
     ) {
-      console.error("\nTip: If the HMR port is already in use, you can:");
-      console.error(
+      Logger.error("\nTip: If the HMR port is already in use, you can:");
+      Logger.error(
         "1. Set VITE_HMR_PORT environment variable to use a different port"
       );
-      console.error(
+      Logger.error(
         "2. Kill the process using the port, or restart your dev server"
       );
     }
@@ -248,18 +249,14 @@ const scheduleNextReminderPoll = () => {
 
   reminderPollTimeout = setTimeout(async () => {
     try {
-      console.log(
-        `[${new Date().toISOString()}] REMINDER_POLL | Checking for expired Upcoming reminders...`
-      );
+      // Use verbose level for regular poll checks to avoid log flooding
+      Logger.verbose("REMINDER_POLL | Checking for expired Upcoming reminders...");
 
       // Use the service method to process expired reminders
       const reminderService = ServiceManager.getReminderService();
       await reminderService.processExpiredReminders();
     } catch (error) {
-      console.error(
-        `[${new Date().toISOString()}] REMINDER_POLL | Error in polling job:`,
-        error
-      );
+      Logger.error("REMINDER_POLL | Error in polling job:", error);
     }
 
     // Schedule the next poll
@@ -269,20 +266,16 @@ const scheduleNextReminderPoll = () => {
 
 db.initialize()
   .then(async () => {
-    console.log(
-      `[${new Date().toISOString()}] Database initialized successfully`
-    );
+    Logger.info("Database initialized successfully");
     ServiceManager.initializeServices(db);
-    console.log(
-      `[${new Date().toISOString()}] Services initialized successfully`
-    );
+    Logger.info("Services initialized successfully");
 
     // Start reminder polling job (runs at :01 seconds each minute)
-    console.log(
-      `[${new Date().toISOString()}] Starting reminder polling job (runs at :01 seconds each minute)...`
+    Logger.info(
+      "Starting reminder polling job (runs at :01 seconds each minute)..."
     );
     scheduleNextReminderPoll();
-    console.log(`[${new Date().toISOString()}] Reminder polling job scheduled`);
+    Logger.info("Reminder polling job scheduled");
 
     // Initialize Vite dev server in development
     const viteServer = await initializeViteDevServer();
@@ -365,7 +358,7 @@ db.initialize()
         }
 
         // Log the error
-        console.error(`Error handling ${req.method} ${req.path}:`, err);
+        Logger.error(`Error handling ${req.method} ${req.path}:`, err);
 
         // Return appropriate error response
         res.status(500).json({
@@ -376,18 +369,14 @@ db.initialize()
     );
 
     const server = app.listen(ServerConfig.getPort(), async () => {
-      console.log(
-        `[${new Date().toISOString()}] Server running on ${ServerConfig.getServerUrl()}:${ServerConfig.getPort()}`
+      Logger.info(
+        `Server running on ${ServerConfig.getServerUrl()}:${ServerConfig.getPort()}`
       );
-      console.log(
-        `[${new Date().toISOString()}] Environment: ${
-          process.env.NODE_ENV || "development"
-        }`
+      Logger.info(
+        `Environment: ${process.env.NODE_ENV || "development"}`
       );
       if (isDevelopment) {
-        console.log(
-          `[${new Date().toISOString()}] Frontend served via Vite with HMR`
-        );
+        Logger.info("Frontend served via Vite with HMR");
       }
 
       // Automatically set up Telegram webhook in production
@@ -402,8 +391,8 @@ db.initialize()
           const webhookUrl = `${webhookBaseUrl}/api/telegram/webhook`;
           const botToken = process.env.TELEGRAM_BOT_TOKEN;
 
-          console.log(
-            `[${new Date().toISOString()}] TELEGRAM_SETUP | Attempting to set webhook to: ${webhookUrl}`
+          Logger.info(
+            `TELEGRAM_SETUP | Attempting to set webhook to: ${webhookUrl}`
           );
 
           const response = await fetch(
@@ -426,8 +415,8 @@ db.initialize()
           };
 
           if (response.ok && data.ok) {
-            console.log(
-              `[${new Date().toISOString()}] TELEGRAM_SETUP | Webhook set successfully: ${webhookUrl}`
+            Logger.info(
+              `TELEGRAM_SETUP | Webhook set successfully: ${webhookUrl}`
             );
 
             // Verify webhook was actually set by checking webhook info
@@ -444,15 +433,12 @@ db.initialize()
                 };
               };
               if (verifyData.ok && verifyData.result) {
-                console.log(
-                  `[${new Date().toISOString()}] TELEGRAM_SETUP | Webhook verification: URL=${
-                    verifyData.result.url
-                  }, Pending updates=${
-                    verifyData.result.pending_update_count || 0
-                  }${
-                    verifyData.result.last_error_message
-                      ? `, Last error: ${verifyData.result.last_error_message}`
-                      : ""
+                Logger.info(
+                  `TELEGRAM_SETUP | Webhook verification: URL=${verifyData.result.url
+                  }, Pending updates=${verifyData.result.pending_update_count || 0
+                  }${verifyData.result.last_error_message
+                    ? `, Last error: ${verifyData.result.last_error_message}`
+                    : ""
                   }`
                 );
               }
@@ -461,18 +447,14 @@ db.initialize()
             }
           } else {
             console.warn(
-              `[${new Date().toISOString()}] TELEGRAM_SETUP | Failed to set webhook automatically: ${
-                data.description || "Unknown error"
+              `[${new Date().toISOString()}] TELEGRAM_SETUP | Failed to set webhook automatically: ${data.description || "Unknown error"
               }. You can set it manually using POST /api/telegram/set-webhook`
             );
           }
         } catch (error) {
-          console.warn(
-            `[${new Date().toISOString()}] TELEGRAM_SETUP | Error setting webhook automatically:`,
-            error instanceof Error ? error.message : String(error)
-          );
-          console.warn(
-            `[${new Date().toISOString()}] TELEGRAM_SETUP | You can set the webhook manually using POST /api/telegram/set-webhook`
+          Logger.warn("TELEGRAM_SETUP | Error setting webhook automatically:", error);
+          Logger.warn(
+            "TELEGRAM_SETUP | You can set the webhook manually using POST /api/telegram/set-webhook"
           );
         }
       }
@@ -488,17 +470,17 @@ db.initialize()
       }
       isShuttingDown = true;
 
-      console.log(`\n${signal} signal received: closing HTTP server`);
+      Logger.info(`${signal} signal received: closing HTTP server`);
 
       try {
         // Close HTTP server
         await new Promise<void>((resolve, reject) => {
           server.close((err) => {
             if (err) {
-              console.error("Error closing HTTP server:", err);
+              Logger.error("Error closing HTTP server:", err);
               reject(err);
             } else {
-              console.log("HTTP server closed");
+              Logger.info("HTTP server closed");
               resolve();
             }
           });
@@ -508,30 +490,30 @@ db.initialize()
         if (viteServer) {
           try {
             await viteServer.close();
-            console.log("Vite dev server closed");
+            Logger.info("Vite dev server closed");
           } catch (error) {
-            console.error("Error closing Vite server:", error);
+            Logger.error("Error closing Vite server:", error);
           }
         }
 
         // Clear reminder polling timeout
         if (reminderPollTimeout) {
           clearTimeout(reminderPollTimeout);
-          console.log("Reminder polling job stopped");
+          Logger.info("Reminder polling job stopped");
         }
 
         // Close database
         try {
           await db.close();
-          console.log("Database closed");
+          Logger.info("Database closed");
         } catch (error) {
-          console.error("Error closing database:", error);
+          Logger.error("Error closing database:", error);
         }
 
         // Exit gracefully - let tsx watch handle the exit
         process.exit(0);
       } catch (error) {
-        console.error("Error during shutdown:", error);
+        Logger.error("Error during shutdown:", error);
         process.exit(1);
       }
     };
@@ -550,6 +532,6 @@ db.initialize()
     });
   })
   .catch((error) => {
-    console.error("Failed to initialize database:", error);
+    Logger.error("Failed to initialize database:", error);
     process.exit(1);
   });

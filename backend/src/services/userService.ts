@@ -2,6 +2,7 @@ import { Database } from "../db/database.js";
 import { User, type UserData } from "../models/User.js";
 import { getUploadsDirectory } from "../middleware/upload.js";
 import { EmailService } from "./emailService.js";
+import { Logger } from "../setup/logger.js";
 import fs from "fs";
 import path from "path";
 
@@ -27,7 +28,7 @@ export class UserService {
    * @public
    */
   async getAllUsers(): Promise<UserData[]> {
-    console.log(`[${new Date().toISOString()}] USER | Fetching all users`);
+    Logger.debug("USER | Fetching all users");
 
     const rows = await this.db.all<{
       id: number;
@@ -44,11 +45,7 @@ export class UserService {
       "SELECT id, name, email, profile_picture_url, telegram_chat_id, notification_channels, locale, timezone, last_access, created_at FROM users ORDER BY id"
     );
 
-    console.log(
-      `[${new Date().toISOString()}] USER | Retrieved ${
-        rows.length
-      } users from database`
-    );
+    Logger.debug(`USER | Retrieved ${rows.length} users from database`);
 
     return rows.map((row) => ({
       id: row.id,
@@ -71,9 +68,7 @@ export class UserService {
    * @public
    */
   async getUserById(id: number): Promise<UserData | null> {
-    console.log(
-      `[${new Date().toISOString()}] USER | Fetching user by ID: ${id}`
-    );
+    Logger.debug(`USER | Fetching user by ID: ${id}`);
 
     const row = await this.db.get<{
       id: number;
@@ -92,17 +87,11 @@ export class UserService {
     );
 
     if (!row) {
-      console.log(
-        `[${new Date().toISOString()}] USER | User not found for ID: ${id}`
-      );
+      Logger.debug(`USER | User not found for ID: ${id}`);
       return null;
     }
 
-    console.log(
-      `[${new Date().toISOString()}] USER | User found: ID ${row.id}, email: ${
-        row.email
-      }`
-    );
+    Logger.verbose(`USER | User found: ID ${row.id}, email: ${row.email}`);
 
     return {
       id: row.id,
@@ -132,21 +121,12 @@ export class UserService {
     name?: string,
     profilePictureUrl?: string | null
   ): Promise<UserData> {
-    console.log(
-      `[${new Date().toISOString()}] USER | Updating profile for userId: ${userId}, fields: ${JSON.stringify(
-        {
-          name: name !== undefined,
-          profilePicture: profilePictureUrl !== undefined,
-        }
-      )}`
-    );
+    Logger.info(`USER | Updating profile for userId: ${userId}`);
 
     // Get current user data before updating to retrieve old profile picture URL
     const currentUser = await this.getUserById(userId);
     if (!currentUser) {
-      console.warn(
-        `[${new Date().toISOString()}] USER | Update failed: user not found for userId: ${userId}`
-      );
+      Logger.warn(`USER | Update failed: user not found for userId: ${userId}`);
       throw new Error("User not found");
     }
 
@@ -168,18 +148,13 @@ export class UserService {
           // Check if file exists and delete it
           if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath);
-            console.log(
-              `[${new Date().toISOString()}] USER | Deleted old profile picture file: ${filename} for userId: ${userId}`
-            );
+            Logger.info(`USER | Deleted old profile picture file: ${filename} for userId: ${userId}`);
           } else {
-            console.warn(
-              `[${new Date().toISOString()}] USER | Old profile picture file not found: ${filePath} for userId: ${userId}`
-            );
+            Logger.warn(`USER | Old profile picture file not found: ${filePath} for userId: ${userId}`);
           }
         } else {
           console.warn(
-            `[${new Date().toISOString()}] USER | Invalid old profile picture URL format: ${
-              currentUser.profile_picture_url
+            `[${new Date().toISOString()}] USER | Invalid old profile picture URL format: ${currentUser.profile_picture_url
             } for userId: ${userId}`
           );
         }
@@ -208,9 +183,7 @@ export class UserService {
     }
 
     if (updates.length === 0) {
-      console.warn(
-        `[${new Date().toISOString()}] USER | Profile update failed: no fields to update for userId: ${userId}`
-      );
+      Logger.warn(`USER | Profile update failed: no fields to update for userId: ${userId}`);
       throw new Error("No fields to update");
     }
 
@@ -218,9 +191,7 @@ export class UserService {
     updates.push("updated_at = CURRENT_TIMESTAMP");
     values.push(userId);
 
-    console.log(
-      `[${new Date().toISOString()}] USER | Executing profile update query for userId: ${userId}`
-    );
+    Logger.debug(`USER | Executing profile update query for userId: ${userId}`);
 
     // Update user
     await this.db.run(
@@ -231,15 +202,11 @@ export class UserService {
     // Retrieve updated user
     const user = await this.getUserById(userId);
     if (!user) {
-      console.error(
-        `[${new Date().toISOString()}] USER | Failed to retrieve updated user for userId: ${userId}`
-      );
+      Logger.error(`USER | Failed to retrieve updated user for userId: ${userId}`);
       throw new Error("Failed to retrieve updated user");
     }
 
-    console.log(
-      `[${new Date().toISOString()}] USER | Profile updated successfully for userId: ${userId}`
-    );
+    Logger.info(`USER | Profile updated successfully for userId: ${userId}`);
 
     return user;
   }
@@ -258,11 +225,7 @@ export class UserService {
     notificationChannel: string,
     telegramChatId?: string
   ): Promise<UserData> {
-    console.log(
-      `[${new Date().toISOString()}] USER | Updating notification preferences for userId: ${userId}, channel: ${notificationChannel}, telegramChatId: ${
-        telegramChatId ? "provided" : "not provided"
-      }`
-    );
+    Logger.info(`USER | Updating notification preferences for userId: ${userId}`);
 
     // Validate notification channel
     const validChannels = ["Email", "Telegram"];
@@ -277,9 +240,7 @@ export class UserService {
     // Get current user
     const user = await User.loadById(userId, this.db);
     if (!user) {
-      console.warn(
-        `[${new Date().toISOString()}] USER | Update notification preferences failed: user not found for userId: ${userId}`
-      );
+      Logger.warn(`USER | Update notification preferences failed: user not found for userId: ${userId}`);
       throw new Error("User not found");
     }
 
@@ -315,15 +276,11 @@ export class UserService {
     // Retrieve updated user
     const updatedUser = await this.getUserById(userId);
     if (!updatedUser) {
-      console.error(
-        `[${new Date().toISOString()}] USER | Failed to retrieve updated user for userId: ${userId}`
-      );
+      Logger.error(`USER | Failed to retrieve updated user for userId: ${userId}`);
       throw new Error("Failed to retrieve updated user");
     }
 
-    console.log(
-      `[${new Date().toISOString()}] USER | Notification preferences updated successfully for userId: ${userId}`
-    );
+    Logger.info(`USER | Notification preferences updated successfully for userId: ${userId}`);
 
     return updatedUser;
   }
@@ -337,16 +294,12 @@ export class UserService {
    * @public
    */
   async disconnectTelegram(userId: number): Promise<UserData> {
-    console.log(
-      `[${new Date().toISOString()}] USER | Disconnecting Telegram for userId: ${userId}`
-    );
+    Logger.info(`USER | Disconnecting Telegram for userId: ${userId}`);
 
     // Get current user
     const user = await User.loadById(userId, this.db);
     if (!user) {
-      console.warn(
-        `[${new Date().toISOString()}] USER | Disconnect Telegram failed: user not found for userId: ${userId}`
-      );
+      Logger.warn(`USER | Disconnect Telegram failed: user not found for userId: ${userId}`);
       throw new Error("User not found");
     }
 
@@ -362,15 +315,11 @@ export class UserService {
     // Retrieve updated user
     const updatedUser = await this.getUserById(userId);
     if (!updatedUser) {
-      console.error(
-        `[${new Date().toISOString()}] USER | Failed to retrieve updated user after disconnecting Telegram for userId: ${userId}`
-      );
+      Logger.error(`USER | Failed to retrieve updated user after disconnecting Telegram for userId: ${userId}`);
       throw new Error("Failed to retrieve updated user");
     }
 
-    console.log(
-      `[${new Date().toISOString()}] USER | Telegram disconnected successfully for userId: ${userId}`
-    );
+    Logger.info(`USER | Telegram disconnected successfully for userId: ${userId}`);
 
     return updatedUser;
   }
@@ -389,18 +338,12 @@ export class UserService {
     locale?: string,
     timezone?: string
   ): Promise<UserData> {
-    console.log(
-      `[${new Date().toISOString()}] USER | Updating locale/timezone for userId: ${userId}, locale: ${
-        locale || "not provided"
-      }, timezone: ${timezone || "not provided"}`
-    );
+    Logger.info(`USER | Updating locale/timezone for userId: ${userId}`);
 
     // Get current user
     const user = await User.loadById(userId, this.db);
     if (!user) {
-      console.warn(
-        `[${new Date().toISOString()}] USER | Update locale/timezone failed: user not found for userId: ${userId}`
-      );
+      Logger.warn(`USER | Update locale/timezone failed: user not found for userId: ${userId}`);
       throw new Error("User not found");
     }
 
@@ -433,15 +376,11 @@ export class UserService {
     // Retrieve updated user
     const updatedUser = await this.getUserById(userId);
     if (!updatedUser) {
-      console.error(
-        `[${new Date().toISOString()}] USER | Failed to retrieve updated user for userId: ${userId}`
-      );
+      Logger.error(`USER | Failed to retrieve updated user for userId: ${userId}`);
       throw new Error("Failed to retrieve updated user");
     }
 
-    console.log(
-      `[${new Date().toISOString()}] USER | Locale/timezone updated successfully for userId: ${userId}`
-    );
+    Logger.info(`USER | Locale/timezone updated successfully for userId: ${userId}`);
 
     return updatedUser;
   }
@@ -455,9 +394,7 @@ export class UserService {
    * @public
    */
   async verifyEmailChange(token: string): Promise<UserData> {
-    console.log(
-      `[${new Date().toISOString()}] USER | Verifying email change with token`
-    );
+    Logger.info("USER | Verifying email change with token");
 
     // Find user with this verification token
     const user = await this.db.get<{
@@ -470,9 +407,7 @@ export class UserService {
     );
 
     if (!user || !user.pending_email) {
-      console.warn(
-        `[${new Date().toISOString()}] USER | Email verification failed: invalid token`
-      );
+      Logger.warn("USER | Email verification failed: invalid token");
       throw new Error("Invalid verification token");
     }
 
@@ -481,11 +416,7 @@ export class UserService {
       const expiresAt = new Date(user.email_verification_expires);
       const now = new Date();
       if (expiresAt < now) {
-        console.warn(
-          `[${new Date().toISOString()}] USER | Email verification failed: token expired for userId: ${
-            user.id
-          }`
-        );
+        Logger.warn(`USER | Email verification failed: token expired for userId: ${user.id}`);
         // Clear expired token
         await this.db.run(
           "UPDATE users SET pending_email = NULL, email_verification_token = NULL, email_verification_expires = NULL WHERE id = ?",
@@ -502,11 +433,7 @@ export class UserService {
     );
 
     if (existingUser) {
-      console.warn(
-        `[${new Date().toISOString()}] USER | Email verification failed: email already registered for userId: ${
-          user.id
-        }`
-      );
+      Logger.warn(`USER | Email verification failed: email already registered for userId: ${user.id}`);
       // Clear pending email
       await this.db.run(
         "UPDATE users SET pending_email = NULL, email_verification_token = NULL, email_verification_expires = NULL WHERE id = ?",
@@ -521,10 +448,8 @@ export class UserService {
       [user.pending_email, user.id]
     );
 
-    console.log(
-      `[${new Date().toISOString()}] USER | Email verified and updated for userId: ${
-        user.id
-      }, new email: ${user.pending_email}`
+    Logger.info(
+      `USER | Email verified and updated for userId: ${user.id}, new email: ${user.pending_email}`
     );
 
     // Retrieve updated user
@@ -545,16 +470,12 @@ export class UserService {
    * @public
    */
   async deleteUser(userId: number): Promise<void> {
-    console.log(
-      `[${new Date().toISOString()}] USER | Deleting user account for userId: ${userId}`
-    );
+    Logger.info(`USER | Deleting user account for userId: ${userId}`);
 
     // Get user data before deletion to retrieve profile picture URL
     const user = await this.getUserById(userId);
     if (!user) {
-      console.warn(
-        `[${new Date().toISOString()}] USER | Delete failed: user not found for userId: ${userId}`
-      );
+      Logger.warn(`USER | Delete failed: user not found for userId: ${userId}`);
       throw new Error("User not found");
     }
 
@@ -575,18 +496,13 @@ export class UserService {
           // Check if file exists and delete it
           if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath);
-            console.log(
-              `[${new Date().toISOString()}] USER | Deleted profile picture file: ${filename} for userId: ${userId}`
-            );
+            Logger.info(`USER | Deleted profile picture file: ${filename} for userId: ${userId}`);
           } else {
-            console.warn(
-              `[${new Date().toISOString()}] USER | Profile picture file not found: ${filePath} for userId: ${userId}`
-            );
+            Logger.warn(`USER | Profile picture file not found: ${filePath} for userId: ${userId}`);
           }
         } else {
           console.warn(
-            `[${new Date().toISOString()}] USER | Invalid profile picture URL format: ${
-              user.profile_picture_url
+            `[${new Date().toISOString()}] USER | Invalid profile picture URL format: ${user.profile_picture_url
             } for userId: ${userId}`
           );
         }
@@ -605,15 +521,11 @@ export class UserService {
     ]);
 
     if (result.changes === 0) {
-      console.warn(
-        `[${new Date().toISOString()}] USER | Delete failed: user not found for userId: ${userId}`
-      );
+      Logger.warn(`USER | Delete failed: user not found for userId: ${userId}`);
       throw new Error("User not found");
     }
 
-    console.log(
-      `[${new Date().toISOString()}] USER | User account deleted successfully for userId: ${userId}`
-    );
+    Logger.info(`USER | User account deleted successfully for userId: ${userId}`);
   }
 
   /**
@@ -627,8 +539,6 @@ export class UserService {
       "UPDATE users SET last_access = CURRENT_TIMESTAMP WHERE id = ?",
       [userId]
     );
-    console.log(
-      `[${new Date().toISOString()}] USER | Updated last_access timestamp for userId: ${userId}`
-    );
+    Logger.debug(`USER | Updated last_access timestamp for userId: ${userId}`);
   }
 }

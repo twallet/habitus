@@ -15,6 +15,7 @@ import { User } from "../models/User.js";
 import { BaseEntityService } from "./base/BaseEntityService.js";
 import { ReminderLifecycleManager } from "./lifecycle/ReminderLifecycleManager.js";
 import { ServiceManager } from "./index.js";
+import { Logger } from "../setup/logger.js";
 
 /**
  * Service for reminder-related database operations.
@@ -84,16 +85,12 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
    * @public
    */
   async getAllByUserId(userId: number): Promise<ReminderData[]> {
-    console.log(
-      `[${new Date().toISOString()}] REMINDER | Fetching reminders for userId: ${userId}`
-    );
+    Logger.debug(`REMINDER | Fetching reminders for userId: ${userId}`);
 
     const reminders = await this.loadModelsByUserId(userId);
 
-    console.log(
-      `[${new Date().toISOString()}] REMINDER | Retrieved ${
-        reminders.length
-      } reminders for userId: ${userId}`
+    Logger.debug(
+      `REMINDER | Retrieved ${reminders.length} reminders for userId: ${userId}`
     );
 
     // Filter out orphaned reminders first (identify and separate valid from orphaned)
@@ -124,18 +121,14 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
         reloadedReminders
       );
       finalReminders = reloadedValidReminders;
-      console.log(
-        `[${new Date().toISOString()}] REMINDER | Reloaded reminders after creating new Upcoming reminders, now have ${
-          finalReminders.length
-        } reminders`
+      Logger.debug(
+        `REMINDER | Reloaded reminders after creating new Upcoming reminders, now have ${finalReminders.length} reminders`
       );
     }
 
     // Return active reminders (Pending and Upcoming only, Answered are excluded)
-    console.log(
-      `[${new Date().toISOString()}] REMINDER | Returning ${
-        finalReminders.length
-      } active reminders for userId: ${userId} (Answered reminders excluded)`
+    Logger.debug(
+      `REMINDER | Returning ${finalReminders.length} active reminders for userId: ${userId} (Answered reminders excluded)`
     );
 
     return finalReminders.map((reminder) => this.toData(reminder));
@@ -150,27 +143,19 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
    * @public
    */
   async getById(id: number, userId: number): Promise<ReminderData | null> {
-    console.log(
-      `[${new Date().toISOString()}] REMINDER | Fetching reminder by ID: ${id} for userId: ${userId}`
-    );
+    Logger.debug(`REMINDER | Fetching reminder by ID: ${id} for userId: ${userId}`);
 
     const reminder = await this.loadModelById(id, userId);
 
     if (!reminder) {
-      console.log(
-        `[${new Date().toISOString()}] REMINDER | Reminder not found for ID: ${id} and userId: ${userId}`
-      );
+      Logger.debug(`REMINDER | Reminder not found for ID: ${id} and userId: ${userId}`);
       return null;
     }
 
     // Check and update expired upcoming reminder
     await this.updateExpiredUpcomingReminders([reminder]);
 
-    console.log(
-      `[${new Date().toISOString()}] REMINDER | Reminder found: ID ${
-        reminder.id
-      }`
-    );
+    Logger.verbose(`REMINDER | Reminder found: ID ${reminder.id}`);
 
     return this.toData(reminder);
   }
@@ -189,9 +174,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
     userId: number,
     scheduledTime: string
   ): Promise<ReminderData> {
-    console.log(
-      `[${new Date().toISOString()}] REMINDER | Creating reminder for trackingId: ${trackingId}, userId: ${userId}`
-    );
+    Logger.info(`REMINDER | Creating reminder for trackingId: ${trackingId}, userId: ${userId}`);
 
     // Determine status based on scheduled time
     const now = new Date();
@@ -210,10 +193,8 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
 
     const savedReminder = await reminder.save(this.db);
 
-    console.log(
-      `[${new Date().toISOString()}] REMINDER | Reminder created successfully: ID ${
-        savedReminder.id
-      } with status ${status}`
+    Logger.info(
+      `REMINDER | Reminder created successfully: ID ${savedReminder.id} with status ${status}`
     );
 
     // Send notifications if reminder is created as Pending
@@ -224,10 +205,8 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
         await this.sendReminderNotifications(savedReminder);
       } catch (error) {
         // Log error but don't fail reminder creation
-        console.error(
-          `[${new Date().toISOString()}] REMINDER | Failed to send notifications for newly created reminder ID ${
-            savedReminder.id
-          }:`,
+        Logger.error(
+          `REMINDER | Failed to send notifications for newly created reminder ID ${savedReminder.id}:`,
           error
         );
       }
@@ -250,9 +229,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
     userId: number,
     updates: Partial<ReminderData>
   ): Promise<ReminderData> {
-    console.log(
-      `[${new Date().toISOString()}] REMINDER | Updating reminder ID: ${reminderId} for userId: ${userId}`
-    );
+    Logger.info(`REMINDER | Updating reminder ID: ${reminderId} for userId: ${userId}`);
 
     const existingReminder = await Reminder.loadById(
       reminderId,
@@ -260,8 +237,8 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       this.db
     );
     if (!existingReminder) {
-      console.warn(
-        `[${new Date().toISOString()}] REMINDER | Update failed: reminder not found for ID: ${reminderId} and userId: ${userId}`
+      Logger.warn(
+        `REMINDER | Update failed: reminder not found for ID: ${reminderId} and userId: ${userId}`
       );
       throw new Error("Reminder not found");
     }
@@ -289,9 +266,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       );
     }
 
-    console.log(
-      `[${new Date().toISOString()}] REMINDER | Reminder updated successfully: ID ${reminderId}`
-    );
+    Logger.info(`REMINDER | Reminder updated successfully: ID ${reminderId}`);
 
     return updatedReminder;
   }
@@ -309,9 +284,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
     reminderId: number,
     userId: number
   ): Promise<ReminderData> {
-    console.log(
-      `[${new Date().toISOString()}] REMINDER | Completing reminder ID: ${reminderId} for userId: ${userId}`
-    );
+    Logger.info(`REMINDER | Completing reminder ID: ${reminderId} for userId: ${userId}`);
 
     const existingReminder = await Reminder.loadById(
       reminderId,
@@ -319,8 +292,8 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       this.db
     );
     if (!existingReminder) {
-      console.warn(
-        `[${new Date().toISOString()}] REMINDER | Complete failed: reminder not found for ID: ${reminderId} and userId: ${userId}`
+      Logger.warn(
+        `REMINDER | Complete failed: reminder not found for ID: ${reminderId} and userId: ${userId}`
       );
       throw new Error("Reminder not found");
     }
@@ -352,9 +325,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       );
     }
 
-    console.log(
-      `[${new Date().toISOString()}] REMINDER | Reminder completed successfully: ID ${reminderId}`
-    );
+    Logger.info(`REMINDER | Reminder completed successfully: ID ${reminderId}`);
 
     return updatedReminder;
   }
@@ -372,14 +343,12 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
     reminderId: number,
     userId: number
   ): Promise<ReminderData> {
-    console.log(
-      `[${new Date().toISOString()}] REMINDER | Dismissing reminder ID: ${reminderId} for userId: ${userId}`
-    );
+    Logger.info(`REMINDER | Dismissing reminder ID: ${reminderId} for userId: ${userId}`);
 
     const reminder = await Reminder.loadById(reminderId, userId, this.db);
     if (!reminder) {
-      console.warn(
-        `[${new Date().toISOString()}] REMINDER | Dismiss failed: reminder not found for ID: ${reminderId} and userId: ${userId}`
+      Logger.warn(
+        `REMINDER | Dismiss failed: reminder not found for ID: ${reminderId} and userId: ${userId}`
       );
       throw new Error("Reminder not found");
     }
@@ -422,16 +391,16 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
         // Update the existing upcoming reminder with the new time
         const tracking = await Tracking.loadById(trackingId, userId, this.db);
         if (!tracking) {
-          console.warn(
-            `[${new Date().toISOString()}] REMINDER | Tracking not found: ${trackingId}, cannot update upcoming reminder`
+          Logger.warn(
+            `REMINDER | Tracking not found: ${trackingId}, cannot update upcoming reminder`
           );
           return updatedReminder;
         }
 
         // Only update if tracking is Running
         if (tracking.state !== "Running") {
-          console.log(
-            `[${new Date().toISOString()}] REMINDER | Tracking ${trackingId} is not Running, deleting upcoming reminder instead of updating`
+          Logger.debug(
+            `REMINDER | Tracking ${trackingId} is not Running, deleting upcoming reminder instead of updating`
           );
           await existingUpcoming.delete(this.db);
           return updatedReminder;
@@ -440,16 +409,16 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
         // Check if tracking has frequency (required field, but check for safety)
         const trackingData = tracking.toData();
         if (!trackingData.frequency) {
-          console.warn(
-            `[${new Date().toISOString()}] REMINDER | Tracking ${trackingId} has no frequency, cannot update upcoming reminder`
+          Logger.warn(
+            `REMINDER | Tracking ${trackingId} has no frequency, cannot update upcoming reminder`
           );
           return updatedReminder;
         }
 
         // One-time frequencies don't generate recurring reminders
         if (trackingData.frequency.type === "one-time") {
-          console.log(
-            `[${new Date().toISOString()}] REMINDER | Tracking ${trackingId} is one-time, skipping upcoming reminder update`
+          Logger.debug(
+            `REMINDER | Tracking ${trackingId} is one-time, skipping upcoming reminder update`
           );
           return updatedReminder;
         }
@@ -462,28 +431,26 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
         if (nextTime) {
           existingUpcoming.scheduled_time = nextTime;
           await existingUpcoming.save(this.db);
-          console.log(
-            `[${new Date().toISOString()}] REMINDER | Updated existing Upcoming reminder with new time after dismissing reminder ID ${reminderId}`
+          Logger.info(
+            `REMINDER | Updated existing Upcoming reminder with new time after dismissing reminder ID ${reminderId}`
           );
         }
       } else {
         // Create new upcoming reminder
         await this.createNextReminderForTracking(trackingId, userId);
-        console.log(
-          `[${new Date().toISOString()}] REMINDER | Created new Upcoming reminder after dismissing reminder ID ${reminderId}`
+        Logger.info(
+          `REMINDER | Created new Upcoming reminder after dismissing reminder ID ${reminderId}`
         );
       }
     } catch (error) {
       // Log error but don't fail reminder update if next reminder creation fails
-      console.error(
-        `[${new Date().toISOString()}] REMINDER | Failed to create/update next reminder after dismissing reminder ID ${reminderId}:`,
+      Logger.error(
+        `REMINDER | Failed to create/update next reminder after dismissing reminder ID ${reminderId}:`,
         error
       );
     }
 
-    console.log(
-      `[${new Date().toISOString()}] REMINDER | Reminder dismissed successfully: ID ${reminderId}`
-    );
+    Logger.info(`REMINDER | Reminder dismissed successfully: ID ${reminderId}`);
 
     return updatedReminder;
   }
@@ -502,9 +469,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
     userId: number,
     snoozeMinutes: number
   ): Promise<ReminderData> {
-    console.log(
-      `[${new Date().toISOString()}] REMINDER | Snoozing reminder ID: ${reminderId} for ${snoozeMinutes} minutes`
-    );
+    Logger.info(`REMINDER | Snoozing reminder ID: ${reminderId} for ${snoozeMinutes} minutes`);
 
     const reminder = await Reminder.loadById(reminderId, userId, this.db);
     if (!reminder) {
@@ -533,9 +498,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
         this.db
       );
 
-      console.log(
-        `[${new Date().toISOString()}] REMINDER | Updated existing Upcoming reminder time for tracking ${trackingId}`
-      );
+      Logger.info(`REMINDER | Updated existing Upcoming reminder time for tracking ${trackingId}`);
 
       resultReminder = updatedReminder;
     } else {
@@ -546,9 +509,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
         snoozedTime.toISOString()
       );
 
-      console.log(
-        `[${new Date().toISOString()}] REMINDER | Created new Upcoming reminder with snoozed time for tracking ${trackingId}`
-      );
+      Logger.info(`REMINDER | Created new Upcoming reminder with snoozed time for tracking ${trackingId}`);
 
       resultReminder = newReminder;
     }
@@ -556,9 +517,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
     // Delete the original reminder that was snoozed
     // This ensures pending reminders are removed when snoozed
     await reminder.delete(this.db);
-    console.log(
-      `[${new Date().toISOString()}] REMINDER | Deleted original reminder ID ${reminderId} after snoozing`
-    );
+    Logger.info(`REMINDER | Deleted original reminder ID ${reminderId} after snoozing`);
 
     return resultReminder;
   }
@@ -572,9 +531,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
    * @public
    */
   async deleteReminder(reminderId: number, userId: number): Promise<void> {
-    console.log(
-      `[${new Date().toISOString()}] REMINDER | Deleting reminder ID: ${reminderId} for userId: ${userId}`
-    );
+    Logger.info(`REMINDER | Deleting reminder ID: ${reminderId} for userId: ${userId}`);
 
     const reminder = await Reminder.loadById(reminderId, userId, this.db);
     if (!reminder) {
@@ -598,16 +555,16 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       // Update the existing upcoming reminder with the new time
       const tracking = await Tracking.loadById(trackingId, userId, this.db);
       if (!tracking) {
-        console.warn(
-          `[${new Date().toISOString()}] REMINDER | Tracking not found: ${trackingId}, cannot update upcoming reminder`
+        Logger.warn(
+          `REMINDER | Tracking not found: ${trackingId}, cannot update upcoming reminder`
         );
         return;
       }
 
       // Only update if tracking is Running
       if (tracking.state !== "Running") {
-        console.log(
-          `[${new Date().toISOString()}] REMINDER | Tracking ${trackingId} is not Running, deleting upcoming reminder instead of updating`
+        Logger.debug(
+          `REMINDER | Tracking ${trackingId} is not Running, deleting upcoming reminder instead of updating`
         );
         await existingUpcoming.delete(this.db);
         return;
@@ -638,24 +595,20 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
             await this.sendReminderNotifications(updatedReminder);
           } catch (error) {
             // Log error but don't fail the update
-            console.error(
-              `[${new Date().toISOString()}] REMINDER | Failed to send notifications for reminder ID ${
-                existingUpcoming.id
-              } after deleteReminder updated it to PENDING:`,
+            Logger.error(
+              `REMINDER | Failed to send notifications for reminder ID ${existingUpcoming.id} after deleteReminder updated it to PENDING:`,
               error
             );
           }
         }
 
-        console.log(
-          `[${new Date().toISOString()}] REMINDER | Updated existing upcoming reminder ID ${
-            existingUpcoming.id
-          } with new time for tracking ${trackingId}`
+        Logger.info(
+          `REMINDER | Updated existing upcoming reminder ID ${existingUpcoming.id} with new time for tracking ${trackingId}`
         );
       } else {
         // No valid next time found, delete the upcoming reminder
-        console.warn(
-          `[${new Date().toISOString()}] REMINDER | No valid next time found for tracking ${trackingId}, deleting upcoming reminder`
+        Logger.warn(
+          `REMINDER | No valid next time found for tracking ${trackingId}, deleting upcoming reminder`
         );
         await existingUpcoming.delete(this.db);
       }
@@ -664,9 +617,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       await this.createNextReminderForTracking(trackingId, userId, deletedTime);
     }
 
-    console.log(
-      `[${new Date().toISOString()}] REMINDER | Reminder deleted and next one handled: ID ${reminderId}`
-    );
+    Logger.info(`REMINDER | Reminder deleted and next one handled: ID ${reminderId}`);
   }
 
   /**
@@ -682,19 +633,13 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
     excludeTime?: string
   ): Promise<string | null> {
     if (!tracking.schedules || tracking.schedules.length === 0) {
-      console.warn(
-        `[${new Date().toISOString()}] REMINDER | One-time tracking ${
-          tracking.id
-        } has no schedules`
-      );
+      Logger.warn(`REMINDER | One-time tracking ${tracking.id} has no schedules`);
       return null;
     }
 
     if (!tracking.frequency || tracking.frequency.type !== "one-time") {
-      console.warn(
-        `[${new Date().toISOString()}] REMINDER | calculateNextOneTimeReminderTime called for non-one-time tracking ${
-          tracking.id
-        }`
+      Logger.warn(
+        `REMINDER | calculateNextOneTimeReminderTime called for non-one-time tracking ${tracking.id}`
       );
       return null;
     }
@@ -736,7 +681,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       // This matches how createReminder handles time strings like "2024-01-07T09:00:00"
       const timeString = `${targetDate}T${String(schedule.hour).padStart(2, "0")}:${String(schedule.minutes).padStart(2, "0")}:00`;
       const normalizedTime = new Date(timeString).toISOString();
-      
+
       // Check if any existing reminder matches this time
       if (existingTimes.has(normalizedTime)) {
         continue; // Skip times that already have reminders
@@ -747,20 +692,18 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       // Normalize excludeDate to ISO string for accurate comparison
       const excludeTimeISO = excludeTime ? new Date(excludeTime).toISOString() : null;
       const normalizedCandidateDate = new Date(normalizedTime);
-      const shouldInclude = excludeTimeISO 
+      const shouldInclude = excludeTimeISO
         ? normalizedTime > excludeTimeISO
         : normalizedCandidateDate > excludeDate;
-      
+
       if (shouldInclude) {
         candidateTimes.push(normalizedCandidateDate);
       }
     }
 
     if (candidateTimes.length === 0) {
-      console.log(
-        `[${new Date().toISOString()}] REMINDER | No more schedule times available for one-time tracking ${
-          tracking.id
-        }`
+      Logger.debug(
+        `REMINDER | No more schedule times available for one-time tracking ${tracking.id}`
       );
       return null;
     }
@@ -785,20 +728,12 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
     excludeTime?: string
   ): Promise<string | null> {
     if (!tracking.schedules || tracking.schedules.length === 0) {
-      console.warn(
-        `[${new Date().toISOString()}] REMINDER | Tracking ${
-          tracking.id
-        } has no schedules`
-      );
+      Logger.warn(`REMINDER | Tracking ${tracking.id} has no schedules`);
       return null;
     }
 
     if (!tracking.frequency) {
-      console.warn(
-        `[${new Date().toISOString()}] REMINDER | Tracking ${
-          tracking.id
-        } has no frequency`
-      );
+      Logger.warn(`REMINDER | Tracking ${tracking.id} has no frequency`);
       return null;
     }
 
@@ -841,8 +776,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
 
     if (candidateTimes.length === 0) {
       console.warn(
-        `[${new Date().toISOString()}] REMINDER | No valid next time found for tracking ${
-          tracking.id
+        `[${new Date().toISOString()}] REMINDER | No valid next time found for tracking ${tracking.id
         }`
       );
       return null;
@@ -1319,7 +1253,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
     );
     const dayOfYear = Math.floor(
       (currentDateUtc.getTime() - firstDayOfYearUtc.getTime()) /
-        (1000 * 60 * 60 * 24)
+      (1000 * 60 * 60 * 24)
     );
 
     // Calculate which occurrence this is
@@ -1345,8 +1279,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
     }
 
     console.log(
-      `[${new Date().toISOString()}] REMINDER | Cleaning up ${
-        reminders.length
+      `[${new Date().toISOString()}] REMINDER | Cleaning up ${reminders.length
       } orphaned reminder(s)...`
     );
 
@@ -1355,14 +1288,12 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       try {
         await reminder.delete(this.db);
         console.log(
-          `[${new Date().toISOString()}] REMINDER | Deleted orphaned reminder ID: ${
-            reminder.id
+          `[${new Date().toISOString()}] REMINDER | Deleted orphaned reminder ID: ${reminder.id
           }`
         );
       } catch (error) {
         console.error(
-          `[${new Date().toISOString()}] REMINDER | Error deleting orphaned reminder ID ${
-            reminder.id
+          `[${new Date().toISOString()}] REMINDER | Error deleting orphaned reminder ID ${reminder.id
           }:`,
           error
         );
@@ -1370,8 +1301,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
     }
 
     console.log(
-      `[${new Date().toISOString()}] REMINDER | Cleaned up ${
-        reminders.length
+      `[${new Date().toISOString()}] REMINDER | Cleaned up ${reminders.length
       } orphaned reminder(s)`
     );
   }
@@ -1412,11 +1342,11 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
   async processExpiredReminders(): Promise<void> {
     const now = new Date();
     const nowISO = now.toISOString();
-    
+
     console.log(
       `[${nowISO}] REMINDER_POLL | Checking for expired Upcoming reminders (current time: ${nowISO})...`
     );
-    
+
     // Fetch all UPCOMING reminders and filter in JavaScript for more reliable comparison
     // This ensures we catch all expired reminders regardless of database type or datetime format
     const upcomingReminderRows = await this.db.all<{
@@ -1484,8 +1414,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
         updated_at: row.updated_at,
       });
       console.log(
-        `[${new Date().toISOString()}] REMINDER_POLL | Created Reminder instance ID ${
-          reminder.id
+        `[${new Date().toISOString()}] REMINDER_POLL | Created Reminder instance ID ${reminder.id
         } with status ${reminder.status}, scheduled_time: ${reminder.scheduled_time}`
       );
       return reminder;
@@ -1514,26 +1443,23 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
 
     for (const reminder of reminders) {
       console.log(
-        `[${new Date().toISOString()}] REMINDER | Processing reminder ID ${
-          reminder.id
+        `[${new Date().toISOString()}] REMINDER | Processing reminder ID ${reminder.id
         }, status: ${reminder.status}, scheduled_time: ${reminder.scheduled_time}`
       );
-      
+
       if (reminder.status === ReminderStatus.UPCOMING) {
         const scheduledTime = new Date(reminder.scheduled_time);
         const scheduledTimeMs = scheduledTime.getTime();
         const nowMs = now.getTime();
-        
+
         console.log(
-          `[${new Date().toISOString()}] REMINDER | Reminder ID ${
-            reminder.id
+          `[${new Date().toISOString()}] REMINDER | Reminder ID ${reminder.id
           } comparison: scheduledTime=${scheduledTimeMs}, now=${nowMs}, expired=${scheduledTimeMs <= nowMs}`
         );
-        
+
         if (scheduledTimeMs <= nowMs) {
           console.log(
-            `[${new Date().toISOString()}] REMINDER | Updating expired upcoming reminder ID ${
-              reminder.id
+            `[${new Date().toISOString()}] REMINDER | Updating expired upcoming reminder ID ${reminder.id
             } (scheduled_time: ${reminder.scheduled_time}) to Pending status`
           );
           try {
@@ -1552,7 +1478,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
             );
             updatePromises.push(updatePromise);
             remindersToEmail.push(reminder);
-            
+
             // Only track for next reminder creation if NOT one-time
             // One-time trackings are handled by the lifecycle manager's handleUpcomingToPending
             if (!isOneTime) {
@@ -1561,23 +1487,20 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
             }
           } catch (error) {
             console.error(
-              `[${new Date().toISOString()}] REMINDER | Error updating reminder ID ${
-                reminder.id
+              `[${new Date().toISOString()}] REMINDER | Error updating reminder ID ${reminder.id
               }:`,
               error
             );
           }
         } else {
           console.log(
-            `[${new Date().toISOString()}] REMINDER | Reminder ID ${
-              reminder.id
+            `[${new Date().toISOString()}] REMINDER | Reminder ID ${reminder.id
             } not expired: scheduled_time=${reminder.scheduled_time} (${scheduledTimeMs}), now=${now.toISOString()} (${nowMs})`
           );
         }
       } else {
         console.log(
-          `[${new Date().toISOString()}] REMINDER | Reminder ID ${
-            reminder.id
+          `[${new Date().toISOString()}] REMINDER | Reminder ID ${reminder.id
           } is not UPCOMING (status: ${reminder.status}), skipping`
         );
       }
@@ -1586,16 +1509,14 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
     if (updatePromises.length > 0) {
       const updatedReminders = await Promise.all(updatePromises);
       console.log(
-        `[${new Date().toISOString()}] REMINDER | Updated ${
-          updatePromises.length
+        `[${new Date().toISOString()}] REMINDER | Updated ${updatePromises.length
         } expired upcoming reminder(s) to Pending status`
       );
-      
+
       // Verify updates were successful
       for (const updatedReminder of updatedReminders) {
         console.log(
-          `[${new Date().toISOString()}] REMINDER | Verified reminder ID ${
-            updatedReminder.id
+          `[${new Date().toISOString()}] REMINDER | Verified reminder ID ${updatedReminder.id
           } is now ${updatedReminder.status}`
         );
       }
@@ -1609,8 +1530,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
         } catch (error) {
           // Log error but don't fail the update process
           console.error(
-            `[${new Date().toISOString()}] REMINDER | Failed to send notifications for reminder ID ${
-              originalReminder.id
+            `[${new Date().toISOString()}] REMINDER | Failed to send notifications for reminder ID ${originalReminder.id
             }:`,
             error
           );
@@ -1653,8 +1573,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       const user = await User.loadById(reminder.user_id, this.db);
       if (!user) {
         console.warn(
-          `[${new Date().toISOString()}] REMINDER | User not found for reminder ID ${
-            reminder.id
+          `[${new Date().toISOString()}] REMINDER | User not found for reminder ID ${reminder.id
           }, cannot send notifications`
         );
         return;
@@ -1668,8 +1587,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       );
       if (!tracking) {
         console.warn(
-          `[${new Date().toISOString()}] REMINDER | Tracking not found for reminder ID ${
-            reminder.id
+          `[${new Date().toISOString()}] REMINDER | Tracking not found for reminder ID ${reminder.id
           }, cannot send notifications`
         );
         return;
@@ -1683,8 +1601,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
         await this.sendReminderEmail(user, reminder, tracking).catch(
           (error) => {
             console.error(
-              `[${new Date().toISOString()}] REMINDER | Error sending email notification for reminder ID ${
-                reminder.id
+              `[${new Date().toISOString()}] REMINDER | Error sending email notification for reminder ID ${reminder.id
               }:`,
               error
             );
@@ -1694,8 +1611,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
         await this.sendReminderTelegram(user, reminder, tracking).catch(
           (error) => {
             console.error(
-              `[${new Date().toISOString()}] REMINDER | Error sending Telegram notification for reminder ID ${
-                reminder.id
+              `[${new Date().toISOString()}] REMINDER | Error sending Telegram notification for reminder ID ${reminder.id
               }:`,
               error
             );
@@ -1704,15 +1620,13 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       }
 
       console.log(
-        `[${new Date().toISOString()}] REMINDER | Notification sent for reminder ID ${
-          reminder.id
+        `[${new Date().toISOString()}] REMINDER | Notification sent for reminder ID ${reminder.id
         } via channel: ${notificationChannel}`
       );
     } catch (error) {
       // Log error but don't throw - notification sending failure shouldn't break reminder updates
       console.error(
-        `[${new Date().toISOString()}] REMINDER | Error sending notifications for reminder ID ${
-          reminder.id
+        `[${new Date().toISOString()}] REMINDER | Error sending notifications for reminder ID ${reminder.id
         }:`,
         error
       );
@@ -1745,8 +1659,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       user.timezone
     );
     console.log(
-      `[${new Date().toISOString()}] REMINDER | Email notification sent for reminder ID ${
-        reminder.id
+      `[${new Date().toISOString()}] REMINDER | Email notification sent for reminder ID ${reminder.id
       } to ${user.email}`
     );
   }
@@ -1781,8 +1694,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       user.timezone
     );
     console.log(
-      `[${new Date().toISOString()}] REMINDER | Telegram notification sent for reminder ID ${
-        reminder.id
+      `[${new Date().toISOString()}] REMINDER | Telegram notification sent for reminder ID ${reminder.id
       } to chatId: ${user.telegram_chat_id}`
     );
   }
@@ -1851,8 +1763,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
     const reminder = await this.createReminder(trackingId, userId, nextTime);
 
     console.log(
-      `[${new Date().toISOString()}] REMINDER | Next reminder created: ID ${
-        reminder.id
+      `[${new Date().toISOString()}] REMINDER | Next reminder created: ID ${reminder.id
       } for tracking ${trackingId}`
     );
 

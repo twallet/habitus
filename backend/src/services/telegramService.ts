@@ -1,5 +1,6 @@
 import { ServerConfig } from "../setup/constants.js";
 import { DateUtils } from "@habitus/shared/utils";
+import { Logger } from "../setup/logger.js";
 
 /**
  * Telegram Bot API configuration interface.
@@ -82,9 +83,7 @@ export class TelegramService {
     locale?: string,
     timezone?: string
   ): Promise<void> {
-    console.log(
-      `[${new Date().toISOString()}] TELEGRAM | Preparing to send reminder message to chatId: ${chatId}, reminderId: ${reminderId}`
-    );
+    Logger.info(`TELEGRAM | Preparing to send reminder message to chatId: ${chatId}, reminderId: ${reminderId}`);
 
     if (!this.config.botToken) {
       throw new Error(
@@ -189,14 +188,12 @@ export class TelegramService {
         );
       }
 
-      console.log(
-        `[${new Date().toISOString()}] TELEGRAM | Reminder message sent successfully to chatId: ${chatId}, reminderId: ${reminderId}, messageId: ${
-          result.result?.message_id
-        }`
+      Logger.info(
+        `TELEGRAM | Reminder message sent successfully to chatId: ${chatId}, reminderId: ${reminderId}, messageId: ${result.result?.message_id}`
       );
     } catch (error: any) {
-      console.error(
-        `[${new Date().toISOString()}] TELEGRAM | Error sending reminder message to ${chatId}:`,
+      Logger.error(
+        `TELEGRAM | Error sending reminder message to ${chatId}:`,
         error
       );
 
@@ -232,9 +229,7 @@ export class TelegramService {
     userId: number,
     frontendUrl: string
   ): Promise<void> {
-    console.log(
-      `[${new Date().toISOString()}] TELEGRAM | Preparing to send welcome message to chatId: ${chatId}, userId: ${userId}`
-    );
+    Logger.info(`TELEGRAM | Preparing to send welcome message to chatId: ${chatId}, userId: ${userId}`);
 
     if (!this.config.botToken) {
       throw new Error(
@@ -279,14 +274,12 @@ export class TelegramService {
         );
       }
 
-      console.log(
-        `[${new Date().toISOString()}] TELEGRAM | Welcome message sent successfully to chatId: ${chatId}, userId: ${userId}, messageId: ${
-          result.result?.message_id
-        }`
+      Logger.info(
+        `TELEGRAM | Welcome message sent successfully to chatId: ${chatId}, userId: ${userId}, messageId: ${result.result?.message_id}`
       );
     } catch (error: any) {
-      console.error(
-        `[${new Date().toISOString()}] TELEGRAM | Error sending welcome message to ${chatId}:`,
+      Logger.error(
+        `TELEGRAM | Error sending welcome message to ${chatId}:`,
         error
       );
 
@@ -303,8 +296,7 @@ export class TelegramService {
       }
 
       throw new Error(
-        `Failed to send Telegram welcome message: ${
-          error.message || "Unknown error"
+        `Failed to send Telegram welcome message: ${error.message || "Unknown error"
         }`
       );
     }
@@ -373,8 +365,8 @@ export class TelegramService {
         first_name: result.result?.first_name,
       };
     } catch (error: any) {
-      console.error(
-        `[${new Date().toISOString()}] TELEGRAM | Error getting chat info for ${chatId}:`,
+      Logger.error(
+        `TELEGRAM | Error getting chat info for ${chatId}:`,
         error
       );
 

@@ -118,8 +118,8 @@ describe("Server Configuration - Integration Tests", () => {
     originalExit = process.exit;
 
     // Mock console methods to avoid noise in test output
-    vi.spyOn(console, "log").mockImplementation(() => {});
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "log").mockImplementation(() => { });
+    vi.spyOn(console, "error").mockImplementation(() => { });
 
     // Mock process.exit to prevent tests from actually exiting
     process.exit = vi.fn() as unknown as typeof process.exit;
@@ -224,8 +224,7 @@ describe("Server Configuration - Integration Tests", () => {
 
           if (shouldLogRequest) {
             console.log(
-              `[${timestamp}] ${req.method} ${
-                req.path
+              `[${timestamp}] ${req.method} ${req.path
               } | IP: ${ip} | User-Agent: ${userAgent.substring(0, 50)}`
             );
           }
@@ -239,10 +238,8 @@ describe("Server Configuration - Integration Tests", () => {
               !isViteRoute
             ) {
               console.log(
-                `[${new Date().toISOString()}] ${logLevel} | ${req.method} ${
-                  req.path
-                } | Status: ${
-                  res.statusCode
+                `[${new Date().toISOString()}] ${logLevel} | ${req.method} ${req.path
+                } | Status: ${res.statusCode
                 } | Duration: ${duration}ms | IP: ${ip}`
               );
             }
@@ -299,8 +296,7 @@ describe("Server Configuration - Integration Tests", () => {
 
           if (shouldLogRequest) {
             console.log(
-              `[${timestamp}] ${req.method} ${
-                req.path
+              `[${timestamp}] ${req.method} ${req.path
               } | IP: ${ip} | User-Agent: ${userAgent.substring(0, 50)}`
             );
           }
@@ -314,10 +310,8 @@ describe("Server Configuration - Integration Tests", () => {
               !isViteRoute
             ) {
               console.log(
-                `[${new Date().toISOString()}] ${logLevel} | ${req.method} ${
-                  req.path
-                } | Status: ${
-                  res.statusCode
+                `[${new Date().toISOString()}] ${logLevel} | ${req.method} ${req.path
+                } | Status: ${res.statusCode
                 } | Duration: ${duration}ms | IP: ${ip}`
               );
             }
@@ -376,8 +370,7 @@ describe("Server Configuration - Integration Tests", () => {
 
           if (shouldLogRequest) {
             console.log(
-              `[${timestamp}] ${req.method} ${
-                req.path
+              `[${timestamp}] ${req.method} ${req.path
               } | IP: ${ip} | User-Agent: ${userAgent.substring(0, 50)}`
             );
           }
@@ -391,10 +384,8 @@ describe("Server Configuration - Integration Tests", () => {
               !isViteRoute
             ) {
               console.log(
-                `[${new Date().toISOString()}] ${logLevel} | ${req.method} ${
-                  req.path
-                } | Status: ${
-                  res.statusCode
+                `[${new Date().toISOString()}] ${logLevel} | ${req.method} ${req.path
+                } | Status: ${res.statusCode
                 } | Duration: ${duration}ms | IP: ${ip}`
               );
             }
@@ -410,7 +401,7 @@ describe("Server Configuration - Integration Tests", () => {
 
       const consoleLogSpy = vi
         .spyOn(console, "log")
-        .mockImplementation(() => {});
+        .mockImplementation(() => { });
       await request(testApp).get("/@vite/client");
 
       expect(consoleLogSpy).not.toHaveBeenCalled();
@@ -453,8 +444,7 @@ describe("Server Configuration - Integration Tests", () => {
 
           if (shouldLogRequest) {
             console.log(
-              `[${timestamp}] ${req.method} ${
-                req.path
+              `[${timestamp}] ${req.method} ${req.path
               } | IP: ${ip} | User-Agent: ${userAgent.substring(0, 50)}`
             );
           }
@@ -468,10 +458,8 @@ describe("Server Configuration - Integration Tests", () => {
               !isViteRoute
             ) {
               console.log(
-                `[${new Date().toISOString()}] ${logLevel} | ${req.method} ${
-                  req.path
-                } | Status: ${
-                  res.statusCode
+                `[${new Date().toISOString()}] ${logLevel} | ${req.method} ${req.path
+                } | Status: ${res.statusCode
                 } | Duration: ${duration}ms | IP: ${ip}`
               );
             }
@@ -1230,45 +1218,45 @@ describe("Server Configuration - Integration Tests", () => {
       vi.doMock(
         "express",
         options.expressMock ||
-          (() => {
-            // Use captured express module
-            const realExpress = realExpressModule;
-            const expressFactory = () => {
-              const app = realExpress();
-              capturedApp = app;
+        (() => {
+          // Use captured express module
+          const realExpress = realExpressModule;
+          const expressFactory = () => {
+            const app = realExpress();
+            capturedApp = app;
 
-              const mockServer = {
-                close: mockServerClose,
-              } as unknown as Server;
+            const mockServer = {
+              close: mockServerClose,
+            } as unknown as Server;
 
-              capturedServer = mockServer;
+            capturedServer = mockServer;
 
-              app.listen = vi.fn((port: number, callback?: () => void) => {
-                if (callback) callback();
-                return mockServer;
-              }) as unknown as typeof app.listen;
-              return app;
-            };
-            // Attach static methods to the factory function
-            Object.assign(expressFactory, {
-              json: realExpress.json,
-              static: realExpress.static,
-              urlencoded: realExpress.urlencoded,
-              raw: realExpress.raw,
-              text: realExpress.text,
-              Router: realExpress.Router,
-            });
-            return {
-              default: expressFactory,
-              // Export Router as named export for ES module imports
-              Router: realExpress.Router,
-              json: realExpress.json,
-              static: realExpress.static,
-              urlencoded: realExpress.urlencoded,
-              raw: realExpress.raw,
-              text: realExpress.text,
-            };
-          })
+            app.listen = vi.fn((port: number, callback?: () => void) => {
+              if (callback) callback();
+              return mockServer;
+            }) as unknown as typeof app.listen;
+            return app;
+          };
+          // Attach static methods to the factory function
+          Object.assign(expressFactory, {
+            json: realExpress.json,
+            static: realExpress.static,
+            urlencoded: realExpress.urlencoded,
+            raw: realExpress.raw,
+            text: realExpress.text,
+            Router: realExpress.Router,
+          });
+          return {
+            default: expressFactory,
+            // Export Router as named export for ES module imports
+            Router: realExpress.Router,
+            json: realExpress.json,
+            static: realExpress.static,
+            urlencoded: realExpress.urlencoded,
+            raw: realExpress.raw,
+            text: realExpress.text,
+          };
+        })
       );
 
       // Setup vite mock if provided, otherwise use default
@@ -1321,8 +1309,8 @@ describe("Server Configuration - Integration Tests", () => {
       }) as typeof process.once;
 
       // Mock console to reduce noise
-      vi.spyOn(console, "log").mockImplementation(() => {});
-      vi.spyOn(console, "error").mockImplementation(() => {});
+      vi.spyOn(console, "log").mockImplementation(() => { });
+      vi.spyOn(console, "error").mockImplementation(() => { });
 
       // Mock process.exit to prevent actual exit
       process.exit = vi.fn() as unknown as typeof process.exit;
@@ -1384,7 +1372,7 @@ describe("Server Configuration - Integration Tests", () => {
 
       const consoleLogSpy = vi
         .spyOn(console, "log")
-        .mockImplementation(() => {});
+        .mockImplementation(() => { });
 
       await setupAndImportServer();
 
@@ -1410,7 +1398,7 @@ describe("Server Configuration - Integration Tests", () => {
 
       const consoleLogSpy = vi
         .spyOn(console, "log")
-        .mockImplementation(() => {});
+        .mockImplementation(() => { });
 
       await setupAndImportServer();
 
@@ -1447,7 +1435,7 @@ describe("Server Configuration - Integration Tests", () => {
       if (shutdownHandler) {
         const consoleLogSpy = vi
           .spyOn(console, "log")
-          .mockImplementation(() => {});
+          .mockImplementation(() => { });
 
         // Execute shutdown handler
         await shutdownHandler();
@@ -1472,7 +1460,7 @@ describe("Server Configuration - Integration Tests", () => {
       if (shutdownHandler) {
         const consoleLogSpy = vi
           .spyOn(console, "log")
-          .mockImplementation(() => {});
+          .mockImplementation(() => { });
 
         // Execute shutdown handler
         await shutdownHandler();
@@ -1530,7 +1518,7 @@ describe("Server Configuration - Integration Tests", () => {
       if (shutdownHandler) {
         const consoleErrorSpy = vi
           .spyOn(console, "error")
-          .mockImplementation(() => {});
+          .mockImplementation(() => { });
 
         await shutdownHandler();
 
@@ -1550,7 +1538,7 @@ describe("Server Configuration - Integration Tests", () => {
       if (shutdownHandler) {
         const consoleErrorSpy = vi
           .spyOn(console, "error")
-          .mockImplementation(() => {});
+          .mockImplementation(() => { });
 
         await shutdownHandler();
         await new Promise((resolve) => setTimeout(resolve, 100));
@@ -1583,7 +1571,7 @@ describe("Server Configuration - Integration Tests", () => {
       if (shutdownHandler) {
         const consoleErrorSpy = vi
           .spyOn(console, "error")
-          .mockImplementation(() => {});
+          .mockImplementation(() => { });
 
         await shutdownHandler();
         await new Promise((resolve) => setTimeout(resolve, 100));
@@ -1600,7 +1588,7 @@ describe("Server Configuration - Integration Tests", () => {
 
       const consoleErrorSpy = vi
         .spyOn(console, "error")
-        .mockImplementation(() => {});
+        .mockImplementation(() => { });
 
       await setupAndImportServer();
 
@@ -1663,7 +1651,7 @@ describe("Server Configuration - Integration Tests", () => {
 
       const consoleLogSpy = vi
         .spyOn(console, "log")
-        .mockImplementation(() => {});
+        .mockImplementation(() => { });
 
       await setupAndImportServer();
 
@@ -1755,7 +1743,7 @@ describe("Server Configuration - Integration Tests", () => {
 
       const consoleLogSpy = vi
         .spyOn(console, "log")
-        .mockImplementation(() => {});
+        .mockImplementation(() => { });
 
       await setupAndImportServer();
 
@@ -1836,7 +1824,7 @@ describe("Server Configuration - Integration Tests", () => {
 
       const consoleErrorSpy = vi
         .spyOn(console, "error")
-        .mockImplementation(() => {});
+        .mockImplementation(() => { });
 
       await setupAndImportServer({
         viteMock: () => ({
@@ -1851,8 +1839,7 @@ describe("Server Configuration - Integration Tests", () => {
       const errorCalls = consoleErrorSpy.mock.calls;
       const hasHelpfulMessage = errorCalls.some(
         (call) =>
-          call[0]?.toString().includes("VITE_HMR_PORT") ||
-          call[0]?.toString().includes("port")
+          call.some(arg => arg?.toString().includes("VITE_HMR_PORT") || arg?.toString().includes("port"))
       );
       expect(hasHelpfulMessage).toBe(true);
     });

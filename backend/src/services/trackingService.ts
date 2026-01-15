@@ -10,6 +10,7 @@ import { ReminderService } from "./reminderService.js";
 import { BaseEntityService } from "./base/BaseEntityService.js";
 import { TrackingLifecycleManager } from "./lifecycle/TrackingLifecycleManager.js";
 import { DateUtils } from "@habitus/shared/utils";
+import { Logger } from "../setup/logger.js";
 
 /**
  * Service for tracking-related database operations.
@@ -96,9 +97,7 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
     schedules?: Array<{ hour: number; minutes: number }>,
     frequency?: Frequency
   ): Promise<TrackingData> {
-    console.log(
-      `[${new Date().toISOString()}] TRACKING | Creating tracking for userId: ${userId}`
-    );
+    Logger.info(`TRACKING | Creating tracking for userId: ${userId}`);
 
     // Validate inputs
     const validatedUserId = Tracking.validateUserId(userId);
@@ -109,14 +108,14 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
     if (!frequency) {
       throw new TypeError("Frequency is required");
     }
-    
+
     // Get user's timezone for validation (needed for one-time frequency date validation)
     const userRow = await this.db.get<{ timezone: string | null }>(
       "SELECT timezone FROM users WHERE id = ?",
       [validatedUserId]
     );
     const userTimezone = userRow?.timezone || undefined;
-    
+
     // Pass timezone to validation
     const validatedFrequency = Tracking.validateFrequency(frequency, userTimezone);
 
@@ -140,9 +139,7 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
     );
 
     if (!result.lastID) {
-      console.error(
-        `[${new Date().toISOString()}] TRACKING | Failed to create tracking for userId: ${userId}`
-      );
+      Logger.error(`TRACKING | Failed to create tracking for userId: ${userId}`);
       throw new Error("Failed to create tracking");
     }
 
@@ -160,17 +157,13 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
     // Retrieve created tracking
     const tracking = await this.getById(result.lastID, validatedUserId);
     if (!tracking) {
-      console.error(
-        `[${new Date().toISOString()}] TRACKING | Failed to retrieve created tracking for userId: ${userId}`
+      Logger.error(
+        `TRACKING | Failed to retrieve created tracking for userId: ${userId}`
       );
       throw new Error("Failed to retrieve created tracking");
     }
 
-    console.log(
-      `[${new Date().toISOString()}] TRACKING | Tracking created successfully: ID ${
-        tracking.id
-      }`
-    );
+    Logger.info(`TRACKING | Tracking created successfully: ID ${tracking.id}`);
 
     // For one-time trackings, create a single reminder for the earliest schedule time
     if (validatedFrequency.type === "one-time") {
@@ -202,17 +195,13 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
           validatedUserId,
           isoDateTimeString
         );
-        console.log(
-          `[${new Date().toISOString()}] TRACKING | Created one-time reminder for tracking ${
-            tracking.id
-          } at ${isoDateTimeString}`
+        Logger.info(
+          `TRACKING | Created one-time reminder for tracking ${tracking.id} at ${isoDateTimeString}`
         );
       } catch (error) {
         // Log error but don't fail tracking creation if reminder creation fails
-        console.error(
-          `[${new Date().toISOString()}] TRACKING | Failed to create one-time reminder for tracking ${
-            tracking.id
-          }:`,
+        Logger.error(
+          `TRACKING | Failed to create one-time reminder for tracking ${tracking.id}:`,
           error
         );
       }
@@ -246,15 +235,13 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
     schedules?: Array<{ hour: number; minutes: number }>,
     frequency?: Frequency
   ): Promise<TrackingData> {
-    console.log(
-      `[${new Date().toISOString()}] TRACKING | Updating tracking ID: ${trackingId} for userId: ${userId}`
-    );
+    Logger.info(`TRACKING | Updating tracking ID: ${trackingId} for userId: ${userId}`);
 
     // Verify tracking exists and belongs to user
     const existingTracking = await this.getById(trackingId, userId);
     if (!existingTracking) {
-      console.warn(
-        `[${new Date().toISOString()}] TRACKING | Update failed: tracking not found for ID: ${trackingId} and userId: ${userId}`
+      Logger.warn(
+        `TRACKING | Update failed: tracking not found for ID: ${trackingId} and userId: ${userId}`
       );
       throw new Error("Tracking not found");
     }
@@ -289,7 +276,7 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
         [userId]
       );
       const userTimezone = userRow?.timezone || undefined;
-      
+
       const validatedFrequency = Tracking.validateFrequency(frequency, userTimezone);
       updates.push("frequency = ?");
       values.push(JSON.stringify(validatedFrequency));
@@ -321,8 +308,8 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
     }
 
     if (updates.length === 0 && schedules === undefined) {
-      console.warn(
-        `[${new Date().toISOString()}] TRACKING | Update failed: no fields to update for tracking ID: ${trackingId}`
+      Logger.warn(
+        `TRACKING | Update failed: no fields to update for tracking ID: ${trackingId}`
       );
       throw new Error("No fields to update");
     }
@@ -332,9 +319,7 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
       updates.push("updated_at = CURRENT_TIMESTAMP");
       values.push(trackingId, userId);
 
-      console.log(
-        `[${new Date().toISOString()}] TRACKING | Executing tracking update query for ID: ${trackingId}`
-      );
+      Logger.debug(`TRACKING | Executing tracking update query for ID: ${trackingId}`);
 
       // Update tracking
       await this.db.run(
@@ -407,20 +392,16 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
               userId,
               isoDateTimeString
             );
-            console.log(
-              `[${new Date().toISOString()}] TRACKING | Created one-time reminder for tracking ${trackingId}`
-            );
+            Logger.info(`TRACKING | Created one-time reminder for tracking ${trackingId}`);
           }
         } else {
           // If converting to recurring, create initial reminder
           await this.lifecycleManager.onCreate(tracking);
-          console.log(
-            `[${new Date().toISOString()}] TRACKING | Created recurring reminder for tracking ${trackingId}`
-          );
+          Logger.info(`TRACKING | Created recurring reminder for tracking ${trackingId}`);
         }
       } catch (error) {
-        console.error(
-          `[${new Date().toISOString()}] TRACKING | Failed to update reminders for tracking ${trackingId}:`,
+        Logger.error(
+          `TRACKING | Failed to update reminders for tracking ${trackingId}:`,
           error
         );
         // Don't fail the update if reminder update fails
@@ -463,8 +444,8 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
                 trackingId,
                 userId
               );
-              console.log(
-                `[${new Date().toISOString()}] TRACKING | Updated Upcoming reminder for tracking ${trackingId} with new time`
+              Logger.info(
+                `TRACKING | Updated Upcoming reminder for tracking ${trackingId} with new time`
               );
             }
           } else {
@@ -473,25 +454,19 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
               trackingId,
               userId
             );
-            console.log(
-              `[${new Date().toISOString()}] TRACKING | Created Upcoming reminder for tracking ${trackingId}`
-            );
+            Logger.info(`TRACKING | Created Upcoming reminder for tracking ${trackingId}`);
           }
         }
       } catch (error) {
         // Log error but don't fail tracking update if reminder update fails
-        console.error(
-          `[${new Date().toISOString()}] TRACKING | Failed to update reminder for tracking ${trackingId}:`,
+        Logger.error(
+          `TRACKING | Failed to update reminder for tracking ${trackingId}:`,
           error
         );
       }
     }
 
-    console.log(
-      `[${new Date().toISOString()}] TRACKING | Tracking updated successfully: ID ${
-        tracking.id
-      }`
-    );
+    Logger.info(`TRACKING | Tracking updated successfully: ID ${tracking.id}`);
 
     return tracking;
   }
@@ -511,15 +486,15 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
     userId: number,
     newState: string
   ): Promise<TrackingData> {
-    console.log(
-      `[${new Date().toISOString()}] TRACKING | Updating tracking state ID: ${trackingId} for userId: ${userId} to state: ${newState}`
+    Logger.info(
+      `TRACKING | Updating tracking state ID: ${trackingId} for userId: ${userId} to state: ${newState}`
     );
 
     // Verify tracking exists and belongs to user
     const existingTracking = await this.getById(trackingId, userId);
     if (!existingTracking) {
-      console.warn(
-        `[${new Date().toISOString()}] TRACKING | Update state failed: tracking not found for ID: ${trackingId} and userId: ${userId}`
+      Logger.warn(
+        `TRACKING | Update state failed: tracking not found for ID: ${trackingId} and userId: ${userId}`
       );
       throw new Error("Tracking not found");
     }
@@ -553,8 +528,8 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
       validatedNewState
     );
 
-    console.log(
-      `[${new Date().toISOString()}] TRACKING | Tracking state updated successfully: ID ${trackingId} to state ${validatedNewState}`
+    Logger.info(
+      `TRACKING | Tracking state updated successfully: ID ${trackingId} to state ${validatedNewState}`
     );
 
     return tracking;
@@ -570,15 +545,13 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
    * @public
    */
   async deleteTracking(trackingId: number, userId: number): Promise<void> {
-    console.log(
-      `[${new Date().toISOString()}] TRACKING | Deleting tracking ID: ${trackingId} for userId: ${userId}`
-    );
+    Logger.info(`TRACKING | Deleting tracking ID: ${trackingId} for userId: ${userId}`);
 
     // Verify tracking exists and belongs to user before deleting
     const existingTracking = await this.getById(trackingId, userId);
     if (!existingTracking) {
-      console.warn(
-        `[${new Date().toISOString()}] TRACKING | Delete failed: tracking not found for ID: ${trackingId} and userId: ${userId}`
+      Logger.warn(
+        `TRACKING | Delete failed: tracking not found for ID: ${trackingId} and userId: ${userId}`
       );
       throw new Error("Tracking not found");
     }
@@ -589,10 +562,8 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
       "DELETE FROM reminders WHERE tracking_id = ? AND user_id = ?",
       [trackingId, userId]
     );
-    console.log(
-      `[${new Date().toISOString()}] TRACKING | Deleted ${
-        reminderDeleteResult.changes
-      } reminder(s) for tracking ID: ${trackingId}`
+    Logger.info(
+      `TRACKING | Deleted ${reminderDeleteResult.changes} reminder(s) for tracking ID: ${trackingId}`
     );
 
     // Delete the tracking
@@ -602,14 +573,12 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
     );
 
     if (result.changes === 0) {
-      console.warn(
-        `[${new Date().toISOString()}] TRACKING | Delete failed: tracking not found for ID: ${trackingId} and userId: ${userId}`
+      Logger.warn(
+        `TRACKING | Delete failed: tracking not found for ID: ${trackingId} and userId: ${userId}`
       );
       throw new Error("Tracking not found");
     }
 
-    console.log(
-      `[${new Date().toISOString()}] TRACKING | Tracking deleted successfully: ID ${trackingId}`
-    );
+    Logger.info(`TRACKING | Tracking deleted successfully: ID ${trackingId}`);
   }
 }

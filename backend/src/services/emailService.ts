@@ -1,6 +1,7 @@
 import nodemailer, { Transporter } from "nodemailer";
 import { ServerConfig } from "../setup/constants.js";
 import { DateUtils } from "@habitus/shared/utils";
+import { Logger } from "../setup/logger.js";
 
 /**
  * Email service configuration interface.
@@ -203,18 +204,13 @@ export class EmailService {
       }
 
       const result = (await response.json()) as { messageId?: string };
-      console.log(
-        `[${new Date().toISOString()}] EMAIL | Email sent successfully via Brevo API to: ${email}, messageId: ${
-          result.messageId || "N/A"
-        }`
-      );
+      Logger.info(`EMAIL | Email sent successfully via Brevo API to: ${email}, messageId: ${result.messageId || "N/A"}`);
     } catch (error: any) {
       if (error.message?.includes("Brevo API error")) {
         throw error;
       }
       throw new Error(
-        `Failed to send email via Brevo API: ${
-          error.message || "Unknown error"
+        `Failed to send email via Brevo API: ${error.message || "Unknown error"
         }`
       );
     }
@@ -235,9 +231,7 @@ export class EmailService {
     isRegistration: boolean = false
   ): Promise<void> {
     const emailType = isRegistration ? "registration" : "login";
-    console.log(
-      `[${new Date().toISOString()}] EMAIL | Preparing to send ${emailType} magic link email to: ${email}`
-    );
+    Logger.info(`EMAIL | Preparing to send ${emailType} magic link email to: ${email}`);
 
     // Encode token for URL to handle any special characters properly
     const encodedToken = encodeURIComponent(token);
@@ -260,14 +254,12 @@ export class EmailService {
         <table role="presentation" style="width: 100%; border-collapse: collapse;">
           <tr>
             <td style="padding: 40px 30px; text-align: left;">
-              <h2 style="color: #333; text-align: left; margin: 0 0 16px 0; font-size: 24px; font-weight: bold;">${
-                isRegistration ? "Welcome to 🌱 Habitus!" : "Login Request"
-              }</h2>
-              <p style="text-align: left; margin: 0 0 16px 0; font-size: 16px; line-height: 1.5; color: #333;">${
-                isRegistration
-                  ? "Click the link below to verify your email and complete your registration:"
-                  : "Click the link below to log into 🌱 Habitus:"
-              }</p>
+              <h2 style="color: #333; text-align: left; margin: 0 0 16px 0; font-size: 24px; font-weight: bold;">${isRegistration ? "Welcome to 🌱 Habitus!" : "Login Request"
+      }</h2>
+              <p style="text-align: left; margin: 0 0 16px 0; font-size: 16px; line-height: 1.5; color: #333;">${isRegistration
+        ? "Click the link below to verify your email and complete your registration:"
+        : "Click the link below to log into 🌱 Habitus:"
+      }</p>
               <p style="margin: 30px 0; text-align: left;">
                 <a href="${magicLink}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; text-align: center;">
                   ${isRegistration ? "Verify email" : "Log in"}
@@ -283,13 +275,9 @@ export class EmailService {
 
     // Use Brevo API if configured, otherwise use SMTP
     if (this.useBrevoApi()) {
-      console.log(
-        `[${new Date().toISOString()}] EMAIL | Sending ${emailType} magic link email via Brevo API`
-      );
+      Logger.info(`EMAIL | Sending ${emailType} magic link email via Brevo API`);
       await this.sendViaBrevoApi(email, subject, text, html);
-      console.log(
-        `[${new Date().toISOString()}] EMAIL | ${emailType} magic link email sent successfully to: ${email}`
-      );
+      Logger.info(`EMAIL | ${emailType} magic link email sent successfully to: ${email}`);
       return;
     }
 
@@ -308,15 +296,9 @@ export class EmailService {
         const mailTransporter = this.getTransporter();
 
         if (attempt > 1) {
-          console.log(
-            `[${new Date().toISOString()}] EMAIL | Retry attempt ${attempt}/${maxRetries} for ${emailType} magic link to ${email}`
-          );
+          Logger.verbose(`EMAIL | Retry attempt ${attempt}/${maxRetries} for ${emailType} magic link to ${email}`);
         } else {
-          console.log(
-            `[${new Date().toISOString()}] EMAIL | Sending ${emailType} magic link email via SMTP (${
-              this.config.host
-            }:${this.config.port})`
-          );
+          Logger.info(`EMAIL | Sending ${emailType} magic link email via SMTP`);
         }
 
         // Format from address with optional name
@@ -333,33 +315,21 @@ export class EmailService {
           html,
         });
 
-        console.log(
-          `[${new Date().toISOString()}] EMAIL | ${emailType} magic link email sent successfully to: ${email}, messageId: ${
-            info.messageId
-          }`
-        );
+        Logger.info(`EMAIL | ${emailType} magic link email sent successfully to: ${email}, messageId: ${info.messageId}`);
         return; // Success, exit retry loop
       } catch (error: any) {
         lastError = error;
 
         // Log retry attempt
         if (attempt < maxRetries) {
-          console.warn(
-            `[${new Date().toISOString()}] EMAIL | Attempt ${attempt}/${maxRetries} failed for ${emailType} magic link to ${email}, retrying in ${
-              2 * attempt
-            }s...`,
-            error.message || error.code
-          );
+          Logger.warn(`EMAIL | Attempt ${attempt}/${maxRetries} failed for ${emailType} magic link to ${email}, retrying in ${2 * attempt}s...`);
           // Wait before retry (exponential backoff: 2s, 4s)
           await new Promise((resolve) => setTimeout(resolve, 2000 * attempt));
           continue;
         }
 
         // All retries exhausted, log final error
-        console.error(
-          `[${new Date().toISOString()}] EMAIL | All ${maxRetries} attempts failed for ${emailType} magic link email to ${email}:`,
-          error
-        );
+        Logger.error(`EMAIL | All ${maxRetries} attempts failed for ${emailType} magic link email to ${email}:`, error);
 
         // Check for Gmail app-specific password requirement
         if (
@@ -372,26 +342,24 @@ export class EmailService {
         ) {
           throw new Error(
             "SMTP authentication failed: Application-specific password required. " +
-              "For Gmail accounts with 2FA enabled, you must use an app-specific password. " +
-              "Generate one at: https://myaccount.google.com/apppasswords " +
-              "Then set SMTP_PASS in your .env file to the generated app password."
+            "For Gmail accounts with 2FA enabled, you must use an app-specific password. " +
+            "Generate one at: https://myaccount.google.com/apppasswords " +
+            "Then set SMTP_PASS in your .env file to the generated app password."
           );
         }
 
         // Check for other authentication errors
         if (lastError.code === "EAUTH") {
           throw new Error(
-            `SMTP authentication failed: ${
-              lastError.response || lastError.message
+            `SMTP authentication failed: ${lastError.response || lastError.message
             }. ` +
-              "Please verify your SMTP_USER and SMTP_PASS environment variables are correct."
+            "Please verify your SMTP_USER and SMTP_PASS environment variables are correct."
           );
         }
 
         const linkType = isRegistration ? "registration link" : "login link";
         throw new Error(
-          `Failed to send ${linkType} email after ${maxRetries} attempts: ${
-            lastError.message || lastError.code || "Unknown error"
+          `Failed to send ${linkType} email after ${maxRetries} attempts: ${lastError.message || lastError.code || "Unknown error"
           }`
         );
       }
@@ -422,9 +390,7 @@ export class EmailService {
     locale?: string,
     timezone?: string
   ): Promise<void> {
-    console.log(
-      `[${new Date().toISOString()}] EMAIL | Preparing to send reminder email to: ${email}, reminderId: ${reminderId}`
-    );
+    Logger.info(`EMAIL | Preparing to send reminder email to: ${email}, reminderId: ${reminderId}`);
 
     const dashboardUrl = `${this.config.frontendUrl}/`;
     const baseUrl = `${dashboardUrl}?reminderId=${reminderId}`;
@@ -449,9 +415,8 @@ export class EmailService {
 
     const icon = trackingIcon || "📝";
     const subject = `🌱 Habitus reminder for ${icon} ${trackingQuestion}`;
-    const text = `You have a pending reminder:\n\n${icon} ${trackingQuestion}\n\nScheduled for: ${formattedTime}${
-      trackingNotes ? `\n\nTracking notes: ${trackingNotes}` : ""
-    }\n\nAvailable actions:\n- Add Notes: ${addNotesUrl}\n- Complete: ${completeUrl}\n- Dismiss: ${dismissUrl}\n- Snooze: ${snoozeUrl}`;
+    const text = `You have a pending reminder:\n\n${icon} ${trackingQuestion}\n\nScheduled for: ${formattedTime}${trackingNotes ? `\n\nTracking notes: ${trackingNotes}` : ""
+      }\n\nAvailable actions:\n- Add Notes: ${addNotesUrl}\n- Complete: ${completeUrl}\n- Dismiss: ${dismissUrl}\n- Snooze: ${snoozeUrl}`;
 
     const html = `
       <!DOCTYPE html>
@@ -472,16 +437,15 @@ export class EmailService {
                 </p>
                 <p style="color: #666; font-size: 14px; margin: 8px 0 0 0; line-height: 1.5;">
                   <strong>Scheduled for:</strong> ${this.escapeHtml(
-                    formattedTime
-                  )}
+      formattedTime
+    )}
                 </p>
-                ${
-                  trackingNotes
-                    ? `<p style="color: #666; font-size: 14px; margin: 8px 0 0 0; line-height: 1.5; white-space: pre-wrap;">${this.escapeHtml(
-                        trackingNotes
-                      )}</p>`
-                    : ""
-                }
+                ${trackingNotes
+        ? `<p style="color: #666; font-size: 14px; margin: 8px 0 0 0; line-height: 1.5; white-space: pre-wrap;">${this.escapeHtml(
+          trackingNotes
+        )}</p>`
+        : ""
+      }
                 <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #dee2e6;">
                   <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0; border-collapse: collapse;">
                     <tr>
@@ -521,9 +485,7 @@ export class EmailService {
 
     await this.sendEmail(email, subject, text, html);
 
-    console.log(
-      `[${new Date().toISOString()}] EMAIL | Reminder email sent successfully to: ${email}, reminderId: ${reminderId}`
-    );
+    Logger.info(`EMAIL | Reminder email sent successfully to: ${email}, reminderId: ${reminderId}`);
   }
 
   /**
@@ -559,17 +521,13 @@ export class EmailService {
     text: string,
     html?: string
   ): Promise<void> {
-    console.log(
-      `[${new Date().toISOString()}] EMAIL | Preparing to send email to: ${email}, subject: ${subject}`
-    );
+    Logger.info(`EMAIL | Preparing to send email to: ${email}`);
 
     const finalHtml = html || text.replace(/\n/g, "<br>");
 
     // Use Brevo API if configured, otherwise use SMTP
     if (this.useBrevoApi()) {
-      console.log(
-        `[${new Date().toISOString()}] EMAIL | Sending email via Brevo API`
-      );
+      Logger.info("EMAIL | Sending email via Brevo API");
       await this.sendViaBrevoApi(email, subject, text, finalHtml);
       return;
     }
@@ -578,11 +536,7 @@ export class EmailService {
     try {
       const mailTransporter = this.getTransporter();
 
-      console.log(
-        `[${new Date().toISOString()}] EMAIL | Sending email via SMTP (${
-          this.config.host
-        }:${this.config.port})`
-      );
+      Logger.info("EMAIL | Sending email via SMTP");
 
       // Format from address with optional name
       const fromAddress = this.config.fromEmail || this.config.user;
@@ -598,16 +552,9 @@ export class EmailService {
         html: finalHtml,
       });
 
-      console.log(
-        `[${new Date().toISOString()}] EMAIL | Email sent successfully to: ${email}, messageId: ${
-          info.messageId
-        }`
-      );
+      Logger.info(`EMAIL | Email sent successfully to: ${email}, messageId: ${info.messageId}`);
     } catch (error: any) {
-      console.error(
-        `[${new Date().toISOString()}] EMAIL | Error sending email to ${email}:`,
-        error
-      );
+      Logger.error(`EMAIL | Error sending email to ${email}:`, error);
 
       // Check for Gmail app-specific password requirement
       if (
@@ -618,9 +565,9 @@ export class EmailService {
       ) {
         throw new Error(
           "SMTP authentication failed: Application-specific password required. " +
-            "For Gmail accounts with 2FA enabled, you must use an app-specific password. " +
-            "Generate one at: https://myaccount.google.com/apppasswords " +
-            "Then set SMTP_PASS in your .env file to the generated app password."
+          "For Gmail accounts with 2FA enabled, you must use an app-specific password. " +
+          "Generate one at: https://myaccount.google.com/apppasswords " +
+          "Then set SMTP_PASS in your .env file to the generated app password."
         );
       }
 
@@ -628,7 +575,7 @@ export class EmailService {
       if (error.code === "EAUTH") {
         throw new Error(
           `SMTP authentication failed: ${error.response || error.message}. ` +
-            "Please verify your SMTP_USER and SMTP_PASS environment variables are correct."
+          "Please verify your SMTP_USER and SMTP_PASS environment variables are correct."
         );
       }
 

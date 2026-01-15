@@ -3,6 +3,7 @@ import {
   PERPLEXITY_API_URL,
   AI_DEFAULT_EMOJI,
 } from "../setup/constants.js";
+import { Logger } from "../setup/logger.js";
 
 /**
  * AI Service for emoji suggestions using Perplexity API.
@@ -87,12 +88,7 @@ export class AiService {
         } catch {
           errorText = await response.text();
         }
-        console.error(
-          `[${new Date().toISOString()}] AI_SERVICE | Perplexity API error:`,
-          response.status,
-          response.statusText,
-          errorText
-        );
+        Logger.error(`AI_SERVICE | Perplexity API error: ${response.status} ${response.statusText}`, errorText);
         throw new Error(
           `Perplexity API error: ${response.status} ${response.statusText}. ${errorText}`
         );
@@ -121,10 +117,7 @@ export class AiService {
       // Default fallback emoji
       return AI_DEFAULT_EMOJI;
     } catch (error) {
-      console.error(
-        `[${new Date().toISOString()}] AI_SERVICE | Error suggesting emoji:`,
-        error
-      );
+      Logger.error("AI_SERVICE | Error suggesting emoji:", error);
       if (error instanceof Error) {
         throw error;
       }
