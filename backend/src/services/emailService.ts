@@ -350,7 +350,7 @@ export class EmailService {
    * @param trackingQuestion - Tracking question text
    * @param scheduledTime - Scheduled time for the reminder
    * @param trackingIcon - Tracking icon (emoji)
-   * @param trackingNotes - Optional tracking notes
+   * @param trackingDetails - Optional tracking details
    * @param notes - Optional reminder notes
    * @returns Promise that resolves when email is sent
    * @throws Error if email sending fails
@@ -362,7 +362,7 @@ export class EmailService {
     trackingQuestion: string,
     scheduledTime: string,
     trackingIcon?: string,
-    trackingNotes?: string,
+    trackingDetails?: string,
     notes?: string,
     locale?: string,
     timezone?: string
@@ -392,7 +392,7 @@ export class EmailService {
 
     const icon = trackingIcon || "📝";
     const subject = `🌱 Habitus reminder for ${icon} ${trackingQuestion}`;
-    const text = `You have a pending reminder:\n\n${icon} ${trackingQuestion}\n\nScheduled for: ${formattedTime}${trackingNotes ? `\n\nTracking notes: ${trackingNotes}` : ""
+    const text = `You have a pending reminder:\n\n${icon} ${trackingQuestion}\n\nScheduled for: ${formattedTime}${trackingDetails ? `\n\nTracking details: ${trackingDetails}` : ""
       }\n\nAvailable actions:\n- Add Notes: ${addNotesUrl}\n- Complete: ${completeUrl}\n- Dismiss: ${dismissUrl}\n- Snooze: ${snoozeUrl}`;
 
     const html = `
@@ -417,9 +417,9 @@ export class EmailService {
       formattedTime
     )}
                 </p>
-                ${trackingNotes
+                ${trackingDetails
         ? `<p style="color: #666; font-size: 14px; margin: 8px 0 0 0; line-height: 1.5; white-space: pre-wrap;">${this.escapeHtml(
-          trackingNotes
+          trackingDetails
         )}</p>`
         : ""
       }

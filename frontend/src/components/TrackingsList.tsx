@@ -14,7 +14,7 @@ interface TrackingsListProps {
     trackings?: TrackingData[];
     onEdit: (tracking: TrackingData) => void;
     onCreate?: () => void;
-    onCreateTracking?: (createFn: (question: string, notes: string | undefined, icon: string | undefined, schedules: Array<{ hour: number; minutes: number }>, frequency: Frequency) => Promise<TrackingData>) => void;
+    onCreateTracking?: (createFn: (question: string, details: string | undefined, icon: string | undefined, schedules: Array<{ hour: number; minutes: number }>, frequency: Frequency) => Promise<TrackingData>) => void;
     isLoading?: boolean;
     onStateChange?: (trackingId: number, newState: TrackingState) => Promise<TrackingData | void>;
     onStateChangeSuccess?: (message: string) => void;
@@ -1202,8 +1202,8 @@ export function TrackingsList({
                                     </button>
                                 </div>
                             </th>
-                            <th className="col-notes">
-                                Notes
+                            <th className="col-details">
+                                Details
                             </th>
                             <th className="col-times">
                                 <button
@@ -1361,17 +1361,17 @@ export function TrackingsList({
                                             {TrackingFormatter.truncateText(tracking.question, 50)}
                                         </button>
                                     </td>
-                                    <td className="cell-notes">
-                                        {tracking.notes && tracking.notes.trim() ? (
+                                    <td className="cell-details">
+                                        {tracking.details && tracking.details.trim() ? (
                                             <span
-                                                className="notes-icon"
-                                                title={tracking.notes}
-                                                aria-label={`Notes: ${tracking.notes}`}
+                                                className="details-icon"
+                                                title={tracking.details}
+                                                aria-label={`Details: ${tracking.details}`}
                                             >
                                                 📝
                                             </span>
                                         ) : (
-                                            <span className="notes-empty">—</span>
+                                            <span className="details-empty">—</span>
                                         )}
                                     </td>
                                     <td
@@ -1460,9 +1460,9 @@ export function TrackingsList({
                                             </span>
                                         </div>
                                     )}
-                                    {tracking.notes && tracking.notes.trim() && (
+                                    {tracking.details && tracking.details.trim() && (
                                         <div className="tracking-card-row">
-                                            <span className="tracking-card-label">Notes</span>
+                                            <span className="tracking-card-label">Details</span>
                                             <span className="tracking-card-value">📝</span>
                                         </div>
                                     )}

@@ -132,14 +132,14 @@ export function MainLayout() {
 
     const handleCreateTracking = async (
         question: string,
-        notes: string | undefined,
+        details: string | undefined,
         icon: string | undefined,
         schedules: Array<{ hour: number; minutes: number }>,
         frequency: import("../../models/Tracking").Frequency
     ) => {
         try {
             // createTracking in useCoordinatedEntities already handles reminder refresh
-            const result = await createTracking(question, notes, icon, schedules, frequency);
+            const result = await createTracking(question, details, icon, schedules, frequency);
             setShowTrackingForm(false);
             setMessage({ text: 'Tracking created successfully', type: 'success' });
             return result;
@@ -153,13 +153,13 @@ export function MainLayout() {
         trackingId: number,
         frequency: import("../../models/Tracking").Frequency,
         question?: string,
-        notes?: string,
+        details?: string,
         icon?: string,
         schedules?: Array<{ hour: number; minutes: number }>
     ) => {
         try {
             // updateTracking in useCoordinatedEntities already handles reminder refresh
-            const result = await updateTracking(trackingId, frequency, question, notes, icon, schedules);
+            const result = await updateTracking(trackingId, frequency, question, details, icon, schedules);
             setEditingTracking(null);
             setMessage({ text: 'Tracking updated successfully', type: 'success' });
             return result;

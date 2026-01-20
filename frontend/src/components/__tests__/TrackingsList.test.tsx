@@ -510,8 +510,8 @@ describe("TrackingsList", () => {
         expect(timesHeaders.length).toBeGreaterThan(0);
         const frequencyHeaders = screen.getAllByText("Frequency");
         expect(frequencyHeaders.length).toBeGreaterThan(0);
-        const notesHeaders = screen.getAllByText("Notes");
-        expect(notesHeaders.length).toBeGreaterThan(0);
+        const detailsHeaders = screen.getAllByText("Details");
+        expect(detailsHeaders.length).toBeGreaterThan(0);
         const nextReminderHeaders = screen.getAllByText("Next reminder");
         expect(nextReminderHeaders.length).toBeGreaterThan(0);
         const statusHeaders = screen.getAllByText("Status");
@@ -556,7 +556,7 @@ describe("TrackingsList", () => {
                 user_id: 1,
                 question: "Did I exercise today?",
                 icon: "🏋️",
-                notes: "<p>Exercise notes</p>",
+                details: "<p>Exercise notes</p>",
                 schedules: [
                     { id: 1, tracking_id: 1, hour: 9, minutes: 0 },
                     { id: 2, tracking_id: 1, hour: 18, minutes: 30 },
@@ -589,22 +589,22 @@ describe("TrackingsList", () => {
         expect(weeklyBadges.length).toBeGreaterThan(0);
         const weekdayTexts = screen.getAllByText("Mon, Wed, Fri");
         expect(weekdayTexts.length).toBeGreaterThan(0);
-        // Check that notes icon is displayed
-        const notesIcons = screen.getAllByText("📝");
-        expect(notesIcons.length).toBeGreaterThan(0);
+        // Check that details icon is displayed
+        const detailsIcons = screen.getAllByText("📝");
+        expect(detailsIcons.length).toBeGreaterThan(0);
         // Check the first one (from table layout) has the correct attributes
-        const notesIcon = notesIcons[0];
-        expect(notesIcon).toHaveAttribute("title", "<p>Exercise notes</p>");
+        const detailsIcon = detailsIcons[0];
+        expect(detailsIcon).toHaveAttribute("title", "<p>Exercise notes</p>");
     });
 
-    it("should display notes icon with tooltip when notes are present", () => {
+    it("should display details icon with tooltip when details are present", () => {
         const trackings: TrackingData[] = [
             {
                 id: 1,
                 user_id: 1,
                 question: "Did I exercise?",
                 frequency: { type: "daily" },
-                notes: "Some exercise notes",
+                details: "Some exercise notes",
             },
         ];
 
@@ -615,15 +615,15 @@ describe("TrackingsList", () => {
             />
         );
 
-        const notesIcons = screen.getAllByText("📝");
-        expect(notesIcons.length).toBeGreaterThan(0);
+        const detailsIcons = screen.getAllByText("📝");
+        expect(detailsIcons.length).toBeGreaterThan(0);
         // Check the first one (from table layout) has the correct attributes
-        const notesIcon = notesIcons[0];
-        expect(notesIcon).toHaveAttribute("title", "Some exercise notes");
-        expect(notesIcon).toHaveAttribute("aria-label", "Notes: Some exercise notes");
+        const detailsIcon = detailsIcons[0];
+        expect(detailsIcon).toHaveAttribute("title", "Some exercise notes");
+        expect(detailsIcon).toHaveAttribute("aria-label", "Details: Some exercise notes");
     });
 
-    it("should display dash when notes are empty or undefined", () => {
+    it("should display dash when details are empty or undefined", () => {
         const trackings: TrackingData[] = [
             {
                 id: 1,
@@ -636,14 +636,14 @@ describe("TrackingsList", () => {
                 user_id: 1,
                 question: "Did I meditate?",
                 frequency: { type: "daily" },
-                notes: "",
+                details: "",
             },
             {
                 id: 3,
                 user_id: 1,
                 question: "Did I read?",
                 frequency: { type: "daily" },
-                notes: "   ", // Only whitespace
+                details: "   ", // Only whitespace
             },
         ];
 
@@ -654,10 +654,10 @@ describe("TrackingsList", () => {
             />
         );
 
-        // Should display dash for all three (undefined, empty string, whitespace only)
-        const emptyNotes = screen.getAllByText("—");
-        expect(emptyNotes.length).toBeGreaterThanOrEqual(3);
-        // Should not display notes icon
+        // Should display dash for all three (undefined, empty string, wellness only)
+        const emptyDetails = screen.getAllByText("—");
+        expect(emptyDetails.length).toBeGreaterThanOrEqual(3);
+        // Should not display details icon
         expect(screen.queryByText("📝")).not.toBeInTheDocument();
     });
 

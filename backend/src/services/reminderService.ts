@@ -1691,7 +1691,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       tracking.question,
       reminder.scheduled_time,
       tracking.icon,
-      tracking.notes,
+      tracking.details,
       reminder.notes,
       user.locale,
       user.timezone
@@ -1726,7 +1726,7 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       tracking.question,
       reminder.scheduled_time,
       tracking.icon,
-      tracking.notes,
+      tracking.details,
       reminder.notes,
       user.locale,
       user.timezone

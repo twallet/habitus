@@ -13,7 +13,7 @@ interface EditTrackingModalProps {
         trackingId: number,
         frequency: Frequency,
         question?: string,
-        notes?: string,
+        details?: string,
         icon?: string,
         schedules?: Array<{ hour: number; minutes: number }>
     ) => Promise<void>;
@@ -33,7 +33,7 @@ export function EditTrackingModal({
     onSave,
 }: EditTrackingModalProps) {
     const [question, setQuestion] = useState(tracking.question);
-    const [notes, setNotes] = useState(tracking.notes || "");
+    const [details, setDetails] = useState(tracking.details || "");
     const [icon, setIcon] = useState(tracking.icon || "");
     const [schedules, setSchedules] = useState<
         Array<{ hour: number; minutes: number }>
@@ -216,8 +216,8 @@ export function EditTrackingModal({
             return;
         }
 
-        if (notes.trim().length > 500) {
-            setError("Notes must not exceed 500 characters");
+        if (details.trim().length > 500) {
+            setError("Details must not exceed 500 characters");
             setIsSubmitting(false);
             return;
         }
@@ -259,7 +259,7 @@ export function EditTrackingModal({
                 tracking.id,
                 frequency,
                 question.trim() !== tracking.question ? question.trim() : undefined,
-                notes.trim() !== (tracking.notes || "") ? notes.trim() || undefined : undefined,
+                details.trim() !== (tracking.details || "") ? details.trim() || undefined : undefined,
                 iconValue,
                 finalSchedules
             );
@@ -429,12 +429,12 @@ export function EditTrackingModal({
 
                     <div className="form-group">
                         <div className="form-label-row">
-                            <label htmlFor="edit-tracking-notes">
-                                Notes{" "}
+                            <label htmlFor="edit-tracking-details">
+                                Details{" "}
                                 <button
                                     type="button"
                                     className="field-help"
-                                    aria-label="Notes help"
+                                    aria-label="Details help"
                                     title="Add any extra context or details you want to remember about this tracking."
                                 >
                                     ?
@@ -442,11 +442,11 @@ export function EditTrackingModal({
                             </label>
                         </div>
                         <textarea
-                            id="edit-tracking-notes"
-                            name="notes"
-                            placeholder="Add any additional notes or context..."
-                            value={notes}
-                            onChange={(e) => setNotes(e.target.value)}
+                            id="edit-tracking-details"
+                            name="details"
+                            placeholder="Add any additional details or context..."
+                            value={details}
+                            onChange={(e) => setDetails(e.target.value)}
                             disabled={isSubmitting}
                             maxLength={500}
                             rows={2}

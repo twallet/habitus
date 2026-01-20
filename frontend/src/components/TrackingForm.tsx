@@ -8,7 +8,7 @@ import "./TrackingForm.css";
 interface TrackingFormProps {
     onSubmit: (
         question: string,
-        notes: string | undefined,
+        details: string | undefined,
         icon: string | undefined,
         schedules: Array<{ hour: number; minutes: number }>,
         frequency: Frequency
@@ -31,7 +31,7 @@ export function TrackingForm({
     isSubmitting = false,
 }: TrackingFormProps) {
     const [question, setQuestion] = useState("");
-    const [notes, setNotes] = useState("");
+    const [details, setDetails] = useState("");
     const [icon, setIcon] = useState("");
     const [schedules, setSchedules] = useState<
         Array<{ hour: number; minutes: number }>
@@ -194,8 +194,8 @@ export function TrackingForm({
             return;
         }
 
-        if (notes.trim().length > 500) {
-            setError("Notes must not exceed 500 characters");
+        if (details.trim().length > 500) {
+            setError("Details must not exceed 500 characters");
             return;
         }
 
@@ -224,14 +224,14 @@ export function TrackingForm({
         try {
             await onSubmit(
                 question.trim(),
-                notes.trim() || undefined,
+                details.trim() || undefined,
                 icon.trim() || undefined,
                 finalSchedules,
                 frequency
             );
             // Reset form on success
             setQuestion("");
-            setNotes("");
+            setDetails("");
             setIcon("");
             setSchedules([]);
             setScheduleTime(getTimeInFiveMinutes());
@@ -371,12 +371,12 @@ export function TrackingForm({
 
             <div className="form-group">
                 <div className="form-label-row">
-                    <label htmlFor="tracking-notes">
-                        Notes{" "}
+                    <label htmlFor="tracking-details">
+                        Details{" "}
                         <button
                             type="button"
                             className="field-help"
-                            aria-label="Notes help"
+                            aria-label="Details help"
                             title="Add any extra context or details you want to remember about this tracking."
                         >
                             ?
@@ -384,11 +384,11 @@ export function TrackingForm({
                     </label>
                 </div>
                 <textarea
-                    id="tracking-notes"
-                    name="notes"
-                    placeholder="Add any additional notes or context..."
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
+                    id="tracking-details"
+                    name="details"
+                    placeholder="Add any additional details or context..."
+                    value={details}
+                    onChange={(e) => setDetails(e.target.value)}
                     disabled={isSubmitting}
                     maxLength={500}
                     rows={2}

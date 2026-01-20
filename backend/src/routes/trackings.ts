@@ -76,7 +76,7 @@ router.get(
  * @route POST /api/trackings
  * @header {string} Authorization - Bearer token
  * @body {string} question - The tracking question
- * @body {string} notes - Optional notes (rich text)
+ * @body {string} details - Optional details (rich text)
  * @body {string} icon - Optional icon (emoji)
  * @body {Array<{hour: number, minutes: number}>} schedules - Required schedules array (1-5 schedules)
  * @body {Frequency} frequency - Required frequency pattern for reminder schedule
@@ -85,7 +85,7 @@ router.get(
 router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
-    const { question, notes, icon, schedules, frequency } = req.body;
+    const { question, details, icon, schedules, frequency } = req.body;
 
     if (!question) {
       return res.status(400).json({ error: "Question is required" });
@@ -104,7 +104,7 @@ router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
     const tracking = await getTrackingServiceInstance().createTracking(
       userId,
       question,
-      notes,
+      details,
       icon,
       schedules,
       frequency
@@ -130,7 +130,7 @@ router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
  * @header {string} Authorization - Bearer token
  * @param {number} id - The tracking ID
  * @body {string} question - Updated question (optional)
- * @body {string} notes - Updated notes (optional)
+ * @body {string} details - Updated details (optional)
  * @body {string} icon - Updated icon (optional)
  * @body {Array<{hour: number, minutes: number}>} schedules - Updated schedules array (optional, 1-5 schedules if provided)
  * @body {Frequency} frequency - Updated frequency pattern (optional)
@@ -143,7 +143,7 @@ router.put(
     try {
       const trackingId = parseInt(req.params.id, 10);
       const userId = req.userId!;
-      const { question, notes, icon, schedules, frequency } = req.body;
+      const { question, details, icon, schedules, frequency } = req.body;
 
       if (isNaN(trackingId)) {
         return res.status(400).json({ error: "Invalid tracking ID" });
@@ -162,7 +162,7 @@ router.put(
         trackingId,
         userId,
         question,
-        notes,
+        details,
         icon,
         schedules,
         frequency

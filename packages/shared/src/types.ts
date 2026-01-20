@@ -33,20 +33,20 @@ export type Frequency =
   | { type: "daily" }
   | { type: "weekly"; days: number[] } // 0-6, where 0=Sunday
   | {
-      type: "monthly";
-      kind: "day_number" | "last_day" | "weekday_ordinal";
-      day_numbers?: number[]; // 1-31
-      weekday?: number; // 0-6, where 0=Sunday
-      ordinal?: number; // 1-5 (first, second, third, fourth, fifth)
-    }
+    type: "monthly";
+    kind: "day_number" | "last_day" | "weekday_ordinal";
+    day_numbers?: number[]; // 1-31
+    weekday?: number; // 0-6, where 0=Sunday
+    ordinal?: number; // 1-5 (first, second, third, fourth, fifth)
+  }
   | {
-      type: "yearly";
-      kind: "date" | "weekday_ordinal";
-      month?: number; // 1-12
-      day?: number; // 1-31
-      weekday?: number; // 0-6, where 0=Sunday
-      ordinal?: number; // 1-5 (first, second, third, fourth, fifth)
-    }
+    type: "yearly";
+    kind: "date" | "weekday_ordinal";
+    month?: number; // 1-12
+    day?: number; // 1-31
+    weekday?: number; // 0-6, where 0=Sunday
+    ordinal?: number; // 1-5 (first, second, third, fourth, fifth)
+  }
   | { type: "one-time"; date: string }; // YYYY-MM-DD format
 
 export interface TrackingScheduleData {
@@ -62,7 +62,7 @@ export interface TrackingData {
   id: number;
   user_id: number;
   question: string;
-  notes?: string;
+  details?: string;
   icon?: string;
   frequency: Frequency;
   state?: TrackingState;

@@ -12,9 +12,9 @@ import { ReminderData } from "../models/Reminder.js";
  */
 function getViteEnv():
   | {
-      VITE_SERVER_URL?: string;
-      VITE_PORT?: string;
-    }
+    VITE_SERVER_URL?: string;
+    VITE_PORT?: string;
+  }
   | undefined {
   // First, try to get from globalThis.import.meta.env (works in both tests and browser)
   // In tests, this is mocked in setupTests.ts
@@ -297,9 +297,9 @@ export class ApiClient {
       headers: isFormData
         ? options?.headers
         : {
-            "Content-Type": "application/json",
-            ...options?.headers,
-          },
+          "Content-Type": "application/json",
+          ...options?.headers,
+        },
     });
     return response.json();
   }
@@ -473,9 +473,8 @@ export class ApiClient {
     user: UserData;
     token: string;
   }> {
-    const url = `${
-      API_ENDPOINTS.auth.verifyMagicLink
-    }?token=${encodeURIComponent(token)}`;
+    const url = `${API_ENDPOINTS.auth.verifyMagicLink
+      }?token=${encodeURIComponent(token)}`;
     return this.get<{ user: UserData; token: string }>(url);
   }
 
@@ -653,7 +652,7 @@ export class ApiClient {
   /**
    * Create a new tracking.
    * @param question - The tracking question
-   * @param notes - Optional notes (rich text)
+   * @param details - Optional details (rich text)
    * @param icon - Optional icon (emoji)
    * @param schedules - Required schedules array (1-5 schedules)
    * @param frequency - Required frequency for reminder schedule
@@ -663,14 +662,14 @@ export class ApiClient {
    */
   async createTracking(
     question: string,
-    notes: string | undefined,
+    details: string | undefined,
     icon: string | undefined,
     schedules: Array<{ hour: number; minutes: number }>,
     frequency: Frequency
   ): Promise<TrackingData> {
     return this.post<TrackingData>(API_ENDPOINTS.trackings, {
       question,
-      notes,
+      details,
       icon,
       schedules,
       frequency,
@@ -682,7 +681,7 @@ export class ApiClient {
    * @param trackingId - The tracking ID
    * @param frequency - Required frequency for reminder schedule
    * @param question - Updated question (optional)
-   * @param notes - Updated notes (optional)
+   * @param details - Updated details (optional)
    * @param icon - Updated icon (optional)
    * @param schedules - Updated schedules array (optional, 1-5 schedules if provided)
    * @returns Promise resolving to updated tracking data
@@ -693,13 +692,13 @@ export class ApiClient {
     trackingId: number,
     frequency: Frequency,
     question?: string,
-    notes?: string,
+    details?: string,
     icon?: string,
     schedules?: Array<{ hour: number; minutes: number }>
   ): Promise<TrackingData> {
     return this.put<TrackingData>(`${API_ENDPOINTS.trackings}/${trackingId}`, {
       question,
-      notes,
+      details,
       icon,
       schedules,
       frequency,

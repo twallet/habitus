@@ -115,27 +115,27 @@ describe("TrackingForm", () => {
         const { container } = render(<TrackingForm onSubmit={mockOnSubmit} />);
 
         const iconInput = document.getElementById("tracking-icon") as HTMLInputElement;
-        const notesInput = screen.getByRole("textbox", { name: /^notes/i });
+        const detailsInput = screen.getByRole("textbox", { name: /^details/i });
         const createButton = screen.getByRole("button", { name: /^create$/i });
 
         expect(iconInput).toBeInTheDocument();
-        expect(notesInput).toBeInTheDocument();
+        expect(detailsInput).toBeInTheDocument();
         expect(createButton).toBeInTheDocument();
 
         // Get all form groups and verify order
         const formGroups = container.querySelectorAll(".form-group");
-        const notesGroup = Array.from(formGroups).find(group => group.contains(notesInput));
+        const detailsGroup = Array.from(formGroups).find(group => group.contains(detailsInput));
         const iconGroup = Array.from(formGroups).find(group => group.contains(iconInput));
         const actionsGroup = container.querySelector(".form-actions");
 
-        expect(notesGroup).toBeTruthy();
+        expect(detailsGroup).toBeTruthy();
         expect(iconGroup).toBeTruthy();
         expect(actionsGroup).toBeTruthy();
 
-        // Icon group should come after notes group
-        const notesIndex = Array.from(formGroups).indexOf(notesGroup!);
+        // Icon group should come after details group
+        const detailsIndex = Array.from(formGroups).indexOf(detailsGroup!);
         const iconIndex = Array.from(formGroups).indexOf(iconGroup!);
-        expect(iconIndex).toBeGreaterThan(notesIndex);
+        expect(iconIndex).toBeGreaterThan(detailsIndex);
 
         // Actions should come after icon
         const allElements = Array.from(container.querySelectorAll(".form-group, .form-actions"));
@@ -182,8 +182,8 @@ describe("TrackingForm", () => {
         await waitFor(() => {
             expect(mockOnSubmit).toHaveBeenCalledWith(
                 "Did I exercise?",
-                undefined,
-                undefined,
+                undefined, // details
+                undefined, // icon
                 [{ hour: 9, minutes: 0 }],
                 expect.objectContaining({
                     type: "weekly",
@@ -209,8 +209,8 @@ describe("TrackingForm", () => {
         await waitFor(() => {
             expect(mockOnSubmit).toHaveBeenCalledWith(
                 "Did I exercise?",
-                undefined,
-                undefined,
+                undefined, // details
+                undefined, // icon
                 [{ hour: 9, minutes: 0 }],
                 expect.objectContaining({
                     type: "monthly",
@@ -235,8 +235,8 @@ describe("TrackingForm", () => {
         await waitFor(() => {
             expect(mockOnSubmit).toHaveBeenCalledWith(
                 "Did I exercise?",
-                undefined,
-                undefined,
+                undefined, // details
+                undefined, // icon
                 [{ hour: 9, minutes: 0 }],
                 expect.objectContaining({
                     type: "yearly",
@@ -302,8 +302,8 @@ describe("TrackingForm", () => {
         await waitFor(() => {
             expect(mockOnSubmit).toHaveBeenCalledWith(
                 "Did I exercise today?",
-                undefined,
-                undefined,
+                undefined, // details
+                undefined, // icon
                 [{ hour: 9, minutes: 0 }],
                 expect.objectContaining({
                     type: "daily",
@@ -344,18 +344,18 @@ describe("TrackingForm", () => {
         });
     });
 
-    it("should call onSubmit with notes when provided (recurring)", async () => {
+    it("should call onSubmit with details when provided (recurring)", async () => {
         const user = userEvent.setup();
         render(<TrackingForm onSubmit={mockOnSubmit} />);
 
         const questionInput = screen.getByRole("textbox", {
             name: /^question \*/i,
         });
-        const notesInput = screen.getByRole("textbox", {
-            name: /^notes \?/i,
+        const detailsInput = screen.getByRole("textbox", {
+            name: /^details \?/i,
         });
         await user.type(questionInput, "Did I exercise?");
-        await user.type(notesInput, "Exercise notes");
+        await user.type(detailsInput, "Exercise notes");
         // Frequency defaults to Daily, so no need to change it
         await addSchedule(user);
         const submitButton = screen.getByRole("button", { name: /^create$/i });

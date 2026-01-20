@@ -9,7 +9,7 @@ export interface OutletContextType {
   trackingsLoading: boolean;
   createTracking: (
     question: string,
-    notes: string | undefined,
+    details: string | undefined,
     icon: string | undefined,
     schedules: Array<{ hour: number; minutes: number }>,
     frequency: Frequency
@@ -18,7 +18,7 @@ export interface OutletContextType {
     trackingId: number,
     frequency: Frequency,
     question?: string,
-    notes?: string,
+    details?: string,
     icon?: string,
     schedules?: Array<{ hour: number; minutes: number }>
   ) => Promise<TrackingData>;

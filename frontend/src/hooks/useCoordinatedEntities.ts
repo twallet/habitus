@@ -29,7 +29,7 @@ export function useCoordinatedEntities() {
   /**
    * Create a tracking and refresh reminders to get newly created ones.
    * @param question - The tracking question
-   * @param notes - Optional notes (rich text)
+   * @param details - Optional details (rich text)
    * @param icon - Optional icon (emoji)
    * @param schedules - Required schedules array (1-5 schedules)
    * @param frequency - Required frequency for reminder schedule
@@ -39,7 +39,7 @@ export function useCoordinatedEntities() {
   const createTracking = useCallback(
     async (
       question: string,
-      notes: string | undefined,
+      details: string | undefined,
       icon: string | undefined,
       schedules: Array<{ hour: number; minutes: number }>,
       frequency: Frequency
@@ -47,7 +47,7 @@ export function useCoordinatedEntities() {
       try {
         const result = await trackingsHook.createTracking(
           question,
-          notes,
+          details,
           icon,
           schedules,
           frequency
@@ -72,7 +72,7 @@ export function useCoordinatedEntities() {
    * @param trackingId - The tracking ID
    * @param frequency - Required frequency for reminder schedule
    * @param question - Updated question (optional)
-   * @param notes - Updated notes (optional)
+   * @param notes - Updated details (optional)
    * @param icon - Updated icon (optional)
    * @param schedules - Updated schedules array (optional, 1-5 schedules if provided)
    * @returns Promise resolving to updated tracking data
@@ -83,7 +83,7 @@ export function useCoordinatedEntities() {
       trackingId: number,
       frequency: Frequency,
       question?: string,
-      notes?: string,
+      details?: string,
       icon?: string,
       schedules?: Array<{ hour: number; minutes: number }>
     ): Promise<TrackingData> => {
@@ -92,7 +92,7 @@ export function useCoordinatedEntities() {
           trackingId,
           frequency,
           question,
-          notes,
+          details,
           icon,
           schedules
         );

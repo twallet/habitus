@@ -47,8 +47,7 @@ export function useTrackings() {
     try {
       const loadedTrackings = await apiClient.getTrackings();
       console.log(
-        `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Loaded ${
-          loadedTrackings.length
+        `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Loaded ${loadedTrackings.length
         } trackings from API`
       );
       setTrackings(loadedTrackings);
@@ -95,7 +94,7 @@ export function useTrackings() {
   /**
    * Create a new tracking via API.
    * @param question - The tracking question
-   * @param notes - Optional notes (rich text)
+   * @param details - Optional details (rich text)
    * @param icon - Optional icon (emoji)
    * @param schedules - Required schedules array (1-5 schedules)
    * @param frequency - Required frequency for reminder schedule
@@ -105,7 +104,7 @@ export function useTrackings() {
    */
   const createTracking = async (
     question: string,
-    notes: string | undefined,
+    details: string | undefined,
     icon: string | undefined,
     schedules: Array<{ hour: number; minutes: number }>,
     frequency: Frequency
@@ -125,14 +124,13 @@ export function useTrackings() {
     try {
       const trackingData = await apiClient.createTracking(
         question,
-        notes,
+        details,
         icon,
         schedules,
         frequency
       );
       console.log(
-        `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Tracking created successfully: ID ${
-          trackingData.id
+        `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Tracking created successfully: ID ${trackingData.id
         }`
       );
       setTrackings((prevTrackings) => [trackingData, ...prevTrackings]);
@@ -151,7 +149,7 @@ export function useTrackings() {
    * @param trackingId - The tracking ID
    * @param frequency - Required frequency for reminder schedule
    * @param question - Updated question (optional)
-   * @param notes - Updated notes (optional)
+   * @param details - Updated details (optional)
    * @param icon - Updated icon (optional)
    * @param schedules - Updated schedules array (optional, 1-5 schedules if provided)
    * @returns The updated tracking data
@@ -162,7 +160,7 @@ export function useTrackings() {
     trackingId: number,
     frequency: Frequency,
     question?: string,
-    notes?: string,
+    details?: string,
     icon?: string,
     schedules?: Array<{ hour: number; minutes: number }>
   ): Promise<TrackingData> => {
@@ -183,13 +181,12 @@ export function useTrackings() {
         trackingId,
         frequency,
         question,
-        notes,
+        details,
         icon,
         schedules
       );
       console.log(
-        `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Tracking updated successfully: ID ${
-          trackingData.id
+        `[${new Date().toISOString()}] FRONTEND_TRACKINGS | Tracking updated successfully: ID ${trackingData.id
         }`
       );
       setTrackings((prevTrackings) =>

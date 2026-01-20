@@ -13,7 +13,7 @@ describe('EditTrackingModal', () => {
   const mockTracking: TrackingData = {
     id: 1,
     question: 'Did I exercise today?',
-    notes: 'Some notes',
+    details: 'Some notes',
     user_id: 1,
     schedules: [{ id: 1, tracking_id: 1, hour: 9, minutes: 0 }],
     frequency: defaultFrequency,
@@ -76,7 +76,7 @@ describe('EditTrackingModal', () => {
 
 
 
-  it('should update notes when input changes', async () => {
+  it('should update details when input changes', async () => {
     const user = userEvent.setup();
     render(
       <EditTrackingModal
@@ -86,11 +86,11 @@ describe('EditTrackingModal', () => {
       />
     );
 
-    const notesInput = screen.getByRole('textbox', { name: /^notes \?/i });
-    await user.clear(notesInput);
-    await user.type(notesInput, 'New notes');
+    const detailsInput = screen.getByRole('textbox', { name: /^details \?/i });
+    await user.clear(detailsInput);
+    await user.type(detailsInput, 'New notes');
 
-    expect(notesInput).toHaveValue('New notes');
+    expect(detailsInput).toHaveValue('New notes');
   });
 
   it('should show error for empty question', async () => {
@@ -157,7 +157,7 @@ describe('EditTrackingModal', () => {
         1,
         defaultFrequency, // frequency
         'New question?', // question
-        undefined, // notes
+        undefined, // details
         undefined, // icon
         [{ hour: 9, minutes: 0 }], // schedules
       );
@@ -230,22 +230,22 @@ describe('EditTrackingModal', () => {
     expect(callsAfterSave).toBe(0);
   });
 
-  it('should handle tracking without notes', () => {
-    const trackingWithoutNotes: TrackingData = {
+  it('should handle tracking without details', () => {
+    const trackingWithoutDetails: TrackingData = {
       ...mockTracking,
-      notes: undefined,
+      details: undefined,
     };
 
     render(
       <EditTrackingModal
-        tracking={trackingWithoutNotes}
+        tracking={trackingWithoutDetails}
         onClose={mockOnClose}
         onSave={mockOnSave}
       />
     );
 
-    const notesInput = screen.getByRole('textbox', { name: /^notes \?/i });
-    expect(notesInput).toHaveValue('');
+    const detailsInput = screen.getByRole('textbox', { name: /^details \?/i });
+    expect(detailsInput).toHaveValue('');
   });
 
   it('should clear icon when icon is deleted', async () => {
@@ -274,7 +274,7 @@ describe('EditTrackingModal', () => {
         1,
         defaultFrequency, // frequency
         undefined, // question
-        undefined, // notes
+        undefined, // details
         '', // icon (empty string to clear)
         [{ hour: 9, minutes: 0 }], // schedules
       );
@@ -308,7 +308,7 @@ describe('EditTrackingModal', () => {
         1,
         defaultFrequency, // frequency
         undefined, // question
-        undefined, // notes
+        undefined, // details
         '🏋️', // icon
         [{ hour: 9, minutes: 0 }], // schedules
       );
@@ -382,7 +382,7 @@ describe('EditTrackingModal', () => {
           date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), // date should be a date string
         }), // frequency
         undefined, // question
-        undefined, // notes
+        undefined, // details
         undefined, // icon
         [{ hour: 9, minutes: 0 }], // schedules
       );

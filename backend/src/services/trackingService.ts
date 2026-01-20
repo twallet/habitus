@@ -81,7 +81,7 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
    * Create a new tracking.
    * @param userId - The user ID
    * @param question - The tracking question
-   * @param notes - Optional notes (rich text)
+   * @param details - Optional details (rich text)
    * @param icon - Optional icon (emoji)
    * @param schedules - Array of schedules (required, 1-5 schedules)
    * @param frequency - Frequency pattern for reminder schedule (required)
@@ -92,7 +92,7 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
   async createTracking(
     userId: number,
     question: string,
-    notes?: string,
+    details?: string,
     icon?: string,
     schedules?: Array<{ hour: number; minutes: number }>,
     frequency?: Frequency
@@ -102,7 +102,7 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
     // Validate inputs
     const validatedUserId = Tracking.validateUserId(userId);
     const validatedQuestion = Tracking.validateQuestion(question);
-    const validatedNotes = Tracking.validateNotes(notes);
+    const validatedDetails = Tracking.validateDetails(details);
     const validatedIcon = Tracking.validateIcon(icon);
 
     if (!frequency) {
@@ -127,11 +127,11 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
 
     // Insert tracking with Running state by default
     const result = await this.db.run(
-      "INSERT INTO trackings (user_id, question, notes, icon, frequency, state) VALUES (?, ?, ?, ?, ?, ?)",
+      "INSERT INTO trackings (user_id, question, details, icon, frequency, state) VALUES (?, ?, ?, ?, ?, ?)",
       [
         validatedUserId,
         validatedQuestion,
-        validatedNotes || null,
+        validatedDetails || null,
         validatedIcon || null,
         JSON.stringify(validatedFrequency),
         "Running",
@@ -218,7 +218,7 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
    * @param trackingId - The tracking ID
    * @param userId - The user ID (for authorization)
    * @param question - Updated question (optional)
-   * @param notes - Updated notes (optional)
+   * @param details - Updated details (optional)
    * @param icon - Updated icon (optional)
    * @param schedules - Updated schedules array (optional, 1-5 schedules if provided)
    * @param frequency - Updated frequency pattern (optional)
@@ -230,7 +230,7 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
     trackingId: number,
     userId: number,
     question?: string,
-    notes?: string,
+    details?: string,
     icon?: string,
     schedules?: Array<{ hour: number; minutes: number }>,
     frequency?: Frequency
@@ -256,10 +256,10 @@ export class TrackingService extends BaseEntityService<TrackingData, Tracking> {
       values.push(validatedQuestion);
     }
 
-    if (notes !== undefined) {
-      const validatedNotes = Tracking.validateNotes(notes);
-      updates.push("notes = ?");
-      values.push(validatedNotes || null);
+    if (details !== undefined) {
+      const validatedDetails = Tracking.validateDetails(details);
+      updates.push("details = ?");
+      values.push(validatedDetails || null);
     }
 
     if (icon !== undefined) {

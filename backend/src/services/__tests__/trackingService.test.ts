@@ -54,7 +54,7 @@ async function createTestDatabase(): Promise<Database> {
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               user_id INTEGER NOT NULL,
               question TEXT NOT NULL CHECK(length(question) <= 100),
-              notes TEXT,
+              details TEXT,
               icon TEXT,
               frequency TEXT NOT NULL,
               state TEXT NOT NULL DEFAULT 'Running' CHECK(state IN ('Running', 'Paused', 'Archived')),
@@ -255,7 +255,7 @@ describe("TrackingService", () => {
         frequency
       );
 
-      expect(tracking.notes).toBe("Meditation notes");
+      expect(tracking.details).toBe("Meditation notes");
       expect(tracking.schedules).toBeDefined();
       expect(tracking.schedules?.length).toBe(1);
     });
@@ -367,17 +367,17 @@ describe("TrackingService", () => {
           id: number;
           user_id: number;
           question: string;
-          notes: string | null;
+          details: string | null;
           icon: string | null;
           frequency: string;
         }>(
-          "SELECT id, user_id, question, notes, icon, frequency FROM trackings WHERE id = ?",
+          "SELECT id, user_id, question, details, icon, frequency FROM trackings WHERE id = ?",
           [tracking.id]
         );
 
         expect(dbRow).not.toBeNull();
         expect(dbRow!.question).toBe("Daily tracking question");
-        expect(dbRow!.notes).toBe("Daily notes");
+        expect(dbRow!.details).toBe("Daily notes");
         expect(dbRow!.icon).toBe("💪");
         expect(JSON.parse(dbRow!.frequency)).toEqual(frequency);
 
@@ -581,7 +581,7 @@ describe("TrackingService", () => {
 
         expect(tracking).not.toBeNull();
         expect(tracking.question).toBe("One-time tracking question");
-        expect(tracking.notes).toBe("One-time notes");
+        expect(tracking.details).toBe("One-time notes");
         expect(tracking.icon).toBe("🎄");
         expect(tracking.frequency).toEqual(frequency);
         expect(tracking.schedules).toBeDefined();
@@ -688,7 +688,7 @@ describe("TrackingService", () => {
       expect(updated.question).toBe("New Question");
     });
 
-    it("should update tracking notes", async () => {
+    it("should update tracking details", async () => {
       const result = await testDb.run(
         "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
         [testUserId, "Question", JSON.stringify({ type: "daily" })]
@@ -705,7 +705,7 @@ describe("TrackingService", () => {
         undefined
       );
 
-      expect(updated.notes).toBe("Updated notes");
+      expect(updated.details).toBe("Updated notes");
     });
 
     it("should throw error when tracking not found", async () => {

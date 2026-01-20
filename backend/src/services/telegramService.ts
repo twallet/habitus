@@ -64,7 +64,7 @@ export class TelegramService {
    * @param trackingQuestion - Tracking question text
    * @param scheduledTime - Scheduled time for the reminder
    * @param trackingIcon - Tracking icon (emoji)
-   * @param trackingNotes - Optional tracking notes
+   * @param trackingDetails - Optional tracking details
    * @param notes - Optional reminder notes
    * @returns Promise that resolves when message is sent
    * @throws Error if message sending fails
@@ -76,7 +76,7 @@ export class TelegramService {
     trackingQuestion: string,
     scheduledTime: string,
     trackingIcon?: string,
-    trackingNotes?: string,
+    trackingDetails?: string,
     notes?: string,
     locale?: string,
     timezone?: string
@@ -115,9 +115,9 @@ export class TelegramService {
     messageText += `${icon} *${this.escapeMarkdown(trackingQuestion)}*\n\n`;
     messageText += `📅 Scheduled for: ${formattedTime}\n`;
 
-    if (trackingNotes) {
-      messageText += `\n📋 Tracking notes:\n${this.escapeMarkdown(
-        trackingNotes
+    if (trackingDetails) {
+      messageText += `\n📋 Tracking details:\n${this.escapeMarkdown(
+        trackingDetails
       )}\n`;
     }
 

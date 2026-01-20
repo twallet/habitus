@@ -45,7 +45,7 @@ async function createTestDatabase(): Promise<Database> {
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               user_id INTEGER NOT NULL,
               question TEXT NOT NULL CHECK(length(question) <= 100),
-              notes TEXT,
+              details TEXT,
               icon TEXT,
               frequency TEXT NOT NULL,
               state TEXT NOT NULL DEFAULT 'Running' CHECK(state IN ('Running', 'Paused', 'Archived')),
@@ -105,7 +105,7 @@ describe("Tracking Model", () => {
         user_id: userId,
         question: "Did I exercise?",
         frequency: { type: "daily" },
-        notes: "Some notes",
+        details: "Some notes",
         created_at: "2024-01-01T00:00:00Z",
         updated_at: "2024-01-01T00:00:00Z",
       };
@@ -115,7 +115,7 @@ describe("Tracking Model", () => {
       expect(tracking.id).toBe(1);
       expect(tracking.user_id).toBe(userId);
       expect(tracking.question).toBe("Did I exercise?");
-      expect(tracking.notes).toBe("Some notes");
+      expect(tracking.details).toBe("Some notes");
       expect(tracking.frequency).toEqual({ type: "daily" });
     });
 
@@ -131,7 +131,7 @@ describe("Tracking Model", () => {
 
       expect(tracking.id).toBe(1);
       expect(tracking.question).toBe("Did I exercise?");
-      expect(tracking.notes).toBeUndefined();
+      expect(tracking.details).toBeUndefined();
       expect(tracking.frequency).toEqual({ type: "daily" });
     });
   });
@@ -143,13 +143,13 @@ describe("Tracking Model", () => {
         user_id: userId,
         question: "  Did I exercise?  ",
         frequency: { type: "daily" },
-        notes: "  Some notes  ",
+        details: "  Some notes  ",
       });
 
       const validated = tracking.validate();
 
       expect(validated.question).toBe("Did I exercise?");
-      expect(validated.notes).toBe("Some notes");
+      expect(validated.details).toBe("Some notes");
     });
 
     it("should throw error for invalid question", () => {
@@ -234,13 +234,13 @@ describe("Tracking Model", () => {
       const updated = await tracking.update(
         {
           question: "Updated question",
-          notes: "Updated notes",
+          details: "Updated notes",
         },
         db
       );
 
       expect(updated.question).toBe("Updated question");
-      expect(updated.notes).toBe("Updated notes");
+      expect(updated.details).toBe("Updated notes");
     });
 
     it("should throw error if tracking has no id", async () => {
@@ -312,7 +312,7 @@ describe("Tracking Model", () => {
         user_id: userId,
         question: "Did I exercise?",
         frequency: { type: "daily" },
-        notes: "Some notes",
+        details: "Some notes",
         created_at: "2024-01-01T00:00:00Z",
         updated_at: "2024-01-01T00:00:00Z",
       });
@@ -324,7 +324,7 @@ describe("Tracking Model", () => {
         user_id: userId,
         question: "Did I exercise?",
         frequency: { type: "daily" },
-        notes: "Some notes",
+        details: "Some notes",
         state: TrackingState.RUNNING,
         created_at: "2024-01-01T00:00:00Z",
         updated_at: "2024-01-01T00:00:00Z",
@@ -445,21 +445,21 @@ describe("Tracking Model", () => {
     });
   });
 
-  describe("validateNotes", () => {
-    it("should accept valid notes", () => {
-      expect(Tracking.validateNotes("Some notes")).toBe("Some notes");
-      expect(Tracking.validateNotes("  Trimmed notes  ")).toBe("Trimmed notes");
+  describe("validateDetails", () => {
+    it("should accept valid details", () => {
+      expect(Tracking.validateDetails("Some notes")).toBe("Some notes");
+      expect(Tracking.validateDetails("  Trimmed notes  ")).toBe("Trimmed notes");
     });
 
-    it("should return undefined for empty/null/undefined notes", () => {
-      expect(Tracking.validateNotes("")).toBeUndefined();
-      expect(Tracking.validateNotes("   ")).toBeUndefined();
-      expect(Tracking.validateNotes(null)).toBeUndefined();
-      expect(Tracking.validateNotes(undefined)).toBeUndefined();
+    it("should return undefined for empty/null/undefined details", () => {
+      expect(Tracking.validateDetails("")).toBeUndefined();
+      expect(Tracking.validateDetails("   ")).toBeUndefined();
+      expect(Tracking.validateDetails(null)).toBeUndefined();
+      expect(Tracking.validateDetails(undefined)).toBeUndefined();
     });
 
-    it("should throw TypeError for non-string notes", () => {
-      expect(() => Tracking.validateNotes(123 as any)).toThrow(TypeError);
+    it("should throw TypeError for non-string details", () => {
+      expect(() => Tracking.validateDetails(123 as any)).toThrow(TypeError);
     });
   });
 
@@ -1177,7 +1177,7 @@ describe("Tracking Model", () => {
 
       const consoleErrorSpy = vi
         .spyOn(console, "error")
-        .mockImplementation(() => {});
+        .mockImplementation(() => { });
 
       await expect(Tracking.loadById(trackingId, userId, db)).rejects.toThrow();
 

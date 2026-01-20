@@ -37,9 +37,9 @@ export class Tracking extends BaseTracking {
       updates.push("question = ?");
       values.push(this.question);
 
-      if (this.notes !== undefined) {
-        updates.push("notes = ?");
-        values.push(this.notes || null);
+      if (this.details !== undefined) {
+        updates.push("details = ?");
+        values.push(this.details || null);
       }
 
       if (this.icon !== undefined) {
@@ -69,11 +69,11 @@ export class Tracking extends BaseTracking {
     } else {
       // Create new tracking
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question, notes, icon, frequency, state) VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO trackings (user_id, question, details, icon, frequency, state) VALUES (?, ?, ?, ?, ?, ?)",
         [
           this.user_id,
           this.question,
-          this.notes || null,
+          this.details || null,
           this.icon || null,
           JSON.stringify(this.frequency),
           this.state || TrackingState.RUNNING,
@@ -108,8 +108,8 @@ export class Tracking extends BaseTracking {
     if (updates.question !== undefined) {
       this.question = Tracking.validateQuestion(updates.question);
     }
-    if (updates.notes !== undefined) {
-      this.notes = Tracking.validateNotes(updates.notes);
+    if (updates.details !== undefined) {
+      this.details = Tracking.validateDetails(updates.details);
     }
     if (updates.icon !== undefined) {
       this.icon = Tracking.validateIcon(updates.icon);
@@ -174,14 +174,14 @@ export class Tracking extends BaseTracking {
       id: number;
       user_id: number;
       question: string;
-      notes: string | null;
+      details: string | null;
       icon: string | null;
       frequency: string;
       state: string;
       created_at: string;
       updated_at: string;
     }>(
-      "SELECT id, user_id, question, notes, icon, frequency, state, created_at, updated_at FROM trackings WHERE id = ? AND user_id = ?",
+      "SELECT id, user_id, question, details, icon, frequency, state, created_at, updated_at FROM trackings WHERE id = ? AND user_id = ?",
       [id, userId]
     );
 
@@ -204,7 +204,7 @@ export class Tracking extends BaseTracking {
       id: row.id,
       user_id: row.user_id,
       question: row.question,
-      notes: row.notes || undefined,
+      details: row.details || undefined,
       icon: row.icon || undefined,
       frequency: frequency,
       state: (row.state as TrackingState) || TrackingState.RUNNING,
@@ -231,14 +231,14 @@ export class Tracking extends BaseTracking {
       id: number;
       user_id: number;
       question: string;
-      notes: string | null;
+      details: string | null;
       icon: string | null;
       frequency: string;
       state: string;
       created_at: string;
       updated_at: string;
     }>(
-      "SELECT id, user_id, question, notes, icon, frequency, state, created_at, updated_at FROM trackings WHERE user_id = ? ORDER BY created_at DESC",
+      "SELECT id, user_id, question, details, icon, frequency, state, created_at, updated_at FROM trackings WHERE user_id = ? ORDER BY created_at DESC",
       [userId]
     );
 
@@ -249,8 +249,7 @@ export class Tracking extends BaseTracking {
           frequency = JSON.parse(row.frequency) as Frequency;
         } catch (err) {
           console.error(
-            `[${new Date().toISOString()}] TRACKING | Failed to parse frequency JSON for tracking ${
-              row.id
+            `[${new Date().toISOString()}] TRACKING | Failed to parse frequency JSON for tracking ${row.id
             }:`,
             err
           );
@@ -261,7 +260,7 @@ export class Tracking extends BaseTracking {
           id: row.id,
           user_id: row.user_id,
           question: row.question,
-          notes: row.notes || undefined,
+          details: row.details || undefined,
           icon: row.icon || undefined,
           frequency: frequency,
           state: (row.state as TrackingState) || TrackingState.RUNNING,

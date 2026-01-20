@@ -36,10 +36,10 @@ export class Tracking {
   question: string;
 
   /**
-   * Optional notes (rich text).
+   * Optional details (rich text).
    * @public
    */
-  notes?: string;
+  details?: string;
 
   /**
    * Optional icon (emoji).
@@ -80,7 +80,7 @@ export class Tracking {
     this.id = data.id;
     this.user_id = data.user_id;
     this.question = data.question;
-    this.notes = data.notes;
+    this.details = data.details;
     this.icon = data.icon;
     this.frequency = data.frequency;
     this.state = data.state || TrackingState.RUNNING;
@@ -98,8 +98,8 @@ export class Tracking {
   validate(): Tracking {
     this.user_id = Tracking.validateUserId(this.user_id);
     this.question = Tracking.validateQuestion(this.question);
-    if (this.notes !== undefined) {
-      this.notes = Tracking.validateNotes(this.notes);
+    if (this.details !== undefined) {
+      this.details = Tracking.validateDetails(this.details);
     }
     if (this.icon !== undefined) {
       this.icon = Tracking.validateIcon(this.icon);
@@ -119,7 +119,7 @@ export class Tracking {
       id: this.id,
       user_id: this.user_id,
       question: this.question,
-      notes: this.notes,
+      details: this.details,
       icon: this.icon,
       frequency: this.frequency,
       state: this.state,
@@ -164,26 +164,26 @@ export class Tracking {
   }
 
   /**
-   * Validates notes (optional rich text content).
-   * @param notes - The notes to validate (optional)
-   * @returns The validated notes or undefined if empty
+   * Validates details (optional rich text content).
+   * @param details - The details to validate (optional)
+   * @returns The validated details or undefined if empty
    * @public
    */
-  static validateNotes(notes?: string | null): string | undefined {
-    if (notes === null || notes === undefined) {
+  static validateDetails(details?: string | null): string | undefined {
+    if (details === null || details === undefined) {
       return undefined;
     }
 
-    if (typeof notes !== "string") {
-      throw new TypeError("Notes must be a string");
+    if (typeof details !== "string") {
+      throw new TypeError("Details must be a string");
     }
 
-    const trimmedNotes = notes.trim();
-    if (!trimmedNotes) {
+    const trimmedDetails = details.trim();
+    if (!trimmedDetails) {
       return undefined;
     }
 
-    return trimmedNotes;
+    return trimmedDetails;
   }
 
   /**
@@ -472,14 +472,14 @@ export class Tracking {
       if (!datePattern.test(frequency.date)) {
         throw new TypeError("date must be in YYYY-MM-DD format");
       }
-      
+
       // Parse the date components
       const [year, month, day] = frequency.date.split("-").map(Number);
       const dateObj = new Date(year, month - 1, day);
       if (isNaN(dateObj.getTime())) {
         throw new TypeError("date must be a valid date");
       }
-      
+
       // Validate that the date is today or in the future IN USER'S TIMEZONE
       if (timezone) {
         // Get current date in user's timezone
@@ -494,10 +494,10 @@ export class Tracking {
         const userYear = parseInt(parts.find((p) => p.type === "year")!.value);
         const userMonth = parseInt(parts.find((p) => p.type === "month")!.value);
         const userDay = parseInt(parts.find((p) => p.type === "day")!.value);
-        
+
         const userToday = new Date(userYear, userMonth - 1, userDay);
         const selectedDateOnly = new Date(year, month - 1, day);
-        
+
         if (selectedDateOnly < userToday) {
           throw new TypeError("date must be today or in the future");
         }
@@ -506,7 +506,7 @@ export class Tracking {
         const now = new Date();
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const selectedDateOnly = new Date(year, month - 1, day);
-        
+
         if (selectedDateOnly < today) {
           throw new TypeError("date must be today or in the future");
         }
@@ -515,8 +515,7 @@ export class Tracking {
     }
 
     throw new TypeError(
-      `Invalid frequency type: ${
-        (frequency as any).type
+      `Invalid frequency type: ${(frequency as any).type
       }. Must be one of: daily, weekly, monthly, yearly, one-time`
     );
   }
