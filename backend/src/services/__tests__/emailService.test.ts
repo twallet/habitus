@@ -386,7 +386,7 @@ describe("EmailService", () => {
         "Did you exercise today?",
         "2024-01-01T10:00:00Z",
         "🏃",
-        "Tracking notes",
+        "Tracking details",
         "Reminder notes"
       );
 
@@ -404,7 +404,7 @@ describe("EmailService", () => {
       expect(callArgs.text).toContain("Did you exercise today?");
       expect(callArgs.html).toContain("Pending reminder");
       expect(callArgs.html).toContain("Did you exercise today?");
-      expect(callArgs.html).toContain("Tracking notes");
+      expect(callArgs.html).toContain("Tracking details");
       expect(callArgs.html).toContain("Add Notes");
       expect(callArgs.html).toContain("Complete");
       expect(callArgs.html).toContain("Dismiss");
@@ -416,7 +416,7 @@ describe("EmailService", () => {
       expect(callArgs.html).toContain("action=snooze");
     });
 
-    it("should send reminder email without tracking notes", async () => {
+    it("should send reminder email without tracking details", async () => {
       await emailService.sendReminderEmail(
         "user@example.com",
         456,
@@ -427,7 +427,7 @@ describe("EmailService", () => {
 
       const callArgs = mockTransporter.sendMail.mock.calls[0][0];
       expect(callArgs.html).toContain("Add Notes");
-      expect(callArgs.html).not.toContain("Tracking notes");
+      expect(callArgs.html).not.toContain("Tracking details");
     });
 
     it("should use default icon when tracking icon is not provided", async () => {
@@ -479,26 +479,26 @@ describe("EmailService", () => {
       expect(callArgs.text).toContain("Scheduled for:");
     });
 
-    it("should display tracking notes after scheduled time when provided", async () => {
+    it("should display tracking details after scheduled time when provided", async () => {
       await emailService.sendReminderEmail(
         "user@example.com",
         123,
         "Test question",
         "2024-01-01T10:30:00Z",
         "💭",
-        "These are tracking notes",
+        "These are tracking details",
         undefined
       );
 
       const callArgs = mockTransporter.sendMail.mock.calls[0][0];
       expect(callArgs.html).toContain("Scheduled for:");
-      expect(callArgs.html).toContain("These are tracking notes");
+      expect(callArgs.html).toContain("These are tracking details");
       expect(callArgs.text).toContain(
-        "Tracking notes: These are tracking notes"
+        "Tracking details: These are tracking details"
       );
     });
 
-    it("should not display tracking notes when empty", async () => {
+    it("should not display tracking details when empty", async () => {
       await emailService.sendReminderEmail(
         "user@example.com",
         123,

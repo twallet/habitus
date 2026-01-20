@@ -394,7 +394,7 @@ describe("api", () => {
             id: 1,
             user_id: 1,
             question: "Did you exercise?",
-            notes: undefined,
+            details: undefined,
             frequency: defaultFrequency,
           },
         ];
@@ -424,7 +424,7 @@ describe("api", () => {
           id: 1,
           user_id: 1,
           question: "Did you exercise?",
-          notes: undefined,
+          details: undefined,
           frequency: defaultFrequency,
         };
 
@@ -459,8 +459,8 @@ describe("api", () => {
         expect(body.question).toBe("Did you exercise?");
         expect(body.schedules).toEqual([{ hour: 9, minutes: 0 }]);
         expect(body.frequency).toEqual(defaultFrequency);
-        // notes and icon are undefined, so they won't be in the JSON
-        expect(body.notes).toBeUndefined();
+        // details and icon are undefined, so they won't be in the JSON
+        expect(body.details).toBeUndefined();
         expect(body.icon).toBeUndefined();
       });
     });
@@ -474,7 +474,7 @@ describe("api", () => {
           id: 1,
           user_id: 1,
           question: "Did you meditate?",
-          notes: undefined,
+          details: undefined,
           frequency: defaultFrequency,
         };
 
@@ -507,8 +507,8 @@ describe("api", () => {
         const body = JSON.parse(updateCall![1].body);
         expect(body.question).toBe("Did you meditate?");
         expect(body.frequency).toEqual(defaultFrequency);
-        // notes, icon, and schedules are undefined, so they won't be in the JSON
-        expect(body.notes).toBeUndefined();
+        // details, icon, and schedules are undefined, so they won't be in the JSON
+        expect(body.details).toBeUndefined();
         expect(body.icon).toBeUndefined();
         expect(body.schedules).toBeUndefined();
       });
@@ -816,7 +816,7 @@ describe("api", () => {
           id: 1,
           user_id: 1,
           question: "Did you exercise?",
-          notes: undefined,
+          details: undefined,
           frequency: defaultFrequency,
         };
 
@@ -1192,7 +1192,7 @@ describe("api", () => {
           id: 1,
           user_id: 1,
           question: "Did you meditate?",
-          notes: undefined,
+          details: undefined,
           frequency: defaultFrequency,
         };
 
@@ -1224,7 +1224,7 @@ describe("api", () => {
           id: 1,
           user_id: 1,
           question: "Did you exercise?",
-          notes: undefined,
+          details: undefined,
           frequency: defaultFrequency,
         };
 

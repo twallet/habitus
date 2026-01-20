@@ -249,7 +249,7 @@
   min-width: 150px;
 }
 
-.trackings-table th.col-notes {
+.trackings-table th.col-details {
   width: 60px;
   text-align: center;
 }
@@ -398,19 +398,19 @@
   color: var(--text-secondary);
 }
 
-.cell-notes {
+.cell-details {
   text-align: center;
   color: var(--text-secondary);
 }
 
-.notes-icon {
+.details-icon {
   font-size: 1.2rem;
   cursor: default;
   display: inline-block;
   line-height: 1;
 }
 
-.notes-empty {
+.details-empty {
   color: var(--text-secondary);
   opacity: 0.5;
 }

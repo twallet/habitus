@@ -344,7 +344,7 @@ describe("TelegramService", () => {
       expect(body.text).toContain("🏃");
     });
 
-    it("should include tracking notes in message", async () => {
+    it("should include tracking details in message", async () => {
       const mockResponse = {
         ok: true,
         json: vi.fn().mockResolvedValue({
@@ -368,7 +368,7 @@ describe("TelegramService", () => {
 
       const callArgs = mockFetch.mock.calls[0];
       const body = JSON.parse(callArgs[1].body);
-      expect(body.text).toContain("📋 Tracking notes:");
+      expect(body.text).toContain("📋 Tracking details:");
       expect(body.text).toContain("Remember to stretch");
     });
 
@@ -420,15 +420,15 @@ describe("TelegramService", () => {
         "Did I exercise?",
         "2024-01-01T10:00:00Z",
         "🏃",
-        "Tracking note",
+        "Tracking detail",
         "Reminder note"
       );
 
       const callArgs = mockFetch.mock.calls[0];
       const body = JSON.parse(callArgs[1].body);
       expect(body.text).toContain("🏃");
-      expect(body.text).toContain("📋 Tracking notes:");
-      expect(body.text).toContain("Tracking note");
+      expect(body.text).toContain("📋 Tracking details:");
+      expect(body.text).toContain("Tracking detail");
       expect(body.text).toContain("📝 Reminder notes:");
       expect(body.text).toContain("Reminder note");
     });

@@ -7,7 +7,7 @@ describe("Tracking", () => {
         id: 1,
         user_id: 10,
         question: "Did you exercise today?",
-        notes: "Some notes",
+        details: "Some notes",
         frequency: { type: "daily" },
         created_at: "2024-01-01T00:00:00Z",
         updated_at: "2024-01-02T00:00:00Z",
@@ -18,7 +18,7 @@ describe("Tracking", () => {
       expect(tracking.id).toBe(1);
       expect(tracking.user_id).toBe(10);
       expect(tracking.question).toBe("Did you exercise today?");
-      expect(tracking.notes).toBe("Some notes");
+      expect(tracking.details).toBe("Some notes");
       expect(tracking.created_at).toBe("2024-01-01T00:00:00Z");
       expect(tracking.updated_at).toBe("2024-01-02T00:00:00Z");
     });
@@ -36,7 +36,7 @@ describe("Tracking", () => {
       expect(tracking.id).toBe(1);
       expect(tracking.user_id).toBe(10);
       expect(tracking.question).toBe("Did you exercise today?");
-      expect(tracking.notes).toBeUndefined();
+      expect(tracking.details).toBeUndefined();
       expect(tracking.created_at).toBeUndefined();
       expect(tracking.updated_at).toBeUndefined();
     });
@@ -62,13 +62,13 @@ describe("Tracking", () => {
         id: 1,
         user_id: 10,
         question: "Did you exercise?",
-        notes: "  Some notes  ",
+        details: "  Some notes  ",
         frequency: { type: "daily" },
       });
 
       const validated = tracking.validate();
 
-      expect(validated.notes).toBe("Some notes");
+      expect(validated.details).toBe("Some notes");
     });
 
     it("should handle undefined notes", () => {
@@ -81,7 +81,7 @@ describe("Tracking", () => {
 
       const validated = tracking.validate();
 
-      expect(validated.notes).toBeUndefined();
+      expect(validated.details).toBeUndefined();
     });
   });
 
@@ -91,7 +91,7 @@ describe("Tracking", () => {
         id: 1,
         user_id: 10,
         question: "Did you exercise?",
-        notes: "Some notes",
+        details: "Some notes",
         frequency: { type: "daily" },
         created_at: "2024-01-01T00:00:00Z",
         updated_at: "2024-01-02T00:00:00Z",
@@ -103,7 +103,7 @@ describe("Tracking", () => {
         id: 1,
         user_id: 10,
         question: "Did you exercise?",
-        notes: "Some notes",
+        details: "Some notes",
         icon: undefined,
         frequency: { type: "daily" },
         state: "Running",
@@ -126,7 +126,7 @@ describe("Tracking", () => {
         id: 1,
         user_id: 10,
         question: "Did you exercise?",
-        notes: undefined,
+        details: undefined,
         icon: undefined,
         frequency: { type: "daily" },
         state: "Running",
@@ -178,37 +178,37 @@ describe("Tracking", () => {
     });
   });
 
-  describe("validateNotes", () => {
+  describe("validateDetails", () => {
     it("should return undefined for null or undefined", () => {
-      expect(Tracking.validateNotes(null)).toBeUndefined();
-      expect(Tracking.validateNotes(undefined)).toBeUndefined();
+      expect(Tracking.validateDetails(null)).toBeUndefined();
+      expect(Tracking.validateDetails(undefined)).toBeUndefined();
     });
 
     it("should trim and return valid notes", () => {
-      const notes = Tracking.validateNotes("  Some notes  ");
-      expect(notes).toBe("Some notes");
+      const details = Tracking.validateDetails("  Some notes  ");
+      expect(details).toBe("Some notes");
     });
 
     it("should return undefined for empty string after trim", () => {
-      expect(Tracking.validateNotes("")).toBeUndefined();
-      expect(Tracking.validateNotes("   ")).toBeUndefined();
-      expect(Tracking.validateNotes("\t\n")).toBeUndefined();
+      expect(Tracking.validateDetails("")).toBeUndefined();
+      expect(Tracking.validateDetails("   ")).toBeUndefined();
+      expect(Tracking.validateDetails("\t\n")).toBeUndefined();
     });
 
-    it("should throw TypeError if notes is not a string", () => {
+    it("should throw TypeError if details is not a string", () => {
       expect(() => {
         // @ts-expect-error Testing invalid input
-        Tracking.validateNotes(123);
+        Tracking.validateDetails(123);
       }).toThrow(TypeError);
       expect(() => {
         // @ts-expect-error Testing invalid input
-        Tracking.validateNotes({});
+        Tracking.validateDetails({});
       }).toThrow(TypeError);
     });
 
-    it("should return trimmed notes for valid string", () => {
-      const notes = Tracking.validateNotes("  Valid notes  ");
-      expect(notes).toBe("Valid notes");
+    it("should return trimmed details for valid string", () => {
+      const details = Tracking.validateDetails("  Valid details  ");
+      expect(details).toBe("Valid details");
     });
   });
 

@@ -105,7 +105,7 @@ describe("Tracking Model", () => {
         user_id: userId,
         question: "Did I exercise?",
         frequency: { type: "daily" },
-        details: "Some notes",
+        details: "Some details",
         created_at: "2024-01-01T00:00:00Z",
         updated_at: "2024-01-01T00:00:00Z",
       };
@@ -115,7 +115,7 @@ describe("Tracking Model", () => {
       expect(tracking.id).toBe(1);
       expect(tracking.user_id).toBe(userId);
       expect(tracking.question).toBe("Did I exercise?");
-      expect(tracking.details).toBe("Some notes");
+      expect(tracking.details).toBe("Some details");
       expect(tracking.frequency).toEqual({ type: "daily" });
     });
 
@@ -143,13 +143,13 @@ describe("Tracking Model", () => {
         user_id: userId,
         question: "  Did I exercise?  ",
         frequency: { type: "daily" },
-        details: "  Some notes  ",
+        details: "  Some details  ",
       });
 
       const validated = tracking.validate();
 
       expect(validated.question).toBe("Did I exercise?");
-      expect(validated.details).toBe("Some notes");
+      expect(validated.details).toBe("Some details");
     });
 
     it("should throw error for invalid question", () => {
@@ -234,13 +234,13 @@ describe("Tracking Model", () => {
       const updated = await tracking.update(
         {
           question: "Updated question",
-          details: "Updated notes",
+          details: "Updated details",
         },
         db
       );
 
       expect(updated.question).toBe("Updated question");
-      expect(updated.details).toBe("Updated notes");
+      expect(updated.details).toBe("Updated details");
     });
 
     it("should throw error if tracking has no id", async () => {
@@ -312,7 +312,7 @@ describe("Tracking Model", () => {
         user_id: userId,
         question: "Did I exercise?",
         frequency: { type: "daily" },
-        details: "Some notes",
+        details: "Some details",
         created_at: "2024-01-01T00:00:00Z",
         updated_at: "2024-01-01T00:00:00Z",
       });
@@ -324,7 +324,7 @@ describe("Tracking Model", () => {
         user_id: userId,
         question: "Did I exercise?",
         frequency: { type: "daily" },
-        details: "Some notes",
+        details: "Some details",
         state: TrackingState.RUNNING,
         created_at: "2024-01-01T00:00:00Z",
         updated_at: "2024-01-01T00:00:00Z",
@@ -447,8 +447,8 @@ describe("Tracking Model", () => {
 
   describe("validateDetails", () => {
     it("should accept valid details", () => {
-      expect(Tracking.validateDetails("Some notes")).toBe("Some notes");
-      expect(Tracking.validateDetails("  Trimmed notes  ")).toBe("Trimmed notes");
+      expect(Tracking.validateDetails("Some details")).toBe("Some details");
+      expect(Tracking.validateDetails("  Trimmed details  ")).toBe("Trimmed details");
     });
 
     it("should return undefined for empty/null/undefined details", () => {
@@ -977,20 +977,20 @@ describe("Tracking Model", () => {
   });
 
   describe("save with optional fields", () => {
-    it("should create tracking with notes, icon, and frequency", async () => {
+    it("should create tracking with details, icon, and frequency", async () => {
       const tracking = new Tracking({
         id: 0,
         user_id: userId,
         question: "Did I exercise?",
         frequency: { type: "weekly", days: [0, 1] },
-        notes: "Some notes",
+        details: "Some details",
         icon: "🏃",
       });
 
       const saved = await tracking.save(db);
 
       expect(saved.id).toBeGreaterThan(0);
-      expect(saved.notes).toBe("Some notes");
+      expect(saved.details).toBe("Some details");
       expect(saved.icon).toBe("🏃");
       expect(saved.frequency).toEqual({
         type: "weekly",
@@ -998,7 +998,7 @@ describe("Tracking Model", () => {
       });
     });
 
-    it("should update tracking with notes, icon, and frequency", async () => {
+    it("should update tracking with details, icon, and frequency", async () => {
       const result = await db.run(
         "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
         [userId, "Original question", JSON.stringify({ type: "daily" })]
@@ -1010,14 +1010,14 @@ describe("Tracking Model", () => {
         user_id: userId,
         question: "Updated question",
         frequency: { type: "weekly", days: [0, 1, 2] },
-        notes: "Updated notes",
+        details: "Updated details",
         icon: "✅",
       });
 
       const saved = await tracking.save(db);
 
       expect(saved.id).toBe(trackingId);
-      expect(saved.notes).toBe("Updated notes");
+      expect(saved.details).toBe("Updated details");
       expect(saved.icon).toBe("✅");
       expect(saved.frequency).toEqual({
         type: "weekly",
@@ -1025,13 +1025,13 @@ describe("Tracking Model", () => {
       });
     });
 
-    it("should update tracking with null notes and icon (frequency is required)", async () => {
+    it("should update tracking with null details and icon (frequency is required)", async () => {
       const result = await db.run(
-        "INSERT INTO trackings (user_id, question, notes, icon, frequency) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO trackings (user_id, question, details, icon, frequency) VALUES (?, ?, ?, ?, ?)",
         [
           userId,
           "Original question",
-          "Original notes",
+          "Original details",
           "🏃",
           JSON.stringify({ type: "daily" }),
         ]
@@ -1043,14 +1043,14 @@ describe("Tracking Model", () => {
         user_id: userId,
         question: "Updated question",
         frequency: { type: "daily" },
-        notes: undefined,
+        details: undefined,
         icon: undefined,
       });
 
       const saved = await tracking.save(db);
 
       expect(saved.id).toBe(trackingId);
-      expect(saved.notes).toBeUndefined();
+      expect(saved.details).toBeUndefined();
       expect(saved.icon).toBeUndefined();
       expect(saved.frequency).toEqual({ type: "daily" });
     });
@@ -1097,7 +1097,7 @@ describe("Tracking Model", () => {
       expect(updated.frequency).toEqual(frequency);
     });
 
-    it("should update tracking with notes", async () => {
+    it("should update tracking with details", async () => {
       const result = await db.run(
         "INSERT INTO trackings (user_id, question, frequency) VALUES (?, ?, ?)",
         [userId, "Original question", JSON.stringify({ type: "daily" })]
@@ -1111,9 +1111,9 @@ describe("Tracking Model", () => {
         frequency: { type: "daily" },
       });
 
-      const updated = await tracking.update({ notes: "Updated notes" }, db);
+      const updated = await tracking.update({ details: "Updated details" }, db);
 
-      expect(updated.notes).toBe("Updated notes");
+      expect(updated.details).toBe("Updated details");
     });
 
     it("should update tracking with multiple fields", async () => {
@@ -1139,7 +1139,7 @@ describe("Tracking Model", () => {
       const updated = await tracking.update(
         {
           question: "Updated question",
-          notes: "Updated notes",
+          details: "Updated details",
           icon: "✅",
           frequency,
         },
@@ -1147,7 +1147,7 @@ describe("Tracking Model", () => {
       );
 
       expect(updated.question).toBe("Updated question");
-      expect(updated.notes).toBe("Updated notes");
+      expect(updated.details).toBe("Updated details");
       expect(updated.icon).toBe("✅");
       expect(updated.frequency).toEqual(frequency);
     });

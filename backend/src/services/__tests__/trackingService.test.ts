@@ -244,18 +244,18 @@ describe("TrackingService", () => {
       expect(tracking.schedules?.[0].minutes).toBe(0);
     });
 
-    it("should create tracking with notes", async () => {
+    it("should create tracking with details", async () => {
       const frequency: Frequency = { type: "daily" };
       const tracking = await trackingService.createTracking(
         testUserId,
         "Did I meditate?",
-        "Meditation notes",
+        "Meditation details",
         undefined,
         [{ hour: 10, minutes: 30 }],
         frequency
       );
 
-      expect(tracking.details).toBe("Meditation notes");
+      expect(tracking.details).toBe("Meditation details");
       expect(tracking.schedules).toBeDefined();
       expect(tracking.schedules?.length).toBe(1);
     });
@@ -345,7 +345,7 @@ describe("TrackingService", () => {
         const tracking = await trackingService.createTracking(
           testUserId,
           "Daily tracking question",
-          "Daily notes",
+          "Daily details",
           "💪",
           schedules,
           frequency
@@ -353,7 +353,7 @@ describe("TrackingService", () => {
 
         expect(tracking).not.toBeNull();
         expect(tracking.question).toBe("Daily tracking question");
-        expect(tracking.notes).toBe("Daily notes");
+        expect(tracking.details).toBe("Daily details");
         expect(tracking.icon).toBe("💪");
         expect(tracking.frequency).toEqual(frequency);
         expect(tracking.schedules).toBeDefined();
@@ -377,7 +377,7 @@ describe("TrackingService", () => {
 
         expect(dbRow).not.toBeNull();
         expect(dbRow!.question).toBe("Daily tracking question");
-        expect(dbRow!.details).toBe("Daily notes");
+        expect(dbRow!.details).toBe("Daily details");
         expect(dbRow!.icon).toBe("💪");
         expect(JSON.parse(dbRow!.frequency)).toEqual(frequency);
 
@@ -573,7 +573,7 @@ describe("TrackingService", () => {
         const tracking = await trackingService.createTracking(
           testUserId,
           "One-time tracking question",
-          "One-time notes",
+          "One-time details",
           "🎄",
           schedules,
           frequency
@@ -581,7 +581,7 @@ describe("TrackingService", () => {
 
         expect(tracking).not.toBeNull();
         expect(tracking.question).toBe("One-time tracking question");
-        expect(tracking.details).toBe("One-time notes");
+        expect(tracking.details).toBe("One-time details");
         expect(tracking.icon).toBe("🎄");
         expect(tracking.frequency).toEqual(frequency);
         expect(tracking.schedules).toBeDefined();
