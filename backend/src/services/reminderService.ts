@@ -282,7 +282,8 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
    */
   async completeReminder(
     reminderId: number,
-    userId: number
+    userId: number,
+    notes?: string
   ): Promise<ReminderData> {
     Logger.info(`REMINDER | Completing reminder ID: ${reminderId} for userId: ${userId}`);
 
@@ -308,11 +309,17 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
       );
     }
 
+    const updateFields: any = {
+      status: ReminderStatus.ANSWERED,
+      value: ReminderValue.COMPLETED,
+    };
+
+    if (notes !== undefined) {
+      updateFields.notes = notes;
+    }
+
     const updatedReminder = await existingReminder.update(
-      {
-        status: ReminderStatus.ANSWERED,
-        value: ReminderValue.COMPLETED,
-      },
+      updateFields,
       this.db
     );
 
@@ -520,6 +527,37 @@ export class ReminderService extends BaseEntityService<ReminderData, Reminder> {
     Logger.info(`REMINDER | Deleted original reminder ID ${reminderId} after snoozing`);
 
     return resultReminder;
+  }
+
+  /**
+   * Add or update note for a reminder.
+   * @param reminderId - The reminder ID
+   * @param userId - The user ID (for authorization)
+   * @param notes - Notes to add
+   * @returns Promise resolving to updated reminder data
+   * @throws Error if reminder not found
+   * @public
+   */
+  async addNote(
+    reminderId: number,
+    userId: number,
+    notes: string
+  ): Promise<ReminderData> {
+    Logger.info(`REMINDER | Adding note to reminder ID: ${reminderId} for userId: ${userId}`);
+
+    const reminder = await Reminder.loadById(reminderId, userId, this.db);
+    if (!reminder) {
+      Logger.warn(
+        `REMINDER | Add note failed: reminder not found for ID: ${reminderId} and userId: ${userId}`
+      );
+      throw new Error("Reminder not found");
+    }
+
+    const updatedReminder = await reminder.update({ notes }, this.db);
+
+    Logger.info(`REMINDER | Note added successfully to reminder ID: ${reminderId}`);
+
+    return updatedReminder;
   }
 
   /**

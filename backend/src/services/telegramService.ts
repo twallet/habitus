@@ -80,7 +80,7 @@ export class TelegramService {
     notes?: string,
     locale?: string,
     timezone?: string
-  ): Promise<void> {
+  ): Promise<number> {
     Logger.info(`TELEGRAM | Preparing to send reminder message to chatId: ${chatId}, reminderId: ${reminderId}`);
 
     if (!this.config.botToken) {
@@ -109,7 +109,6 @@ export class TelegramService {
 
     const icon = trackingIcon || "📝";
     const dashboardUrl = `${this.config.frontendUrl}/`;
-    const baseUrl = `${dashboardUrl}?reminderId=${reminderId}`;
 
     // Build message text
     let messageText = `🌱 *Reminder*\n\n`;
@@ -128,27 +127,25 @@ export class TelegramService {
 
     messageText += `\n[View Dashboard](${dashboardUrl})`;
 
-    // Build inline keyboard with action buttons
+    // Build inline keyboard with callback_data instead of URLs
     const inlineKeyboard = {
       inline_keyboard: [
         [
           {
-            text: "📝 Add Notes",
-            url: `${baseUrl}&action=editNotes`,
+            text: "\u2714\ufe0f",
+            callback_data: `complete_${reminderId}`,
           },
           {
-            text: "✓ Complete",
-            url: `${baseUrl}&action=complete`,
-          },
-        ],
-        [
-          {
-            text: "✕ Dismiss",
-            url: `${baseUrl}&action=dismiss`,
+            text: "\u274c",
+            callback_data: `dismiss_${reminderId}`,
           },
           {
-            text: "💤 Snooze",
-            url: `${baseUrl}&action=snooze`,
+            text: "\ud83d\udca4",
+            callback_data: `postpone_${reminderId}`,
+          },
+          {
+            text: "\ud83d\udcc4",
+            callback_data: `addnote_${reminderId}`,
           },
         ],
       ],
@@ -186,9 +183,12 @@ export class TelegramService {
         );
       }
 
+      const messageId = result.result?.message_id || 0;
       Logger.info(
-        `TELEGRAM | Reminder message sent successfully to chatId: ${chatId}, reminderId: ${reminderId}, messageId: ${result.result?.message_id}`
+        `TELEGRAM | Reminder message sent successfully to chatId: ${chatId}, reminderId: ${reminderId}, messageId: ${messageId}`
       );
+
+      return messageId;
     } catch (error: any) {
       Logger.error(
         `TELEGRAM | Error sending reminder message to ${chatId}:`,
@@ -394,5 +394,279 @@ export class TelegramService {
    */
   private escapeMarkdown(text: string): string {
     return text.replace(/([_*[\]()~`>#+\-=|{}.!])/g, "\\$1");
+  }
+
+  /**
+   * Send postpone options inline keyboard.
+   * @param chatId - Telegram chat ID
+   * @param reminderId - Reminder ID
+   * @param messageId - Message ID to edit
+   * @returns Promise that resolves when message is sent
+   * @throws Error if message sending fails
+   * @public
+   */
+  async sendPostponeOptionsMessage(
+    chatId: string,
+    reminderId: number,
+    messageId: number
+  ): Promise<void> {
+    if (!this.config.botToken) {
+      throw new Error(
+        "Telegram bot token not configured. Please set TELEGRAM_BOT_TOKEN environment variable."
+      );
+    }
+
+    const inlineKeyboard = {
+      inline_keyboard: [
+        [
+          {
+            text: "5 min",
+            callback_data: `postpone_${reminderId}_5`,
+          },
+          {
+            text: "15 min",
+            callback_data: `postpone_${reminderId}_15`,
+          },
+          {
+            text: "30 min",
+            callback_data: `postpone_${reminderId}_30`,
+          },
+        ],
+        [
+          {
+            text: "1 hour",
+            callback_data: `postpone_${reminderId}_60`,
+          },
+          {
+            text: "3 hours",
+            callback_data: `postpone_${reminderId}_180`,
+          },
+        ],
+        [
+          {
+            text: "1 day",
+            callback_data: `postpone_${reminderId}_1440`,
+          },
+          {
+            text: "7 days",
+            callback_data: `postpone_${reminderId}_10080`,
+          },
+        ],
+      ],
+    };
+
+    try {
+      const url = `${this.apiBaseUrl}${this.config.botToken}/editMessageReplyMarkup`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+          message_id: messageId,
+          reply_markup: inlineKeyboard,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = (await response
+          .json()
+          .catch(() => ({}))) as TelegramErrorResponse;
+        const errorMessage =
+          errorData.description ||
+          `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(`Telegram API error: ${errorMessage}`);
+      }
+
+      Logger.info(
+        `TELEGRAM | Postpone options sent to chatId: ${chatId}, reminderId: ${reminderId}`
+      );
+    } catch (error: any) {
+      Logger.error(
+        `TELEGRAM | Error sending postpone options to ${chatId}:`,
+        error
+      );
+      throw new Error(
+        `Failed to send postpone options: ${error.message || "Unknown error"}`
+      );
+    }
+  }
+
+  /**
+   * Send note prompt message.
+   * @param chatId - Telegram chat ID
+   * @returns Promise that resolves when message is sent
+   * @throws Error if message sending fails
+   * @public
+   */
+  async sendNotePromptMessage(chatId: string): Promise<void> {
+    if (!this.config.botToken) {
+      throw new Error(
+        "Telegram bot token not configured. Please set TELEGRAM_BOT_TOKEN environment variable."
+      );
+    }
+
+    const messageText = "📝 Please send your note as a text message.";
+
+    try {
+      const url = `${this.apiBaseUrl}${this.config.botToken}/sendMessage`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: messageText,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = (await response
+          .json()
+          .catch(() => ({}))) as TelegramErrorResponse;
+        const errorMessage =
+          errorData.description ||
+          `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(`Telegram API error: ${errorMessage}`);
+      }
+
+      Logger.info(`TELEGRAM | Note prompt sent to chatId: ${chatId}`);
+    } catch (error: any) {
+      Logger.error(`TELEGRAM | Error sending note prompt to ${chatId}:`, error);
+      throw new Error(
+        `Failed to send note prompt: ${error.message || "Unknown error"}`
+      );
+    }
+  }
+
+  /**
+   * Send confirmation message.
+   * @param chatId - Telegram chat ID
+   * @param action - Action type (complete, dismiss, postpone, addnote)
+   * @param details - Optional details (e.g., postpone duration)
+   * @returns Promise that resolves when message is sent
+   * @throws Error if message sending fails
+   * @public
+   */
+  async sendConfirmationMessage(
+    chatId: string,
+    action: "complete" | "dismiss" | "postpone" | "addnote",
+    details?: string
+  ): Promise<void> {
+    if (!this.config.botToken) {
+      throw new Error(
+        "Telegram bot token not configured. Please set TELEGRAM_BOT_TOKEN environment variable."
+      );
+    }
+
+    let messageText = "";
+    switch (action) {
+      case "complete":
+        messageText = "✅ Reminder marked as completed!";
+        break;
+      case "dismiss":
+        messageText = "🚫 Reminder dismissed!";
+        break;
+      case "postpone":
+        messageText = `⏰ Reminder postponed${details ? ` for ${details}` : ""}!`;
+        break;
+      case "addnote":
+        messageText = "📝 Note added successfully!";
+        break;
+    }
+
+    try {
+      const url = `${this.apiBaseUrl}${this.config.botToken}/sendMessage`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: messageText,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = (await response
+          .json()
+          .catch(() => ({}))) as TelegramErrorResponse;
+        const errorMessage =
+          errorData.description ||
+          `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(`Telegram API error: ${errorMessage}`);
+      }
+
+      Logger.info(
+        `TELEGRAM | Confirmation message sent to chatId: ${chatId}, action: ${action}`
+      );
+    } catch (error: any) {
+      Logger.error(
+        `TELEGRAM | Error sending confirmation to ${chatId}:`,
+        error
+      );
+      throw new Error(
+        `Failed to send confirmation: ${error.message || "Unknown error"}`
+      );
+    }
+  }
+
+  /**
+   * Remove inline keyboard from a message.
+   * @param chatId - Telegram chat ID
+   * @param messageId - Message ID
+   * @returns Promise that resolves when keyboard is removed
+   * @throws Error if operation fails
+   * @public
+   */
+  async editMessageReplyMarkup(
+    chatId: string,
+    messageId: number
+  ): Promise<void> {
+    if (!this.config.botToken) {
+      throw new Error(
+        "Telegram bot token not configured. Please set TELEGRAM_BOT_TOKEN environment variable."
+      );
+    }
+
+    try {
+      const url = `${this.apiBaseUrl}${this.config.botToken}/editMessageReplyMarkup`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+          message_id: messageId,
+          reply_markup: { inline_keyboard: [] },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = (await response
+          .json()
+          .catch(() => ({}))) as TelegramErrorResponse;
+        const errorMessage =
+          errorData.description ||
+          `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(`Telegram API error: ${errorMessage}`);
+      }
+
+      Logger.info(
+        `TELEGRAM | Removed inline keyboard from message ${messageId} in chat ${chatId}`
+      );
+    } catch (error: any) {
+      Logger.error(
+        `TELEGRAM | Error removing inline keyboard from message ${messageId}:`,
+        error
+      );
+      throw new Error(
+        `Failed to remove inline keyboard: ${error.message || "Unknown error"}`
+      );
+    }
   }
 }

@@ -5,6 +5,7 @@ import { TrackingService } from "./trackingService.js";
 import { EmailService } from "./emailService.js";
 import { TelegramService } from "./telegramService.js";
 import { TelegramConnectionService } from "./telegramConnectionService.js";
+import { TelegramSessionService } from "./telegramSessionService.js";
 import { AiService } from "./aiService.js";
 import { ReminderService } from "./reminderService.js";
 
@@ -21,6 +22,7 @@ export class ServiceManager {
   private static telegramService: TelegramService | null = null;
   private static telegramConnectionService: TelegramConnectionService | null =
     null;
+  private static telegramSessionService: TelegramSessionService | null = null;
   private static aiService: AiService | null = null;
   private static reminderService: ReminderService | null = null;
 
@@ -34,6 +36,7 @@ export class ServiceManager {
     this.emailService = new EmailService();
     this.telegramService = new TelegramService();
     this.telegramConnectionService = new TelegramConnectionService(db);
+    this.telegramSessionService = new TelegramSessionService();
     this.authService = new AuthService(db, this.emailService);
     this.userService = new UserService(db);
     this.trackingService = new TrackingService(db);
@@ -159,5 +162,20 @@ export class ServiceManager {
       );
     }
     return this.telegramConnectionService;
+  }
+
+  /**
+   * Get TelegramSessionService instance.
+   * @returns TelegramSessionService instance
+   * @throws Error if services not initialized
+   * @public
+   */
+  static getTelegramSessionService(): TelegramSessionService {
+    if (!this.telegramSessionService) {
+      throw new Error(
+        "Services not initialized. Call ServiceManager.initializeServices() first."
+      );
+    }
+    return this.telegramSessionService;
   }
 }

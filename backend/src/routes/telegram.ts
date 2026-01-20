@@ -5,6 +5,7 @@ import {
   authenticateToken,
   AuthRequest,
 } from "../middleware/authMiddleware.js";
+import { TelegramSession } from "../services/telegramSessionService.js";
 
 const router = Router();
 
@@ -30,6 +31,27 @@ interface TelegramUpdate {
     };
     date: number;
     text?: string;
+  };
+  callback_query?: {
+    id: string;
+    from: {
+      id: number;
+      is_bot: boolean;
+      first_name?: string;
+      username?: string;
+    };
+    message?: {
+      message_id: number;
+      chat: {
+        id: number;
+        type: string;
+        first_name?: string;
+        username?: string;
+      };
+      date: number;
+      text?: string;
+    };
+    data?: string;
   };
 }
 
@@ -88,7 +110,13 @@ async function processTelegramUpdate(update: TelegramUpdate): Promise<void> {
     }`
   );
 
-  // Only process messages (ignore other update types)
+  // Handle callback queries
+  if (update.callback_query) {
+    await processCallbackQuery(update.callback_query);
+    return;
+  }
+
+  // Handle messages
   if (!update.message || !update.message.text) {
     console.log(
       `[${new Date().toISOString()}] TELEGRAM_WEBHOOK | Update ${update.update_id
@@ -101,16 +129,25 @@ async function processTelegramUpdate(update: TelegramUpdate): Promise<void> {
   const chatId = update.message.chat.id.toString();
 
   console.log(
-    `[${new Date().toISOString()}] TELEGRAM_WEBHOOK | Processing message: "${messageText.substring(
+    `[${new Date().toISOString()}] TELEGRAM_WEBHOOK | Processing message from chat ${chatId}: "${messageText.substring(
       0,
       100
-    )}" from chat ${chatId}`
+    )}"`
   );
 
-  // Only process /start commands
+  // Check if we are waiting for a note from this user
+  const sessionService = ServiceManager.getTelegramSessionService();
+  const session = sessionService.getSession(chatId);
+
+  if (session) {
+    await processNoteMessage(update.message, session);
+    return;
+  }
+
+  // Only process /start commands for new connections
   if (!messageText.startsWith("/start")) {
     console.log(
-      `[${new Date().toISOString()}] TELEGRAM_WEBHOOK | Message is not a /start command, skipping`
+      `[${new Date().toISOString()}] TELEGRAM_WEBHOOK | Message is not a /start command and no active session, skipping`
     );
     return;
   }
@@ -192,6 +229,160 @@ async function processTelegramUpdate(update: TelegramUpdate): Promise<void> {
       `[${new Date().toISOString()}] TELEGRAM_WEBHOOK | Error sending welcome message:`,
       error
     );
+  }
+}
+
+/**
+ * Process a Telegram callback query from an inline keyboard.
+ * @param callbackQuery - Telegram callback query object
+ * @private
+ */
+async function processCallbackQuery(
+  callbackQuery: NonNullable<TelegramUpdate["callback_query"]>
+): Promise<void> {
+  const data = callbackQuery.data;
+  const chatId = callbackQuery.message?.chat.id.toString();
+  const messageId = callbackQuery.message?.message_id;
+
+  if (!data || !chatId || !messageId) {
+    console.warn(`[${new Date().toISOString()}] TELEGRAM_WEBHOOK | Invalid callback query data`);
+    return;
+  }
+
+  console.log(`[${new Date().toISOString()}] TELEGRAM_WEBHOOK | Processing callback: ${data} from chat ${chatId}`);
+
+  const telegramService = ServiceManager.getTelegramService();
+  const reminderService = ServiceManager.getReminderService();
+  const sessionService = ServiceManager.getTelegramSessionService();
+
+  // Parse action and reminderId from data (format: action_reminderId or action_reminderId_extra)
+  const parts = data.split("_");
+  const action = parts[0];
+  const reminderId = parseInt(parts[1], 10);
+
+  if (isNaN(reminderId)) {
+    console.warn(`[${new Date().toISOString()}] TELEGRAM_WEBHOOK | Invalid reminder ID in callback: ${parts[1]}`);
+    return;
+  }
+
+  // Get user ID associated with this chat
+  const userService = ServiceManager.getUserService();
+  const user = await userService.getUserByTelegramChatId(chatId);
+
+  if (!user) {
+    console.warn(`[${new Date().toISOString()}] TELEGRAM_WEBHOOK | No user found for chatId: ${chatId}`);
+    return;
+  }
+
+  const userId = user.id;
+
+  try {
+    switch (action) {
+      case "complete":
+        await reminderService.completeReminder(reminderId, userId);
+        await telegramService.editMessageReplyMarkup(chatId, messageId);
+        await telegramService.sendConfirmationMessage(chatId, "complete");
+        break;
+
+      case "dismiss":
+        await reminderService.dismissReminder(reminderId, userId);
+        await telegramService.editMessageReplyMarkup(chatId, messageId);
+        await telegramService.sendConfirmationMessage(chatId, "dismiss");
+        break;
+
+      case "postpone":
+        if (parts.length === 3) {
+          // Duration selected (postpone_reminderId_minutes)
+          const minutes = parseInt(parts[2], 10);
+          await reminderService.snoozeReminder(reminderId, userId, minutes);
+          await telegramService.editMessageReplyMarkup(chatId, messageId);
+
+          let durationText = `${minutes} minutes`;
+          if (minutes >= 10080) durationText = "7 days";
+          else if (minutes >= 1440) durationText = "1 day";
+          else if (minutes >= 60) durationText = `${minutes / 60} hour(s)`;
+
+          await telegramService.sendConfirmationMessage(chatId, "postpone", durationText);
+        } else {
+          // Initial postpone button clicked, show options
+          await telegramService.sendPostponeOptionsMessage(chatId, reminderId, messageId);
+        }
+        break;
+
+      case "addnote":
+        // Set session state
+        sessionService.setWaitingForNote(chatId, reminderId, messageId, userId);
+        // Remove keyboard and send prompt
+        await telegramService.editMessageReplyMarkup(chatId, messageId);
+        await telegramService.sendNotePromptMessage(chatId);
+        break;
+
+      default:
+        console.warn(`[${new Date().toISOString()}] TELEGRAM_WEBHOOK | Unknown action: ${action}`);
+    }
+  } catch (error) {
+    console.error(`[${new Date().toISOString()}] TELEGRAM_WEBHOOK | Error processing callback ${action}:`, error);
+    // Optionally send error message to user
+  }
+}
+
+/**
+ * Process a text message when user is in "waiting for note" state.
+ * @param message - Telegram message object
+ * @param session - Active session data
+ * @private
+ */
+async function processNoteMessage(
+  message: NonNullable<TelegramUpdate["message"]>,
+  session: TelegramSession
+): Promise<void> {
+  const chatId = message.chat.id.toString();
+  const noteText = message.text?.trim();
+
+  if (!noteText) {
+    return;
+  }
+
+  console.log(`[${new Date().toISOString()}] TELEGRAM_WEBHOOK | Processing note for reminder ${session.reminderId} from chat ${chatId}`);
+
+  const telegramService = ServiceManager.getTelegramService();
+  const reminderService = ServiceManager.getReminderService();
+  const sessionService = ServiceManager.getTelegramSessionService();
+
+  try {
+    // Add note to reminder
+    const updatedReminder = await reminderService.addNote(session.reminderId, session.userId, noteText);
+
+    // Send confirmation
+    await telegramService.sendConfirmationMessage(chatId, "addnote");
+
+    // Clear session
+    sessionService.clearSession(chatId);
+
+    // Resend reminder message with keyboard
+    const userService = ServiceManager.getUserService();
+    const user = await userService.getUserById(session.userId);
+    const trackingService = ServiceManager.getTrackingService();
+    const tracking = await trackingService.getById(updatedReminder.tracking_id, session.userId);
+
+    if (tracking) {
+      await telegramService.sendReminderMessage(
+        chatId,
+        updatedReminder.id,
+        tracking.question,
+        updatedReminder.scheduled_time,
+        tracking.icon || undefined,
+        tracking.notes || undefined,
+        updatedReminder.notes || undefined,
+        user?.locale || undefined,
+        user?.timezone || undefined
+      );
+    }
+
+  } catch (error) {
+    console.error(`[${new Date().toISOString()}] TELEGRAM_WEBHOOK | Error processing note message:`, error);
+    sessionService.clearSession(chatId);
+    // Optionally send error message
   }
 }
 

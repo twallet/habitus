@@ -108,6 +108,52 @@ export class UserService {
   }
 
   /**
+   * Get a user by Telegram chat ID.
+   * @param chatId - The Telegram chat ID
+   * @returns Promise resolving to user data or null if not found
+   * @public
+   */
+  async getUserByTelegramChatId(chatId: string): Promise<UserData | null> {
+    Logger.debug(`USER | Fetching user by Telegram chat ID: ${chatId}`);
+
+    const row = await this.db.get<{
+      id: number;
+      name: string;
+      email: string;
+      profile_picture_url: string | null;
+      telegram_chat_id: string | null;
+      notification_channels: string | null;
+      locale: string | null;
+      timezone: string | null;
+      last_access: string | null;
+      created_at: string;
+    }>(
+      "SELECT id, name, email, profile_picture_url, telegram_chat_id, notification_channels, locale, timezone, last_access, created_at FROM users WHERE telegram_chat_id = ?",
+      [chatId]
+    );
+
+    if (!row) {
+      Logger.debug(`USER | User not found for Telegram chat ID: ${chatId}`);
+      return null;
+    }
+
+    Logger.verbose(`USER | User found: ID ${row.id}, Telegram chat ID: ${row.telegram_chat_id}`);
+
+    return {
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      profile_picture_url: row.profile_picture_url || undefined,
+      telegram_chat_id: row.telegram_chat_id || undefined,
+      notification_channels: row.notification_channels || undefined,
+      locale: row.locale || undefined,
+      timezone: row.timezone || undefined,
+      last_access: row.last_access || undefined,
+      created_at: row.created_at,
+    };
+  }
+
+  /**
    * Update user profile.
    * @param userId - The user ID
    * @param name - Updated name (optional)

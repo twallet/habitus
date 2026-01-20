@@ -336,4 +336,53 @@ router.delete(
   }
 );
 
+/**
+ * PATCH /api/reminders/:id/add-note
+ * Add or update note for a reminder.
+ * @route PATCH /api/reminders/:id/add-note
+ * @header {string} Authorization - Bearer token
+ * @param {number} id - The reminder ID
+ * @body {string} notes - Notes to add
+ * @returns {ReminderData} Updated reminder data
+ */
+router.patch(
+  "/:id/add-note",
+  authenticateToken,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const reminderId = parseInt(req.params.id, 10);
+      const userId = req.userId!;
+      const { notes } = req.body;
+
+      if (isNaN(reminderId)) {
+        return res.status(400).json({ error: "Invalid reminder ID" });
+      }
+
+      if (!notes || typeof notes !== "string" || !notes.trim()) {
+        return res.status(400).json({ error: "Valid notes is required" });
+      }
+
+      const reminder = await getReminderServiceInstance().addNote(
+        reminderId,
+        userId,
+        notes.trim()
+      );
+
+      res.json(reminder);
+    } catch (error) {
+      if (error instanceof TypeError) {
+        return res.status(400).json({ error: error.message });
+      }
+      if (error instanceof Error && error.message === "Reminder not found") {
+        return res.status(404).json({ error: error.message });
+      }
+      console.error(
+        `[${new Date().toISOString()}] REMINDER_ROUTE | Error adding note to reminder:`,
+        error
+      );
+      res.status(500).json({ error: "Error adding note to reminder" });
+    }
+  }
+);
+
 export default router;

@@ -457,25 +457,18 @@ describe("TelegramService", () => {
       const body = JSON.parse(callArgs[1].body);
       const keyboard = body.reply_markup.inline_keyboard;
 
-      expect(keyboard).toHaveLength(2);
-      expect(keyboard[0]).toHaveLength(2);
-      expect(keyboard[1]).toHaveLength(2);
+      expect(keyboard).toHaveLength(1);
+      expect(keyboard[0]).toHaveLength(4);
 
-      // Check first row buttons
-      expect(keyboard[0][0].text).toBe("📝 Add Notes");
-      expect(keyboard[0][0].url).toContain("reminderId=42");
-      expect(keyboard[0][0].url).toContain("action=editNotes");
-      expect(keyboard[0][1].text).toBe("✓ Complete");
-      expect(keyboard[0][1].url).toContain("reminderId=42");
-      expect(keyboard[0][1].url).toContain("action=complete");
-
-      // Check second row buttons
-      expect(keyboard[1][0].text).toBe("✕ Dismiss");
-      expect(keyboard[1][0].url).toContain("reminderId=42");
-      expect(keyboard[1][0].url).toContain("action=dismiss");
-      expect(keyboard[1][1].text).toBe("💤 Snooze");
-      expect(keyboard[1][1].url).toContain("reminderId=42");
-      expect(keyboard[1][1].url).toContain("action=snooze");
+      // Check buttons
+      expect(keyboard[0][0].text).toBe("\u2714\ufe0f");
+      expect(keyboard[0][0].callback_data).toBe("complete_42");
+      expect(keyboard[0][1].text).toBe("\u274c");
+      expect(keyboard[0][1].callback_data).toBe("dismiss_42");
+      expect(keyboard[0][2].text).toBe("\ud83d\udca4");
+      expect(keyboard[0][2].callback_data).toBe("postpone_42");
+      expect(keyboard[0][3].text).toBe("\ud83d\udcc4");
+      expect(keyboard[0][3].callback_data).toBe("addnote_42");
     });
 
     it("should escape markdown special characters", async () => {
