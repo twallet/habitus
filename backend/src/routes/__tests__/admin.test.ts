@@ -69,7 +69,7 @@ async function createTestDatabase(): Promise<Database> {
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               user_id INTEGER NOT NULL,
               question TEXT NOT NULL CHECK(length(question) <= 100),
-              notes TEXT,
+              details TEXT,
               icon TEXT,
               frequency TEXT NOT NULL,
               state TEXT NOT NULL DEFAULT 'Running' CHECK(state IN ('Running', 'Paused', 'Archived')),
@@ -460,7 +460,7 @@ describe("Admin Routes", () => {
       expect(response.body.log).toContain("Notes=Test reminder notes");
     });
 
-    it("should return admin log with trackings having notes and icon", async () => {
+    it("should return admin log with trackings having details and icon", async () => {
       const userResult = await testDb.run(
         "INSERT INTO users (name, email) VALUES (?, ?)",
         ["Test User", "test@example.com"]
@@ -468,11 +468,11 @@ describe("Admin Routes", () => {
       const userId = userResult.lastID;
 
       await testDb.run(
-        "INSERT INTO trackings (user_id, question, notes, icon, frequency) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO trackings (user_id, question, details, icon, frequency) VALUES (?, ?, ?, ?, ?)",
         [
           userId,
           "Test Tracking",
-          "Tracking notes",
+          "Tracking details",
           "🌱",
           JSON.stringify({ type: "daily" }),
         ]
@@ -483,7 +483,7 @@ describe("Admin Routes", () => {
         .set("Authorization", "Bearer admin-token");
 
       expect(response.status).toBe(200);
-      expect(response.body.log).toContain("Tracking notes");
+      expect(response.body.log).toContain("Tracking details");
       expect(response.body.log).toContain("Icon=🌱");
     });
 

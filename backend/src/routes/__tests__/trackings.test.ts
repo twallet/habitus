@@ -77,7 +77,7 @@ async function createTestDatabase(): Promise<Database> {
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               user_id INTEGER NOT NULL,
               question TEXT NOT NULL CHECK(length(question) <= 100),
-              notes TEXT,
+              details TEXT,
               icon TEXT,
               frequency TEXT NOT NULL,
               state TEXT NOT NULL DEFAULT 'Running' CHECK(state IN ('Running', 'Paused', 'Archived')),
@@ -315,19 +315,19 @@ describe("Trackings Routes", () => {
       expect(response.body.schedules.length).toBe(1);
     });
 
-    it("should create tracking with notes", async () => {
+    it("should create tracking with details", async () => {
       const response = await request(app)
         .post("/api/trackings")
         .set("Authorization", "Bearer test-token")
         .send({
           question: "Did I meditate?",
-          notes: "Meditation notes",
+          details: "Meditation details",
           schedules: [{ hour: 10, minutes: 30 }],
           frequency: { type: "daily" },
         });
 
       expect(response.status).toBe(201);
-      expect(response.body.notes).toBe("Meditation notes");
+      expect(response.body.details).toBe("Meditation details");
       expect(response.body.schedules).toBeDefined();
     });
 

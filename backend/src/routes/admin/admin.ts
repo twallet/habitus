@@ -126,14 +126,14 @@ export class AdminController {
       id: number;
       user_id: number;
       question: string;
-      notes: string | null;
+      details: string | null;
       icon: string | null;
       frequency: string;
       state: string;
       created_at: string;
       updated_at: string;
     }>(
-      "SELECT id, user_id, question, notes, icon, frequency, state, created_at, updated_at FROM trackings ORDER BY created_at DESC"
+      "SELECT id, user_id, question, details, icon, frequency, state, created_at, updated_at FROM trackings ORDER BY created_at DESC"
     );
 
     const trackings = await Promise.all(
@@ -143,8 +143,7 @@ export class AdminController {
           frequency = JSON.parse(row.frequency);
         } catch (err) {
           console.error(
-            `[${new Date().toISOString()}] ADMIN_CONTROLLER | Failed to parse frequency JSON for tracking ${
-              row.id
+            `[${new Date().toISOString()}] ADMIN_CONTROLLER | Failed to parse frequency JSON for tracking ${row.id
             }:`,
             err
           );
@@ -154,7 +153,7 @@ export class AdminController {
           id: row.id,
           user_id: row.user_id,
           question: row.question,
-          notes: row.notes || undefined,
+          details: row.details || undefined,
           icon: row.icon || undefined,
           frequency: frequency,
           state: row.state,
@@ -315,13 +314,13 @@ export class AdminController {
         const schedulesStr =
           tracking.schedules && tracking.schedules.length > 0
             ? tracking.schedules
-                .map(
-                  (s: TrackingScheduleData) =>
-                    `${String(s.hour).padStart(2, "0")}:${String(
-                      s.minutes
-                    ).padStart(2, "0")}`
-                )
-                .join(", ")
+              .map(
+                (s: TrackingScheduleData) =>
+                  `${String(s.hour).padStart(2, "0")}:${String(
+                    s.minutes
+                  ).padStart(2, "0")}`
+              )
+              .join(", ")
             : "None";
 
         // Build tracking attributes
@@ -331,11 +330,10 @@ export class AdminController {
           `Question=${tracking.question}`,
           `State=${tracking.state}`,
           `Icon=${tracking.icon || "null"}`,
-          `Frequency=${
-            tracking.frequency ? JSON.stringify(tracking.frequency) : "null"
+          `Frequency=${tracking.frequency ? JSON.stringify(tracking.frequency) : "null"
           }`,
           `Schedules=[${schedulesStr}]`,
-          `Notes=${tracking.notes || "null"}`,
+          `Details=${tracking.details || "null"}`,
           `Created=${this.formatDateInTimezone(
             tracking.created_at,
             userTimezone
@@ -352,8 +350,8 @@ export class AdminController {
           tracking.state === "Running"
             ? ANSI_BLUE
             : tracking.state === "Paused"
-            ? ANSI_BRIGHT_YELLOW
-            : ANSI_WHITE;
+              ? ANSI_BRIGHT_YELLOW
+              : ANSI_WHITE;
 
         lines.push(
           `${stateColor}TRACKING #${index + 1} : ${trackingAttrs.join(
@@ -401,10 +399,10 @@ export class AdminController {
               reminder.status === "Pending"
                 ? ANSI_YELLOW
                 : reminder.status === "Answered"
-                ? ANSI_GREEN
-                : reminder.status === "Upcoming"
-                ? ANSI_MAGENTA
-                : ANSI_GRAY;
+                  ? ANSI_GREEN
+                  : reminder.status === "Upcoming"
+                    ? ANSI_MAGENTA
+                    : ANSI_GRAY;
 
             lines.push(
               `${statusColor}  -> REMINDER : ${reminderAttrs.join(
@@ -462,8 +460,7 @@ export class AdminController {
       await db.run("DELETE FROM users");
 
       console.log(
-        `[${new Date().toISOString()}] ADMIN_CONTROLLER | Database cleared by admin user ${
-          req.userId
+        `[${new Date().toISOString()}] ADMIN_CONTROLLER | Database cleared by admin user ${req.userId
         }`
       );
 

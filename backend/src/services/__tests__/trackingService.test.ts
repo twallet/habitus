@@ -699,13 +699,13 @@ describe("TrackingService", () => {
         trackingId,
         testUserId,
         undefined,
-        "Updated notes",
+        "Updated details",
         undefined,
         undefined,
         undefined
       );
 
-      expect(updated.details).toBe("Updated notes");
+      expect(updated.details).toBe("Updated details");
     });
 
     it("should throw error when tracking not found", async () => {
