@@ -31,90 +31,65 @@ import adminRouter from "../admin/admin.js";
  * @returns Promise resolving to Database instance
  */
 async function createTestDatabase(): Promise<Database> {
-  return new Promise((resolve, reject) => {
-    const db = new BetterSqlite3(":memory:");
-      if (err) {
-        reject(err);
-        return;
-      }
+  const db = new BetterSqlite3(":memory:");
 
-      db.run("PRAGMA foreign_keys = ON", (err) => {
-        if (err) {
-          reject(err);
-          return;
-        }
+  db.pragma("foreign_keys = ON");
+  db.pragma("journal_mode = WAL");
 
-        db.run("PRAGMA journal_mode = WAL", (err) => {
-          if (err) {
-            reject(err);
-            return;
-          }
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL CHECK(length(name) <= 30),
+      email TEXT NOT NULL UNIQUE,
+      profile_picture_url TEXT,
+      telegram_chat_id TEXT,
+      notification_channels TEXT,
+      locale TEXT DEFAULT 'en-US',
+      timezone TEXT,
+      last_access DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS trackings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      question TEXT NOT NULL CHECK(length(question) <= 100),
+      details TEXT,
+      icon TEXT,
+      frequency TEXT NOT NULL,
+      state TEXT NOT NULL DEFAULT 'Running' CHECK(state IN ('Running', 'Paused', 'Archived')),
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+    CREATE TABLE IF NOT EXISTS tracking_schedules (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tracking_id INTEGER NOT NULL,
+      hour INTEGER NOT NULL CHECK(hour >= 0 AND hour <= 23),
+      minutes INTEGER NOT NULL CHECK(minutes >= 0 AND minutes <= 59),
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (tracking_id) REFERENCES trackings(id) ON DELETE CASCADE,
+      UNIQUE(tracking_id, hour, minutes)
+    );
+    CREATE TABLE IF NOT EXISTS reminders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tracking_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      scheduled_time DATETIME NOT NULL,
+      notes TEXT,
+      status TEXT NOT NULL DEFAULT 'Pending' CHECK(status IN ('Pending', 'Answered', 'Upcoming')),
+      value TEXT CHECK(value IN ('Completed', 'Dismissed') OR value IS NULL),
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (tracking_id) REFERENCES trackings(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+  `);
 
-          db.exec(
-            `
-            CREATE TABLE IF NOT EXISTS users (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              name TEXT NOT NULL CHECK(length(name) <= 30),
-              email TEXT NOT NULL UNIQUE,
-              profile_picture_url TEXT,
-              telegram_chat_id TEXT,
-              notification_channels TEXT,
-              locale TEXT DEFAULT 'en-US',
-              timezone TEXT,
-              last_access DATETIME,
-              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            );
-            CREATE TABLE IF NOT EXISTS trackings (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              user_id INTEGER NOT NULL,
-              question TEXT NOT NULL CHECK(length(question) <= 100),
-              details TEXT,
-              icon TEXT,
-              frequency TEXT NOT NULL,
-              state TEXT NOT NULL DEFAULT 'Running' CHECK(state IN ('Running', 'Paused', 'Archived')),
-              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-              FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-            );
-            CREATE TABLE IF NOT EXISTS tracking_schedules (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              tracking_id INTEGER NOT NULL,
-              hour INTEGER NOT NULL CHECK(hour >= 0 AND hour <= 23),
-              minutes INTEGER NOT NULL CHECK(minutes >= 0 AND minutes <= 59),
-              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-              FOREIGN KEY (tracking_id) REFERENCES trackings(id) ON DELETE CASCADE,
-              UNIQUE(tracking_id, hour, minutes)
-            );
-            CREATE TABLE IF NOT EXISTS reminders (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              tracking_id INTEGER NOT NULL,
-              user_id INTEGER NOT NULL,
-              scheduled_time DATETIME NOT NULL,
-              notes TEXT,
-              status TEXT NOT NULL DEFAULT 'Pending' CHECK(status IN ('Pending', 'Answered', 'Upcoming')),
-              value TEXT CHECK(value IN ('Completed', 'Dismissed') OR value IS NULL),
-              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-              FOREIGN KEY (tracking_id) REFERENCES trackings(id) ON DELETE CASCADE,
-              FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-            );
-          `,
-            (err) => {
-              if (err) {
-                reject(err);
-              } else {
-                const database = new Database();
-                (database as any).db = db;
-                resolve(database);
-              }
-            }
-          );
-        });
-      });
-    });
-  });
+  const database = new Database();
+  (database as any).db = db;
+  return database;
 }
 
 describe("Admin Routes", () => {
