@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import BetterSqlite3 from "better-sqlite3";
 import { Database } from "../../../db/database.js";
 import { TrackingLifecycleManager } from "../TrackingLifecycleManager.js";
 import { ReminderService } from "../../reminderService.js";
@@ -10,7 +11,6 @@ import { ReminderStatus } from "../../../models/Reminder.js";
  */
 async function createTestDatabase(): Promise<Database> {
   return new Promise((resolve, reject) => {
-    const sqlite3 = require("sqlite3");
     const db = new BetterSqlite3(":memory:", (err: Error | null) => {
       if (err) {
         reject(err);
@@ -380,5 +380,6 @@ describe("TrackingLifecycleManager", () => {
     });
   });
 });
+
 
 
