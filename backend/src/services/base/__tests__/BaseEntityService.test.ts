@@ -33,7 +33,7 @@ class TestEntityService extends BaseEntityService<TrackingData, Tracking> {
 async function createTestDatabase(): Promise<Database> {
   return new Promise((resolve, reject) => {
     const sqlite3 = require("sqlite3");
-    const db = new sqlite3.Database(":memory:", (err: Error | null) => {
+    const db = new BetterSqlite3(":memory:", (err: Error | null) => {
       if (err) {
         reject(err);
         return;
@@ -175,4 +175,5 @@ describe("BaseEntityService", () => {
     });
   });
 });
+
 

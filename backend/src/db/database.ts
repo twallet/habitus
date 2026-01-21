@@ -461,7 +461,7 @@ export class Database {
    * @throws Error if database is not initialized or if using PostgreSQL
    * @public
    */
-  getConnection(): BetterSqlite3.Database {
+  getConnection<T = BetterSqlite3.Database>(): T {
     if (this.dbType === DatabaseType.POSTGRESQL) {
       throw new Error(
         "getConnection() is not available for PostgreSQL. Use run(), get(), or all() methods instead."
