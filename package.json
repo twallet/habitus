@@ -34,10 +34,5 @@
     "jsdom": "^25.0.1",
     "typescript": "^5.2.2",
     "vitest": "^4.0.14"
-  },
-  "overrides": {
-    "tar": "^7.4.3",
-    "cacache": "^19.0.1",
-    "node-gyp": "^10.3.2"
   }
 }
