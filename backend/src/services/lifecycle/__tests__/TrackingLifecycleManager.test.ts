@@ -10,28 +10,13 @@ import { ReminderStatus } from "../../../models/Reminder.js";
  * Create an in-memory database for testing.
  */
 async function createTestDatabase(): Promise<Database> {
-  return new Promise((resolve, reject) => {
-    const db = new BetterSqlite3(":memory:", (err: Error | null) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-
-      db.run("PRAGMA foreign_keys = ON", (err: Error | null) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-
-        db.run("PRAGMA journal_mode = WAL", (err: Error | null) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-
-          db.exec(
-            `
-            CREATE TABLE IF NOT EXISTS users (
+  const db = new BetterSqlite3(":memory:");
+  
+  db.pragma("foreign_keys = ON");
+  db.pragma("journal_mode = WAL");
+  
+  db.exec(`
+CREATE TABLE IF NOT EXISTS users (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               name TEXT NOT NULL CHECK(length(name) <= 30),
               email TEXT NOT NULL UNIQUE,
@@ -75,21 +60,11 @@ async function createTestDatabase(): Promise<Database> {
               FOREIGN KEY (tracking_id) REFERENCES trackings(id) ON DELETE CASCADE,
               FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             );
-          `,
-            (err: Error | null) => {
-              if (err) {
-                reject(err);
-              } else {
-                const database = new Database();
-                (database as any).db = db;
-                resolve(database);
-              }
-            }
-          );
-        });
-      });
-    });
-  });
+  `);
+  
+  const database = new Database();
+  (database as any).db = db;
+  return database;
 }
 
 describe("TrackingLifecycleManager", () => {
