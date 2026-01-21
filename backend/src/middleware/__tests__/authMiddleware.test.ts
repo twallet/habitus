@@ -24,49 +24,24 @@ vi.mock("../../services/index.js", () => ({
  * Create an in-memory database for testing.
  */
 async function createTestDatabase(): Promise<Database> {
-  return new Promise((resolve, reject) => {
-    const db = new BetterSqlite3(":memory:");
-      if (err) {
-        reject(err);
-        return;
-      }
+  const db = new BetterSqlite3(":memory:");
 
-      db.run("PRAGMA foreign_keys = ON", (err) => {
-        if (err) {
-          reject(err);
-          return;
-        }
+  db.pragma("foreign_keys = ON");
+  db.pragma("journal_mode = WAL");
 
-        db.run("PRAGMA journal_mode = WAL", (err) => {
-          if (err) {
-            reject(err);
-            return;
-          }
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      locale TEXT DEFAULT 'en-US',
+      timezone TEXT
+    );
+  `);
 
-          db.exec(
-            `
-            CREATE TABLE IF NOT EXISTS users (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              name TEXT NOT NULL,
-              email TEXT NOT NULL UNIQUE,
-              locale TEXT DEFAULT 'en-US',
-              timezone TEXT
-            );
-          `,
-            (err) => {
-              if (err) {
-                reject(err);
-              } else {
-                const database = new Database();
-                (database as any).db = db;
-                resolve(database);
-              }
-            }
-          );
-        });
-      });
-    });
-  });
+  const database = new Database();
+  (database as any).db = db;
+  return database;
 }
 
 describe("authMiddleware", () => {

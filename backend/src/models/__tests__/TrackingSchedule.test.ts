@@ -8,28 +8,13 @@ import BetterSqlite3 from "better-sqlite3";
  * @returns Promise resolving to Database instance
  */
 async function createTestDatabase(): Promise<Database> {
-  return new Promise((resolve, reject) => {
-    const db = new BetterSqlite3(":memory:");
-      if (err) {
-        reject(err);
-        return;
-      }
-
-      db.run("PRAGMA foreign_keys = ON", (err) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-
-        db.run("PRAGMA journal_mode = WAL", (err) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-
-          db.exec(
-            `
-            CREATE TABLE IF NOT EXISTS users (
+  const db = new BetterSqlite3(":memory:");
+  
+  db.pragma("foreign_keys = ON");
+  db.pragma("journal_mode = WAL");
+  
+  db.exec(`
+CREATE TABLE IF NOT EXISTS users (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               name TEXT NOT NULL,
               email TEXT NOT NULL UNIQUE,
@@ -59,21 +44,11 @@ async function createTestDatabase(): Promise<Database> {
               UNIQUE(tracking_id, hour, minutes)
             );
             CREATE INDEX IF NOT EXISTS idx_tracking_schedules_tracking_id ON tracking_schedules(tracking_id);
-          `,
-            (err) => {
-              if (err) {
-                reject(err);
-              } else {
-                const database = new Database();
-                (database as any).db = db;
-                resolve(database);
-              }
-            }
-          );
-        });
-      });
-    });
-  });
+  `);
+  
+  const database = new Database();
+  (database as any).db = db;
+  return database;
 }
 
 describe("TrackingSchedule Model", () => {

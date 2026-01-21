@@ -44,28 +44,13 @@ vi.mock("../../middleware/upload.js", () => ({
  * @returns Promise resolving to Database instance
  */
 async function createTestDatabase(): Promise<Database> {
-  return new Promise((resolve, reject) => {
-    const db = new BetterSqlite3(":memory:");
-      if (err) {
-        reject(err);
-        return;
-      }
-
-      db.run("PRAGMA foreign_keys = ON", (err) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-
-        db.run("PRAGMA journal_mode = WAL", (err) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-
-          db.exec(
-            `
-            CREATE TABLE IF NOT EXISTS users (
+  const db = new BetterSqlite3(":memory:");
+  
+  db.pragma("foreign_keys = ON");
+  db.pragma("journal_mode = WAL");
+  
+  db.exec(`
+CREATE TABLE IF NOT EXISTS users (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               name TEXT NOT NULL CHECK(length(name) <= 30),
               email TEXT NOT NULL UNIQUE,
@@ -87,22 +72,11 @@ async function createTestDatabase(): Promise<Database> {
             CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
             CREATE INDEX IF NOT EXISTS idx_users_magic_link_token ON users(magic_link_token);
             CREATE INDEX IF NOT EXISTS idx_users_email_verification_token ON users(email_verification_token);
-          `,
-            (err) => {
-              if (err) {
-                reject(err);
-              } else {
-                // Create Database instance and manually set its internal db
-                const database = new Database();
-                (database as any).db = db;
-                resolve(database);
-              }
-            }
-          );
-        });
-      });
-    });
-  });
+  `);
+  
+  const database = new Database();
+  (database as any).db = db;
+  return database;
 }
 
 describe("Users Routes", () => {
