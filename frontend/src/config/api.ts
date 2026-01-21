@@ -36,21 +36,18 @@ function getViteEnv():
     return globalImport.meta.env;
   }
 
-  // If globalThis doesn't have it, try import.meta.env (browser/Vite only)
-  // Jest will fail to parse import.meta directly, so we use eval to avoid parsing at module load time
-  // This is safe because:
-  // 1. We only reach here if globalThis.import.meta.env is not available (i.e., not in Jest)
-  // 2. In browser/Vite, import.meta.env is available and Vite replaces it at build/dev time
-  // eslint-disable-next-line no-eval
+  // In Vite/Vitest, import.meta.env is supported natively.
+  // The original eval hack was likely for Jest compatibility which is no longer needed.
   try {
-    // Access import.meta.env dynamically to avoid test runner parsing errors
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore - Accessing import.meta.env safely
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const env = eval("import.meta.env");
+    const env = import.meta.env as any;
     if (env && (env.VITE_SERVER_URL || env.VITE_PORT)) {
       return env;
     }
   } catch {
-    // If eval fails or import.meta is not available, return undefined
+    // If import.meta is not available or fails
   }
 
   return undefined;
