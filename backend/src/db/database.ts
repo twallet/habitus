@@ -291,9 +291,113 @@ export class Database {
     if (this.dbType === DatabaseType.POSTGRESQL) {
       return this.initializePostgreSQL();
     } else {
-      return this.initializeSQLite();
+      await this.initializeSQLite();
+    }
+    await this.migrate();
+  }
+
+  /**
+   * Run database migrations.
+   * Handles schema updates like renaming columns.
+   * @private
+   */
+  private async migrate(): Promise<void> {
+    Logger.info("DATABASE | Checking for pending migrations...");
+    if (this.dbType === DatabaseType.POSTGRESQL) {
+      await this.migratePostgreSQL();
+    } else {
+      await this.migrateSQLite();
     }
   }
+
+  /**
+   * Run PostgreSQL migrations.
+   * @private
+   */
+  private async migratePostgreSQL(): Promise<void> {
+    if (!this.pgPool) return;
+
+    try {
+      // Check if details column exists in trackings table
+      const checkDetails = await this.pgPool.query(
+        "SELECT column_name FROM information_schema.columns WHERE table_name='trackings' AND column_name='details'"
+      );
+
+      if (checkDetails.rows.length === 0) {
+        Logger.info(
+          "DATABASE | 'details' column missing in trackings table, checking for 'notes'..."
+        );
+        // Check if notes column exists
+        const checkNotes = await this.pgPool.query(
+          "SELECT column_name FROM information_schema.columns WHERE table_name='trackings' AND column_name='notes'"
+        );
+
+        if (checkNotes.rows.length > 0) {
+          Logger.info("DATABASE | Renaming 'notes' column to 'details'...");
+          await this.pgPool.query(
+            "ALTER TABLE trackings RENAME COLUMN notes TO details"
+          );
+          Logger.info("DATABASE | Migration successful");
+        } else {
+          Logger.info("DATABASE | Adding 'details' column...");
+          await this.pgPool.query("ALTER TABLE trackings ADD COLUMN details TEXT");
+          Logger.info("DATABASE | Column added successfully");
+        }
+      }
+    } catch (error) {
+      Logger.error("DATABASE | Migration failed:", error);
+      // Don't throw, let app start even if migration fails (might be permission issue)
+    }
+  }
+
+  /**
+   * Run SQLite migrations.
+   * @private
+   */
+  private async migrateSQLite(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const db = this.getConnection();
+      db.all("PRAGMA table_info(trackings)", (err, rows: any[]) => {
+        if (err) {
+          Logger.error("DATABASE | Failed to check table info:", err);
+          // Don't block startup
+          resolve();
+          return;
+        }
+
+        const hasDetails = rows.some((r) => r.name === "details");
+        const hasNotes = rows.some((r) => r.name === "notes");
+
+        if (!hasDetails) {
+          if (hasNotes) {
+            Logger.info("DATABASE | Renaming 'notes' column to 'details'...");
+            db.run(
+              "ALTER TABLE trackings RENAME COLUMN notes TO details",
+              (err) => {
+                if (err) {
+                  Logger.error("DATABASE | Migration failed:", err);
+                } else {
+                  Logger.info("DATABASE | Migration successful");
+                }
+                resolve();
+              }
+            );
+          } else {
+            Logger.info("DATABASE | Adding 'details' column...");
+            db.run("ALTER TABLE trackings ADD COLUMN details TEXT", (err) => {
+              if (err) {
+                Logger.error("DATABASE | Migration failed:", err);
+              } else {
+                Logger.info("DATABASE | Column added successfully");
+              }
+              resolve();
+            });
+          }
+        } else {
+          resolve();
+        }
+      });
+    });
 
   /**
    * Initialize PostgreSQL database.
