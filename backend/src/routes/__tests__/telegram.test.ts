@@ -13,10 +13,10 @@ import telegramRouter from "../telegram.js";
  */
 async function createTestDatabase(): Promise<Database> {
   const db = new BetterSqlite3(":memory:");
-  
+
   db.pragma("foreign_keys = ON");
   db.pragma("journal_mode = WAL");
-  
+
   db.exec(`
 CREATE TABLE IF NOT EXISTS users (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -46,7 +46,32 @@ CREATE TABLE IF NOT EXISTS users (
             CREATE INDEX IF NOT EXISTS idx_telegram_connection_tokens_user_id ON telegram_connection_tokens(user_id);
             CREATE INDEX IF NOT EXISTS idx_telegram_connection_tokens_expires_at ON telegram_connection_tokens(expires_at);
   `);
-  
+
+  db.exec(`
+            CREATE TABLE IF NOT EXISTS trackings (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              user_id INTEGER NOT NULL,
+              question TEXT NOT NULL,
+              frequency TEXT NOT NULL,
+              icon TEXT,
+              details TEXT,
+              status TEXT DEFAULT 'ACTIVE',
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+            CREATE TABLE IF NOT EXISTS reminders (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              tracking_id INTEGER NOT NULL,
+              scheduled_time DATETIME NOT NULL,
+              status TEXT NOT NULL DEFAULT 'UPCOMING',
+              notes TEXT,
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              FOREIGN KEY (tracking_id) REFERENCES trackings(id) ON DELETE CASCADE
+            );
+  `);
+
   const database = new Database();
   (database as any).db = db;
   return database;
