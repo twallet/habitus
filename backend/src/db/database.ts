@@ -1,4 +1,4 @@
-import sqlite3 from "sqlite3";
+import BetterSqlite3 from "better-sqlite3";
 import { Pool, Client } from "pg";
 import path from "path";
 import fs from "fs";
@@ -265,7 +265,7 @@ function convertPlaceholdersToPostgreSQL(sql: string): string {
  * @public
  */
 export class Database {
-  private db: sqlite3.Database | null = null;
+  private db: BetterSqlite3.Database | null = null;
   private pgPool: Pool | null = null;
   private dbPath: string;
   private dbType: DatabaseType;
@@ -355,49 +355,28 @@ export class Database {
    * @private
    */
   private async migrateSQLite(): Promise<void> {
-    return new Promise((resolve, reject) => {
+    try {
       const db = this.getConnection();
-      db.all("PRAGMA table_info(trackings)", (err, rows: any[]) => {
-        if (err) {
-          Logger.error("DATABASE | Failed to check table info:", err);
-          // Don't block startup
-          resolve();
-          return;
-        }
+      const rows = db.pragma("table_info(trackings)") as any[];
 
-        const hasDetails = rows.some((r) => r.name === "details");
-        const hasNotes = rows.some((r) => r.name === "notes");
+      const hasDetails = rows.some((r) => r.name === "details");
+      const hasNotes = rows.some((r) => r.name === "notes");
 
-        if (!hasDetails) {
-          if (hasNotes) {
-            Logger.info("DATABASE | Renaming 'notes' column to 'details'...");
-            db.run(
-              "ALTER TABLE trackings RENAME COLUMN notes TO details",
-              (err) => {
-                if (err) {
-                  Logger.error("DATABASE | Migration failed:", err);
-                } else {
-                  Logger.info("DATABASE | Migration successful");
-                }
-                resolve();
-              }
-            );
-          } else {
-            Logger.info("DATABASE | Adding 'details' column...");
-            db.run("ALTER TABLE trackings ADD COLUMN details TEXT", (err) => {
-              if (err) {
-                Logger.error("DATABASE | Migration failed:", err);
-              } else {
-                Logger.info("DATABASE | Column added successfully");
-              }
-              resolve();
-            });
-          }
+      if (!hasDetails) {
+        if (hasNotes) {
+          Logger.info("DATABASE | Renaming 'notes' column to 'details'...");
+          db.exec("ALTER TABLE trackings RENAME COLUMN notes TO details");
+          Logger.info("DATABASE | Migration successful");
         } else {
-          resolve();
+          Logger.info("DATABASE | Adding 'details' column...");
+          db.exec("ALTER TABLE trackings ADD COLUMN details TEXT");
+          Logger.info("DATABASE | Column added successfully");
         }
-      });
-    });
+      }
+    } catch (err) {
+      Logger.error("DATABASE | Migration failed:", err);
+      // Don't block startup
+    }
   }
 
   /**
@@ -449,65 +428,40 @@ export class Database {
    * @private
    */
   private async initializeSQLite(): Promise<void> {
-    return new Promise((resolve, reject) => {
+    try {
       Logger.info(
         `DATABASE | Initializing SQLite database at: ${this.dbPath}`
       );
 
-      this.db = new sqlite3.Database(this.dbPath, (err) => {
-        if (err) {
-          Logger.error("DATABASE | Failed to open database:", err);
-          reject(err);
-          return;
-        }
+      this.db = new BetterSqlite3(this.dbPath);
+      Logger.info("DATABASE | Database connection opened successfully");
 
-        Logger.info("DATABASE | Database connection opened successfully");
+      // Enable foreign keys and WAL mode
+      this.db.pragma("foreign_keys = ON");
+      Logger.info("DATABASE | Foreign keys enabled");
 
-        // Enable foreign keys and WAL mode
-        this.db!.run("PRAGMA foreign_keys = ON", (err) => {
-          if (err) {
-            Logger.error("DATABASE | Failed to enable foreign keys:", err);
-            reject(err);
-            return;
-          }
+      this.db.pragma("journal_mode = WAL");
+      Logger.info("DATABASE | WAL mode enabled");
 
-          Logger.info("DATABASE | Foreign keys enabled");
-
-          this.db!.run("PRAGMA journal_mode = WAL", (err) => {
-            if (err) {
-              Logger.error("DATABASE | Failed to enable WAL mode:", err);
-              reject(err);
-              return;
-            }
-
-            Logger.info("DATABASE | WAL mode enabled");
-
-            // Create tables with complete schema
-            Logger.info("DATABASE | Creating database schema...");
-            this.db!.exec(SQLITE_SCHEMA, (err) => {
-              if (err) {
-                Logger.error("DATABASE | Failed to create schema:", err);
-                reject(err);
-                return;
-              }
-              Logger.info("DATABASE | Database schema created successfully");
-              resolve();
-            });
-          });
-        });
-      });
-    });
+      // Create tables with complete schema
+      Logger.info("DATABASE | Creating database schema...");
+      this.db.exec(SQLITE_SCHEMA);
+      Logger.info("DATABASE | Database schema created successfully");
+    } catch (err) {
+      Logger.error("DATABASE | Failed to initialize database:", err);
+      throw err;
+    }
   }
 
   /**
    * Get the database connection instance.
-   * For SQLite, returns the sqlite3.Database instance.
+   * For SQLite, returns the BetterSqlite3.Database instance.
    * For PostgreSQL, throws an error (use query methods directly).
    * @returns The database connection (SQLite only)
    * @throws Error if database is not initialized or if using PostgreSQL
    * @public
    */
-  getConnection(): sqlite3.Database {
+  getConnection(): BetterSqlite3.Database {
     if (this.dbType === DatabaseType.POSTGRESQL) {
       throw new Error(
         "getConnection() is not available for PostgreSQL. Use run(), get(), or all() methods instead."
@@ -536,25 +490,20 @@ export class Database {
       return;
     }
 
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        Logger.info("DATABASE | Database already closed or not initialized");
-        resolve();
-        return;
-      }
+    if (!this.db) {
+      Logger.info("DATABASE | Database already closed or not initialized");
+      return;
+    }
 
+    try {
       Logger.info("DATABASE | Closing database connection...");
-      this.db.close((err) => {
-        if (err) {
-          Logger.error("DATABASE | Error closing database:", err);
-          reject(err);
-        } else {
-          this.db = null;
-          Logger.info("DATABASE | Database connection closed successfully");
-          resolve();
-        }
-      });
-    });
+      this.db.close();
+      this.db = null;
+      Logger.info("DATABASE | Database connection closed successfully");
+    } catch (err) {
+      Logger.error("DATABASE | Error closing database:", err);
+      throw err;
+    }
   }
 
   /**
@@ -655,24 +604,24 @@ export class Database {
     sql: string,
     params: any[] = []
   ): Promise<{ lastID: number; changes: number }> {
-    return new Promise((resolve, reject) => {
+    try {
       const database = this.getConnection();
-      database.run(sql, params, function (err) {
-        if (err) {
-          Logger.error(
-            "DATABASE | Query execution failed:",
-            sql.substring(0, 100),
-            err
-          );
-          reject(err);
-        } else {
-          Logger.debug(
-            `DATABASE | Query executed successfully, changes: ${this.changes}, lastID: ${this.lastID}`
-          );
-          resolve({ lastID: this.lastID, changes: this.changes });
-        }
-      });
-    });
+      const result = database.prepare(sql).run(params);
+      Logger.debug(
+        `DATABASE | Query executed successfully, changes: ${result.changes}, lastID: ${result.lastInsertRowid}`
+      );
+      return {
+        lastID: Number(result.lastInsertRowid),
+        changes: result.changes,
+      };
+    } catch (err) {
+      Logger.error(
+        "DATABASE | Query execution failed:",
+        sql.substring(0, 100),
+        err
+      );
+      throw err;
+    }
   }
 
   /**
@@ -733,23 +682,20 @@ export class Database {
     sql: string,
     params: any[] = []
   ): Promise<T | undefined> {
-    return new Promise((resolve, reject) => {
+    try {
       const database = this.getConnection();
-      database.get(sql, params, (err, row) => {
-        if (err) {
-          Logger.error(
-            "DATABASE | Query execution failed:",
-            sql.substring(0, 100),
-            err
-          );
-          reject(err);
-        } else {
-          const found = row ? "found" : "not found";
-          Logger.debug(`DATABASE | Query executed successfully, row ${found}`);
-          resolve(row as T);
-        }
-      });
-    });
+      const row = database.prepare(sql).get(params) as T | undefined;
+      const found = row ? "found" : "not found";
+      Logger.debug(`DATABASE | Query executed successfully, row ${found}`);
+      return row;
+    } catch (err) {
+      Logger.error(
+        "DATABASE | Query execution failed:",
+        sql.substring(0, 100),
+        err
+      );
+      throw err;
+    }
   }
 
   /**
@@ -811,23 +757,20 @@ export class Database {
     sql: string,
     params: any[] = []
   ): Promise<T[]> {
-    return new Promise((resolve, reject) => {
+    try {
       const database = this.getConnection();
-      database.all(sql, params, (err, rows) => {
-        if (err) {
-          Logger.error(
-            "DATABASE | Query execution failed:",
-            sql.substring(0, 100),
-            err
-          );
-          reject(err);
-        } else {
-          Logger.debug(
-            `DATABASE | Query executed successfully, returned ${rows.length} rows`
-          );
-          resolve(rows as T[]);
-        }
-      });
-    });
+      const rows = database.prepare(sql).all(params) as T[];
+      Logger.debug(
+        `DATABASE | Query executed successfully, returned ${rows.length} rows`
+      );
+      return rows;
+    } catch (err) {
+      Logger.error(
+        "DATABASE | Query execution failed:",
+        sql.substring(0, 100),
+        err
+      );
+      throw err;
+    }
   }
 }

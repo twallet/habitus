@@ -1,7 +1,7 @@
 import { vi, type Mock } from "vitest";
 import request from "supertest";
 import express from "express";
-import sqlite3 from "sqlite3";
+import BetterSqlite3 from "better-sqlite3";
 import fs from "fs";
 import path from "path";
 import { Database } from "../../db/database.js";
@@ -45,7 +45,7 @@ vi.mock("../../middleware/upload.js", () => ({
  */
 async function createTestDatabase(): Promise<Database> {
   return new Promise((resolve, reject) => {
-    const db = new sqlite3.Database(":memory:", (err) => {
+    const db = new BetterSqlite3(":memory:");
       if (err) {
         reject(err);
         return;
@@ -620,3 +620,5 @@ describe("Users Routes", () => {
     });
   });
 });
+
+

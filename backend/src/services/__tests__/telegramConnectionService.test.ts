@@ -1,5 +1,5 @@
 import { vi, type Mock } from "vitest";
-import sqlite3 from "sqlite3";
+import BetterSqlite3 from "better-sqlite3";
 import { TelegramConnectionService } from "../telegramConnectionService.js";
 import { Database } from "../../db/database.js";
 
@@ -9,7 +9,7 @@ import { Database } from "../../db/database.js";
  */
 async function createTestDatabase(): Promise<Database> {
   return new Promise((resolve, reject) => {
-    const db = new sqlite3.Database(":memory:", (err) => {
+    const db = new BetterSqlite3(":memory:");
       if (err) {
         reject(err);
         return;
@@ -272,3 +272,5 @@ describe("TelegramConnectionService", () => {
     });
   });
 });
+
+

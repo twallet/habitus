@@ -79,3 +79,4 @@ describe("TelegramSessionService", () => {
         expect(sessionService.getActiveSessionCount()).toBe(0);
     });
 });
+

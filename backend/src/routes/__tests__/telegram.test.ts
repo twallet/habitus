@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import request from "supertest";
 import express from "express";
-import sqlite3 from "sqlite3";
+import BetterSqlite3 from "better-sqlite3";
 import { Database } from "../../db/database.js";
 import { ServiceManager } from "../../services/index.js";
 import * as authMiddlewareModule from "../../middleware/authMiddleware.js";
@@ -13,7 +13,7 @@ import telegramRouter from "../telegram.js";
  */
 async function createTestDatabase(): Promise<Database> {
   return new Promise((resolve, reject) => {
-    const db = new sqlite3.Database(":memory:", (err) => {
+    const db = new BetterSqlite3(":memory:");
       if (err) {
         reject(err);
         return;
@@ -573,3 +573,5 @@ describe("Telegram Webhook Routes", () => {
     });
   });
 });
+
+

@@ -36,9 +36,8 @@
     "vitest": "^4.0.14"
   },
   "overrides": {
-    "sqlite3": {
-      "node-gyp": "^10.0.0"
-    },
-    "tar": "^6.2.2"
+    "tar": "^7.4.3",
+    "cacache": "^19.0.1",
+    "node-gyp": "^10.3.2"
   }
 }

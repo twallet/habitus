@@ -51,7 +51,7 @@ vi.mock("../../middleware/upload.js", () => ({
 
 import request from "supertest";
 import express from "express";
-import sqlite3 from "sqlite3";
+import BetterSqlite3 from "better-sqlite3";
 import { Database } from "../../db/database.js";
 import { AuthService } from "../../services/authService.js";
 import { EmailService } from "../../services/emailService.js";
@@ -67,7 +67,7 @@ import authRouter from "../auth.js";
  */
 async function createTestDatabase(): Promise<Database> {
   return new Promise((resolve, reject) => {
-    const db = new sqlite3.Database(":memory:", (err) => {
+    const db = new BetterSqlite3(":memory:");
       if (err) {
         reject(err);
         return;
@@ -1010,3 +1010,5 @@ describe("Auth Routes", () => {
     });
   });
 });
+
+

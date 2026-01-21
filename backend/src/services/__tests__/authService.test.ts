@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import sqlite3 from "sqlite3";
+import BetterSqlite3 from "better-sqlite3";
 import { AuthService } from "../authService.js";
 import { Database } from "../../db/database.js";
 import { EmailService } from "../emailService.js";
@@ -29,65 +29,40 @@ vi.mock("../emailService.js", () => {
  * @returns Promise resolving to Database instance
  */
 async function createTestDatabase(): Promise<Database> {
-  return new Promise((resolve, reject) => {
-    const db = new sqlite3.Database(":memory:", (err) => {
-      if (err) {
-        reject(err);
-        return;
-      }
+  const db = new BetterSqlite3(":memory:");
 
-      db.run("PRAGMA foreign_keys = ON", (err) => {
-        if (err) {
-          reject(err);
-          return;
-        }
+  db.pragma("foreign_keys = ON");
+  db.pragma("journal_mode = WAL");
 
-        db.run("PRAGMA journal_mode = WAL", (err) => {
-          if (err) {
-            reject(err);
-            return;
-          }
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL CHECK(length(name) <= 30),
+      email TEXT NOT NULL UNIQUE,
+      profile_picture_url TEXT,
+      magic_link_token TEXT,
+      magic_link_expires DATETIME,
+      telegram_chat_id TEXT,
+      notification_channels TEXT,
+      locale TEXT DEFAULT 'en-US',
+      timezone TEXT,
+      last_access DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      pending_email TEXT,
+      email_verification_token TEXT,
+      email_verification_expires DATETIME
+    );
+    CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at);
+    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+    CREATE INDEX IF NOT EXISTS idx_users_magic_link_token ON users(magic_link_token);
+    CREATE INDEX IF NOT EXISTS idx_users_email_verification_token ON users(email_verification_token);
+  `);
 
-          db.exec(
-            `
-            CREATE TABLE IF NOT EXISTS users (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              name TEXT NOT NULL CHECK(length(name) <= 30),
-              email TEXT NOT NULL UNIQUE,
-              profile_picture_url TEXT,
-              magic_link_token TEXT,
-              magic_link_expires DATETIME,
-              telegram_chat_id TEXT,
-              notification_channels TEXT,
-              locale TEXT DEFAULT 'en-US',
-              timezone TEXT,
-              last_access DATETIME,
-              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-              pending_email TEXT,
-              email_verification_token TEXT,
-              email_verification_expires DATETIME
-            );
-            CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at);
-            CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-            CREATE INDEX IF NOT EXISTS idx_users_magic_link_token ON users(magic_link_token);
-            CREATE INDEX IF NOT EXISTS idx_users_email_verification_token ON users(email_verification_token);
-          `,
-            (err) => {
-              if (err) {
-                reject(err);
-              } else {
-                // Create Database instance and manually set its internal db
-                const database = new Database();
-                (database as any).db = db;
-                resolve(database);
-              }
-            }
-          );
-        });
-      });
-    });
-  });
+  // Create Database instance and manually set its internal db
+  const database = new Database();
+  (database as any).db = db;
+  return database;
 }
 
 describe("AuthService", () => {
