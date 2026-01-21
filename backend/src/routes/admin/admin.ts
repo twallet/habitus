@@ -544,4 +544,79 @@ router.post(
   }
 );
 
+/**
+ * POST /api/admin/migrate-notes-to-details
+ * TEMPORARY: Migrate 'notes' column to 'details' in trackings table (PostgreSQL only).
+ * This endpoint can be removed after the migration is complete.
+ * Requires admin authentication.
+ * @route POST /api/admin/migrate-notes-to-details
+ * @header {string} Authorization - Bearer token
+ * @returns {Object} Migration result
+ */
+router.post(
+  "/migrate-notes-to-details",
+  requireAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const trackingService = ServiceManager.getTrackingService();
+      const db = (trackingService as any).db as Database;
+
+      // Check if we're using PostgreSQL
+      const isPostgreSQL = process.env.DATABASE_URL !== undefined;
+
+      if (!isPostgreSQL) {
+        return res.status(400).json({
+          error: "This migration is only for PostgreSQL databases",
+          message: "SQLite migrations are handled automatically",
+        });
+      }
+
+      // Check if details column already exists
+      const checkDetails = await db.all(
+        "SELECT column_name FROM information_schema.columns WHERE table_name='trackings' AND column_name='details'"
+      );
+
+      if (checkDetails.length > 0) {
+        return res.json({
+          success: true,
+          message: "Migration already complete - 'details' column exists",
+          alreadyMigrated: true,
+        });
+      }
+
+      // Check if notes column exists
+      const checkNotes = await db.all(
+        "SELECT column_name FROM information_schema.columns WHERE table_name='trackings' AND column_name='notes'"
+      );
+
+      if (checkNotes.length > 0) {
+        // Rename notes to details
+        await db.run("ALTER TABLE trackings RENAME COLUMN notes TO details");
+        return res.json({
+          success: true,
+          message: "Successfully renamed 'notes' column to 'details'",
+          action: "renamed",
+        });
+      } else {
+        // Neither exists, add the column
+        await db.run("ALTER TABLE trackings ADD COLUMN details TEXT");
+        return res.json({
+          success: true,
+          message: "Successfully added 'details' column",
+          action: "added",
+        });
+      }
+    } catch (error) {
+      console.error(
+        `[${new Date().toISOString()}] ADMIN | Error during migration:`,
+        error
+      );
+      res.status(500).json({
+        error: "Migration failed",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+);
+
 export default router;
