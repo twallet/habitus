@@ -398,6 +398,7 @@ export class Database {
         }
       });
     });
+  }
 
   /**
    * Initialize PostgreSQL database.
