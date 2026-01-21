@@ -556,7 +556,7 @@ describe("TrackingsList", () => {
                 user_id: 1,
                 question: "Did I exercise today?",
                 icon: "🏋️",
-                details: "<p>Exercise notes</p>",
+                details: "<p>Exercise details</p>",
                 schedules: [
                     { id: 1, tracking_id: 1, hour: 9, minutes: 0 },
                     { id: 2, tracking_id: 1, hour: 18, minutes: 30 },
@@ -594,7 +594,7 @@ describe("TrackingsList", () => {
         expect(detailsIcons.length).toBeGreaterThan(0);
         // Check the first one (from table layout) has the correct attributes
         const detailsIcon = detailsIcons[0];
-        expect(detailsIcon).toHaveAttribute("title", "<p>Exercise notes</p>");
+        expect(detailsIcon).toHaveAttribute("title", "<p>Exercise details</p>");
     });
 
     it("should display details icon with tooltip when details are present", () => {
@@ -604,7 +604,7 @@ describe("TrackingsList", () => {
                 user_id: 1,
                 question: "Did I exercise?",
                 frequency: { type: "daily" },
-                details: "Some exercise notes",
+                details: "Some exercise details",
             },
         ];
 
@@ -619,8 +619,8 @@ describe("TrackingsList", () => {
         expect(detailsIcons.length).toBeGreaterThan(0);
         // Check the first one (from table layout) has the correct attributes
         const detailsIcon = detailsIcons[0];
-        expect(detailsIcon).toHaveAttribute("title", "Some exercise notes");
-        expect(detailsIcon).toHaveAttribute("aria-label", "Details: Some exercise notes");
+        expect(detailsIcon).toHaveAttribute("title", "Some exercise details");
+        expect(detailsIcon).toHaveAttribute("aria-label", "Details: Some exercise details");
     });
 
     it("should display dash when details are empty or undefined", () => {

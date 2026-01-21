@@ -13,7 +13,7 @@ describe('EditTrackingModal', () => {
   const mockTracking: TrackingData = {
     id: 1,
     question: 'Did I exercise today?',
-    details: 'Some notes',
+    details: 'Some details',
     user_id: 1,
     schedules: [{ id: 1, tracking_id: 1, hour: 9, minutes: 0 }],
     frequency: defaultFrequency,
@@ -88,9 +88,9 @@ describe('EditTrackingModal', () => {
 
     const detailsInput = screen.getByRole('textbox', { name: /^details \?/i });
     await user.clear(detailsInput);
-    await user.type(detailsInput, 'New notes');
+    await user.type(detailsInput, 'New details');
 
-    expect(detailsInput).toHaveValue('New notes');
+    expect(detailsInput).toHaveValue('New details');
   });
 
   it('should show error for empty question', async () => {

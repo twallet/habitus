@@ -733,7 +733,7 @@ class StateTransitionHelper {
 
 /**
  * Component for displaying a list of trackings.
- * Shows tracking table with icon, question, type, times, frequency, notes, and edit action.
+ * Shows tracking table with icon, question, type, times, frequency, details, and edit action.
  * @param props - Component props
  * @param props.trackings - Array of tracking data
  * @param props.onEdit - Callback when edit button is clicked

@@ -41,6 +41,17 @@ describe("TelegramService", () => {
       telegramService = new TelegramService(config);
       expect(telegramService).toBeInstanceOf(TelegramService);
     });
+
+    it("should fallback to empty string when no bot token provided and env is missing", () => {
+      const originalEnv = process.env;
+      process.env = { ...originalEnv };
+      delete process.env.TELEGRAM_BOT_TOKEN;
+
+      telegramService = new TelegramService({});
+      expect(telegramService).toBeInstanceOf(TelegramService);
+
+      process.env = originalEnv;
+    });
   });
 
   describe("sendWelcomeMessage", () => {
@@ -603,7 +614,48 @@ describe("TelegramService", () => {
           "Did I exercise?",
           "2024-01-01T10:00:00Z"
         )
-      ).rejects.toThrow("Telegram API error");
+      ).rejects.toThrow("Telegram API error: Unauthorized");
+    });
+
+    it("should use default error message when description is missing", async () => {
+      const mockResponse = {
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          ok: false,
+        }),
+      };
+
+      mockFetch.mockResolvedValue(mockResponse);
+
+      await expect(
+        telegramService.sendReminderMessage(
+          "123456789",
+          1,
+          "Did I exercise?",
+          "2024-01-01T10:00:00Z"
+        )
+      ).rejects.toThrow("Telegram API error: Unknown error");
+    });
+
+    it("should fallback to message ID 0 when result is missing messageId", async () => {
+      const mockResponse = {
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          ok: true,
+          result: {},
+        }),
+      };
+
+      mockFetch.mockResolvedValue(mockResponse);
+
+      const messageId = await telegramService.sendReminderMessage(
+        "123456789",
+        1,
+        "Did I exercise?",
+        "2024-01-01T10:00:00Z"
+      );
+
+      expect(messageId).toBe(0);
     });
 
     it("should handle chat not found error specifically", async () => {
@@ -923,6 +975,196 @@ describe("TelegramService", () => {
       await expect(telegramService.getChatInfo("123456789")).rejects.toThrow(
         "Telegram API error: HTTP 500: Internal Server Error"
       );
+    });
+  });
+
+  describe("sendPostponeOptionsMessage", () => {
+    beforeEach(() => {
+      telegramService = new TelegramService({
+        botToken: "test-bot-token",
+        frontendUrl: "http://test.com",
+      });
+    });
+
+    it("should send postpone options successfully", async () => {
+      const mockResponse = {
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          ok: true,
+          result: { ok: true },
+        }),
+      };
+
+      mockFetch.mockResolvedValue(mockResponse);
+
+      await telegramService.sendPostponeOptionsMessage("123456789", 1, 456);
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      const callArgs = mockFetch.mock.calls[0];
+      expect(callArgs[0]).toBe(
+        "https://api.telegram.org/bottest-bot-token/editMessageReplyMarkup"
+      );
+      const body = JSON.parse(callArgs[1].body);
+      expect(body.chat_id).toBe("123456789");
+      expect(body.message_id).toBe(456);
+      expect(body.reply_markup.inline_keyboard).toHaveLength(3);
+    });
+
+    it("should throw error when bot token is not configured", async () => {
+      telegramService = new TelegramService({
+        botToken: "",
+      });
+
+      await expect(
+        telegramService.sendPostponeOptionsMessage("123456789", 1, 456)
+      ).rejects.toThrow("Telegram bot token not configured");
+    });
+
+    it("should handle API errors", async () => {
+      const mockResponse = {
+        ok: false,
+        status: 400,
+        statusText: "Bad Request",
+        json: vi.fn().mockResolvedValue({
+          ok: false,
+          description: "Message not found",
+        }),
+      };
+
+      mockFetch.mockResolvedValue(mockResponse);
+
+      await expect(
+        telegramService.sendPostponeOptionsMessage("123456789", 1, 456)
+      ).rejects.toThrow("Telegram API error: Message not found");
+    });
+  });
+
+  describe("sendNotePromptMessage", () => {
+    beforeEach(() => {
+      telegramService = new TelegramService({
+        botToken: "test-bot-token",
+      });
+    });
+
+    it("should send note prompt successfully", async () => {
+      const mockResponse = {
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          ok: true,
+          result: { message_id: 789 },
+        }),
+      };
+
+      mockFetch.mockResolvedValue(mockResponse);
+
+      await telegramService.sendNotePromptMessage("123456789");
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.text).toContain("send your note");
+    });
+
+    it("should handle error when token missing", async () => {
+      telegramService = new TelegramService({ botToken: "" });
+      await expect(
+        telegramService.sendNotePromptMessage("123456789")
+      ).rejects.toThrow("Telegram bot token not configured");
+    });
+  });
+
+  describe("sendConfirmationMessage", () => {
+    beforeEach(() => {
+      telegramService = new TelegramService({
+        botToken: "test-bot-token",
+      });
+    });
+
+    it("should send complete confirmation", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({ ok: true }),
+      });
+
+      await telegramService.sendConfirmationMessage("123456789", "complete");
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.text).toContain("marked as completed");
+    });
+
+    it("should send dismiss confirmation", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({ ok: true }),
+      });
+
+      await telegramService.sendConfirmationMessage("123456789", "dismiss");
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.text).toContain("dismissed");
+    });
+
+    it("should send postpone confirmation with details", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({ ok: true }),
+      });
+
+      await telegramService.sendConfirmationMessage(
+        "123456789",
+        "postpone",
+        "1 hour"
+      );
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.text).toContain("postponed for 1 hour");
+    });
+
+    it("should send addnote confirmation", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({ ok: true }),
+      });
+
+      await telegramService.sendConfirmationMessage("123456789", "addnote");
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.text).toContain("Note added successfully");
+    });
+  });
+
+  describe("editMessageReplyMarkup", () => {
+    beforeEach(() => {
+      telegramService = new TelegramService({
+        botToken: "test-bot-token",
+      });
+    });
+
+    it("should remove keyboard successfully", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({ ok: true }),
+      });
+
+      await telegramService.editMessageReplyMarkup("123456789", 456);
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.reply_markup.inline_keyboard).toEqual([]);
+    });
+
+    it("should handle errors", async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 400,
+        statusText: "Bad Request",
+        json: vi.fn().mockResolvedValue({
+          ok: false,
+          description: "Message not found",
+        }),
+      });
+
+      await expect(
+        telegramService.editMessageReplyMarkup("123456789", 456)
+      ).rejects.toThrow("Telegram API error: Message not found");
     });
   });
 });

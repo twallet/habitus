@@ -355,7 +355,7 @@ describe("TrackingForm", () => {
             name: /^details \?/i,
         });
         await user.type(questionInput, "Did I exercise?");
-        await user.type(detailsInput, "Exercise notes");
+        await user.type(detailsInput, "Exercise details");
         // Frequency defaults to Daily, so no need to change it
         await addSchedule(user);
         const submitButton = screen.getByRole("button", { name: /^create$/i });
@@ -364,7 +364,7 @@ describe("TrackingForm", () => {
         await waitFor(() => {
             expect(mockOnSubmit).toHaveBeenCalledWith(
                 "Did I exercise?",
-                "Exercise notes",
+                "Exercise details",
                 undefined,
                 [{ hour: 9, minutes: 0 }],
                 expect.objectContaining({
