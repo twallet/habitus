@@ -372,7 +372,7 @@ async function processNoteMessage(
         tracking.question,
         updatedReminder.scheduled_time,
         tracking.icon || undefined,
-        tracking.notes || undefined,
+        tracking.details || undefined,
         updatedReminder.notes || undefined,
         user?.locale || undefined,
         user?.timezone || undefined
